@@ -1,46 +1,37 @@
 // This is a test program that puts both accelerometer and moving together. 
 #include <SPI.h>
-//*** Defines which should be changed ***
+//*** Constants which should be changed ***
 //The number of microseconds in-between microstep. 
-//#define USEC  125 //125 slew speed @ 16 microsteps. 37500 max tracking speed.
-//#define USEC  2000 //125 slew speed @ 16 microsteps. 37500 max tracking speed.
-#define USEC  8 //125 slew speed @ 16 microsteps. 37500 max tracking speed.
+//#define kDeltaT_us  125 //125 slew speed @ 16 microsteps. 37500 max tracking speed.
+//#define kDeltaT_us  2000 //125 slew speed @ 16 microsteps. 37500 max tracking speed.
+const int kDeltaT_us=8; //Half of slew speed @ 256 microsteps.
+#define AXIS kZData3Reg
 
 //*** Constants for the Goniometer ***
-#define STEP  0
-#define DIR   1
-#define LIMP  8
-#define LIMN  9
-#define LIMZ  7
+const int kStepPin=0;
+const int kDirPin=1;
+const int kLimPPin=8;
+const int kLimNPin=9;
+const int kLimZPin=7;
 
-//*** Constants for the Accelerometer ***
-#define DEVID_AD                 0x00
-#define DEVID_MST                0x01
-#define PARTID                   0x02
-#define REVID                    0x03
-#define STATUS                   0x04
-#define FIFO_ENTRIES             0x05
-#define TEMP2 0x06
-#define TEMP1 0x07
-const int XDATA3 = 0x08;
-const int XDATA2 = 0x09;
-const int XDATA1 = 0x0A;
-const int YDATA3 = 0x0B;
-const int YDATA2 = 0x0C;
-const int YDATA1 = 0x0D;
-const int ZDATA3 = 0x0E;
-const int ZDATA2 = 0x0F;
-const int ZDATA1 = 0x10;
-const int RANGE = 0x2C;
-const int POWER_CTL = 0x2D;
-
-#define AXIS ZDATA3
+//*** Constants for the Accelerometer Registers***
+const int kDevidADReg=0x00;
+const int kDevidMSTReg=0x01;
+const int kPartIDReg=0x02;
+const int kTemp2Reg=0x06;
+const int kXData3Reg = 0x08;
+const int kYData3Reg = 0x0B;
+const int kZData3Reg = 0x0E;
+const int kRangeReg = 0x2C;
+const int kPowerCtlReg = 0x2D;
 
 /* Temperature parameters */
-#define ADXL355_TEMP_BIAS       (float)1852.0      /* Accelerometer temperature bias(in ADC codes) at 25 Deg C */
-#define ADXL355_TEMP_SLOPE      (float)-9.05       /* Accelerometer temperature change from datasheet (LSB/degC) */
-#define LSB_G (float)256000.0
-// Device values
+const float kADXL355TempBias=1852.0;      /* Accelerometer temperature bias(in ADC codes) at 25 Deg C */
+const float kADXL355TempSlope=-9.05;       /* Accelerometer temperature change from datasheet (LSB/degC) */
+const float kLSB_G=256000.0;  /* Least significant bit per g. */
+
+// Device values. NB These should also be changed to k prefixed constants. Or if hardwired, commented 
+// properly.
 const int RANGE_2G = 0x01;
 const int RANGE_4G = 0x02;
 const int RANGE_8G = 0x03;
@@ -51,41 +42,44 @@ const int READ_BYTE = 0x01;
 const int WRITE_BYTE = 0x00;
 
 // Pins used for the connection with the sensor
-const int CHIP_SELECT_PIN = 10;
+const int kChipSelectPin = 10;
 
-//A sequence of inputs
+//A sequence of inputs. These are Global variables so should probably 
+//be avoided, and instead be local inside either/both of the next two
+//routines, with the exception of the OuputAcceleration config.
 int inInts[9];
 int assembledInt;
 short inShorts[8];
 short assembledShort;
 float f32temp = 0.0f;
 int inByte=0;
+bool OutputAcceleration=true;
 
 void setup() {
   // Initalize the chip select pins for the accelerometer
-  pinMode(CHIP_SELECT_PIN, OUTPUT);
+  pinMode(kChipSelectPin, OUTPUT);
   
   // Set up Accelerometer
   SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
   SPI.begin();
 
   // Initalize the  data ready and chip select pins:
-  pinMode(CHIP_SELECT_PIN, OUTPUT);
+  pinMode(kChipSelectPin, OUTPUT);
 
   //Configure ADXL355:
-  writeRegister(RANGE, RANGE_2G); 
-  writeRegister(POWER_CTL, MEASURE_MODE); // Enable measure mode
+  writeRegister(kRangeReg, RANGE_2G); 
+  writeRegister(kPowerCtlReg, MEASURE_MODE); // Enable measure mode
   
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   } 
   
   // Set up Motor
-  pinMode(DIR, OUTPUT);
-  pinMode(STEP, OUTPUT);
-  pinMode(LIMP, INPUT_PULLUP);
-  pinMode(LIMN, INPUT_PULLUP);
-  pinMode(LIMZ, INPUT_PULLUP);
+  pinMode(kDirPin, OUTPUT);
+  pinMode(kStepPin, OUTPUT);
+  pinMode(kLimPPin, INPUT_PULLUP);
+  pinMode(kLimNPin, INPUT_PULLUP);
+  pinMode(kLimZPin, INPUT_PULLUP);
   
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -94,23 +88,23 @@ void setup() {
   }
 
   // Check standard accelerometer settings and communication
-  inByte = readRegister(DEVID_AD);
+  inByte = readRegister(kDevidADReg);
   Serial.print("DEVID_AD: ");
   Serial.println(inByte, HEX);
-  inByte = readRegister(DEVID_MST);
+  inByte = readRegister(kDevidMSTReg);
   Serial.print("DEVID_MST: ");
   Serial.println(inByte, HEX);
-  inByte = readRegister(PARTID);
+  inByte = readRegister(kPartIDReg);
   Serial.print("PARTID: ");
   Serial.println(inByte, HEX);
   delay(10);
   
   // Temperature, read in the same way as the accelerations:
-  readSequence(TEMP2, 2, inInts) ;
+  readSequence(kTemp2Reg, 2, inInts) ;
   assembledInt = (inInts[0]<<8) + inInts[1];
   Serial.print("TEMP int: ");
   Serial.println(assembledInt);
-  f32temp = ((((float)assembledInt - ADXL355_TEMP_BIAS)) / ADXL355_TEMP_SLOPE) + 25.0;
+  f32temp = ((((float)assembledInt - kADXL355TempBias)) / kADXL355TempSlope) + 25.0;
   Serial.print("TEMP (C): ");
   Serial.println(f32temp);
 
@@ -125,22 +119,22 @@ void loop() {
     // get incoming byte:
     inByte = Serial.read();
     if (inByte=='f'){
-      digitalWrite(DIR, HIGH);
+      digitalWrite(kDirPin, HIGH);
       move_motor(3200, false);
     } else if (inByte=='b'){
-      digitalWrite(DIR, LOW);
+      digitalWrite(kDirPin, LOW);
       move_motor(3200, false);
     } else if (inByte=='F'){
-      digitalWrite(DIR, HIGH);
+      digitalWrite(kDirPin, HIGH);
       move_motor(320000, false);
     } else if (inByte=='B'){ //small step forward
-      digitalWrite(DIR, LOW);
+      digitalWrite(kDirPin, LOW);
       move_motor(320000, false);
     } else if (inByte=='s'){ //small step forward
-      digitalWrite(DIR, HIGH);
+      digitalWrite(kDirPin, HIGH);
       move_motor(320, true);
     } else if (inByte=='r'){ // small step reverse
-      digitalWrite(DIR, LOW);
+      digitalWrite(kDirPin, LOW);
       move_motor(320, true);
     } else {
       Serial.print("Unknown Character: ");
@@ -157,34 +151,33 @@ void move_motor(int nsteps, bool ignore_limits){
   unsigned long usec_then, usec_now;
   int dt_integral=0;
   usec_then = micros();
-  if (!digitalRead(LIMP)) Serial.println("Hit positive limit (start of move)");
-  if (!digitalRead(LIMN)) Serial.println("Hit negative limit (start of move)");
-  if (!digitalRead(LIMZ)) Serial.println("Hit zero (start of move)");
+  if (!digitalRead(kLimPPin)) Serial.println("Hit positive limit (start of move)");
+  if (!digitalRead(kLimNPin)) Serial.println("Hit negative limit (start of move)");
+  if (!digitalRead(kLimZPin)) Serial.println("Hit zero (start of move)");
   usec_now = micros();
   Serial.print("About to move. Limit reading time (usec): ");
   Serial.println(usec_now-usec_then, DEC);
   for (int i=0;i<nsteps;i++){ //3200 one revolution
-    if ((digitalRead(LIMP) && digitalRead(LIMN) && digitalRead(LIMZ)) || ignore_limits){
-      digitalWrite(STEP, HIGH);
+    if ((digitalRead(kLimPPin) && digitalRead(kLimNPin) && digitalRead(kLimZPin)) || ignore_limits){
+      digitalWrite(kStepPin, HIGH);
       //Wait for tick
-      //all_axes_acceleration();
+      if (OutputAcceleration) all_axes_acceleration();
       delayMicroseconds(1);
-      while ((micros() % USEC) != 0){ /* Delay */}
-      //delayMicroseconds(USEC); 
-      digitalWrite(STEP, LOW);
+      while ((micros() % kDeltaT_us) != 0){ /* Delay */}
+      digitalWrite(kStepPin, LOW);
       //Get acceleration of desired axis and see how long this takes.
       usec_then = micros();
-      //all_axes_acceleration();
+      if (OutputAcceleration) all_axes_acceleration();
       dt_integral += micros()-usec_then;
       delayMicroseconds(1);
-      while ((micros() % USEC) != 0){/* Delay */}
+      while ((micros() % kDeltaT_us) != 0){/* Delay */}
     } 
   }
   Serial.print("Average time for reading acceleration (usec): ");
   Serial.println((float)dt_integral/(float)nsteps);
-  if (!digitalRead(LIMP)) Serial.println("Hit positive limit (end of move)");
-  if (!digitalRead(LIMN)) Serial.println("Hit negative limit (end of move)");
-  if (!digitalRead(LIMZ)) Serial.println("Hit zero (end of move)");
+  if (!digitalRead(kLimPPin)) Serial.println("Hit positive limit (end of move)");
+  if (!digitalRead(kLimNPin)) Serial.println("Hit negative limit (end of move)");
+  if (!digitalRead(kLimZPin)) Serial.println("Hit zero (end of move)");
 }
 
 // Read one axis acceleration and print.
@@ -196,7 +189,7 @@ void one_axis_acceleration(int axis){
 
 // Read one axis acceleration and print.
 void all_axes_acceleration(){
-  readShortSequence(XDATA3, 8, inShorts) ;
+  readShortSequence(kXData3Reg, 8, inShorts) ;
   assembledShort = (inShorts[0]<<8) + inShorts[1];
   Serial.print(assembledShort);
   Serial.print(" ");
@@ -211,10 +204,10 @@ void all_axes_acceleration(){
  */
 void writeRegister(byte thisRegister, byte thisValue) {
   byte dataToSend = (thisRegister << 1) | WRITE_BYTE;
-  digitalWrite(CHIP_SELECT_PIN, LOW);
+  digitalWrite(kChipSelectPin, LOW);
   SPI.transfer(dataToSend);
   SPI.transfer(thisValue);
-  digitalWrite(CHIP_SELECT_PIN, HIGH);
+  digitalWrite(kChipSelectPin, HIGH);
 }
 
 /* 
@@ -224,48 +217,36 @@ unsigned int readRegister(byte thisRegister) {
   unsigned int result = 0;
   byte dataToSend = (thisRegister << 1) | READ_BYTE;
 
-  digitalWrite(CHIP_SELECT_PIN, LOW);
+  digitalWrite(kChipSelectPin, LOW);
   SPI.transfer(dataToSend);
   result = SPI.transfer(0x00);
-  digitalWrite(CHIP_SELECT_PIN, HIGH);
+  digitalWrite(kChipSelectPin, HIGH);
   return result;
 }
 
-/* 
- * Read multiple registries
- */
-void readMultipleData(int *addresses, int dataSize, int *readedData) {
-  digitalWrite(CHIP_SELECT_PIN, LOW);
-  for(int i = 0; i < dataSize; i = i + 1) {
-    byte dataToSend = (addresses[i] << 1) | READ_BYTE;
-    SPI.transfer(dataToSend);
-    readedData[i] = SPI.transfer(0x00);
-  }
-  digitalWrite(CHIP_SELECT_PIN, HIGH);
-}
 
 /* 
- * Read multiple registries
+ * Read multiple registers in a row into an array of ints.
  */
 void readSequence(byte thisRegister, int dataSize, int *dataRead) {
-  digitalWrite(CHIP_SELECT_PIN, LOW);
+  digitalWrite(kChipSelectPin, LOW);
   byte dataToSend = (thisRegister << 1) | READ_BYTE;
   SPI.transfer(dataToSend);  
   for(int i = 0; i < dataSize; i = i + 1) {
     dataRead[i] = SPI.transfer(0x00);
   }
-  digitalWrite(CHIP_SELECT_PIN, HIGH);
+  digitalWrite(kChipSelectPin, HIGH);
 }
 
 /* 
- * Read multiple registries
+ * Read multiple registries in a row into an array of shorts.
  */
 void readShortSequence(byte thisRegister, int dataSize, short *dataRead) {
-  digitalWrite(CHIP_SELECT_PIN, LOW);
+  digitalWrite(kChipSelectPin, LOW);
   byte dataToSend = (thisRegister << 1) | READ_BYTE;
   SPI.transfer(dataToSend);  
   for(int i = 0; i < dataSize; i = i + 1) {
     dataRead[i] = SPI.transfer(0x00);
   }
-  digitalWrite(CHIP_SELECT_PIN, HIGH);
+  digitalWrite(kChipSelectPin, HIGH);
 }
