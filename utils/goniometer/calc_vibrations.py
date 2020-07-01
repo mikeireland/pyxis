@@ -7,8 +7,10 @@ frequency of 125 Hz. This is 0.64 microns.
 Tracking speed at 256 microsteps:"
 
 0.003g semi-amplitude in Y, every ~110ms, which is about every 28 steps. This is a
-9 micron amplitude! Also some ~0.001g at 250Hz, which is ~4nm. This is the actual movement.
+9 micron amplitude! However, it was found that this was vibrations in the table the 
+goniometer was sitting on and it went away when the goniometer was placed on the floor. 
 
+Also some ~0.001g at 500Hz, which is ~2nm. This is the actual movement.
 """
 scale=2**14
 
@@ -20,3 +22,11 @@ dd = np.loadtxt('2000usec_2_256.txt') #Tracking speed with fine microsteps.
 dd = np.loadtxt('2000usec_2_256_2.txt') #Tracking speed with fine microsteps.
 
 dd = np.loadtxt('2000usec_2_256_floor.txt')
+
+#These data were taken with 2 accelerometer readouts per step
+plt.plot(.001*np.arange(640), dd[:,1]/scale*9.8)
+
+plt.clf()
+plt.plot(.002*np.arange(640), dd[:,1]/scale)
+plt.xlabel('Time (s)')
+plt.ylabel('Acceleration (m/s^2)')

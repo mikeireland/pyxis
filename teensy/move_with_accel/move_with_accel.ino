@@ -2,9 +2,9 @@
 #include <SPI.h>
 //*** Constants which should be changed ***
 //The number of microseconds in-between microstep. 
-//#define kDeltaT_us  125 //125 slew speed @ 16 microsteps. 37500 max tracking speed.
+#define kDeltaT_us  25 //125 slew speed @ 16 microsteps. 37500 max tracking speed.
 //#define kDeltaT_us  2000 //125 slew speed @ 16 microsteps. 37500 max tracking speed.
-const int kDeltaT_us=8; //Half of slew speed @ 256 microsteps.
+//const int kDeltaT_us=8; //Half of slew speed @ 256 microsteps.
 #define AXIS kZData3Reg
 
 //*** Constants for the Goniometer ***
@@ -136,6 +136,10 @@ void loop() {
     } else if (inByte=='r'){ // small step reverse
       digitalWrite(kDirPin, LOW);
       move_motor(320, true);
+    } else if (inByte=='o'){ // oscillate
+      motor_sinusoid(12868, 320);
+    } else if (inByte=='O'){ // oscillate
+      motor_sinusoid(12868, 1024);
     } else {
       Serial.print("Unknown Character: ");
       Serial.println(inByte, DEC);
@@ -161,7 +165,8 @@ void move_motor(int nsteps, bool ignore_limits){
     if ((digitalRead(kLimPPin) && digitalRead(kLimNPin) && digitalRead(kLimZPin)) || ignore_limits){
       digitalWrite(kStepPin, HIGH);
       //Wait for tick
-      if (OutputAcceleration) all_axes_acceleration();
+      //Don't output every time.
+      //if (OutputAcceleration) all_axes_acceleration();
       delayMicroseconds(1);
       while ((micros() % kDeltaT_us) != 0){ /* Delay */}
       digitalWrite(kStepPin, LOW);
@@ -179,6 +184,30 @@ void move_motor(int nsteps, bool ignore_limits){
   if (!digitalRead(kLimNPin)) Serial.println("Hit negative limit (end of move)");
   if (!digitalRead(kLimZPin)) Serial.println("Hit zero (end of move)");
 }
+
+// Move motor in a sinusoid. At each step, the desired motion is:
+// n_amp * sin(i/n_amp), and if the step reaches a new integer 
+// number, then moves the motor. The period is given by:
+// 2*pi*n_amp*USEC*2
+void motor_sinusoid(int nsteps, int n_amp){
+  int last_step=0,next_step=0;
+  for (int i=0;i<nsteps;i++){ 
+    next_step = (int)(n_amp*sin((float)i/(float)n_amp));
+    if (next_step > last_step) digitalWrite(kDirPin, HIGH);
+    if (next_step < last_step) digitalWrite(kDirPin, LOW);
+    delayMicroseconds(1);
+    if (next_step != last_step) digitalWrite(kStepPin, HIGH);
+    //Wait for tick
+    while ((micros() % kDeltaT_us) != 0){ /* Delay */}
+    digitalWrite(kStepPin, LOW);
+    //Get acceleration of desired axis and see how long this takes.
+    if ((OutputAcceleration) && (i % 5 ==0)) all_axes_acceleration();
+    delayMicroseconds(1);
+    while ((micros() % kDeltaT_us) != 0){/* Delay */}
+    last_step=next_step;
+  }
+}
+
 
 // Read one axis acceleration and print.
 void one_axis_acceleration(int axis){
