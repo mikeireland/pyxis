@@ -10,8 +10,8 @@ Tracking speed at 256 microsteps:"
 9 micron amplitude! Also some ~0.001g at 250Hz, which is ~4nm. This is the actual movement.
 
 """
+import numpy as np
 scale=2**14
-
 
 tt = np.loadtxt('37500usec_2_track.txt') #Tracking speed
 mm = np.loadtxt('1000usec_2_track.txt') #Medium speed
