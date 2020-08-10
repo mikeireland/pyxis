@@ -2,24 +2,24 @@
 #include <ctime>
 #include <vector>
 #include <algorithm>
-#include "../modules/acquisition.h"
-#include "../modules/saveFITS.h"
-#include "../modules/realTimeFunc.h"
+#include <string>
+#include "modules/acquisition.h"
+#include "modules/saveFITS.h"
+#include "modules/realTimeFunc.h"
 #include "Spinnaker.h"
-#include "../../lib/cpptoml/cpptoml.h"
+#include "cpptoml/cpptoml.h"
 
 using namespace Spinnaker;
 using namespace Spinnaker::GenApi;
 using namespace Spinnaker::GenICam;
 using namespace std;
 
-int numFrames = 2000;
-string filename = "myfunfits.fits";
-
 int main(int argc, char **argv) {
 
     // Print application build information
     cout << "Application build date: " << __DATE__ << " " << __TIME__ << endl << endl;
+
+    string config_file;
 
     // Check if config file path is passed as argument
     if (argc > 2) {
@@ -28,10 +28,10 @@ int main(int argc, char **argv) {
     } else if (argc < 2){
         cout << "No CONFIG file loaded" << endl;
         cout << "Will attempt to load default CONFIG" << endl;
-        string config_file = string("../config/defaultConfig.toml");
+        config_file = string("../config/defaultConfig.toml");
     } else {
         // Assign config file value as string
-        string config_file = string(argv[1]);
+        config_file = string(argv[1]);
     }
 
     // Check whether config file is readable
@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
     }
 
     // Initialize configuration
-    auto config = cpptoml::parse_file(config_file);
+    std::shared_ptr<cpptoml::table> config = cpptoml::parse_file(config_file);
 
     // Retrieve singleton reference to system object
     SystemPtr system = System::GetInstance();
@@ -63,14 +63,17 @@ int main(int argc, char **argv) {
         int width = config->get_qualified_as<int>("camera.width").value_or(0);
         int height = config->get_qualified_as<int>("camera.height").value_or(0);
         long bufferSize = config->get_qualified_as<long>("fits.bufferSize").value_or(0);
+        unsigned long numFrames = config->get_qualified_as<unsigned long>("camera.numFrames").value_or(0);
+
 
         vector<int> fitsArray (width*height*bufferSize);
         times timesStruct;
-
+        cout << "Entering Acquisition Phase" << endl;
         // Run tests on first available camera
-        grabFrames(camList.GetByIndex(0), config, numFrames, fitsArray, timesStruct, 0, realTimeFunc);
+        grabFrames(camList.GetByIndex(0), config, numFrames, fitsArray, timesStruct, 1, realTimeFunc);
 
-        saveFITS(filename, config, fitsArray, timesStruct);
+        cout << "Saving Data" << endl;
+        saveFITS(config, fitsArray, timesStruct);
     }
 
     // Clear camera list before releasing system
@@ -78,5 +81,5 @@ int main(int argc, char **argv) {
     // Release system
     system->ReleaseInstance();
 
-    return 0
+    return 0;
 }

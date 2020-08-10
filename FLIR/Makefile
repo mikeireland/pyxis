@@ -1,55 +1,76 @@
 ################################################################################
-# Capture Makefile
+# FLIR API Makefile
 ################################################################################
 
 ################################################################################
 # Key paths and settings
 ################################################################################
+CFLAGS += -std=c++11 -Wall
+CXX = g++
 
-SRCDIR = src
-BUILDDIR = build
-TARGET = bin/speed_test
+OBJDIR  = build
+SRCDIR  = src
+SRCEXT = cpp
+MODDIR = ${SRCDIR}/modules
+MKDIR = mkdir -p
+
+PLATFORM = $(shell uname)
+ifeq ($(PLATFORM),Darwin)
+OS = mac
+endif
+
+OUTDIR = bin
 
 ################################################################################
 # Dependencies
 ################################################################################
-
 # Spinnaker deps
-SPINNAKER_LIB = -l Spinnaker
-SPINNAKER_INC = -isystem /usr/include/spinnaker # suppress spinnaker SDK warnings with `-isystem` include
+SPINNAKER_LIB = -lSpinnaker${D} ${SPIN_DEPS}
 
 ################################################################################
 # Master inc/lib/obj/dep settings
 ################################################################################
+SRC = $(shell find ${MODDIR} -type f -name "*.${SRCEXT}")
+OBJ = $(SRC:${MODDIR}/%.${SRCEXT}=${OBJDIR}/%.o)
+INC = -Ilib/
+ifneq ($(OS),mac)
+INC += -I/usr/include/spinnaker
+LIB += -Wl,-Bdynamic ${SPINNAKER_LIB} 
+LIB += -lcfitsio
+else
+INC += -I/usr/local/include/spinnaker
+LIB += ${SPINNAKER_LIB}
 
-CFLAGS = -std=c++11 -Wall
-CC = g++
-
-SRCEXT = cpp
-SOURCES = $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
-OBJECTS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
-INC = ${SPINNAKER_INC} -I lib/
-LIB = -Wl,-Bdynamic -pthread ${SPINNAKER_LIB}
+endif
 
 ################################################################################
 # Rules/recipes
 ################################################################################
+# Final binary
 
-$(TARGET): $(OBJECTS)
-	@mkdir -p $(dir $@)
-	@echo " Linking..."
-	@echo " $(CC) $^ -o $(TARGET) $(LIB)"; $(CC) $^ -o $(TARGET) $(LIB)
+all: runcam
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
-	@mkdir -p $(dir $@)
-	@echo " $(CC) $(CFLAGS) $(INC) -c -o $@ $<"; $(CC) $(CFLAGS) $(INC) -c -o $@ $<
+
+
+runcam: ${OBJDIR}/runCam.o ${OBJ}
+	${CXX} -o ${OUTDIR}/runcam $^ ${LIB}
+
+# Intermediate script object files
+${OBJDIR}/%.o : ${SRCDIR}/%.cpp
+	@${MKDIR} ${OBJDIR}
+	${CXX} ${CFLAGS} ${INC} -c $< -o $@
+
+# Intermediate module object files
+${OBJ}: ${OBJDIR}/%.o : ${MODDIR}/%.cpp
+	@${MKDIR} ${OBJDIR}
+	${CXX} ${CFLAGS} ${INC} -c $< -o $@
 
 # Clean up intermediate objects
 clean_obj:
-	rm -f ${OBJECTS}
+	rm -f ${OBJDIR}/*
 	@echo "intermediate objects cleaned up!"
 
 # Clean up everything.
 clean: clean_obj
-	rm -f ${TARGET}
+	rm -f ${OUTDIR}/*
 	@echo "all cleaned up!"

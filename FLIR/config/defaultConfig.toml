@@ -1,16 +1,17 @@
 [camera]
 auto_exposure = "Off"
 auto_gain = "Off"
-auto_white_balance = "Off"
 adc_bit_depth = "Bit10"
 acquisition_mode = "Continuous"
-pixel_format = "BayerRG8"
-width = 1000
-height = 1080
+pixel_format = "Mono16"
+width = 32
+height = 32
 offset_x = 0
 offset_y = 0
-exposure_time = 3000 # in microseconds
+exposure_time = 200 # in microseconds
+numFrames = 200
 
 [fits]
 bufferSize = 200
-filedir = "../../data/"
+fileDir = "../data/"
+filename = "myfits.fits"

@@ -1,12 +1,18 @@
 // Based on the work done by https://github.com/miks/spinnaker-fps-test
 
-#include <iostream>
-#include <ctime>
-#include <vector>
-#include <algorithm>
+#ifndef _ACQUISITION_
+#define _ACQUISITION_
+
 #include "Spinnaker.h"
-#include "../../lib/cpptoml/cpptoml.h"
+#include "cpptoml/cpptoml.h"
 
-string Label(string str, const size_t num = 20, const char paddingChar = ' ')
+struct times{
+    int totalexposure;
+    char* timestamp;
+};
 
-void grabFrames(CameraPtr pCam, auto config, int numFrames, vector<int> fitsArray, times timesStruct, int useFunc, std::function<void()> func)
+std::string Label(std::string str, const size_t num = 20, const char paddingChar = ' ');
+
+void grabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> config, unsigned long numFrames, std::vector<int> fitsArray, struct times timesStruct, int useFunc, void (*f)(unsigned char*));
+
+#endif // _ACQUISITION_

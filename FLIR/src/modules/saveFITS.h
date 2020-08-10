@@ -1,7 +1,9 @@
-#include <iostream>
-#include <vector>
-#include "../../lib/cpptoml/cpptoml.h"
-#include "fitsio.h"  /* required by every program that uses CFITSIO  */
+#ifndef _SAVEFITS_
+#define _SAVEFITS_
 
+#include "cpptoml/cpptoml.h"
+#include "acquisition.h"
 
-int saveFITS(string filename, auto config, vector<int> fitsArray, times timesStruct);
+int saveFITS(std::shared_ptr<cpptoml::table> config, std::vector<int> fitsArray, times timesStruct);
+
+#endif // _SAVEFITS_
