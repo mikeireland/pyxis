@@ -4,6 +4,13 @@
 #include "cpptoml/cpptoml.h"
 #include "acquisition.h"
 
-int saveFITS(std::shared_ptr<cpptoml::table> config, std::vector<int> fitsArray, times timesStruct);
+/* Write a given vector array of image data as a FITS file
+   INPUTS:
+      config - cpptoml pointer to a configuration table
+      fits_array - vector of image data to write
+      times_struct - a structure that allows the storage of a timestamp and duration of the exposures
+
+*/
+int SaveFITS(std::shared_ptr<cpptoml::table> config, std::vector<int> fits_array, Times times_struct);
 
 #endif // _SAVEFITS_

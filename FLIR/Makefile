@@ -32,6 +32,7 @@ SPINNAKER_LIB = -lSpinnaker${D} ${SPIN_DEPS}
 ################################################################################
 SRC = $(shell find ${MODDIR} -type f -name "*.${SRCEXT}")
 OBJ = $(SRC:${MODDIR}/%.${SRCEXT}=${OBJDIR}/%.o)
+
 INC = -Ilib/
 ifneq ($(OS),mac)
 INC += -I/usr/include/spinnaker
@@ -46,22 +47,23 @@ endif
 ################################################################################
 # Rules/recipes
 ################################################################################
-# Final binary
+# Binaries
 
-all: runcam
+all: runCam charDet
 
+charDet: ${OBJDIR}/charDet.o ${OBJ}
+	${CXX} -o ${OUTDIR}/charDet $^ ${LIB}
 
-
-runcam: ${OBJDIR}/runCam.o ${OBJ}
-	${CXX} -o ${OUTDIR}/runcam $^ ${LIB}
-
-# Intermediate script object files
-${OBJDIR}/%.o : ${SRCDIR}/%.cpp
-	@${MKDIR} ${OBJDIR}
-	${CXX} ${CFLAGS} ${INC} -c $< -o $@
+runCam: ${OBJDIR}/runCam.o ${OBJ}
+	${CXX} -o ${OUTDIR}/runCam $^ ${LIB}
 
 # Intermediate module object files
 ${OBJ}: ${OBJDIR}/%.o : ${MODDIR}/%.cpp
+	@${MKDIR} ${OBJDIR}
+	${CXX} ${CFLAGS} ${INC} -c $< -o $@
+
+# Intermediate script object files
+${OBJDIR}/%.o : ${SRCDIR}/%.cpp
 	@${MKDIR} ${OBJDIR}
 	${CXX} ${CFLAGS} ${INC} -c $< -o $@
 

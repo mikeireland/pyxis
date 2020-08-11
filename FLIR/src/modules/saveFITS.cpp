@@ -4,82 +4,97 @@
 #include "acquisition.h"
 #include "saveFITS.h"
 #include "cpptoml/cpptoml.h"
-#include "fitsio.h"  /* required by every program that uses CFITSIO  */
+#include "fitsio.h"
 
 using namespace std;
 
-int saveFITS(std::shared_ptr<cpptoml::table> config, vector<int> fitsArray, times timesStruct)
-{   /* Create a FITS primary array containing a 2-D image */
+/* Write a given vector array of image data as a FITS file
+   INPUTS:
+      config - cpptoml pointer to a configuration table
+      fits_array - vector of image data to write
+      times_struct - a structure that allows the storage of a timestamp and duration of the exposures
 
-    fitsfile *fptr;       /* pointer to the FITS file; defined in fitsio.h */
+*/
+int SaveFITS(std::shared_ptr<cpptoml::table> config, vector<int> fits_array, Times times_struct)
+{  
+    // Pointer to the FITS file; defined in fitsio.h 
+    fitsfile *fptr;       
 
-    std::string filedir = config->get_qualified_as<std::string>("fits.fileDir").value_or("");
+    // Define filepath and name for the FITS file
+    std::string file_dir = config->get_qualified_as<std::string>("fits.file_dir").value_or("");
     std::string filename = config->get_qualified_as<std::string>("fits.filename").value_or("");
+    string file_path = "!" + file_dir + filename;
 
+    // Configure FITS file
     int width = config->get_qualified_as<int>("camera.width").value_or(0);
     int height = config->get_qualified_as<int>("camera.height").value_or(0);
-    string filepath = "!" + filedir + filename;             /* name for new FITS file */
-    int bitpix  =  16;         /* 16-bit short signed integer pixel values */
-    long naxis  =  3;        /* 2-dimensional image                      */
-    long bufferSize = config->get_qualified_as<long>("fits.bufferSize").value_or(0);
-    long naxes[3] = {width, height, bufferSize};   /* image is 300 pixels wide by 200 rows */
-    int status = 0;         /* initialize status before calling fitsio routines */
+    int bitpix = config->get_qualified_as<int>("fits.bitpix").value_or(8);
+    long naxis = 3; // 2D image over time                    
+    long buffer_size = config->get_qualified_as<long>("fits.buffer_size").value_or(0);
+    long naxes[3] = {width, height, buffer_size};
 
-    if (fits_create_file(&fptr, filepath.c_str(), &status)){ /* create new FITS file */
+    // Initialize status before calling fitsio routines
+    int status = 0;         
+
+    // Create new FITS file. Will overwrite file with the same name!!
+    if (fits_create_file(&fptr, file_path.c_str(), &status)){
        cout << "ERROR: Could not create FITS file" << endl;
        return( status );
-}
-    /* Write the required keywords for the primary array image */
+    }
+
+    // Write the required keywords for the primary array image
     if ( fits_create_img(fptr,  bitpix, naxis, naxes, &status) )
          return( status );
 
-    long fpixel = 1;                               /* first pixel to write      */
-    long nelements = naxes[0] * naxes[1] * naxes[2];          /* number of pixels to write */
+    long fpixel = 1;                               
+    long nelements = naxes[0] * naxes[1] * naxes[2];
 
-    /* Write the array of long integers (after converting them to short) */
-    if ( fits_write_img(fptr, TINT, fpixel, nelements, fitsArray.data(), &status) )
+    // Write the image (assuming input of unsigned integers)
+    if ( fits_write_img(fptr, TUINT, fpixel, nelements, fits_array.data(), &status) )
         return( status );
 
-    int offsetX = config->get_qualified_as<int>("camera.offset_x").value_or(0);
-    int offsetY = config->get_qualified_as<int>("camera.offset_y").value_or(0);
-    int exposureTime = config->get_qualified_as<int>("camera.exposure_time").value_or(0);
+    // Configure FITS header keywords
 
-    // Write TotalExposureTime //
-    if ( fits_write_key(fptr, TSTRING, "STARTTIME", &timesStruct.timestamp,
+    int offset_x = buffer_size = config->get_qualified_as<long>("fits.buffer_size").value_or(0);
+    int offset_y = config->get_qualified_as<int>("camera.offset_y").value_or(0);
+    int exposure_time = config->get_qualified_as<int>("camera.exposure_time").value_or(0);
+
+    // Write starting time in UTC
+    if ( fits_write_key(fptr, TSTRING, "STARTTIME", &times_struct.timestamp,
          "Timestamp of beginning of exposure", &status) )
          return( status );
 
-    // Write IndividualExposureTime //
-    if ( fits_write_key(fptr, TDOUBLE, "FRAMEEXPOSURE", &exposureTime,
+    // Write individual exposure time 
+    if ( fits_write_key(fptr, TDOUBLE, "FRAMEEXPOSURE", &exposure_time,
          "Individual Exposure Time (us)", &status) )
          return( status );
 
-    // Write TotalExposureTime //
-    if ( fits_write_key(fptr, TINT, "TOTALEXPOSURE", &timesStruct.totalexposure,
+    // Write total exposure time
+    if ( fits_write_key(fptr, TINT, "TOTALEXPOSURE", &times_struct.total_exposure,
          "Total Exposure Time (s)", &status) )
          return( status );
 
-    // Write Height //
+    // Write height
     if ( fits_write_key(fptr, TLONG, "HEIGHT", &height,
          "Image Height (px)", &status) )
          return( status );
 
-    // Write Width //
+    // Write width
     if ( fits_write_key(fptr, TLONG, "WIDTH", &width,
          "Image Width (px)", &status) )
           return( status );
 
-    // Write offset X //
-    if ( fits_write_key(fptr, TLONG, "XOFFSET", &offsetX,
+    // Write offset x
+    if ( fits_write_key(fptr, TLONG, "XOFFSET", &offset_x,
          "Image X Offset (px)", &status) )
          return( status );
 
-    // Write offset Y //
-    if ( fits_write_key(fptr, TLONG, "YOFFSET", &offsetY,
+    // Write offset y
+    if ( fits_write_key(fptr, TLONG, "YOFFSET", &offset_y,
          "Image Y Offset (px)", &status) )
          return( status );
-
-
-    fits_close_file(fptr, &status);            /* close the file */
+    
+    // Close file
+    fits_close_file(fptr, &status);
     return( status );
 }

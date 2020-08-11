@@ -2,8 +2,13 @@
 
 using namespace std;
 
-void realTimeFunc (unsigned char* data){
+/* A function that can be used to perform real time data analysis on a frame (eg Fringe Tracking)
+   INPUTS:
+      data - raw image data of a single frame
 
-    cout << "I could be doing something here" << endl;
+*/
+void RealTimeFunc (unsigned int* data){
+
+    cout << "I could be doing something with the data here..." << endl;
 
 }

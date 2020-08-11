@@ -15,17 +15,41 @@ using namespace Spinnaker::GenApi;
 using namespace Spinnaker::GenICam;
 using namespace std;
 
-std::string Label(std::string str, const size_t num, const char paddingChar) {
+
+/* Function to pad out strings to print them nicely. 
+   INPUTS:
+      str - string to pad
+      num - total size of string to print
+      padding_char - character to pad the end of the string
+                     until it is of size num
+
+   OUTPUT:
+      Padded string  
+
+*/
+std::string Label(std::string str, const size_t num, const char padding_char) {
     if(num > str.size()){
-        str.insert(str.end(), num - str.size(), paddingChar);
+        str.insert(str.end(), num - str.size(), padding_char);
         }
         return str + ": ";
     }
 
 
+/* Function to take a number of images with a camera and optionally work on them. 
+   INPUTS:
+      pCam - Spinnaker pointer to a FLIR camera
+      config - cpptoml pointer to a configuration table
+      num_frames - number of images to take
+      fits_array - allocated vector to store image data in
+      times_struct - a structure that allows the storage of a timestamp and duration of the exposures
+      use_func - a flag as to whether to apply a real time function to the image data
+      *f - a function that will be applied to each image in real time if use_func is set
 
-void grabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> config, unsigned long numFrames, vector<int> fitsArray, struct times timesStruct, int useFunc, void (*f)(unsigned char*)) {
+*/
+void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> config, unsigned long num_frames, vector<int> fits_array, struct Times times_struct, int use_func, void (*f)(unsigned int*)) {
     try {
+     
+        // Load in the configuration file
         cout << "Loading Config" << endl;
         int width = config->get_qualified_as<int>("camera.width").value_or(0);
         int height = config->get_qualified_as<int>("camera.height").value_or(0);
@@ -37,10 +61,8 @@ void grabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> confi
         string auto_exposure = config->get_qualified_as<string>("camera.auto_exposure").value_or("");
         string auto_gain = config->get_qualified_as<string>("camera.auto_gain").value_or("");
         string adc_bit_depth = config->get_qualified_as<string>("camera.adc_bit_depth").value_or("");
-
-        long bufferSize = config->get_qualified_as<long>("fits.bufferSize").value_or(0);
+        long buffer_size = config->get_qualified_as<long>("fits.buffer_size").value_or(0);
         int imsize = width*height;
-
 
         cout << "Initialising Camera" << endl;
 
@@ -50,33 +72,34 @@ void grabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> confi
         // Retrieve GenICam node_map
         INodeMap & node_map = pCam->GetNodeMap();
 
+
         //Configure Camera
 
-        // set width
+        // Set width
         CIntegerPtr ptr_width = node_map.GetNode("Width");
         ptr_width->SetValue(width);
 
-        // set height
+        // Set height
         CIntegerPtr ptr_height = node_map.GetNode("Height");
         ptr_height->SetValue(height);
 
-        // set x offset
+        // Set x offset
         CIntegerPtr ptr_offset_x = node_map.GetNode("OffsetX");
         ptr_offset_x->SetValue(offset_x);
-        // set y offset
+        // Set y offset
         CIntegerPtr ptr_offset_y = node_map.GetNode("OffsetY");
 
         ptr_offset_y->SetValue(offset_y);
-        // set auto exposure mode
+        // Set auto exposure mode
         CEnumerationPtr ptr_auto_exposure = node_map.GetNode("ExposureAuto");
         CEnumEntryPtr ptr_auto_exposure_node = ptr_auto_exposure->GetEntryByName(auto_exposure.c_str());
         ptr_auto_exposure->SetIntValue(ptr_auto_exposure_node->GetValue());
 
-        // set exposure time
+        // Set exposure time
         CFloatPtr   ptr_exposure_time = node_map.GetNode("ExposureTime");
         ptr_exposure_time->SetValue(exposure_time); // pass value in microseconds
 
-        // set pixel format
+        // Set pixel format
         CEnumerationPtr ptr_pixel_format = node_map.GetNode("PixelFormat");
         CEnumEntryPtr ptr_pixel_format_node = ptr_pixel_format->GetEntryByName(pixel_format.c_str());
         ptr_pixel_format->SetIntValue(ptr_pixel_format_node->GetValue());
@@ -122,60 +145,53 @@ void grabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> confi
         cout << Label("Offset Y") << ptr_offset_y->GetValue() << endl;
         cout << endl;
 
-        /*
-        // Configure chunk data
-        err = ConfigureChunkData(nodeMap);
-        if (err < 0){
-            return err;
-        }
-        */
-
         cout << "Start Acquisition" << endl;
+
+        //Begin timing
         time_t time_begin = time(0);
 
+        //Set timestamp
         tm *gmtm = gmtime(&time_begin);
         char* dt = asctime(gmtm);
-
-        timesStruct.timestamp = dt;
+        times_struct.timestamp = dt;
 
         // Start aqcuisition
         pCam->BeginAcquisition();
 
-        for (unsigned int imageCnt = 0; imageCnt < numFrames; imageCnt++){
+        for (unsigned int image_cnt = 0; image_cnt < num_frames; image_cnt++){
 
-            ImagePtr pResultImage = pCam->GetNextImage();
+            // Retrive image
+            ImagePtr ptr_result_image = pCam->GetNextImage();
 
-            unsigned char* data = (unsigned char*)pResultImage->GetData();
+            // Load current raw image data into an array
+            unsigned int* data = (unsigned int*)ptr_result_image->GetData();
 
-            copy(data,data+imsize,fitsArray.begin()+imsize*(imageCnt%bufferSize));
+            // Append data to an allocated memory array
+            copy(data,data+imsize,fits_array.begin()+imsize*(image_cnt%buffer_size));
 
-            //GetChunkData(pCam,chunkArray[imageCnt%bufferSize]);
-
-            if (useFunc == 1){
+            // Do something with the data in real time if required (set use_func for this)
+            if (use_func == 1){
                 (*f)(data);
             }
 
-            pResultImage->Release(); 
+            // Release image
+            ptr_result_image->Release(); 
         }
 
         cout << endl;
 
-        // Deinitialize camera
+        // End Acquisition
         pCam->EndAcquisition();
 
+        // Calculate duration
         time_t time_end = time(0);
-
         time_t duration = time_end - time_begin;
-
-        timesStruct.totalexposure = (int)duration;
+        times_struct.total_exposure = (int)duration;
+ 
         cout << "Finished Acquisition" << endl;
-        /*
-        // Disable chunk data
-        err = DisableChunkData(nodeMap);
-        if (err < 0){
-            return err;
-        }
-        */
+
+
+        // Deinitialise camera
         pCam->DeInit();
     }
     catch (Spinnaker::Exception &e) {

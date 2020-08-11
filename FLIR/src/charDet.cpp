@@ -14,14 +14,7 @@ using namespace Spinnaker::GenApi;
 using namespace Spinnaker::GenICam;
 using namespace std;
 
-/* Program to run the camera based on a configuration file
-   given to it in "toml" format. It will take a certain number
-   of frames, during which it will apply a function "RealTimeFunc"
-   on each image as they are acquired. It then saves all of the image
-   data into a FITS file (the specifications of which are in the 
-   configuration file.
-
-*/
+// !!! NOT ACTUALLY SET UP YET (IS THE SAME AS RUNCAM TO TEST COMPILATION) // 
 int main(int argc, char **argv) {
 
     // Print application build information
