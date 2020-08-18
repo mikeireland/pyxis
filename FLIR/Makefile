@@ -36,7 +36,7 @@ OBJ = $(SRC:${MODDIR}/%.${SRCEXT}=${OBJDIR}/%.o)
 INC = -Ilib/
 ifneq ($(OS),mac)
 INC += -I/usr/include/spinnaker
-LIB += -Wl,-Bdynamic ${SPINNAKER_LIB} 
+LIB += -Wl,-Bdynamic ${SPINNAKER_LIB}
 LIB += -lcfitsio
 else
 INC += -I/usr/local/include/spinnaker
@@ -49,13 +49,16 @@ endif
 ################################################################################
 # Binaries
 
-all: runCam charDet
+all: runCam charDet testFPS
 
 charDet: ${OBJDIR}/charDet.o ${OBJ}
 	${CXX} -o ${OUTDIR}/charDet $^ ${LIB}
 
 runCam: ${OBJDIR}/runCam.o ${OBJ}
 	${CXX} -o ${OUTDIR}/runCam $^ ${LIB}
+
+testFPS: ${OBJDIR}/testFPS.o ${OBJ}
+	${CXX} -o ${OUTDIR}/testFPS $^ ${LIB}
 
 # Intermediate module object files
 ${OBJ}: ${OBJDIR}/%.o : ${MODDIR}/%.cpp

@@ -1,8 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <fstream>
 #include "modules/acquisition.h"
-#include "modules/saveFITS.h"
 #include "modules/realTimeFunc.h"
 #include "Spinnaker.h"
 #include "cpptoml/cpptoml.h"
@@ -11,6 +11,45 @@ using namespace Spinnaker;
 using namespace Spinnaker::GenApi;
 using namespace Spinnaker::GenICam;
 using namespace std;
+
+struct CsvLine {
+    int exp_time;
+    int dimensions;
+    double total_exp_time;
+    unsigned long num_frames;
+    double FPS;
+};
+
+void ReplaceConfigInt(std::shared_ptr<cpptoml::table> config, std::string key, int value){
+
+    config->erase(key);
+    config->insert(key,value);
+}
+
+void Test(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> config, struct CsvLine line_data) {
+
+    ReplaceConfigInt(config,"camera.exposure_time",line_data.exp_time);
+    ReplaceConfigInt(config,"camera.height",line_data.dimensions);
+    ReplaceConfigInt(config,"camera.width",line_data.dimensions);
+
+    int buffer_size = config->get_qualified_as<int>("fits.buffer_size").value_or(0);
+
+    // Allocate memory for the image data
+    vector<int> fits_array (width*height*buffer_size);
+    Times times_struct;
+
+    // Grab frames from the first available camera
+    // Use the function "RealTimeFunc" on each separate frame in real time
+    GrabFrames(pCam, config, line_data.num_frames, fits_array, times_struct, 0, RealTimeFunc);
+
+    // Save the data as a FITS file
+    cout << "Saving Data" << endl;
+
+    line_data.total_exp_time = times_struct.total_exposure;
+    line_data.FPS = static_cast<double>(line_data.num_frames)/times_struct.total_exposure;
+
+}
+
 
 /* Program to run the camera based on a configuration file
    given to it in "toml" format. It will take a certain number
@@ -67,23 +106,33 @@ int main(int argc, char **argv) {
         return -1;
     }
     else {
-        // Read some data from the config file
-        int width = config->get_qualified_as<int>("camera.width").value_or(0);
-        int height = config->get_qualified_as<int>("camera.height").value_or(0);
-        int buffer_size = config->get_qualified_as<int>("fits.buffer_size").value_or(0);
-        unsigned long num_frames = config->get_qualified_as<unsigned long>("camera.num_frames").value_or(0);
 
-        // Allocate memory for the image data
-        vector<int> fits_array (width*height*buffer_size);
-        Times times_struct;
+        std::ofstream out_file("foo.csv");
+        int exp_times[15] = {100, 500, 1000, 1500, 2000, 3000, 4000, 5000, 7500, 10000, 15000, 20000, 25000, 50000, 100000};
+        int dimensions[10] = {32, 50, 100, 150, 200, 300, 400, 500, 750 ,1000};
 
-        // Grab frames from the first available camera
-        // Use the function "RealTimeFunc" on each separate frame in real time
-        GrabFrames(cam_list.GetByIndex(0), config, num_frames, fits_array, times_struct, 1, RealTimeFunc);
+        out_file << " Frame Exposure Time (us), Dimensions (px), Total Exposure Time (s), Number of Frames, FPS, \n";
 
-        // Save the data as a FITS file
-        cout << "Saving Data" << endl;
-        SaveFITS(config, fits_array, times_struct);
+        CsvLine line_data;
+
+        line_data.num_frames = config->get_qualified_as<unsigned long>("camera.num_frames").value_or(0);
+
+        for (int i=0;i<=10;i++){
+
+            line_data.width = dimensions[i];
+            line_data.height = dimensions[i];
+
+            for (int j=0;j<=10;j++){
+
+                line_data.exp_time = exp_times[j];
+
+                Test(camList.GetByIndex(0),config,line_data);
+
+                out_file << " %d, %d, %f, %lu, %f, \n", line_data.exp_time, line_data.dimensions, line_data.total_exp_time, line_data.num_frames, line_data.FPS;
+            }
+        }
+
+        out_file.close();
     }
 
     // Clear camera list before releasing system

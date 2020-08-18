@@ -13,11 +13,11 @@
 
 */
 struct Times{
-    int total_exposure;
+    double total_exposure;
     char* timestamp;
 };
 
-/* Function to pad out strings to print them nicely. 
+/* Function to pad out strings to print them nicely.
    INPUTS:
       str - string to pad
       num - total size of string to print
@@ -25,12 +25,12 @@ struct Times{
                      until it is of size num
 
    OUTPUTS:
-      Padded string  
+      Padded string
 
 */
 std::string Label(std::string str, const size_t num = 20, const char padding_char = ' ');
 
-/* Function to take a number of images with a camera and optionally work on them. 
+/* Function to take a number of images with a camera and optionally work on them.
    INPUTS:
       pCam - Spinnaker pointer to a FLIR camera
       config - cpptoml pointer to a configuration table

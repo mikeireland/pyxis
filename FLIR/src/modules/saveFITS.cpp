@@ -16,9 +16,9 @@ using namespace std;
 
 */
 int SaveFITS(std::shared_ptr<cpptoml::table> config, vector<int> fits_array, Times times_struct)
-{  
-    // Pointer to the FITS file; defined in fitsio.h 
-    fitsfile *fptr;       
+{
+    // Pointer to the FITS file; defined in fitsio.h
+    fitsfile *fptr;
 
     // Define filepath and name for the FITS file
     std::string file_dir = config->get_qualified_as<std::string>("fits.file_dir").value_or("");
@@ -29,12 +29,12 @@ int SaveFITS(std::shared_ptr<cpptoml::table> config, vector<int> fits_array, Tim
     int width = config->get_qualified_as<int>("camera.width").value_or(0);
     int height = config->get_qualified_as<int>("camera.height").value_or(0);
     int bitpix = config->get_qualified_as<int>("fits.bitpix").value_or(8);
-    long naxis = 3; // 2D image over time                    
-    long buffer_size = config->get_qualified_as<long>("fits.buffer_size").value_or(0);
+    long naxis = 3; // 2D image over time
+    int buffer_size = config->get_qualified_as<int>("fits.buffer_size").value_or(0);
     long naxes[3] = {width, height, buffer_size};
 
     // Initialize status before calling fitsio routines
-    int status = 0;         
+    int status = 0;
 
     // Create new FITS file. Will overwrite file with the same name!!
     if (fits_create_file(&fptr, file_path.c_str(), &status)){
@@ -46,7 +46,7 @@ int SaveFITS(std::shared_ptr<cpptoml::table> config, vector<int> fits_array, Tim
     if ( fits_create_img(fptr,  bitpix, naxis, naxes, &status) )
          return( status );
 
-    long fpixel = 1;                               
+    long fpixel = 1;
     long nelements = naxes[0] * naxes[1] * naxes[2];
 
     // Write the image (assuming input of unsigned integers)
@@ -64,36 +64,36 @@ int SaveFITS(std::shared_ptr<cpptoml::table> config, vector<int> fits_array, Tim
          "Timestamp of beginning of exposure", &status) )
          return( status );
 
-    // Write individual exposure time 
-    if ( fits_write_key(fptr, TDOUBLE, "FRAMEEXPOSURE", &exposure_time,
+    // Write individual exposure time
+    if ( fits_write_key(fptr, TINT, "FRAMEEXPOSURE", &exposure_time,
          "Individual Exposure Time (us)", &status) )
          return( status );
 
     // Write total exposure time
-    if ( fits_write_key(fptr, TINT, "TOTALEXPOSURE", &times_struct.total_exposure,
+    if ( fits_write_key(fptr, TDOUBLE, "TOTALEXPOSURE", &times_struct.total_exposure,
          "Total Exposure Time (s)", &status) )
          return( status );
 
     // Write height
-    if ( fits_write_key(fptr, TLONG, "HEIGHT", &height,
+    if ( fits_write_key(fptr, TINT, "HEIGHT", &height,
          "Image Height (px)", &status) )
          return( status );
 
     // Write width
-    if ( fits_write_key(fptr, TLONG, "WIDTH", &width,
+    if ( fits_write_key(fptr, TINT, "WIDTH", &width,
          "Image Width (px)", &status) )
           return( status );
 
     // Write offset x
-    if ( fits_write_key(fptr, TLONG, "XOFFSET", &offset_x,
+    if ( fits_write_key(fptr, TINT, "XOFFSET", &offset_x,
          "Image X Offset (px)", &status) )
          return( status );
 
     // Write offset y
-    if ( fits_write_key(fptr, TLONG, "YOFFSET", &offset_y,
+    if ( fits_write_key(fptr, TINT, "YOFFSET", &offset_y,
          "Image Y Offset (px)", &status) )
          return( status );
-    
+
     // Close file
     fits_close_file(fptr, &status);
     return( status );

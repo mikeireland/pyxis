@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <ctime>
+#include <chrono>
 #include <vector>
 #include <algorithm>
 #include "acquisition.h"
@@ -16,7 +17,7 @@ using namespace Spinnaker::GenICam;
 using namespace std;
 
 
-/* Function to pad out strings to print them nicely. 
+/* Function to pad out strings to print them nicely.
    INPUTS:
       str - string to pad
       num - total size of string to print
@@ -24,7 +25,7 @@ using namespace std;
                      until it is of size num
 
    OUTPUT:
-      Padded string  
+      Padded string
 
 */
 std::string Label(std::string str, const size_t num, const char padding_char) {
@@ -35,7 +36,7 @@ std::string Label(std::string str, const size_t num, const char padding_char) {
     }
 
 
-/* Function to take a number of images with a camera and optionally work on them. 
+/* Function to take a number of images with a camera and optionally work on them.
    INPUTS:
       pCam - Spinnaker pointer to a FLIR camera
       config - cpptoml pointer to a configuration table
@@ -48,7 +49,7 @@ std::string Label(std::string str, const size_t num, const char padding_char) {
 */
 void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> config, unsigned long num_frames, vector<int> fits_array, struct Times times_struct, int use_func, void (*f)(unsigned int*)) {
     try {
-     
+
         // Load in the configuration file
         cout << "Loading Config" << endl;
         int width = config->get_qualified_as<int>("camera.width").value_or(0);
@@ -61,7 +62,7 @@ void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> confi
         string auto_exposure = config->get_qualified_as<string>("camera.auto_exposure").value_or("");
         string auto_gain = config->get_qualified_as<string>("camera.auto_gain").value_or("");
         string adc_bit_depth = config->get_qualified_as<string>("camera.adc_bit_depth").value_or("");
-        long buffer_size = config->get_qualified_as<long>("fits.buffer_size").value_or(0);
+        int buffer_size = config->get_qualified_as<int>("fits.buffer_size").value_or(0);
         int imsize = width*height;
 
         cout << "Initialising Camera" << endl;
@@ -147,16 +148,14 @@ void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> confi
 
         cout << "Start Acquisition" << endl;
 
-        //Begin timing
-        time_t time_begin = time(0);
 
-        //Set timestamp
-        tm *gmtm = gmtime(&time_begin);
-        char* dt = asctime(gmtm);
-        times_struct.timestamp = dt;
+        std::chrono::time_point<std::chrono::system_clock> start, end;
 
         // Start aqcuisition
         pCam->BeginAcquisition();
+
+        //Begin timing
+        start = std::chrono::system_clock::now();
 
         for (unsigned int image_cnt = 0; image_cnt < num_frames; image_cnt++){
 
@@ -175,21 +174,28 @@ void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> confi
             }
 
             // Release image
-            ptr_result_image->Release(); 
+            ptr_result_image->Release();
         }
 
         cout << endl;
 
+        // End Timiong
+        end = std::chrono::system_clock::now();
+
         // End Acquisition
         pCam->EndAcquisition();
 
-        // Calculate duration
-        time_t time_end = time(0);
-        time_t duration = time_end - time_begin;
-        times_struct.total_exposure = (int)duration;
- 
         cout << "Finished Acquisition" << endl;
 
+        //Set timestamp
+        start_time = std::chrono::system_clock::to_time_t(start);
+        tm *gmtm = gmtime(&start_time);
+        char* dt = asctime(gmtm);
+        times_struct.timestamp = dt;
+
+        //Calculate duration
+        std::chrono::duration<double> elapsed_seconds = end - start;
+        times_struct.total_exposure = (double)elapsed_seconds;
 
         // Deinitialise camera
         pCam->DeInit();
