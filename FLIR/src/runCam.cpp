@@ -1,5 +1,4 @@
 #include <iostream>
-#include <vector>
 #include <string>
 #include "modules/acquisition.h"
 #include "modules/saveFITS.h"

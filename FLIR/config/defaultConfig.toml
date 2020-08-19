@@ -13,7 +13,7 @@ exposure_time = 20000 # in microseconds
 num_frames = 200
 
 [fits]
-buffer_size = 5 #Set equal to numFrames unless concerned about memory
+buffer_size = 200 #Set equal to numFrames unless concerned about memory
 bitpix = 16 #Set the same as pixel_format, but as an int
 file_dir = "../data/"
 filename = "myfits.fits"

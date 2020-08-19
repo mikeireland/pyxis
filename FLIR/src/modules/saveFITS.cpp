@@ -1,5 +1,4 @@
 #include <iostream>
-#include <vector>
 #include <string>
 #include "acquisition.h"
 #include "saveFITS.h"
@@ -50,14 +49,17 @@ int SaveFITS(std::shared_ptr<cpptoml::table> config, unsigned short* fits_array,
     long nelements = naxes[0] * naxes[1] * naxes[2];
 
     // Write the image (assuming input of unsigned integers)
-    if ( fits_write_img(fptr, TUSHORT, fpixel, nelements, fits_array, &status) )
+    if ( fits_write_img(fptr, TUSHORT, fpixel, nelements, fits_array, &status) ){
+        cout << "ERROR: Could not write FITS file" << endl;
         return( status );
-
+    }
     // Configure FITS header keywords
 
     int offset_x = buffer_size = config->get_qualified_as<long>("fits.buffer_size").value_or(0);
     int offset_y = config->get_qualified_as<int>("camera.offset_y").value_or(0);
     int exposure_time = config->get_qualified_as<int>("camera.exposure_time").value_or(0);
+
+    cout << times_struct.timestamp << endl;
 
     // Write starting time in UTC
     if ( fits_write_key(fptr, TSTRING, "STARTTIME", &times_struct.timestamp,
@@ -71,7 +73,7 @@ int SaveFITS(std::shared_ptr<cpptoml::table> config, unsigned short* fits_array,
 
     // Write total exposure time
     if ( fits_write_key(fptr, TDOUBLE, "TOTALEXPOSURE", &times_struct.total_exposure,
-         "Total Exposure Time (s)", &status) )
+         "Total Exposure Time (ms)", &status) )
          return( status );
 
     // Write height

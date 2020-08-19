@@ -194,6 +194,8 @@ void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> confi
         tm *gmtm = gmtime(&start_time);
         char* dt = asctime(gmtm);
 
+        cout << dt << endl;
+
         times_struct.timestamp = dt;
 
         //Calculate duration
