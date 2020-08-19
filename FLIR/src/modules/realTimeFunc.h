@@ -6,6 +6,6 @@
       data - raw image data of a single frame
 
 */
-void RealTimeFunc (unsigned int* data);
+void RealTimeFunc (unsigned short* data);
 
 #endif // _REALTIMEFUNC_

@@ -41,6 +41,6 @@ std::string Label(std::string str, const size_t num = 20, const char padding_cha
       *f - a function that will be applied to each image in real time if use_func is set
 
 */
-void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> config, unsigned long num_frames, std::vector<int> fits_array, struct Times times_struct, int use_func, void (*f)(unsigned int*));
+void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> config, unsigned long num_frames, unsigned short* fits_array, Times& times_struct, int use_func, void (*f)(unsigned short*));
 
 #endif // _ACQUISITION_

@@ -49,10 +49,10 @@ endif
 ################################################################################
 # Binaries
 
-all: runCam charDet testFPS
+all: runCam testFPS
 
-charDet: ${OBJDIR}/charDet.o ${OBJ}
-	${CXX} -o ${OUTDIR}/charDet $^ ${LIB}
+#charDet: ${OBJDIR}/charDet.o ${OBJ}
+#	${CXX} -o ${OUTDIR}/charDet $^ ${LIB}
 
 runCam: ${OBJDIR}/runCam.o ${OBJ}
 	${CXX} -o ${OUTDIR}/runCam $^ ${LIB}

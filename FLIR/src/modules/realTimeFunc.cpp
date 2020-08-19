@@ -7,7 +7,7 @@ using namespace std;
       data - raw image data of a single frame
 
 */
-void RealTimeFunc (unsigned int* data){
+void RealTimeFunc (unsigned short* data){
 
     cout << "I could be doing something with the data here..." << endl;
 

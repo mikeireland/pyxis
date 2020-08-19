@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
         unsigned long num_frames = config->get_qualified_as<unsigned long>("camera.num_frames").value_or(0);
 
         // Allocate memory for the image data
-        vector<int> fits_array (width*height*buffer_size);
+        unsigned short *fits_array = (unsigned short*)malloc(sizeof(unsigned short) * width*height*buffer_size);
         Times times_struct;
 
         // Grab frames from the first available camera

@@ -11,6 +11,6 @@
       times_struct - a structure that allows the storage of a timestamp and duration of the exposures
 
 */
-int SaveFITS(std::shared_ptr<cpptoml::table> config, std::vector<int> fits_array, Times times_struct);
+int SaveFITS(std::shared_ptr<cpptoml::table> config, unsigned short* fits_array, Times times_struct);
 
 #endif // _SAVEFITS_

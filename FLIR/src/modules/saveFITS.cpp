@@ -15,7 +15,7 @@ using namespace std;
       times_struct - a structure that allows the storage of a timestamp and duration of the exposures
 
 */
-int SaveFITS(std::shared_ptr<cpptoml::table> config, vector<int> fits_array, Times times_struct)
+int SaveFITS(std::shared_ptr<cpptoml::table> config, unsigned short* fits_array, Times times_struct)
 {
     // Pointer to the FITS file; defined in fitsio.h
     fitsfile *fptr;
@@ -50,7 +50,7 @@ int SaveFITS(std::shared_ptr<cpptoml::table> config, vector<int> fits_array, Tim
     long nelements = naxes[0] * naxes[1] * naxes[2];
 
     // Write the image (assuming input of unsigned integers)
-    if ( fits_write_img(fptr, TUINT, fpixel, nelements, fits_array.data(), &status) )
+    if ( fits_write_img(fptr, TUSHORT, fpixel, nelements, fits_array, &status) )
         return( status );
 
     // Configure FITS header keywords

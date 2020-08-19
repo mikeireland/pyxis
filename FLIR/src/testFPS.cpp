@@ -1,5 +1,4 @@
 #include <iostream>
-#include <vector>
 #include <string>
 #include <fstream>
 #include "modules/acquisition.h"
@@ -20,33 +19,37 @@ struct CsvLine {
     double FPS;
 };
 
-void ReplaceConfigInt(std::shared_ptr<cpptoml::table> config, std::string key, int value){
+void ReplaceCameraConfigInt(std::shared_ptr<cpptoml::table> config, std::string key, int value){
 
-    config->erase(key);
-    config->insert(key,value);
+    std::shared_ptr<cpptoml::table> camera_table = config->get_table("camera");
+    camera_table->erase(key);
+    camera_table->insert(key,value);
+
 }
 
-void Test(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> config, struct CsvLine line_data) {
+void Test(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> config, CsvLine& line_data) {
 
-    ReplaceConfigInt(config,"camera.exposure_time",line_data.exp_time);
-    ReplaceConfigInt(config,"camera.height",line_data.dimensions);
-    ReplaceConfigInt(config,"camera.width",line_data.dimensions);
+    ReplaceCameraConfigInt(config,"exposure_time",line_data.exp_time);
+    ReplaceCameraConfigInt(config,"height",line_data.dimensions);
+    ReplaceCameraConfigInt(config,"width",line_data.dimensions);
 
     int buffer_size = config->get_qualified_as<int>("fits.buffer_size").value_or(0);
 
-    // Allocate memory for the image data
-    vector<int> fits_array (width*height*buffer_size);
-    Times times_struct;
 
+    cout << "allocating array" << endl;
+    // Allocate memory for the image data
+    unsigned short *fits_array = (unsigned short*)malloc(sizeof(unsigned short) * line_data.dimensions*line_data.dimensions*buffer_size);
+    Times times_struct;
+    cout << "allocated array" << endl;
     // Grab frames from the first available camera
     // Use the function "RealTimeFunc" on each separate frame in real time
     GrabFrames(pCam, config, line_data.num_frames, fits_array, times_struct, 0, RealTimeFunc);
 
     // Save the data as a FITS file
-    cout << "Saving Data" << endl;
+    cout << "Saving Data" << endl << endl;
 
     line_data.total_exp_time = times_struct.total_exposure;
-    line_data.FPS = static_cast<double>(line_data.num_frames)/times_struct.total_exposure;
+    line_data.FPS = static_cast<double>(line_data.num_frames)*1000/times_struct.total_exposure;
 
 }
 
@@ -107,28 +110,33 @@ int main(int argc, char **argv) {
     }
     else {
 
-        std::ofstream out_file("foo.csv");
-        int exp_times[15] = {100, 500, 1000, 1500, 2000, 3000, 4000, 5000, 7500, 10000, 15000, 20000, 25000, 50000, 100000};
-        int dimensions[10] = {32, 50, 100, 150, 200, 300, 400, 500, 750 ,1000};
+        std::ofstream out_file("../data/foo.csv");
+        int exp_times[10] = {100000, 50000, 20000, 15000, 10000, 7500, 5000, 2000, 1000, 500};
+        int dimensions[9] = {1000, 700, 500, 400, 300, 200, 100, 64, 32};
 
-        out_file << " Frame Exposure Time (us), Dimensions (px), Total Exposure Time (s), Number of Frames, FPS, \n";
+        out_file << " Frame Exposure Time (us), Dimensions (px), Total Exposure Time (ms), Number of Frames, FPS \n";
 
         CsvLine line_data;
 
         line_data.num_frames = config->get_qualified_as<unsigned long>("camera.num_frames").value_or(0);
 
-        for (int i=0;i<=10;i++){
+        for (int i=0;i<9;i++){
 
-            line_data.width = dimensions[i];
-            line_data.height = dimensions[i];
+            line_data.dimensions = dimensions[i];
 
-            for (int j=0;j<=10;j++){
+            for (int j=0;j<10;j++){
+
+                cout << "Running number " << i << "," << j << endl;
 
                 line_data.exp_time = exp_times[j];
 
-                Test(camList.GetByIndex(0),config,line_data);
+                Test(cam_list.GetByIndex(0),config,line_data);
 
-                out_file << " %d, %d, %f, %lu, %f, \n", line_data.exp_time, line_data.dimensions, line_data.total_exp_time, line_data.num_frames, line_data.FPS;
+                char buffer [50];
+
+                sprintf (buffer, " %d, %d, %d, %lu, %f \n", line_data.exp_time, line_data.dimensions, static_cast<int>(line_data.total_exp_time), line_data.num_frames, line_data.FPS);
+
+                out_file << buffer;
             }
         }
 

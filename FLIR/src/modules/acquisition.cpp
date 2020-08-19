@@ -4,7 +4,6 @@
 #include <string>
 #include <ctime>
 #include <chrono>
-#include <vector>
 #include <algorithm>
 #include "acquisition.h"
 #include "Spinnaker.h"
@@ -47,7 +46,7 @@ std::string Label(std::string str, const size_t num, const char padding_char) {
       *f - a function that will be applied to each image in real time if use_func is set
 
 */
-void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> config, unsigned long num_frames, vector<int> fits_array, struct Times times_struct, int use_func, void (*f)(unsigned int*)) {
+void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> config, unsigned long num_frames, unsigned short* fits_array, Times& times_struct, int use_func, void (*f)(unsigned short*)) {
     try {
 
         // Load in the configuration file
@@ -149,24 +148,28 @@ void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> confi
         cout << "Start Acquisition" << endl;
 
 
-        std::chrono::time_point<std::chrono::system_clock> start, end;
+        std::chrono::time_point<std::chrono::steady_clock> start, end;
 
         // Start aqcuisition
         pCam->BeginAcquisition();
 
+        //Set timestamp
+        time_t start_time = time(0);
+
         //Begin timing
-        start = std::chrono::system_clock::now();
+        start = std::chrono::steady_clock::now();
 
         for (unsigned int image_cnt = 0; image_cnt < num_frames; image_cnt++){
 
             // Retrive image
             ImagePtr ptr_result_image = pCam->GetNextImage();
 
+
             // Load current raw image data into an array
-            unsigned int* data = (unsigned int*)ptr_result_image->GetData();
+            unsigned short* data = (unsigned short*)ptr_result_image->GetData();
 
             // Append data to an allocated memory array
-            copy(data,data+imsize,fits_array.begin()+imsize*(image_cnt%buffer_size));
+            memcpy(fits_array+imsize*(image_cnt%buffer_size), data, imsize*2);
 
             // Do something with the data in real time if required (set use_func for this)
             if (use_func == 1){
@@ -180,7 +183,7 @@ void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> confi
         cout << endl;
 
         // End Timiong
-        end = std::chrono::system_clock::now();
+        end = std::chrono::steady_clock::now();
 
         // End Acquisition
         pCam->EndAcquisition();
@@ -188,14 +191,15 @@ void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> confi
         cout << "Finished Acquisition" << endl;
 
         //Set timestamp
-        start_time = std::chrono::system_clock::to_time_t(start);
         tm *gmtm = gmtime(&start_time);
         char* dt = asctime(gmtm);
+
         times_struct.timestamp = dt;
 
         //Calculate duration
-        std::chrono::duration<double> elapsed_seconds = end - start;
-        times_struct.total_exposure = (double)elapsed_seconds;
+        double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+        times_struct.total_exposure = duration;
 
         // Deinitialise camera
         pCam->DeInit();

@@ -1,5 +1,6 @@
 [camera]
 auto_exposure = "Off"
+manual_fps = "ON"
 auto_gain = "Off"
 adc_bit_depth = "Bit10"
 acquisition_mode = "Continuous"
@@ -8,11 +9,11 @@ width = 32
 height = 32
 offset_x = 0
 offset_y = 0
-exposure_time = 200 # in microseconds
+exposure_time = 20000 # in microseconds
 num_frames = 200
 
 [fits]
-buffer_size = 200 #Set equal to numFrames unless concerned about memory
+buffer_size = 5 #Set equal to numFrames unless concerned about memory
 bitpix = 16 #Set the same as pixel_format, but as an int
 file_dir = "../data/"
 filename = "myfits.fits"
