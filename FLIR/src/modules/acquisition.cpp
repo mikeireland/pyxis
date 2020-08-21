@@ -56,6 +56,7 @@ void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> confi
         int offset_x = config->get_qualified_as<int>("camera.offset_x").value_or(0);
         int offset_y = config->get_qualified_as<int>("camera.offset_y").value_or(0);
         int exposure_time = config->get_qualified_as<int>("camera.exposure_time").value_or(0);
+        int gain = config->get_qualified_as<int>("camera.gain").value_or(0);
         string pixel_format = config->get_qualified_as<string>("camera.pixel_format").value_or("");
         string acquisition_mode = config->get_qualified_as<string>("camera.acquisition_mode").value_or("");
         string auto_exposure = config->get_qualified_as<string>("camera.auto_exposure").value_or("");
@@ -99,6 +100,10 @@ void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> confi
         CFloatPtr   ptr_exposure_time = node_map.GetNode("ExposureTime");
         ptr_exposure_time->SetValue(exposure_time); // pass value in microseconds
 
+        // Set gain
+        CFloatPtr   ptr_gain = node_map.GetNode("Gain");
+        ptr_gain->SetValue(gain); // pass value in microseconds
+
         // Set pixel format
         CEnumerationPtr ptr_pixel_format = node_map.GetNode("PixelFormat");
         CEnumEntryPtr ptr_pixel_format_node = ptr_pixel_format->GetEntryByName(pixel_format.c_str());
@@ -139,6 +144,7 @@ void GrabFrames(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> confi
         cout << Label("Auto gain") << ptr_auto_gain->GetCurrentEntry()->GetSymbolic() << endl;
         cout << Label("Auto exposure") << ptr_auto_exposure->GetCurrentEntry()->GetSymbolic() << endl;
         cout << Label("Exposure time") << ptr_exposure_time->GetValue() << endl;
+        cout << Label("Gain") << ptr_gain->GetValue() << endl;
         cout << Label("Width") << ptr_width->GetValue() << endl;
         cout << Label("Height") << ptr_height->GetValue() << endl;
         cout << Label("Offset X") << ptr_offset_x->GetValue() << endl;

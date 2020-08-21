@@ -8,6 +8,7 @@ width = 32
 height = 32
 offset_x = 0
 offset_y = 0
+gain = 1
 exposure_time = 20000 # in microseconds
 num_frames = 5
 

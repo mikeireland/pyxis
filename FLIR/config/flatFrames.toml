@@ -8,12 +8,12 @@ width = 1000
 height = 1000
 offset_x = 0
 offset_y = 0
-gain = 1
-exposure_time = 10000000 # in microseconds
-num_frames = 6
+gain = 20
+exposure_time = 6000 # in microseconds
+num_frames = 20
 
 [fits]
-buffer_size = 6 #Set equal to numFrames unless concerned about memory
+buffer_size = 20 #Set equal to numFrames unless concerned about memory
 bitpix = 32
 file_dir = "../data/"
-filename = "darkFrames.fits"
+filename = "flatFrames6000.fits"

@@ -8,11 +8,12 @@ width = 1000
 height = 1000
 offset_x = 0
 offset_y = 0
+gain = 20
 exposure_time = 30 # in microseconds
-num_frames = 1000
+num_frames = 20
 
 [fits]
-buffer_size = 1000 #Set equal to numFrames unless concerned about memory
-bitpix = 16
+buffer_size = 20 #Set equal to numFrames unless concerned about memory
+bitpix = 32
 file_dir = "../data/"
 filename = "biasFrames.fits"
