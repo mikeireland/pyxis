@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 
-data = pd.read_csv("~/Documents/pyxis/FLIR/data/foo.csv")
+data = pd.read_csv("~/Documents/pyxis/FLIR/data/FPS_Test.csv")
 
 array = np.array(data).T
 

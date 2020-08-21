@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
     }
     else {
 
-        std::ofstream out_file("../data/foo.csv");
+        std::ofstream out_file("../data/FPS_Test.csv");
         int exp_times[15] = {100000, 50000, 30000, 20000, 15000, 10000, 8000, 7000, 6000, 5000, 4000, 2000, 1500, 1000, 500};
         int dimensions[12] = {1000, 900, 800, 700, 600, 500, 400, 300, 200, 100, 64, 32};
 
