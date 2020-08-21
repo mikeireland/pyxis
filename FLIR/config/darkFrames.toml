@@ -4,15 +4,15 @@ auto_gain = "Off"
 adc_bit_depth = "Bit10"
 acquisition_mode = "Continuous"
 pixel_format = "Mono16"
-width = 32
-height = 32
+width = 1000
+height = 1000
 offset_x = 0
 offset_y = 0
-exposure_time = 20000 # in microseconds
-num_frames = 5
+exposure_time = 10000000 # in microseconds
+num_frames = 6
 
 [fits]
-buffer_size = 5 #Set equal to numFrames unless concerned about memory
+buffer_size = 6 #Set equal to numFrames unless concerned about memory
 bitpix = 32
 file_dir = "../data/"
-filename = "myfits.fits"
+filename = "darkFrames.fits"

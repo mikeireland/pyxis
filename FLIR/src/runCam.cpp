@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
         config_file = string("../config/defaultConfig.toml");
     } else {
         // Assign config file value as string
-        config_file = string(argv[1]);
+        config_file = string("../config/") + string(argv[1]);
     }
 
     // Check whether config file is readable/exists

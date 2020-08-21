@@ -24,10 +24,16 @@ int SaveFITS(std::shared_ptr<cpptoml::table> config, unsigned short* fits_array,
     std::string filename = config->get_qualified_as<std::string>("fits.filename").value_or("");
     string file_path = "!" + file_dir + filename;
 
+    std::string pix_format_str = config->get_qualified_as<std::string>("camera.pixel_format").value_or("");
+    std::string adc_str = config->get_qualified_as<std::string>("camera.adc_bit_depth").value_or("");
+
+    char *pix_format = &pix_format_str[0];
+    char *adc = &adc_str[0];
+
     // Configure FITS file
     int width = config->get_qualified_as<int>("camera.width").value_or(0);
     int height = config->get_qualified_as<int>("camera.height").value_or(0);
-    int bitpix = config->get_qualified_as<int>("fits.bitpix").value_or(8);
+    int bitpix = config->get_qualified_as<int>("fits.bitpix").value_or(16);
     long naxis = 3; // 2D image over time
     int buffer_size = config->get_qualified_as<int>("fits.buffer_size").value_or(0);
     long naxes[3] = {width, height, buffer_size};
@@ -40,7 +46,7 @@ int SaveFITS(std::shared_ptr<cpptoml::table> config, unsigned short* fits_array,
        cout << "ERROR: Could not create FITS file" << endl;
        return( status );
     }
-
+    //bitpix = 32;
     // Write the required keywords for the primary array image
     if ( fits_create_img(fptr,  bitpix, naxis, naxes, &status) )
          return( status );
@@ -51,6 +57,7 @@ int SaveFITS(std::shared_ptr<cpptoml::table> config, unsigned short* fits_array,
     // Write the image (assuming input of unsigned integers)
     if ( fits_write_img(fptr, TUSHORT, fpixel, nelements, fits_array, &status) ){
         cout << "ERROR: Could not write FITS file" << endl;
+cout << status << endl;
         return( status );
     }
     // Configure FITS header keywords
@@ -59,11 +66,19 @@ int SaveFITS(std::shared_ptr<cpptoml::table> config, unsigned short* fits_array,
     int offset_y = config->get_qualified_as<int>("camera.offset_y").value_or(0);
     int exposure_time = config->get_qualified_as<int>("camera.exposure_time").value_or(0);
 
-    cout << times_struct.timestamp << endl;
+    // Write starting time in UTC
+    if ( fits_write_key(fptr, TSTRING, "STARTTIME", times_struct.timestamp,
+         "Timestamp of beginning of exposure UTC", &status) )
+         return( status );
 
     // Write starting time in UTC
-    if ( fits_write_key(fptr, TSTRING, "STARTTIME", &times_struct.timestamp,
-         "Timestamp of beginning of exposure", &status) )
+    if ( fits_write_key(fptr, TSTRING, "PIXEL FORMAT", pix_format,
+         "Pixel Format", &status) )
+         return( status );
+
+    // Write starting time in UTC
+    if ( fits_write_key(fptr, TSTRING, "ADC BIT DEPTH", adc,
+         "ADC Bit Depth", &status) )
          return( status );
 
     // Write individual exposure time

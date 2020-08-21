@@ -45,6 +45,8 @@ void Test(Spinnaker::CameraPtr pCam, std::shared_ptr<cpptoml::table> config, Csv
     // Use the function "RealTimeFunc" on each separate frame in real time
     GrabFrames(pCam, config, line_data.num_frames, fits_array, times_struct, 0, RealTimeFunc);
 
+    free(fits_array);
+
     // Save the data as a FITS file
     cout << "Saving Data" << endl << endl;
 
@@ -111,8 +113,8 @@ int main(int argc, char **argv) {
     else {
 
         std::ofstream out_file("../data/foo.csv");
-        int exp_times[10] = {100000, 50000, 20000, 15000, 10000, 7500, 5000, 2000, 1000, 500};
-        int dimensions[9] = {1000, 700, 500, 400, 300, 200, 100, 64, 32};
+        int exp_times[15] = {100000, 50000, 30000, 20000, 15000, 10000, 8000, 7000, 6000, 5000, 4000, 2000, 1500, 1000, 500};
+        int dimensions[12] = {1000, 900, 800, 700, 600, 500, 400, 300, 200, 100, 64, 32};
 
         out_file << " Frame Exposure Time (us), Dimensions (px), Total Exposure Time (ms), Number of Frames, FPS \n";
 
@@ -120,11 +122,11 @@ int main(int argc, char **argv) {
 
         line_data.num_frames = config->get_qualified_as<unsigned long>("camera.num_frames").value_or(0);
 
-        for (int i=0;i<9;i++){
+        for (int i=0;i<12;i++){
 
             line_data.dimensions = dimensions[i];
 
-            for (int j=0;j<10;j++){
+            for (int j=0;j<15;j++){
 
                 cout << "Running number " << i << "," << j << endl;
 
