@@ -1,19 +1,17 @@
 [camera]
-auto_exposure = "Off"
-auto_gain = "Off"
 adc_bit_depth = "Bit10"
 acquisition_mode = "Continuous"
 pixel_format = "Mono16"
-width = 1000
-height = 1000
-offset_x = 0
-offset_y = 0
-gain = 20
-exposure_time = 6000 # in microseconds
-num_frames = 20
+width = 900
+height = 900
+offset_x = 240
+offset_y = 48
+gain = 25
+exposure_time = 9000 # in microseconds
+num_frames = 25
 
 [fits]
-buffer_size = 20 #Set equal to numFrames unless concerned about memory
+buffer_size = 25 #Set equal to numFrames unless concerned about memory
 bitpix = 32
 file_dir = "../data/"
-filename = "flatFrames6000.fits"
+filename = "2flatFrames9000.fits"

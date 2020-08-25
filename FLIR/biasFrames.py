@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 #fits_image_filename = fits.util.get_testdata_filepath("data/biasFrames.fits")
 
-hdul = fits.open("data/biasFrames.fits", memmap=True)
+hdul = fits.open("data/flats_gain_15/biasFrames.fits", memmap=True)
 data = hdul[0].data/64
 
 n = len(data)

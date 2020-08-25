@@ -5,13 +5,12 @@
 ################################################################################
 # Key paths and settings
 ################################################################################
-CFLAGS += -std=c++11 -Wall
+CFLAGS += -std=c++17 -Wall
 CXX = g++
 
 OBJDIR  = build
 SRCDIR  = src
 SRCEXT = cpp
-MODDIR = ${SRCDIR}/modules
 MKDIR = mkdir -p
 
 PLATFORM = $(shell uname)
@@ -30,8 +29,6 @@ SPINNAKER_LIB = -lSpinnaker${D} ${SPIN_DEPS}
 ################################################################################
 # Master inc/lib/obj/dep settings
 ################################################################################
-SRC = $(shell find ${MODDIR} -type f -name "*.${SRCEXT}")
-OBJ = $(SRC:${MODDIR}/%.${SRCEXT}=${OBJDIR}/%.o)
 
 INC = -Ilib/
 ifneq ($(OS),mac)
@@ -49,24 +46,19 @@ endif
 ################################################################################
 # Binaries
 
-all: runCam testFPS
+all: runCam testFPS testFlats
 
-#charDet: ${OBJDIR}/charDet.o ${OBJ}
-#	${CXX} -o ${OUTDIR}/charDet $^ ${LIB}
-
-runCam: ${OBJDIR}/runCam.o ${OBJ}
+runCam: ${OBJDIR}/runCam.o ${OBJDIR}/FLIRCamera.o
 	${CXX} -o ${OUTDIR}/runCam $^ ${LIB}
 
-testFPS: ${OBJDIR}/testFPS.o ${OBJ}
+testFPS: ${OBJDIR}/testFPS.o ${OBJDIR}/FLIRCamera.o
 	${CXX} -o ${OUTDIR}/testFPS $^ ${LIB}
 
-# Intermediate module object files
-${OBJ}: ${OBJDIR}/%.o : ${MODDIR}/%.cpp
-	@${MKDIR} ${OBJDIR}
-	${CXX} ${CFLAGS} ${INC} -c $< -o $@
+testFlats: ${OBJDIR}/testFlats.o ${OBJDIR}/FLIRCamera.o
+	${CXX} -o ${OUTDIR}/testFlats $^ ${LIB}
 
 # Intermediate script object files
-${OBJDIR}/%.o : ${SRCDIR}/%.cpp
+${OBJDIR}/%.o : ${SRCDIR}/%.${SRCEXT}
 	@${MKDIR} ${OBJDIR}
 	${CXX} ${CFLAGS} ${INC} -c $< -o $@
 

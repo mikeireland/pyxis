@@ -3,15 +3,15 @@ from astropy.io import fits
 import matplotlib.pyplot as plt
 
 #fits_image_filename = fits.util.get_testdata_filepath("data/biasFrames.fits")
-fits_ls = [1000,2000,3000,4000,5000]
+fits_ls = [1000,2000,3000,4000,5000,6000,7000,8000,9000,10000]#,11000,12000,13000,14000,15000]
 
-hdul = fits.open("data/biasFrames.fits", memmap=True)
+hdul = fits.open("data/flats_gain_15/biasFrames.fits", memmap=True)
 bias = np.mean(hdul[0].data/64,axis=0)
 
 var_ls = []
 sig_ls = []
 for name in fits_ls:
-    hdul = fits.open("data/flatFrames%s.fits"%name, memmap=True)
+    hdul = fits.open("data/flats_gain_15/flatFrames_%s.fits"%name, memmap=True)
     data = hdul[0].data/64 - bias
     med_all = np.median(data)
 
@@ -40,7 +40,10 @@ for name in fits_ls:
     print("Std of one image = " + str(np.mean(stdls)))
 
 plt.plot(sig_ls,var_ls)
+m,c = np.polyfit(sig_ls,var_ls,1)
 
+plt.plot(sig_ls, m*np.array(sig_ls) + c)
+plt.show()
 
 
 
