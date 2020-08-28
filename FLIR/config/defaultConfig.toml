@@ -1,14 +1,20 @@
 [camera]
-adc_bit_depth = "Bit10"
-acquisition_mode = "Continuous"
-pixel_format = "Mono16"
+adc_bit_depth = "Bit10" #"Bit10" is a good default
+acquisition_mode = "Continuous" #"Continuous" is default
+pixel_format = "Mono16" #"Mono16" is default
 width = 1000
 height = 1000
 offset_x = 0
 offset_y = 0
 gain = 0
-exposure_time = 20000 # in microseconds
-num_frames = 500
+black_level = 0 #in percent
+exposure_time = 2000 # in microseconds
+num_frames = 10
+
+[camera.trigger]
+trigger_mode = "Off" #Is trigger on or off? 
+trigger_selector = "FrameStart" #"FrameStart" is default
+trigger_source = "Software" #"Software", or "Line0, Line1 or Line2"
 
 [fits]
 buffer_size = 2 #Set equal to numFrames unless concerned about memory

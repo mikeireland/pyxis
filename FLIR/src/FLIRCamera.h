@@ -54,6 +54,9 @@ class FLIRCamera {
         // Set bit depth of ADC
         std::string adc_bit_depth;
 
+        // Set black level in percent
+        double black_level;
+    
         // Buffer size for image data
         int buffer_size;
 
@@ -65,6 +68,17 @@ class FLIRCamera {
 
         // Timestamp of first image
         char* timestamp;
+
+        // TRIGGER VALUES
+
+        // Whether trigger is on or off
+        std::string trigger_mode;
+
+        // Trigger functionality
+        std::string trigger_selector;
+
+        // Trigger source
+        std::string trigger_source;
 
 
 		/* Constructor: Takes the camera pointer and config table
@@ -95,6 +109,15 @@ class FLIRCamera {
               num_images - number of images in the array to write
         */
         int SaveFITS(unsigned short* image_array, int num_images);
+
+
+    private:
+        // Configure the trigger
+        int ConfigTrigger(Spinnaker::GenApi::INodeMap& node_map);
+        // Reset the camera by turning off trigger        
+        int ResetTrigger(Spinnaker::GenApi::INodeMap& node_map);
+        // Function to grab an image through the trigger        
+        int GrabImageByTrigger(Spinnaker::GenApi::INodeMap& node_map);
 
 };
 
