@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
 
             // Acquire the images, saving them to "image_array", and call "CallbackFunc"
 		    // after each image is retrieved.
-            Fcam.GrabFrames(num_frames, image_array, CallbackFunc);
+            Fcam.GrabFrames(num_frames, image_array, NULL);
 
             // Save the data as a FITS file
             cout << "Saving Data" << endl;

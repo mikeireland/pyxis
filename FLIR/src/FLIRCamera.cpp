@@ -56,7 +56,7 @@ FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
     acquisition_mode = config["camera"]["acquisition_mode"].value_or("");
     adc_bit_depth = config["camera"]["adc_bit_depth"].value_or("");
     black_level = config["camera"]["black_level"].value_or(0);
-    buffer_size = config["fits"]["buffer_size"].value_or(0);
+    buffer_size = config["camera"]["buffer_size"].value_or(0);
     imsize = width*height;
 
     trigger_mode = config["camera"]["trigger"]["trigger_mode"].value_or("");

@@ -47,7 +47,7 @@ for name in fits_ls:
 
 plt.plot(flux_ls,var_ls)
 
-m,c = np.polyfit(flux_ls[1:6],var_ls[1:6],1)
+m,c = np.polyfit(flux_ls[1:4],var_ls[1:4],1)
 plt.plot(flux_ls, m*np.array(flux_ls) + c)
 plt.xlabel("Signal (mean of frame)")
 plt.ylabel("Variance")

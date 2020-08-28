@@ -6,10 +6,11 @@ width = 900
 height = 900
 offset_x = 240
 offset_y = 48
-gain = 0
-black_level = 0 #in percent
+gain = 25
+black_level = 5 #in percent
 exposure_time = 50 # in microseconds
 num_frames = 25
+buffer_size = 25 #Set equal to numFrames unless concerned about memory
 
 [camera.trigger]
 trigger_mode = "Off" #Is trigger on or off? 
@@ -17,7 +18,7 @@ trigger_selector = "FrameStart" #"FrameStart" is default
 trigger_source = "Software" #"Software", or "Line0, Line1 or Line2"
 
 [fits]
-buffer_size = 25 #Set equal to numFrames unless concerned about memory
+
 bitpix = 32
 file_dir = "../data/"
 filename = "biasFrames.fits"
