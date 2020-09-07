@@ -1,0 +1,13 @@
+- This is a dummy server. It accepts both text input and TCP/IP input on port
+3001. 
+- The sever has a standard "main.cpp" program that has a singleton object
+which is the Server
+- The Server includes the possibility of initialisation, shut-down, background
+tasks and commands.
+- Each command is defined as a function like Cmd_exit, which 
+is included in the prototype object.
+- The Makefile turns these into an input dictionary, and also creates
+the help text from comment lines in the code in a standard format.
+- Clearly, some inheritance is missing here for neatness. However, this
+should be enough to make a start. Low level functionality should 
+be implemented in another class that the Serve has an instance of.
