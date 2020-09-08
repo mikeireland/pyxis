@@ -35,10 +35,10 @@ std::string Label(std::string str, const size_t num, const char padding_char) {
 
 
 /* Constructor: Takes the camera pointer and config table
-   and saves them (and config values) as object attributes           
+   and saves them (and config values) as object attributes
    INPUTS:
       pCam_init - Spinnaker camera pointer
-      config_init - Parsed TOML table      
+      config_init - Parsed TOML table
 */
 FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
 
@@ -60,7 +60,7 @@ FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
     imsize = width*height;
 
     trigger_mode = config["camera"]["trigger"]["trigger_mode"].value_or("");
-    trigger_selector = config["camera"]["trigger"]["trigger_selector"].value_or("");    
+    trigger_selector = config["camera"]["trigger"]["trigger_selector"].value_or("");
     trigger_source = config["camera"]["trigger"]["trigger_source"].value_or("");
 }
 
@@ -157,7 +157,7 @@ void FLIRCamera::InitCamera(){
     cout << endl;
 
     // Configure trigger if requested
-    if (trigger_mode=="On"){    
+    if (trigger_mode=="On"){
         ConfigTrigger(node_map);
     }
 
@@ -291,15 +291,15 @@ int FLIRCamera::GrabImageByTrigger(INodeMap& node_map){
    INPUTS:
       num_frames - number of images to take
       fits_array - allocated array to store image data in
-      f - a callback function that will be applied to each image in real time. 
-          Give NULL for no callback function.   
+      f - a callback function that will be applied to each image in real time.
+          Give NULL for no callback function.
 */
-void FLIRCamera::GrabFrames(unsigned long num_frames, unsigned short* image_array, void (*f)(unsigned short*)) {
+void FLIRCamera::GrabFrames(unsigned long num_frames, unsigned short* image_array, int (*f)(unsigned short*)) {
     try {
         cout << "Start Acquisition" << endl;
 
         std::chrono::time_point<std::chrono::steady_clock> start, end;
-        
+
         INodeMap& node_map = pCam->GetNodeMap();
 
         //Set timestamp
@@ -314,7 +314,7 @@ void FLIRCamera::GrabFrames(unsigned long num_frames, unsigned short* image_arra
         for (unsigned int image_cnt = 0; image_cnt < num_frames; image_cnt++){
 
             // If trigger mode is on, wait for trigger to take image
-            if (trigger_mode=="On"){ 
+            if (trigger_mode=="On"){
                 GrabImageByTrigger(node_map);
             }
 
@@ -329,7 +329,36 @@ void FLIRCamera::GrabFrames(unsigned long num_frames, unsigned short* image_arra
 
             // Do something with the data in real time if required
             if (*f != NULL){
-                (*f)(data);
+                int result;
+
+                result = (*f)(data);
+
+                if (result == 0){
+
+                    cout << endl;
+
+                    // End Timing
+                    end = std::chrono::steady_clock::now();
+
+                    // End Acquisition
+                    pCam->EndAcquisition();
+
+                    cout << "Callback Request: Finished Acquisition" << endl;
+
+                    //Set timestamp
+                    tm *gmtm = gmtime(&start_time);
+                    char* dt = asctime(gmtm);
+
+                    timestamp = dt;
+
+                    //Calculate duration
+                    double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+                    total_exposure = duration;
+
+                    return;
+
+                }
             }
 
             // Release image
@@ -466,4 +495,3 @@ int FLIRCamera::SaveFITS(unsigned short* image_array, int num_images)
     fits_close_file(fptr, &status);
     return( status );
 }
-

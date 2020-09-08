@@ -22,15 +22,15 @@ std::string Label(std::string str, const size_t num = 20, const char padding_cha
    Contains necessary methods and attributes for running
    a FLIR Camera
 */
-class FLIRCamera {        
-    public:        
-    
-        // Pointer to camera      
+class FLIRCamera {
+    public:
+
+        // Pointer to camera
         Spinnaker::CameraPtr pCam;
 
         // TOML configuration table
         toml::table config;
-        
+
 		// Dimensions of image
         int width;
         int height;
@@ -48,7 +48,7 @@ class FLIRCamera {
         // Pixel format of images (Mono16 is good default)
         std::string pixel_format;
 
-        // Acquisition mode of camera (continuous) 
+        // Acquisition mode of camera (continuous)
         std::string acquisition_mode;
 
         // Set bit depth of ADC
@@ -56,7 +56,7 @@ class FLIRCamera {
 
         // Set black level in percent
         double black_level;
-    
+
         // Buffer size for image data
         int buffer_size;
 
@@ -82,7 +82,7 @@ class FLIRCamera {
 
 
 		/* Constructor: Takes the camera pointer and config table
-           and saves them (and config values) as object attributes  
+           and saves them (and config values) as object attributes
            INPUTS:
               pCam_init - Spinnaker camera pointer
               config_init - Parsed TOML table   */
@@ -98,10 +98,10 @@ class FLIRCamera {
            INPUTS:
               num_frames - number of images to take
               fits_array - allocated array to store image data in
-              f - a callback function that will be applied to each image in real time. 
-                  Give NULL for no callback function.   
+              f - a callback function that will be applied to each image in real time.
+                  Give NULL for no callback function.
         */
-        void GrabFrames(unsigned long num_frames, unsigned short* image_array, void (*f)(unsigned short*));
+        void GrabFrames(unsigned long num_frames, unsigned short* image_array, int (*f)(unsigned short*));
 
         /* Write a given array of image data as a FITS file
            INPUTS:
@@ -114,9 +114,9 @@ class FLIRCamera {
     private:
         // Configure the trigger
         int ConfigTrigger(Spinnaker::GenApi::INodeMap& node_map);
-        // Reset the camera by turning off trigger        
+        // Reset the camera by turning off trigger
         int ResetTrigger(Spinnaker::GenApi::INodeMap& node_map);
-        // Function to grab an image through the trigger        
+        // Function to grab an image through the trigger
         int GrabImageByTrigger(Spinnaker::GenApi::INodeMap& node_map);
 
 };

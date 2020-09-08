@@ -13,7 +13,7 @@ using namespace std;
    of frames, during which it will apply a function "CallbackFunc"
    on each image as they are acquired. It then saves all of the image
    data into a FITS file (the specifications of which are in the
-   configuration file. 
+   configuration file.
 
    ARGUMENT: name of config file (in config/) to apply
 */
@@ -23,9 +23,11 @@ using namespace std;
    INPUTS:
       data - raw image data of a single frame
 */
-void CallbackFunc (unsigned short* data){
+int CallbackFunc (unsigned short* data){
 
     cout << "I could be doing something with the data here..." << endl;
+
+    return 1;
 }
 
 
