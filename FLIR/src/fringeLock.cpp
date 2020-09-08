@@ -4,26 +4,13 @@
 #include <fftw3.h>
 #include <cmath>
 #include "FLIRCamera.h"
-
-struct fringe_lock_data{
-    std::vector<unsigned short> flux;
-    int flux_idx;
-    int fft_signal_idx;
-}
-
-template<typename T>
-std::vector<T> arange(T start, T stop, T step = 1) {
-    std::vector<T> values;
-    for (T value = start; value < stop; value += step)
-        values.push_back(value);
-    return values;
-}
+#include "fringeLock.h"
 
 static int lock_SNR;
 static int signal_size;
 static int window_size;
 
-static struct fringe_lock_data flux1_data, flux2_data, flux3_data;
+static struct fringe_lock_data flux_data_ls[3];
 
 static fftw_plan plan;
 static double *in;
@@ -46,19 +33,30 @@ void FringeLock(FLIRCamera Fcam){
 
     int num_frames = scan_width/meters_per_frame;
 
-    values = arange<double>(0,window_size/2);
-    period = ;
-    wavenumbers = ;
+    std::vector<double> values = arange<double>(0,window_size/2+1);
+    double period = window_size*meters_per_frame;
 
-    flux1_data.flux_idx = ;
-    flux1_data.fft_signal_idx = ;
+    for (int i=0;i<3;i++){
+       std::string output = Fcam.config["fringe"]["locking"]["selections"][i][0].value_or('');
+       int channel = Fcam.config["fringe"]["locking"]["selections"][i][1].value_or(0);
+       flux_data_ls[i].flux_idx = Fcam.config["fringe"]["positions"][output]["indices"][channel].value_or(0);
+       double wavelength = Fcam.config["fringe"]["positions"][output]["frequencies"][channel].value_or(0);
+       double wavenumber = 1/wavelength;
+       flux_data_ls[i].wavenumber = wavenumber;
+       flux_data_ls[i].flux (window_size,0);
 
-    flux2_data.flux_idx = ;
-    flux2_data.fft_signal_idx = ;
+       double min_residual = 100;
+       int min_arg;
+       for(int j=0; j<(window_size/2+1); j++){
+          double residual = values[j] - wavenumber;
+          if (residual < min_residual){
+             min_residual = min_residual;
+             min_arg = j;
+          }
+       }
 
-    flux3_data.flux_idx = ;
-    flux3_data.fft_signal_idx = ;
-
+       flux_data_ls[i].fft_signal_idx = min_arg;
+    }
 
     in = (double*) fftw_malloc(sizeof(double) * window_size);
     out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (window_size/2+1));
@@ -70,7 +68,7 @@ void FringeLock(FLIRCamera Fcam){
     unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
 
     // Start Frame capture
-    Fcam.GrabFrames(num_frames, image_array, FringeScan)
+    Fcam.GrabFrames(num_frames, image_array, FringeScan);
 
     Fcam.exposure_time = old_exposure;
 
@@ -113,19 +111,18 @@ double FringeFFT(unsigned short * frame, struct fringe_lock_data flux_data){
 
     std = sqrt(std/(window_size/2 - (2*signal_size-1)));
 
-    return signal/std
-
+    return signal/std;
 }
 
 int FringeScan(unsigned short * frame){
 
-    double SNR_1 = FringeFFT(frame, flux1_data);
-    double SNR_2 = FringeFFT(frame, flux2_data);
-    double SNR_3 = FringeFFT(frame, flux3_data);
+    double SNR_1 = FringeFFT(frame, flux_data_ls[0]);
+    double SNR_2 = FringeFFT(frame, flux_data_ls[1]);
+    double SNR_3 = FringeFFT(frame, flux_data_ls[2]);
 
     //GNU PLOT
 
-    if ( < lock_SNR):{
+    if ((SNR_1 > lock_SNR) && (SNR_2 > lock_SNR) && (SNR_3 > lock_SNR)){
         return 0;
     }
 

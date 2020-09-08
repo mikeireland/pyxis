@@ -22,14 +22,19 @@ bitpix = 32
 file_dir = "../data/"
 filename = "myfits.fits"
 
-[detector]
-
-
-
 [fringe.locking]
+selections = [["A",1],["A",3],["B",2]]
 exposure_time =
 scan_rate =
 scan_width = 2e-3
 lock_SNR =
 window_size = 1000
 signal_size = 2
+
+[fringe.positions]
+A.frequencies = [600e-9,630e-9,660e-9,690e-9,720e-9]
+A.indices = [183,184,185,186,187]
+B.frequencies = [600e-9,630e-9,660e-9,690e-9,720e-9]
+B.indices = [483,484,485,486,487]
+C.frequencies = [600e-9,630e-9,660e-9,690e-9,720e-9]
+C.indices = [783,784,785,786,787]
