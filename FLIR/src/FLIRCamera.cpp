@@ -328,6 +328,8 @@ void FLIRCamera::GrabFrames(unsigned long num_frames, unsigned short* image_arra
             memcpy(image_array+imsize*(image_cnt%buffer_size), data, imsize*2);
 
             // Do something with the data in real time if required
+            // If 0 is returned by the callback function, end acquisition (regardless of 
+            // number of frames to go).
             if (*f != NULL){
                 int result;
 

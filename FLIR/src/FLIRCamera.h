@@ -99,6 +99,7 @@ class FLIRCamera {
               num_frames - number of images to take
               fits_array - allocated array to store image data in
               f - a callback function that will be applied to each image in real time.
+                  If f returns 0, it will end acquisition regardless of how long it has to go.
                   Give NULL for no callback function.
         */
         void GrabFrames(unsigned long num_frames, unsigned short* image_array, int (*f)(unsigned short*));

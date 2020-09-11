@@ -35,6 +35,7 @@ ifneq ($(OS),mac)
 INC += -I/usr/include/spinnaker
 LIB += -Wl,-Bdynamic ${SPINNAKER_LIB}
 LIB += -lcfitsio
+LIB += -lfftw3
 else
 INC += -I/usr/local/include/spinnaker
 LIB += ${SPINNAKER_LIB}
@@ -46,7 +47,10 @@ endif
 ################################################################################
 # Binaries
 
-all: runCam testFPS testFlats
+all: runCam testFPS testFlats testLock
+
+testLock: ${OBJDIR}/testLock.o ${OBJDIR}/FLIRCamera.o ${OBJDIR}/fringeLock.o
+	${CXX} -o ${OUTDIR}/testLock $^ ${LIB}
 
 runCam: ${OBJDIR}/runCam.o ${OBJDIR}/FLIRCamera.o
 	${CXX} -o ${OUTDIR}/runCam $^ ${LIB}

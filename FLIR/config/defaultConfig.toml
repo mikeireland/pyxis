@@ -23,17 +23,19 @@ file_dir = "../data/"
 filename = "myfits.fits"
 
 [fringe.locking]
-selections = [["A",1],["A",3],["B",2]]
-exposure_time =
-scan_rate =
-scan_width = 2e-3
-lock_SNR =
-window_size = 1000
-signal_size = 2
+selections = [["A",1],["A",3],["B",2]] #What channels to look at?
+exposure_time = 100000 #In microseconds
+scan_rate = 2e-3 #In m/s
+scan_width = 2e-3 #In m
+lock_SNR = 10 #SNR to achieve for fringe locking
+window_size = 1000 #Number of frames to FFT over
+signal_size = 2 #How wide should the "signal" be in wavenumber steps
 
 [fringe.positions]
+#Frequencies and indices for those frequencies for each interferometer
+#spectral channel
 A.frequencies = [600e-9,630e-9,660e-9,690e-9,720e-9]
-A.indices = [183,184,185,186,187]
+A.indices = [183,184,185,186,187] 
 B.frequencies = [600e-9,630e-9,660e-9,690e-9,720e-9]
 B.indices = [483,484,485,486,487]
 C.frequencies = [600e-9,630e-9,660e-9,690e-9,720e-9]

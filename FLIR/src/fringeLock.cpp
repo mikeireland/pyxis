@@ -6,6 +6,10 @@
 #include "FLIRCamera.h"
 #include "fringeLock.h"
 
+using namespace std;
+
+/* FUNCTIONS TO PERFORM FRINGE LOCKING WITH */
+
 static int lock_SNR;
 static int signal_size;
 static int window_size;
@@ -17,38 +21,56 @@ static double *in;
 static fftw_complex *out;
 
 
+/* High level function to perform fringe locking
+   INPUTS:
+      Fcam - Camera class
+*/
 void FringeLock(FLIRCamera Fcam){
+
+    // Keep old exposure time to give back later
     int old_exposure = Fcam.exposure_time;
 
-    int scan_rate = Fcam.config["fringe"]["locking"]["scan_rate"].value_or(0);
+    // Read from config file
+    double scan_rate = Fcam.config["fringe"]["locking"]["scan_rate"].value_or(0.0);
     lock_SNR = Fcam.config["fringe"]["locking"]["lock_SNR"].value_or(0);
     signal_size = Fcam.config["fringe"]["locking"]["signal_size"].value_or(0);
-    double scan_width = Fcam.config["fringe"]["locking"]["scan_width"].value_or(0);
+    double scan_width = Fcam.config["fringe"]["locking"]["scan_width"].value_or(0.0);
     Fcam.exposure_time = Fcam.config["fringe"]["locking"]["exposure_time"].value_or(0);
     window_size = Fcam.config["fringe"]["locking"]["window_size"].value_or(0);
 
-    double meters_per_frame = scan_rate*Fcam.exposure_time;
+    // Number of meters per frame the stage will scan
+    double meters_per_frame = scan_rate*(Fcam.exposure_time/1e6);
 
-    std::vector<double> trial_delays = arange<double>(-scan_width/2, scan_width/2,step = meters_per_frame);
+    // List of trial delays to be scanned
+    std::vector<double> trial_delays = arange<double>(-scan_width/2, scan_width/2,meters_per_frame);
 
+    // Maximum number of frames to take over the scan
     int num_frames = scan_width/meters_per_frame;
 
+    // Frequencies for the resultant FFT
     std::vector<double> values = arange<double>(0,window_size/2+1);
     double period = window_size*meters_per_frame;
 
+    // Loop over the pixels we are looking at
     for (int i=0;i<3;i++){
-       std::string output = Fcam.config["fringe"]["locking"]["selections"][i][0].value_or('');
+       // What channel are we viewing?
+       std::string output = Fcam.config["fringe"]["locking"]["selections"][i][0].value_or("");
        int channel = Fcam.config["fringe"]["locking"]["selections"][i][1].value_or(0);
+       
+       // Find the wavenumber and index in the image array of the desired pixel
        flux_data_ls[i].flux_idx = Fcam.config["fringe"]["positions"][output]["indices"][channel].value_or(0);
        double wavelength = Fcam.config["fringe"]["positions"][output]["frequencies"][channel].value_or(0);
        double wavenumber = 1/wavelength;
        flux_data_ls[i].wavenumber = wavenumber;
-       flux_data_ls[i].flux (window_size,0);
 
+       // Initially fill the flux history array with zeros 
+       flux_data_ls[i].flux.assign(window_size,0);
+
+       // Identify the index of the frequency that should peak if we have fringes
        double min_residual = 100;
        int min_arg;
        for(int j=0; j<(window_size/2+1); j++){
-          double residual = values[j] - wavenumber;
+          double residual = values[j]/period - wavenumber;
           if (residual < min_residual){
              min_residual = min_residual;
              min_arg = j;
@@ -58,6 +80,7 @@ void FringeLock(FLIRCamera Fcam){
        flux_data_ls[i].fft_signal_idx = min_arg;
     }
 
+    // Initialise FFTW arrays and FFTW plan
     in = (double*) fftw_malloc(sizeof(double) * window_size);
     out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (window_size/2+1));
     plan = fftw_plan_dft_r2c_1d(window_size, in, out, FFTW_MEASURE);
@@ -67,61 +90,110 @@ void FringeLock(FLIRCamera Fcam){
     // Allocate memory for the image data (given by size of image and buffer size)
     unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
 
-    // Start Frame capture
+    // Init camera
+    Fcam.InitCamera();
+
+    // Start frame capture and scan
     Fcam.GrabFrames(num_frames, image_array, FringeScan);
 
+    // Deinit camera
+    Fcam.DeinitCamera();
+
+    // Return old exposure time 
     Fcam.exposure_time = old_exposure;
 
     // Retrieve Delay and print
 
+    // Memory Management and reset
+    free(image_array);
+    fftw_destroy_plan(plan);
+    fftw_free(in); fftw_free(out);
 }
 
+
+/* Low level function to take a pixel from the detector, perform an
+   FFT on its past data and calculate the SNR on the frequency it should
+   peak at if there are fringes
+
+   INPUTS:
+      frame - Image array data
+      fringe_lock_data - struct containing indices and past data for the desired pixel
+   
+   OUTPUTS:
+      SNR of the peak frequency of the FFT
+*/
 double FringeFFT(unsigned short * frame, struct fringe_lock_data flux_data){
 
+    cout << "DOING AN FFT" << endl;
+
+    // Add current flux from pixel into the array
     flux_data.flux.push_back(frame[flux_data.flux_idx]);
 
-    std::copy(flux_data.end()-window_size, flux_data.end(), in);
+    // Copy the last "window_size" number of flux values into the FFT vector
+    std::copy(flux_data.flux.end()-window_size, flux_data.flux.end(), in);
 
+    // Perform the FFT
     fftw_execute(plan);
 
-    double data, mean, signal = 0, std = 0;
-
-
+    double data, mean, sum=0, signal = 0, std = 0;
+    
+    // Loop through the FFT to calculate SNR
     for (int i=1;i<(window_size/2+1);i++){
-        data = abs(out[i]);
+        data = sqrt(out[i][0]*out[i][0] + out[i][1]*out[i][1]);
 
-        if (abs(i-flux_signal_idx) < signal_size){
+        // Find the maximum peak of the FFT within the "signal" window
+        if (abs(i-flux_data.fft_signal_idx) < signal_size){
             if (data > signal){
                 signal = data;
             }
         }
+        // Otherwise, add all the "noisy" frequencies
         else {
             sum += data;
         }
     }
 
+    // Find the mean of the noisy values
     mean = sum/(window_size/2 - (2*signal_size-1));
 
+    // Calculate standard deviation of the noise
     for (int i=1;i<(window_size/2+1);i++){
-        if (abs(i-flux_signal_idx) > signal_size){
-            data = abs(out[i]);
+        if (abs(i-flux_data.fft_signal_idx) > signal_size){
+            data = sqrt(out[i][0]*out[i][0] + out[i][1]*out[i][1]);
             std += pow(data - mean, 2);
         }
     }
 
     std = sqrt(std/(window_size/2 - (2*signal_size-1)));
 
+    // Return SNR
     return signal/std;
 }
 
+
+/* Callback function to be called each time a new frame is taken by the camera during
+   fringe locking. Calls FringeLock on a number of pixels, plots the data and checks
+   if the SNR is good enough to claim we have found fringes.
+
+   INPUTS:
+      frame - Image array data
+   
+   OUTPUTS:
+      0 if fringes have been found
+      1 otherwise
+*/
 int FringeScan(unsigned short * frame){
 
+    // Run the FFT routine on three different pixels/channels
     double SNR_1 = FringeFFT(frame, flux_data_ls[0]);
     double SNR_2 = FringeFFT(frame, flux_data_ls[1]);
     double SNR_3 = FringeFFT(frame, flux_data_ls[2]);
+    
+    cout << "FINISHED MY FFTS" << endl;
 
     //GNU PLOT
 
+    // If all are above the desired SNR, end the acquisition there
     if ((SNR_1 > lock_SNR) && (SNR_2 > lock_SNR) && (SNR_3 > lock_SNR)){
         return 0;
     }
