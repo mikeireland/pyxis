@@ -40,3 +40,6 @@ B.frequencies = [600e-9,630e-9,660e-9,690e-9,720e-9]
 B.indices = [483,484,485,486,487]
 C.frequencies = [600e-9,630e-9,660e-9,690e-9,720e-9]
 C.indices = [783,784,785,786,787]
+
+[zaber]
+serial_port = "/dev/ttyS0"

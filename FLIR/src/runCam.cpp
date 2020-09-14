@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <unistd.h>
 #include "FLIRCamera.h"
 #include "Spinnaker.h"
 #include "toml.hpp"
