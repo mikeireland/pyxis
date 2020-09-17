@@ -2,21 +2,19 @@
 #define _ZABERACTUATOR_
 
 #include <zaber/motion/binary.h>
-
+#include "toml.hpp"
 
 class ZaberActuator{
 
     public:
 
-		// Dimensions of image
+        toml::table config;
+
         zaber::motion::binary::Device * pDev;
 
-		/* Constructor: Takes the camera pointer and config table
-           and saves them (and config values) as object attributes
-           INPUTS:
-              pCam_init - Spinnaker camera pointer
-              config_init - Parsed TOML table   */
-        ZaberActuator(zaber::motion::binary::Device device);
+        zaber::motion::binary::Connection * pCon;
+
+        ZaberActuator(std::string serial_port, toml::table config_init);
 
 };
 

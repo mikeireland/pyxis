@@ -40,18 +40,7 @@ int main(int argc, char **argv) {
     // Parse the configuration file
     toml::table config = toml::parse_file(config_file);
 
-    std::string serial_port = config["zaber"]["serial_port"].value_or("");
-
-    Library::enableDeviceDbStore();
-
-    Connection connection = Connection::openSerialPort(serial_port);
-
-    std::vector<Device> deviceList = connection.detectDevices();
-    std::cout << "Found " << deviceList.size() << " devices." << std::endl;
-
-    Device device = deviceList[0];
-
-    ZaberActuator stage (device);
+    ZaberActuator stage (serial_port, config);
 
     stage.pDev->moveAbsolute(10, Units::LENGTH_MILLIMETRES);
 

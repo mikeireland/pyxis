@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "FLIRCamera.h"
+#include "ZaberActuator.h"
 
 // Template function to replicate the np.arange function in Python
 template<typename T>
@@ -29,7 +30,7 @@ struct fringe_lock_data{
    INPUTS:
       Fcam - Camera class
 */
-void FringeLock(FLIRCamera Fcam);
+void FringeLock(FLIRCamera Fcam, ZaberActuator stage);
 
 
 /* Low level function to take a pixel from the detector, perform an
@@ -39,7 +40,7 @@ void FringeLock(FLIRCamera Fcam);
    INPUTS:
       frame - Image array data
       fringe_lock_data - struct containing indices and past data for the desired pixel
-   
+
    OUTPUTS:
       SNR of the peak frequency of the FFT
 */
@@ -52,7 +53,7 @@ double FringeFFT(unsigned short * frame, struct fringe_lock_data flux_data);
 
    INPUTS:
       frame - Image array data
-   
+
    OUTPUTS:
       0 if fringes have been found
       1 otherwise

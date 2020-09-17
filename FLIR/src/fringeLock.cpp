@@ -5,6 +5,7 @@
 #include <cmath>
 #include "FLIRCamera.h"
 #include "fringeLock.h"
+#include "ZaberActuator.h"
 
 using namespace std;
 
@@ -56,14 +57,14 @@ void FringeLock(FLIRCamera Fcam){
        // What channel are we viewing?
        std::string output = Fcam.config["fringe"]["locking"]["selections"][i][0].value_or("");
        int channel = Fcam.config["fringe"]["locking"]["selections"][i][1].value_or(0);
-       
+
        // Find the wavenumber and index in the image array of the desired pixel
        flux_data_ls[i].flux_idx = Fcam.config["fringe"]["positions"][output]["indices"][channel].value_or(0);
        double wavelength = Fcam.config["fringe"]["positions"][output]["frequencies"][channel].value_or(0);
        double wavenumber = 1/wavelength;
        flux_data_ls[i].wavenumber = wavenumber;
 
-       // Initially fill the flux history array with zeros 
+       // Initially fill the flux history array with zeros
        flux_data_ls[i].flux.assign(window_size,0);
 
        // Identify the index of the frequency that should peak if we have fringes
@@ -85,7 +86,10 @@ void FringeLock(FLIRCamera Fcam){
     out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (window_size/2+1));
     plan = fftw_plan_dft_r2c_1d(window_size, in, out, FFTW_MEASURE);
 
-    // INITIALISE ACTUATOR
+    // Actuator Starting position
+    double start_pos = Fcam.config["fringe"]["locking"]["start_pos"].value_or(0.0);
+    stage.pDev->moveAbsolute(start_pos, Units::LENGTH_MILLIMETRES);
+
 
     // Allocate memory for the image data (given by size of image and buffer size)
     unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
@@ -99,7 +103,7 @@ void FringeLock(FLIRCamera Fcam){
     // Deinit camera
     Fcam.DeinitCamera();
 
-    // Return old exposure time 
+    // Return old exposure time
     Fcam.exposure_time = old_exposure;
 
     // Retrieve Delay and print
@@ -118,7 +122,7 @@ void FringeLock(FLIRCamera Fcam){
    INPUTS:
       frame - Image array data
       fringe_lock_data - struct containing indices and past data for the desired pixel
-   
+
    OUTPUTS:
       SNR of the peak frequency of the FFT
 */
@@ -136,7 +140,7 @@ double FringeFFT(unsigned short * frame, struct fringe_lock_data flux_data){
     fftw_execute(plan);
 
     double data, mean, sum=0, signal = 0, std = 0;
-    
+
     // Loop through the FFT to calculate SNR
     for (int i=1;i<(window_size/2+1);i++){
         data = sqrt(out[i][0]*out[i][0] + out[i][1]*out[i][1]);
@@ -177,7 +181,7 @@ double FringeFFT(unsigned short * frame, struct fringe_lock_data flux_data){
 
    INPUTS:
       frame - Image array data
-   
+
    OUTPUTS:
       0 if fringes have been found
       1 otherwise
@@ -188,7 +192,7 @@ int FringeScan(unsigned short * frame){
     double SNR_1 = FringeFFT(frame, flux_data_ls[0]);
     double SNR_2 = FringeFFT(frame, flux_data_ls[1]);
     double SNR_3 = FringeFFT(frame, flux_data_ls[2]);
-    
+
     cout << "FINISHED MY FFTS" << endl;
 
     //GNU PLOT

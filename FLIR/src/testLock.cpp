@@ -5,12 +5,13 @@
 #include "Spinnaker.h"
 #include "toml.hpp"
 #include "fringeLock.h"
+#include "ZaberActuator.h"
 
 using namespace Spinnaker;
 using namespace std;
 
 /* Program to test fringe locking on the camera based on a configuration file
-   given to it in "toml" format. 
+   given to it in "toml" format.
 
    ARGUMENT: name of config file (in config/) to apply
 */
@@ -66,8 +67,10 @@ int main(int argc, char **argv) {
 		// Initialise FLIRCamera instance from the first available camera
         FLIRCamera Fcam (cam_list.GetByIndex(0), config);
 
+        ZaberActuator stage (serial_port, config);
+
         // Test the lock
-        FringeLock(Fcam);
+        FringeLock(Fcam,stage);
 
     }
 
