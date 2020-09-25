@@ -13,7 +13,7 @@
    OUTPUT:
       Padded string
 */
-std::string Label(std::string str, const size_t num = 20, const char padding_char = ' ');
+std::string Label(std::string str, const size_t num = 25, const char padding_char = ' ');
 
 
 #endif // _HELPERFUNC_

@@ -2,13 +2,13 @@ all: dummy
 
 server.o: server.cpp server.h
 	./extract_commands.py
-	gcc -Wall -c -g server.cpp
+	g++ -Wall -c -g server.cpp
 
 main.o: main.cpp
-	gcc -Wall -c -g main.cpp 
+	g++ -Wall -c -g main.cpp 
 
 dummy: main.o server.o
-	gcc -o dummy main.o server.o -lzmq -lc++
+	g++ -o dummy main.o server.o -lzmq -lc++
 
 clean:
 	rm *.o

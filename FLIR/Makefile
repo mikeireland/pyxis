@@ -48,21 +48,21 @@ endif
 ################################################################################
 # Binaries
 
-all: runCam testFPS testFlats testLock testZaber
+all: testCam testFPS testFlats testLock testZaber
 
-testZaber: ${OBJDIR}/testZaber.o ${OBJDIR}/ZaberActuator.o
+testZaber: ${OBJDIR}/testZaber.o ${OBJDIR}/ZaberActuator.o ${OBJDIR}/helperFunc.o
 	${CXX} -o ${OUTDIR}/testZaber $^ ${LIB}
 
-testLock: ${OBJDIR}/testLock.o ${OBJDIR}/FLIRCamera.o ${OBJDIR}/fringeLock.o
+testLock: ${OBJDIR}/testLock.o ${OBJDIR}/FLIRCamera.o ${OBJDIR}/fringeLock.o ${OBJDIR}/ZaberActuator.o ${OBJDIR}/helperFunc.o
 	${CXX} -o ${OUTDIR}/testLock $^ ${LIB}
 
-runCam: ${OBJDIR}/runCam.o ${OBJDIR}/FLIRCamera.o
-	${CXX} -o ${OUTDIR}/runCam $^ ${LIB}
+testCam: ${OBJDIR}/testCam.o ${OBJDIR}/FLIRCamera.o ${OBJDIR}/helperFunc.o
+	${CXX} -o ${OUTDIR}/testCam $^ ${LIB}
 
-testFPS: ${OBJDIR}/testFPS.o ${OBJDIR}/FLIRCamera.o
+testFPS: ${OBJDIR}/testFPS.o ${OBJDIR}/FLIRCamera.o ${OBJDIR}/helperFunc.o
 	${CXX} -o ${OUTDIR}/testFPS $^ ${LIB}
 
-testFlats: ${OBJDIR}/testFlats.o ${OBJDIR}/FLIRCamera.o
+testFlats: ${OBJDIR}/testFlats.o ${OBJDIR}/FLIRCamera.o ${OBJDIR}/helperFunc.o
 	${CXX} -o ${OUTDIR}/testFlats $^ ${LIB}
 
 # Intermediate script object files

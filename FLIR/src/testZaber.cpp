@@ -40,12 +40,32 @@ int main(int argc, char **argv) {
     // Parse the configuration file
     toml::table config = toml::parse_file(config_file);
 
-    ZaberActuator stage (serial_port, config);
+    // Get the settings for the particular actuator
+    toml::table stage_config = *config.get("testZaberActuator")->as_table();
 
-    stage.pDev->moveAbsolute(10, Units::LENGTH_MILLIMETRES);
+    cout << endl;
+    cout << "Initializing" << endl;
+    cout << endl;
 
+    ZaberActuator stage (stage_config);
 
+    cout << endl;
+    cout << "Move absolute Test" << endl;
+    cout << endl;
 
+    stage.MoveAbsolute(1, Units::LENGTH_MILLIMETRES);
+
+    cout << "Press the Enter key to continue" << endl;
+    getchar();
+
+    cout << endl;
+    cout << "Move Velocity Test" << endl;
+    cout << endl;
+
+    stage.MoveAtVelocity(1, Units::VELOCITY_MICROMETRES_PER_SECOND);
+    cout << "Press the Enter key to stop" << endl;
+    getchar();
+    stage.Stop();
 
     return 0;
 }

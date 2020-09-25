@@ -77,6 +77,8 @@ int main(int argc, char **argv) {
     }
     else {
 
+        toml::table cam_config = *config.get("testFLIRcamera")->as_table();
+
         int exp_times[10] = {1000,2000,3000,4000,5000,6000,7000,8000,9000,10000};
 
         for (int i=0;i<10;i++){
@@ -88,16 +90,16 @@ int main(int argc, char **argv) {
             // Save as an output string
             sprintf (buffer, "flatFrames_%d.fits", exp_time);
         
-            toml::table* cam_table = config.get("camera")->as_table();
+            toml::table* cam_table = cam_config.get("camera")->as_table();
             cam_table->insert_or_assign("exposure_time",exp_time);
-            toml::table* fits_table = config.get("fits")->as_table();
+            toml::table* fits_table = cam_config.get("fits")->as_table();
             fits_table->insert_or_assign("filename",buffer);
 
 		    // Initialise FLIRCamera instance from the first available camera
-            FLIRCamera Fcam (cam_list.GetByIndex(0), config);
+            FLIRCamera Fcam (cam_list.GetByIndex(0), cam_config);
 
             // How many frames to take?
-            unsigned long num_frames = config["camera"]["num_frames"].value_or(0);
+            unsigned long num_frames = cam_config["camera"]["num_frames"].value_or(0);
 
             // Allocate memory for the image data (given by size of image and buffer size)
             unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);

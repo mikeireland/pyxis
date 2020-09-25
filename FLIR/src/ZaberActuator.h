@@ -10,11 +10,26 @@ class ZaberActuator{
 
         toml::table config;
 
-        zaber::motion::binary::Device * pDev;
+        std::string serial_port;
+        int device_number;
 
-        zaber::motion::binary::Connection * pCon;
+        ZaberActuator(toml::table config_init);
 
-        ZaberActuator(std::string serial_port, toml::table config_init);
+        double IssueCommand(const zaber::motion::binary::CommandCode command, const double data, const double timeout = 0.5, const zaber::motion::Units unit = zaber::motion::Units::NATIVE);
+
+        void MoveAbsolute(double position, const zaber::motion::Units unit = zaber::motion::Units::NATIVE, const double timeout = 60);
+
+        void MoveRelative(double position, const zaber::motion::Units unit = zaber::motion::Units::NATIVE, const double timeout = 60);
+
+        void MoveAtVelocity(double velocity, const zaber::motion::Units unit = zaber::motion::Units::NATIVE, const double timeout = 0.5);
+
+        void Stop(const zaber::motion::Units unit = zaber::motion::Units::NATIVE, const double timeout = 60);
+
+        void ConfigureSetting(const zaber::motion::binary::BinarySettings setting, const double value, const zaber::motion::Units unit = zaber::motion::Units::NATIVE);
+
+    private:
+
+        int ReturnDeviceMode();
 
 };
 

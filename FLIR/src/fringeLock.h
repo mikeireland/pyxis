@@ -30,7 +30,7 @@ struct fringe_lock_data{
    INPUTS:
       Fcam - Camera class
 */
-void FringeLock(FLIRCamera Fcam, ZaberActuator stage);
+void FringeLock(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_config);
 
 
 /* Low level function to take a pixel from the detector, perform an
@@ -44,7 +44,7 @@ void FringeLock(FLIRCamera Fcam, ZaberActuator stage);
    OUTPUTS:
       SNR of the peak frequency of the FFT
 */
-double FringeFFT(unsigned short * frame, struct fringe_lock_data flux_data);
+double FringeFFT(unsigned short * frame, struct fringe_lock_data * flux_data);
 
 
 /* Callback function to be called each time a new frame is taken by the camera during

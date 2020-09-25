@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 fits_ls = [1000,2000,3000,4000,5000,6000,7000,8000,9000,10000]#,11000,12000,13000,14000,15000]
 
 hdul = fits.open("data/biasFrames.fits", memmap=True)
-bias_data = hdul[0].data/64
+ADC = 10
+factor = 2**(16-ADC) 
+bias_data = hdul[0].data/factor
 
 n = len(bias_data)
 
@@ -25,7 +27,7 @@ var_ls = []
 flux_ls = []
 for name in fits_ls:
     hdul = fits.open("data/flatFrames_%s.fits"%name, memmap=True)
-    data = hdul[0].data/64 - bias
+    data = hdul[0].data/factor - bias
     med_all = np.median(data)
 
     n = len(data)
@@ -47,7 +49,7 @@ for name in fits_ls:
 
 plt.plot(flux_ls,var_ls)
 
-m,c = np.polyfit(flux_ls[1:5],var_ls[1:5],1)
+m,c = np.polyfit(flux_ls[1:6],var_ls[1:6],1)
 plt.plot(flux_ls, m*np.array(flux_ls) + c)
 plt.xlabel("Signal (mean of frame)")
 plt.ylabel("Variance")

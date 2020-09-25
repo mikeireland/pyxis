@@ -9,29 +9,12 @@
 #include "FLIRCamera.h"
 #include "toml.hpp"
 #include "fitsio.h"
+#include "helperFunc.h"
 
 using namespace Spinnaker;
 using namespace Spinnaker::GenApi;
 using namespace Spinnaker::GenICam;
 using namespace std;
-
-
-/* Function to pad out strings to print them nicely.
-   INPUTS:
-      str - string to pad
-      num - total size of string to print
-      padding_char - character to pad the end of the string
-                     until it is of size num
-
-   OUTPUT:
-      Padded string
-*/
-std::string Label(std::string str, const size_t num, const char padding_char) {
-    if(num > str.size()){
-        str.insert(str.end(), num - str.size(), padding_char);
-        }
-        return str + ": ";
-    }
 
 
 /* Constructor: Takes the camera pointer and config table
@@ -328,7 +311,7 @@ void FLIRCamera::GrabFrames(unsigned long num_frames, unsigned short* image_arra
             memcpy(image_array+imsize*(image_cnt%buffer_size), data, imsize*2);
 
             // Do something with the data in real time if required
-            // If 0 is returned by the callback function, end acquisition (regardless of 
+            // If 0 is returned by the callback function, end acquisition (regardless of
             // number of frames to go).
             if (*f != NULL){
                 int result;

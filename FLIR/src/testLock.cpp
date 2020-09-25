@@ -63,14 +63,22 @@ int main(int argc, char **argv) {
         return -1;
     }
     else {
+        // Get the settings for the particular camera
+        toml::table cam_config = *config.get("testFLIRcamera")->as_table();
 
 		// Initialise FLIRCamera instance from the first available camera
-        FLIRCamera Fcam (cam_list.GetByIndex(0), config);
+        FLIRCamera Fcam (cam_list.GetByIndex(0), cam_config);
 
-        ZaberActuator stage (serial_port, config);
+        // Get the settings for the particular actuator
+        toml::table stage_config = *config.get("testZaberActuator")->as_table();
+
+        ZaberActuator stage (stage_config);
+
+        // Get the settings for the fringes
+        toml::table fringe_config = *config.get("fringe")->as_table();
 
         // Test the lock
-        FringeLock(Fcam,stage);
+        FringeLock(Fcam,stage,fringe_config);
 
     }
 

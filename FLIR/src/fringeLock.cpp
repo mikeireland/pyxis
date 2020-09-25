@@ -6,12 +6,14 @@
 #include "FLIRCamera.h"
 #include "fringeLock.h"
 #include "ZaberActuator.h"
+#include <zaber/motion/binary.h>
 
 using namespace std;
+using namespace zaber::motion;
 
 /* FUNCTIONS TO PERFORM FRINGE LOCKING WITH */
 
-static int lock_SNR;
+static double lock_SNR;
 static int signal_size;
 static int window_size;
 
@@ -26,18 +28,18 @@ static fftw_complex *out;
    INPUTS:
       Fcam - Camera class
 */
-void FringeLock(FLIRCamera Fcam){
+void FringeLock(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_config){
 
     // Keep old exposure time to give back later
     int old_exposure = Fcam.exposure_time;
 
     // Read from config file
-    double scan_rate = Fcam.config["fringe"]["locking"]["scan_rate"].value_or(0.0);
-    lock_SNR = Fcam.config["fringe"]["locking"]["lock_SNR"].value_or(0);
-    signal_size = Fcam.config["fringe"]["locking"]["signal_size"].value_or(0);
-    double scan_width = Fcam.config["fringe"]["locking"]["scan_width"].value_or(0.0);
-    Fcam.exposure_time = Fcam.config["fringe"]["locking"]["exposure_time"].value_or(0);
-    window_size = Fcam.config["fringe"]["locking"]["window_size"].value_or(0);
+    double scan_rate = fringe_config["locking"]["scan_rate"].value_or(0.0);
+    lock_SNR = fringe_config["locking"]["lock_SNR"].value_or(0.0);
+    signal_size = fringe_config["locking"]["signal_size"].value_or(0);
+    double scan_width = fringe_config["locking"]["scan_width"].value_or(0.0);
+    Fcam.exposure_time = fringe_config["locking"]["exposure_time"].value_or(0);
+    window_size = fringe_config["locking"]["window_size"].value_or(0);
 
     // Number of meters per frame the stage will scan
     double meters_per_frame = scan_rate*(Fcam.exposure_time/1e6);
@@ -55,12 +57,12 @@ void FringeLock(FLIRCamera Fcam){
     // Loop over the pixels we are looking at
     for (int i=0;i<3;i++){
        // What channel are we viewing?
-       std::string output = Fcam.config["fringe"]["locking"]["selections"][i][0].value_or("");
-       int channel = Fcam.config["fringe"]["locking"]["selections"][i][1].value_or(0);
+       std::string output = fringe_config["locking"]["selections"][i][0].value_or("");
+       int channel = fringe_config["locking"]["selections"][i][1].value_or(0);
 
        // Find the wavenumber and index in the image array of the desired pixel
-       flux_data_ls[i].flux_idx = Fcam.config["fringe"]["positions"][output]["indices"][channel].value_or(0);
-       double wavelength = Fcam.config["fringe"]["positions"][output]["frequencies"][channel].value_or(0);
+       flux_data_ls[i].flux_idx = fringe_config["positions"][output]["indices"][channel].value_or(0);
+       double wavelength =fringe_config["positions"][output]["frequencies"][channel].value_or(0);
        double wavenumber = 1/wavelength;
        flux_data_ls[i].wavenumber = wavenumber;
 
@@ -86,10 +88,9 @@ void FringeLock(FLIRCamera Fcam){
     out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (window_size/2+1));
     plan = fftw_plan_dft_r2c_1d(window_size, in, out, FFTW_MEASURE);
 
-    // Actuator Starting position
-    double start_pos = Fcam.config["fringe"]["locking"]["start_pos"].value_or(0.0);
-    stage.pDev->moveAbsolute(start_pos, Units::LENGTH_MILLIMETRES);
-
+    // Actuator Starting position (wait for max 100s until arrived)
+    double start_pos = fringe_config["locking"]["start_pos"].value_or(0.0);
+    stage.MoveAbsolute(start_pos, Units::LENGTH_MILLIMETRES, 100);
 
     // Allocate memory for the image data (given by size of image and buffer size)
     unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
@@ -97,8 +98,14 @@ void FringeLock(FLIRCamera Fcam){
     // Init camera
     Fcam.InitCamera();
 
+    // Start actuator movement
+    stage.MoveAtVelocity(scan_rate, Units::VELOCITY_METRES_PER_SECOND);
+
     // Start frame capture and scan
     Fcam.GrabFrames(num_frames, image_array, FringeScan);
+
+    // Stop actuator movement
+    stage.Stop();
 
     // Deinit camera
     Fcam.DeinitCamera();
@@ -107,6 +114,7 @@ void FringeLock(FLIRCamera Fcam){
     Fcam.exposure_time = old_exposure;
 
     // Retrieve Delay and print
+    cout << endl << "END LOCKING "<< endl;
 
     // Memory Management and reset
     free(image_array);
@@ -126,27 +134,27 @@ void FringeLock(FLIRCamera Fcam){
    OUTPUTS:
       SNR of the peak frequency of the FFT
 */
-double FringeFFT(unsigned short * frame, struct fringe_lock_data flux_data){
-
-    cout << "DOING AN FFT" << endl;
+double FringeFFT(unsigned short * frame, struct fringe_lock_data *flux_data){
 
     // Add current flux from pixel into the array
-    flux_data.flux.push_back(frame[flux_data.flux_idx]);
+    (*flux_data).flux.push_back(frame[(*flux_data).flux_idx]);
 
     // Copy the last "window_size" number of flux values into the FFT vector
-    std::copy(flux_data.flux.end()-window_size, flux_data.flux.end(), in);
+    std::copy((*flux_data).flux.end()-window_size, (*flux_data).flux.end(), in);
 
     // Perform the FFT
     fftw_execute(plan);
 
-    double data, mean, sum=0, signal = 0, std = 0;
+    double data, mean, sum=0., signal = 0., std = 0.;
+    std::complex<double> temp;
 
     // Loop through the FFT to calculate SNR
     for (int i=1;i<(window_size/2+1);i++){
-        data = sqrt(out[i][0]*out[i][0] + out[i][1]*out[i][1]);
+        temp = std::complex<double>(out[i][0], out[i][1]);
+        data = std::abs( std::pow(temp, 2) );
 
         // Find the maximum peak of the FFT within the "signal" window
-        if (abs(i-flux_data.fft_signal_idx) < signal_size){
+        if (abs(i-(*flux_data).fft_signal_idx) < signal_size){
             if (data > signal){
                 signal = data;
             }
@@ -162,7 +170,7 @@ double FringeFFT(unsigned short * frame, struct fringe_lock_data flux_data){
 
     // Calculate standard deviation of the noise
     for (int i=1;i<(window_size/2+1);i++){
-        if (abs(i-flux_data.fft_signal_idx) > signal_size){
+        if (abs(i-(*flux_data).fft_signal_idx) > signal_size){
             data = sqrt(out[i][0]*out[i][0] + out[i][1]*out[i][1]);
             std += pow(data - mean, 2);
         }
@@ -189,20 +197,16 @@ double FringeFFT(unsigned short * frame, struct fringe_lock_data flux_data){
 int FringeScan(unsigned short * frame){
 
     // Run the FFT routine on three different pixels/channels
-    double SNR_1 = FringeFFT(frame, flux_data_ls[0]);
-    double SNR_2 = FringeFFT(frame, flux_data_ls[1]);
-    double SNR_3 = FringeFFT(frame, flux_data_ls[2]);
+    double SNR_1 = FringeFFT(frame, &flux_data_ls[0]);
+    double SNR_2 = FringeFFT(frame, &flux_data_ls[1]);
+    double SNR_3 = FringeFFT(frame, &flux_data_ls[2]);
 
-    cout << "FINISHED MY FFTS" << endl;
-
-    //GNU PLOT
+    cout << "FINISHED MY FFTS" << endl << SNR_1 << endl << SNR_2 << endl << SNR_3 << endl;
 
     // If all are above the desired SNR, end the acquisition there
     if ((SNR_1 > lock_SNR) && (SNR_2 > lock_SNR) && (SNR_3 > lock_SNR)){
         return 0;
     }
-
-    // MOVE ACTUATOR
 
     return 1;
 }

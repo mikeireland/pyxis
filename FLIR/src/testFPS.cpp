@@ -124,6 +124,8 @@ int main(int argc, char **argv) {
     }
     else {
 
+        toml::table cam_config = *config.get("testFLIRcamera")->as_table();
+
         // Filename for output file csv
         std::ofstream out_file("../data/FPS_Test.csv");
 
@@ -137,7 +139,7 @@ int main(int argc, char **argv) {
 
         CsvLine line_data;
 
-        line_data.num_frames = config["camera"]["num_frames"].value_or(0);
+        line_data.num_frames = cam_config["camera"]["num_frames"].value_or(0);
 
         // Loop over all ROI dimensions and exposure times
         for (int i=0;i<12;i++){
@@ -151,7 +153,7 @@ int main(int argc, char **argv) {
                 line_data.exp_time = exp_times[j];
 
                 // Run camera
-                Test(cam_list.GetByIndex(0),config,line_data);
+                Test(cam_list.GetByIndex(0),cam_config,line_data);
 
                 char buffer [50];
     

@@ -1,2 +1,6 @@
-exit = "Exit cleanly from the server.\n"
-help = "List the commands if no argument.\nIf called with an argument, the argument is a command\nfor which help is too be given.\n"
+exit = '''Exit cleanly from the server.
+'''
+help = '''List the commands if no argument.
+If called with an argument, the argument is a command
+for which help is too be given.
+'''
