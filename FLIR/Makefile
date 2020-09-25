@@ -10,6 +10,8 @@ CXX = g++
 
 OBJDIR  = build
 SRCDIR  = src
+SRCINCDIR = src/include
+
 SRCEXT = cpp
 MKDIR = mkdir -p
 
@@ -31,6 +33,7 @@ SPINNAKER_LIB = -lSpinnaker${D} ${SPIN_DEPS}
 ################################################################################
 
 INC = -Ilib/
+INC += -I${SRCINCDIR}
 ifneq ($(OS),mac)
 INC += -I/usr/include/spinnaker
 LIB += -Wl,-Bdynamic ${SPINNAKER_LIB}
@@ -43,30 +46,29 @@ LIB += ${SPINNAKER_LIB}
 
 endif
 
+SRCINC = $(wildcard ${SRCINCDIR}/*.${SRCEXT})
+
+OBJ = $(addprefix ${OBJDIR}/,$(notdir $(SRCINC:.${SRCEXT}=.o)))
+
 ################################################################################
 # Rules/recipes
 ################################################################################
 # Binaries
 
-all: testCam testFPS testFlats testLock testZaber
+binaries = testCam testFPS testFlats testLock testZaber
 
-testZaber: ${OBJDIR}/testZaber.o ${OBJDIR}/ZaberActuator.o ${OBJDIR}/helperFunc.o
-	${CXX} -o ${OUTDIR}/testZaber $^ ${LIB}
+all: ${binaries}
 
-testLock: ${OBJDIR}/testLock.o ${OBJDIR}/FLIRCamera.o ${OBJDIR}/fringeLock.o ${OBJDIR}/ZaberActuator.o ${OBJDIR}/helperFunc.o
-	${CXX} -o ${OUTDIR}/testLock $^ ${LIB}
-
-testCam: ${OBJDIR}/testCam.o ${OBJDIR}/FLIRCamera.o ${OBJDIR}/helperFunc.o
-	${CXX} -o ${OUTDIR}/testCam $^ ${LIB}
-
-testFPS: ${OBJDIR}/testFPS.o ${OBJDIR}/FLIRCamera.o ${OBJDIR}/helperFunc.o
-	${CXX} -o ${OUTDIR}/testFPS $^ ${LIB}
-
-testFlats: ${OBJDIR}/testFlats.o ${OBJDIR}/FLIRCamera.o ${OBJDIR}/helperFunc.o
-	${CXX} -o ${OUTDIR}/testFlats $^ ${LIB}
+${binaries}: % : ${OBJDIR}/%.o ${OBJ}
+	${CXX} -o ${OUTDIR}/$@ $^ ${LIB}
 
 # Intermediate script object files
 ${OBJDIR}/%.o : ${SRCDIR}/%.${SRCEXT}
+	@${MKDIR} ${OBJDIR}
+	${CXX} ${CFLAGS} ${INC} -c $< -o $@
+
+# Intermediate script object files
+${OBJ} : ${OBJDIR}/%.o : ${SRCINCDIR}/%.${SRCEXT}
 	@${MKDIR} ${OBJDIR}
 	${CXX} ${CFLAGS} ${INC} -c $< -o $@
 
