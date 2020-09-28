@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+#Jonah gitignore folders
+FLIR/data/
+FLIR/bin/
+
 # Distribution / packaging
 .Python
 build/
