@@ -9,8 +9,8 @@ Drivers and Programs for interfacing with various hardware.
 - data - place to store output csv/FITS files
 - lib - contains a few dependencies
 - src - source code:
- - top level contains scripts/main programs
- - src/include contains modules and class files for the various programs and hardware
+    - top level contains scripts/main programs
+    - src/include contains modules and class files for the various programs and hardware
 - top level python scripts for camera characterisation
 
 ## Current files
