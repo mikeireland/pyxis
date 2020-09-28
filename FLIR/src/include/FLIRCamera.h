@@ -18,11 +18,11 @@ class FLIRCamera {
         // TOML configuration table
         toml::table config;
 
-		// Dimensions of image
+		    // Dimensions of image
         int width;
         int height;
 
-		// Offset of ROI from top left corner
+		    // Offset of ROI from top left corner
         int offset_x;
         int offset_y;
 
@@ -68,17 +68,17 @@ class FLIRCamera {
         std::string trigger_source;
 
 
-		/* Constructor: Takes the camera pointer and config table
+		    /* Constructor: Takes the camera pointer and config table
            and saves them (and config values) as object attributes
            INPUTS:
               pCam_init - Spinnaker camera pointer
               config_init - Parsed TOML table   */
         FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init);
 
-		/* Function to setup and start the camera. MUST CALL BEFORE USING!!! */
+		    /* Function to setup and start the camera. MUST CALL BEFORE USING!!! */
         void InitCamera();
 
-		/* Function to De-initialise camera. MUST CALL AFTER USING!!! */
+		    /* Function to De-initialise camera. MUST CALL AFTER USING!!! */
         void DeinitCamera();
 
         /* Function to take a number of images with a camera and optionally work on them.

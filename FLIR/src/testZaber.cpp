@@ -46,9 +46,10 @@ int main(int argc, char **argv) {
     cout << endl;
     cout << "Initializing" << endl;
     cout << endl;
-
+    // Initialise ZaberActuator instance for the stage at the port in the config file
     ZaberActuator stage (stage_config);
 
+    //Perform a test by moving the actuator 1 mm from home
     cout << endl;
     cout << "Move absolute Test" << endl;
     cout << endl;
@@ -58,6 +59,8 @@ int main(int argc, char **argv) {
     cout << "Press the Enter key to continue" << endl;
     getchar();
 
+    // Perform a test to move the actuator at a constant speed of 1um/s
+    // until the enter button is pressed.
     cout << endl;
     cout << "Move Velocity Test" << endl;
     cout << endl;
@@ -65,7 +68,7 @@ int main(int argc, char **argv) {
     stage.MoveAtVelocity(1, Units::VELOCITY_MICROMETRES_PER_SECOND);
     cout << "Press the Enter key to stop" << endl;
     getchar();
-    stage.Stop();
+    stage.Stop(Units::LENGTH_MILLIMETRES);
 
     return 0;
 }

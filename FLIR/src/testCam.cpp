@@ -82,11 +82,7 @@ int main(int argc, char **argv) {
         // Get the settings for the particular camera
         toml::table cam_config = *config.get("testFLIRcamera")->as_table();
 
-        cout << cam_config << endl;
-
-        //toml::table cam_config = *cam_config_ptr;
-
-		// Initialise FLIRCamera instance from the first available camera
+		    // Initialise FLIRCamera instance from the first available camera
         FLIRCamera Fcam (cam_list.GetByIndex(0), cam_config);
 
         // How many frames to take?
@@ -95,21 +91,21 @@ int main(int argc, char **argv) {
         // Allocate memory for the image data (given by size of image and buffer size)
         unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
 
-		// Setup and start the camera
+		    // Setup and start the camera
         Fcam.InitCamera();
 
         // Acquire the images, saving them to "image_array", and call "CallbackFunc"
-		// after each image is retrieved.
+		    // after each image is retrieved.
         Fcam.GrabFrames(num_frames, image_array, CallbackFunc);
 
         // Save the data as a FITS file
         cout << "Saving Data" << endl;
         Fcam.SaveFITS(image_array, Fcam.buffer_size);
 
-		// Turn off camera
+		    // Turn off camera
         Fcam.DeinitCamera();
 
-		// Free the memory
+		    // Free the memory
         free(image_array);
 
     }

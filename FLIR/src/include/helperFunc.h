@@ -2,6 +2,14 @@
 #ifndef _HELPERFUNC_
 #define _HELPERFUNC_
 
+// Template function to replicate the np.arange function in Python
+template<typename T>
+std::vector<T> arange(T start, T stop, T step = 1) {
+    std::vector<T> values;
+    for (T value = start; value < stop; value += step)
+        values.push_back(value);
+    return values;
+};
 
 /* Function to pad out strings to print them nicely.
    INPUTS:

@@ -5,10 +5,10 @@ server.o: server.cpp server.h
 	g++ -Wall -c -g server.cpp
 
 main.o: main.cpp
-	g++ -Wall -c -g main.cpp 
+	g++ -Wall -c -g main.cpp
 
 dummy: main.o server.o
-	g++ -o dummy main.o server.o -lzmq -lc++
+	g++ -o dummy main.o server.o -lzmq
 
 clean:
 	rm *.o

@@ -66,12 +66,13 @@ int main(int argc, char **argv) {
         // Get the settings for the particular camera
         toml::table cam_config = *config.get("testFLIRcamera")->as_table();
 
-		// Initialise FLIRCamera instance from the first available camera
+		    // Initialise FLIRCamera instance from the first available camera
         FLIRCamera Fcam (cam_list.GetByIndex(0), cam_config);
 
         // Get the settings for the particular actuator
         toml::table stage_config = *config.get("testZaberActuator")->as_table();
 
+        // Initialise ZaberActuator instance for the stage at the port in the config file
         ZaberActuator stage (stage_config);
 
         // Get the settings for the fringes

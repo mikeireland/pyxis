@@ -1,21 +1,21 @@
 /*
- * This is an attempt for a minimalist server class. 
+ * This is an attempt for a minimalist server class.
  * To add a new command called xxx, just add a Server::Cmd_xxx method
- * both here and in the header file. The makefile takes care of the 
- * help and case statement converting strings to a method in an 
- * old-fashioned and arguably messy way. 
- * 
+ * both here and in the header file. The makefile takes care of the
+ * help and case statement converting strings to a method in an
+ * old-fashioned and arguably messy way.
+ *
  * Mike Ireland, 23 Aug 2020
  *
  */
 #include "server.h"
 #include <string.h>
 #include <stdarg.h>
-#include <unistd.h>
+#include <sys/select.h>
 // It is certainly more conventional to use a C++ version of ZMQ, but this works...
 #include <zmq.h>
 
-/* 
+/*
  * Error messages
  */
 
@@ -27,7 +27,7 @@
 #define NOERROR	0 /* No error has occured */
 #define WARNING (-1) /* A warning, nothing too dangerous has happened */
 #define ERROR	(-2) /* Some kind of major error.Prog does not have to reboot */
-#define FATAL	(-3) /* A fatal error has occured. The programme must exit(1)*/ 
+#define FATAL	(-3) /* A fatal error has occured. The programme must exit(1)*/
 #endif
 
 Server::Server(int port){
@@ -42,25 +42,25 @@ Server::Server(int port){
 }
 
 Server::~Server(){
-    // Add destructors here 
+    // Add destructors here
 }
-        
+
 // Default Commands.
 int Server::Cmd_exit(int argc, char **argv){
     //Exit cleanly from the server.
     //----------------------------------------
 	return FATAL;
 }
-  
+
 int Server::Cmd_help(int argc, char **argv){
     //List the commands if no argument.
     //If called with an argument, the argument is a command
     //for which help is too be given.
-    //---------------------------------------- 
-    
+    //----------------------------------------
+
     // This is a hack to enable the makefile to easily create all help
     // strings.
-    // Insert output of "sed '{:q;N;s/\n/\\n/g;t q}' cmds" 
+    // Insert output of "sed '{:q;N;s/\n/\\n/g;t q}' cmds"
     #include "helpstring.include"
     if (argc==1) {
         this->Message(kHelpString);
@@ -78,7 +78,7 @@ void Server::RunBackgroundTasks(){
     //Run background tasks relevant to this server.
 }
 
-// Return command pointers based on strings. 
+// Return command pointers based on strings.
 int Server::RunNextCommand(){
     int argc = this->funct_argc;
     if (argc==0){
@@ -100,11 +100,11 @@ void Server::NewLine(){
 		fflush(stdout);
 	} else {
         this->Message("\n");
-		this->client_socket =-1; 
+		this->client_socket =-1;
 	}
 }
 
-// Send a raw (e.g. binary) message back to the client. 
+// Send a raw (e.g. binary) message back to the client.
 void Server::SendRawMessage(char *message,int len)
 {
     if (this->client_socket != -1){
@@ -112,7 +112,7 @@ void Server::SendRawMessage(char *message,int len)
     }
 }
 
-// Send a string message back to the client. 
+// Send a string message back to the client.
 int Server::Message(const char *fmt, ...)
 {
 	char err_string[4097];
@@ -138,11 +138,11 @@ int Server::GetNextCommand()
 	struct timeval tv = { 0L, 0L };
 	fd_set fds;
 	int nr;
-    
+
 	/* Start off with no command */
 	command[0]=0;
     this->client_socket=-1;
-   
+
 	/* Set up our file descriptor set. Stdin is file descriptor number 0 */
 	FD_ZERO(&fds);
     FD_SET(0, &fds);
@@ -159,7 +159,7 @@ int Server::GetNextCommand()
     command[nr]=0;
     if (command[nr-1] == '\n' || command[nr-1] == '\r') command[nr-1]=0;
 	if (command[nr-2] == '\r') command[nr-2]=0;
-	
+
 	// Now parse the command
 	this->funct_argc=0;
 	this->funct_strs[0][0]=0;
@@ -172,14 +172,14 @@ int Server::GetNextCommand()
 	return NOERROR;
 }
 
-// Opens a message socket that can be used for accepting and sending	
-// outside messages. 							
+// Opens a message socket that can be used for accepting and sending
+// outside messages.
 int Server::OpenServerSocket(void)
 {
     char tcp_string[40];
 	/* Reset current socket pointer. */
     this->client_socket=-1;
-        
+
     /* Straight out of ZMQ tutorial*/
     context = zmq_ctx_new ();
     this->responder = zmq_socket (context, ZMQ_REP);
@@ -187,13 +187,13 @@ int Server::OpenServerSocket(void)
     rc = zmq_bind (this->responder, tcp_string);
     if (rc != 0){
         this->Message("ZMQ socket failure.");
-        return FATAL; 
+        return FATAL;
     }
 	return NOERROR;
-} 
+}
 
-// Close the server socket if it's open. Remember this could cause     
-// trouble if you do this while the channel is server. If the message	
+// Close the server socket if it's open. Remember this could cause
+// trouble if you do this while the channel is server. If the message
 // socket is not open this function will do nothing.
 void Server::CloseServerSocket(void)
 {
@@ -202,7 +202,7 @@ void Server::CloseServerSocket(void)
 
 	zmq_close(this->responder);
 
-} 
+}
 
 // Is there a command available?
 bool Server::CommandAvailable(void)

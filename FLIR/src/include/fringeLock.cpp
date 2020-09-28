@@ -6,6 +6,7 @@
 #include "FLIRCamera.h"
 #include "fringeLock.h"
 #include "ZaberActuator.h"
+#include "helperFunc.h"
 #include <zaber/motion/binary.h>
 
 using namespace std;
@@ -34,11 +35,18 @@ void FringeLock(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_config)
     int old_exposure = Fcam.exposure_time;
 
     // Read from config file
+
+    // How fast to move the actuator during the scan in um/s
     double scan_rate = fringe_config["locking"]["scan_rate"].value_or(0.0);
+    // SNR to trigger fringes being "found"
     lock_SNR = fringe_config["locking"]["lock_SNR"].value_or(0.0);
+    // How wide (in FFT frequency units) should the signal be defined as?
     signal_size = fringe_config["locking"]["signal_size"].value_or(0);
+    // Over what distance should we scan?
     double scan_width = fringe_config["locking"]["scan_width"].value_or(0.0);
+    // Exposure time of camera during scan
     Fcam.exposure_time = fringe_config["locking"]["exposure_time"].value_or(0);
+    // Window size (in frames) to perform the FFT over
     window_size = fringe_config["locking"]["window_size"].value_or(0);
 
     // Number of meters per frame the stage will scan
@@ -201,7 +209,7 @@ int FringeScan(unsigned short * frame){
     double SNR_2 = FringeFFT(frame, &flux_data_ls[1]);
     double SNR_3 = FringeFFT(frame, &flux_data_ls[2]);
 
-    cout << "FINISHED MY FFTS" << endl << SNR_1 << endl << SNR_2 << endl << SNR_3 << endl;
+    cout << "FINISHED MY FFTS with SNRs: " << SNR_1 << ", "<< SNR_2 << ", " << SNR_3 << endl;
 
     // If all are above the desired SNR, end the acquisition there
     if ((SNR_1 > lock_SNR) && (SNR_2 > lock_SNR) && (SNR_3 > lock_SNR)){

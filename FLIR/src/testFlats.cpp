@@ -13,7 +13,7 @@ using namespace std;
    of frames, during which it will apply a function "CallbackFunc"
    on each image as they are acquired. It then saves all of the image
    data into a FITS file (the specifications of which are in the
-   configuration file. 
+   configuration file.
 
    ARGUMENT: name of config file (in config/) to apply
 */
@@ -76,9 +76,10 @@ int main(int argc, char **argv) {
         return -1;
     }
     else {
-
+        // Get the settings for the particular camera
         toml::table cam_config = *config.get("testFLIRcamera")->as_table();
 
+        // List of flat exposure times in us
         int exp_times[10] = {1000,2000,3000,4000,5000,6000,7000,8000,9000,10000};
 
         for (int i=0;i<10;i++){
@@ -86,16 +87,17 @@ int main(int argc, char **argv) {
             int exp_time = exp_times[i];
 
             char buffer [50];
-    
+
             // Save as an output string
             sprintf (buffer, "flatFrames_%d.fits", exp_time);
-        
+
+            // Change the filename and exposure time
             toml::table* cam_table = cam_config.get("camera")->as_table();
             cam_table->insert_or_assign("exposure_time",exp_time);
             toml::table* fits_table = cam_config.get("fits")->as_table();
             fits_table->insert_or_assign("filename",buffer);
 
-		    // Initialise FLIRCamera instance from the first available camera
+		        // Initialise FLIRCamera instance from the first available camera
             FLIRCamera Fcam (cam_list.GetByIndex(0), cam_config);
 
             // How many frames to take?
@@ -104,21 +106,21 @@ int main(int argc, char **argv) {
             // Allocate memory for the image data (given by size of image and buffer size)
             unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
 
-		    // Setup and start the camera
+		        // Setup and start the camera
             Fcam.InitCamera();
 
             // Acquire the images, saving them to "image_array", and call "CallbackFunc"
-		    // after each image is retrieved.
+		        // after each image is retrieved.
             Fcam.GrabFrames(num_frames, image_array, NULL);
 
             // Save the data as a FITS file
             cout << "Saving Data" << endl;
             Fcam.SaveFITS(image_array, Fcam.buffer_size);
 
-		    // Turn off camera
+		        // Turn off camera
             Fcam.DeinitCamera();
 
-		    // Free the memory
+		        // Free the memory
             free(image_array);
         }
     }

@@ -67,7 +67,7 @@ ${OBJDIR}/%.o : ${SRCDIR}/%.${SRCEXT}
 	@${MKDIR} ${OBJDIR}
 	${CXX} ${CFLAGS} ${INC} -c $< -o $@
 
-# Intermediate script object files
+# Intermediate module object files
 ${OBJ} : ${OBJDIR}/%.o : ${SRCINCDIR}/%.${SRCEXT}
 	@${MKDIR} ${OBJDIR}
 	${CXX} ${CFLAGS} ${INC} -c $< -o $@

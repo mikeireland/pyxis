@@ -26,7 +26,7 @@ struct CsvLine {
 
     // Number of frames to take
     unsigned long num_frames;
-    
+
     // Exposure time over all frames
     double total_exp_time;
 
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
         return -1;
     }
     else {
-
+        // Get the settings for the particular camera
         toml::table cam_config = *config.get("testFLIRcamera")->as_table();
 
         // Filename for output file csv
@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
 
         // List of exposure times to check
         int exp_times[15] = {100000, 50000, 30000, 20000, 15000, 10000, 8000, 7000, 6000, 5000, 4000, 2000, 1500, 1000, 500};
-        
+
         // List of ROI dimensions to check
         int dimensions[12] = {1000, 900, 800, 700, 600, 500, 400, 300, 200, 100, 64, 32};
 
@@ -156,9 +156,9 @@ int main(int argc, char **argv) {
                 Test(cam_list.GetByIndex(0),cam_config,line_data);
 
                 char buffer [50];
-    
+
                 // Save as an output string
-                sprintf (buffer, " %d, %d, %d, %lu, %f \n", line_data.exp_time, line_data.dimensions, 
+                sprintf (buffer, " %d, %d, %d, %lu, %f \n", line_data.exp_time, line_data.dimensions,
                          static_cast<int>(line_data.total_exp_time), line_data.num_frames, line_data.FPS);
 
                 // Save string to file
