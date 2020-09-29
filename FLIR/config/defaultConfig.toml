@@ -27,16 +27,22 @@
 
 [fringe]
     [fringe.locking]
-    selections = [["A",1],["A",3],["B",2]] #What channels to look at?
-    exposure_time = 100000 #In microseconds
-    scan_rate = 2e-4 #In m/s
-    scan_width = 2e-3 #In m
+    exposure_time = 10000 #In microseconds
+    scan_rate = 3e-4 #In m/s
+    scan_width = 1e-3 #In m
     start_pos = 1.0 #Start actuator position of scan in mm
+
+    #FFT version
+    selections = [["A",1],["A",3],["B",2]] #What channels to look at?
     lock_SNR = 0.9 #SNR to achieve for fringe locking
     window_size = 10 #Number of frames to FFT over
     signal_size = 2 #How wide should the "signal" be in wavenumber steps
 
+    #Visibility version
+    lock_vis = 0.5 #What V^2 value should trigger fringes being found?
+
     [fringe.positions]
+    num_channels = 5
     #Frequencies and indices for those frequencies for each interferometer
     #spectral channel
     A.frequencies = [600e-9,630e-9,660e-9,690e-9,720e-9]

@@ -4,7 +4,8 @@
 #include "FLIRCamera.h"
 #include "Spinnaker.h"
 #include "toml.hpp"
-#include "fringeLock.h"
+#include "fringeLock_vis.h"
+//#include "fringeLock_FFT.h"
 #include "ZaberActuator.h"
 
 using namespace Spinnaker;
@@ -79,7 +80,7 @@ int main(int argc, char **argv) {
         toml::table fringe_config = *config.get("fringe")->as_table();
 
         // Test the lock
-        FringeLock(Fcam,stage,fringe_config);
+        FringeLockVis(Fcam,stage,fringe_config);
 
     }
 

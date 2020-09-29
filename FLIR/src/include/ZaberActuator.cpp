@@ -104,10 +104,10 @@ double ZaberActuator::IssueCommand(const CommandCode command, const double data,
       position - where to move to
       unit - what unit is the position in?
       timeout - how long to wait before timing out (default 60s)
-
-   No output, but it will print the returned position to the screen
+   OUTPUT:
+      Will print and return the returned position
 */
-void ZaberActuator::MoveAbsolute(double position, const Units unit, const double timeout){
+double ZaberActuator::MoveAbsolute(double position, const Units unit, const double timeout){
 
     // Send the command to move an absolute distance
     double result = ZaberActuator::IssueCommand(CommandCode::MOVE_ABSOLUTE, position, timeout, unit, unit);
@@ -119,6 +119,7 @@ void ZaberActuator::MoveAbsolute(double position, const Units unit, const double
     } else{
       cout << "Moved to position: " << result << " "  << getUnitLongName(unit) << endl;
     }
+    return result;
 }
 
 
@@ -127,10 +128,10 @@ void ZaberActuator::MoveAbsolute(double position, const Units unit, const double
       position - where to move to
       unit - what unit is the position in?
       timeout - how long to wait before timing out (default 60s)
-
-   No output, but it will print the returned position to the screen
+   OUTPUT:
+      Will print and return the returned position
 */
-void ZaberActuator::MoveRelative(double position, const Units unit, const double timeout){
+double ZaberActuator::MoveRelative(double position, const Units unit, const double timeout){
 
     // Send the command to move a relative distance
     double result = ZaberActuator::IssueCommand(CommandCode::MOVE_RELATIVE, position, timeout, unit, unit);
@@ -142,6 +143,7 @@ void ZaberActuator::MoveRelative(double position, const Units unit, const double
     } else{
       cout << "Moved to position: " << result << " "  << getUnitLongName(unit) << endl;
     }
+    return result;
 }
 
 
@@ -153,10 +155,10 @@ void ZaberActuator::MoveRelative(double position, const Units unit, const double
                 this only initiates movement, we only require a message
                 saying the device has started moving and so the timeout
                 can be short
-
-   No output, but it will print current speed that the device is moving at
+    OUTPUT:
+       Will print and return current speed that the device is moving at
 */
-void ZaberActuator::MoveAtVelocity(double velocity, const Units unit, const double timeout){
+double ZaberActuator::MoveAtVelocity(double velocity, const Units unit, const double timeout){
 
     // Send the command to start moving at the given velocity
     double result = ZaberActuator::IssueCommand(CommandCode::MOVE_AT_CONSTANT_SPEED, velocity, timeout, unit, unit);
@@ -168,6 +170,7 @@ void ZaberActuator::MoveAtVelocity(double velocity, const Units unit, const doub
     } else{
       cout << "Moving at velocity: " << result << " "  << getUnitLongName(unit) << endl;
     }
+    return result;
 }
 
 
@@ -175,10 +178,10 @@ void ZaberActuator::MoveAtVelocity(double velocity, const Units unit, const doub
    INPUTS:
       unit - what unit to report the stopped position in?
       timeout - how long to wait before timing out (default 60s).
-
-   No output, but it will print current stopped position in native units.
+   OUTPUT:
+      Will print and return current stopped position
 */
-void ZaberActuator::Stop(const Units unit, const double timeout){
+double ZaberActuator::Stop(const Units unit, const double timeout){
 
     // Send the command to stop
     double result = ZaberActuator::IssueCommand(CommandCode::STOP, 0, timeout, Units::NATIVE, unit);
@@ -190,6 +193,7 @@ void ZaberActuator::Stop(const Units unit, const double timeout){
     } else{
       cout << "Stopped at position: " << result << " "  << getUnitLongName(unit) << endl;
     }
+    return result;
 }
 
 
