@@ -52,6 +52,15 @@
     C.frequencies = [600e-9,630e-9,660e-9,690e-9,720e-9]
     C.indices = [783,784,785,786,787]
 
+    [fringe.tracking]
+    num_delays =
+    scale_delay =
+
+      [fringe.tracking.AC]
+      disp_length =
+      disp_lam0 =
+
+
 [testZaberActuator]
     serial_port = "/dev/ttyS2"
     device_number = 1
