@@ -93,7 +93,7 @@ void CalcTrialFringes(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_c
     outputB_idx = fringe_config["positions"]["B"]["indices"][0].value_or(0);
     double scale_delay = fringe_config["tracking"]["scale_delay"].value_or(0.0);
     num_delays = fringe_config["tracking"]["num_delays"].value_or(0);
-    //!!!toml::array wavelengths = *config.get("wavelengths")->as_array();
+    toml::array wavelengths = *fringe_config.get("positions.wavelengths")->as_array();
     double bandpass = wavelengths[1] - wavelengths[0];
     double wavenumber_bandpass = 1/wavelengths[0] - 1/wavelengths[num_channels];
 
