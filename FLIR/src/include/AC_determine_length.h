@@ -3,6 +3,7 @@
 
 #include "toml.hpp"
 
+// Functions to determine the extra dispersion length of an AC Coupler??
 
 /* Calculates a bunch of trial fringes with different lengths fro the function
     "findLength"
