@@ -1,19 +1,11 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
-#include "FLIRCamera.h"
-#include "fringeLock_vis.h"
-#include "ZaberActuator.h"
+#include "AC_tracking.h"
 #include "helperFunc.h"
-#include <zaber/motion/binary.h>
+#include "toml.hpp"
 
 using namespace std;
-using namespace zaber::motion;
-
-/* FUNCTIONS TO PERFORM FRINGE LOCKING WITH
-   NOTE: THERE IS SOME VERSION OF A RACE CONDITION IN HERE. NEED TO CHECK IF
-   THIS IS A CONCERN...
-*/
 
 static int num_delays, num_channels;
 static int outputA_idx, outputB_idx;
@@ -21,8 +13,15 @@ static std::vector<double> trial_delays;
 static std::vector<std::vector<double>> trial_fringes;
 
 
+/*Calculate the refractive index of BK7 glass at a given wavelength
+    INPUTS:
+        lam = wavelength (in microns)
+    OUTPUTS:
+        refractive index n
+*/
 double sellmeier(double lam){
 
+    // Sellmeier coefficients (Change for different glass)
     double B1, B2, B3, C1, C2, C3;
     B1 = 1.03961212;
     B2 = 0.231792344;
@@ -36,11 +35,18 @@ double sellmeier(double lam){
     double n2 = 1 + B1*lam2/(lam2-C1) + B2*lam2/(lam2-C2) + B3*lam2/(lam2-C3);
 
     return sqrt(n2);
-
 }
 
+
+/*Calculate the group index of BK7 glass at a given wavelength
+    INPUTS:
+        lam = wavelength (in microns)
+    OUTPUTS:
+        group refractive index n_group
+*/
 double group_index(double lam){
 
+    // Sellmeier coefficients (Change for different glass)
     double B1, B2, B3, C1, C2, C3;
     B1 = 1.03961212;
     B2 = 0.231792344;
@@ -64,10 +70,17 @@ double group_index(double lam){
     double adj_factor = lam2*(a1+a2+a3+a4+a5+a6)/n;
 
     return sqrt(n - adj_factor);
-
 }
 
 
+/* Calculate the phase shift due to dispersion from unequal path length of glass
+    INPUTS:
+        lam = wavelength to calculate shift for (in m)
+        len = extra length of glass (in m)
+        lam_0 = reference wavelength (in m)
+    OUTPUTS:
+        dispersional phase shift in radians
+*/
 double phaseshift_glass(double lam, double len, double lam0){
 
     double n = sellmeier(lam*1e6);
@@ -76,41 +89,54 @@ double phaseshift_glass(double lam, double len, double lam0){
     double phase_shift = OPD*2*kPi/lam;
 
     return phase_shift;
-
 }
 
 
-/* High level function to perform fringe locking with visibilities
-   INPUTS:
-      Fcam - FLIRCamera class
-      stage - ZaberActuator class
-      fringe_config - table of configuration values for the fringe configuration
+/* Calculates a bunch of trial fringes with different delays for the function
+    "findDelay"
+    INPUTS
+        fringe_config - table of configuration values for the fringe configuration
 */
-void CalcTrialFringes(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_config){
+void CalcTrialFringes(toml::table fringe_config){
 
+    // Number of wavelength channels
     num_channels = fringe_config["positions"]["num_channels"].value_or(0);
+
+    // Indices for the start of each output
     outputA_idx = fringe_config["positions"]["A"]["indices"][0].value_or(0);
     outputB_idx = fringe_config["positions"]["B"]["indices"][0].value_or(0);
+
+    // Number to scale the trial delays by (smaller = finer)
     double scale_delay = fringe_config["tracking"]["scale_delay"].value_or(0.0);
+
+    // Number of delays to test
     num_delays = fringe_config["tracking"]["num_delays"].value_or(0);
+
+    // Wavelengths of each channel
     toml::array wavelengths = *fringe_config.get("positions.wavelengths")->as_array();
+
+    // Wavelength and Wavenumber bandpass
     double bandpass = wavelengths[1] - wavelengths[0];
     double wavenumber_bandpass = 1/wavelengths[0] - 1/wavelengths[num_channels];
 
+    // Extra length of the coupler for dispersion
     double disp_length = fringe_config["tracking"]["AC"]["disp_length"].value_or(0.0);
+    // Central wavelength for group index
     double disp_lam0 = fringe_config["tracking"]["AC"]["disp_lam0"].value_or(0.0);
 
+    // Trial delays
     trial_delays = arange<double>(-num_delays/2 + 1,num_delays/2);
-
     for (int i = 0;i<num_delays;i++){
         trial_delays[i] *= scale_delay/wavenumber_bandpass;
     }
 
+    // Resize trial fringe vector
     trial_fringes.resize(num_delays);
     for (int i =0;i<num_delays;i++){
         trial_fringes[i].resize(num_channels);
     }
 
+    // Calculate trial fringes
     for (int i = 0;i<num_delays;i++){
         for (int j = 0;j<num_channels;j++) {
             double envelope = sinc(trial_delays[i]*bandpass/(wavelengths[j]*wavelengths[j]));
@@ -119,6 +145,7 @@ void CalcTrialFringes(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_c
         }
     }
 
+    // Normalise trial fringes over wavelength
     for (int i = 0;i<num_delays;i++){
         double wavelength_sum = 0;
         for (int j = 0;j<num_channels;j++) {
@@ -128,31 +155,29 @@ void CalcTrialFringes(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_c
             trial_fringes[i][j] /= wavelength_sum;
         }
     }
-
-
 }
 
-/* Callback function to be called each time a new frame is taken by the camera during
-   fringe locking. Calls FringeLock on a number of pixels, plots the data and checks
-   if the SNR is good enough to claim we have found fringes.
 
-   INPUTS:
-      frame - Image array data
-
-   OUTPUTS:
-      0 if fringes have been found
-      1 otherwise
+/* Estimates the fringe delay. Used as a callback function from the camera.
+    INPUTS
+        frame - frame_data from the FLIR camera
+    OUTPUTS:
+       0 if fringes have been found
+       1 otherwise
 */
-int VisCalc(unsigned short * frame){
+int findDelay(unsigned short * frame){
 
     double gamma_r [num_channels];
     double std_gamma_r [num_channels];
     double gamma_sum=0;
 
+    // Calculate the real part of the coherence for each channel
     for (int i=0; i<num_channels;i++){
+        // Flux outputs
         double outputA=(double)frame[outputA_idx+i];
         double outputB=(double)frame[outputB_idx+i];
 
+        // Coherence, and calculate the sum over all wavelengths for normalisation
         gamma_r [i] = outputA - outputB;
         std_gamma_r [i] = sqrt(outputA + outputB);
         gamma_sum += abs(gamma_r[i]);
@@ -164,18 +189,21 @@ int VisCalc(unsigned short * frame){
     for (int i = 0;i<num_delays;i++){
         double chi2 = 0;
 
+        // Calculate Chi2 from the trial fringes
         for (int j = 0;j<num_channels;j++) {
             double num = (trial_fringes[i][j] - gamma_r[j]/gamma_sum);
             double den = (std_gamma_r[j]/gamma_sum);
             chi2 += num*num/(den*den);
         }
 
+        // Is it the minimum?
         if (chi2 < min_chi2){
             min_chi2 = chi2;
             min_chi2_idx = i;
         }
     }
 
+    // Return the estimated delay
     double found_delay = trial_delays[min_chi2_idx];
 
     //DO SOMETHING HERE WITH DELAY!!

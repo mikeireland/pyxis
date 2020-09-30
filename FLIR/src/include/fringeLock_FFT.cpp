@@ -3,6 +3,7 @@
 #include <complex>
 #include <fftw3.h>
 #include <cmath>
+#include "toml.hpp"
 #include "FLIRCamera.h"
 #include "fringeLock_FFT.h"
 #include "ZaberActuator.h"
@@ -69,7 +70,7 @@ void FringeLockFFT(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_conf
 
        // Find the wavenumber and index in the image array of the desired pixel
        flux_data_ls[i].flux_idx = fringe_config["positions"][output]["indices"][channel].value_or(0);
-       double wavelength =fringe_config["positions"][output]["frequencies"][channel].value_or(0);
+       double wavelength =fringe_config["positions"]["wavelengths"][channel].value_or(0);
        double wavenumber = 1/wavelength;
        flux_data_ls[i].wavenumber = wavenumber;
 

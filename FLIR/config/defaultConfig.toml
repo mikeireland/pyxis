@@ -42,23 +42,25 @@
     lock_vis = 0.5 #What V^2 value should trigger fringes being found?
 
     [fringe.positions]
-    num_channels = 5
-    #Frequencies and indices for those frequencies for each interferometer
-    #spectral channel
-    A.frequencies = [600e-9,630e-9,660e-9,690e-9,720e-9]
+    num_channels = 10 #Number of wavelength channels
+    wavelengths = [600e-9,630e-9,660e-9,690e-9,720e-9] #Wavelengths of each spectral channel in m
+    #Pixel indices for each interferometer spectral channel and output
     A.indices = [183,184,185,186,187]
-    B.frequencies = [600e-9,630e-9,660e-9,690e-9,720e-9]
     B.indices = [483,484,485,486,487]
-    C.frequencies = [600e-9,630e-9,660e-9,690e-9,720e-9]
     C.indices = [783,784,785,786,787]
 
     [fringe.tracking]
-    num_delays =
-    scale_delay =
+    num_delays = 1000 #Numbers of trial delays
+    scale_delay = 0.005 #Scale factor for the delays
 
       [fringe.tracking.AC]
-      disp_length =
-      disp_lam0 =
+      disp_length = 1e-3 #Extra length for dispersion (in m)
+      disp_lam0 = 675e-9 #Central wavelength for group index (in m)
+
+      #Determining lengths
+      max_length = 0.004 #Max length to check (in m)
+      num_lengths = 1000 #Number of lengths
+      delay0 = 0.0 #Delay to check the lengths at (in m)
 
 
 [testZaberActuator]
