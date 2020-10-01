@@ -4,15 +4,15 @@
     adc_bit_depth = "Bit10" #"Bit10" is a good default
     acquisition_mode = "Continuous" #"Continuous" is default
     pixel_format = "Mono16" #"Mono16" is default
-    width = 1000
-    height = 1000
-    offset_x = 0
-    offset_y = 0
+    width = 68
+    height = 68
+    offset_x = 456
+    offset_y = 468
     gain = 0
     black_level = 0 #in percent
-    exposure_time = 2000 # in microseconds
+    exposure_time = 5000 # in microseconds
     num_frames = 10
-    buffer_size = 2 #Set equal to numFrames unless concerned about memory
+    buffer_size = 10 #Set equal to numFrames unless concerned about memory
 
         [testFLIRcamera.camera.trigger]
         trigger_mode = "Off" #Is trigger on or off?
@@ -22,43 +22,43 @@
     [testFLIRcamera.fits]
     bitpix = 32
     file_dir = "../data/"
-    filename = "myfits.fits"
+    filename = "myfits2.fits"
 
 
 [fringe]
     [fringe.locking]
-    exposure_time = 10000 #In microseconds
-    scan_rate = 3e-4 #In m/s
-    scan_width = 1e-3 #In m
-    start_pos = 1.0 #Start actuator position of scan in mm
+    exposure_time = 5000 #In microseconds
+    scan_rate = 10e-6 #In m/s
+    scan_width = 2e-3 #In m
+    start_pos = 21.5 #Start actuator position of scan in mm
 
     #FFT version
-    selections = [["A",1],["A",3],["B",2]] #What channels to look at?
-    lock_SNR = 0.9 #SNR to achieve for fringe locking
+    selections = [["A",3],["A",11],["B",6]] #What channels to look at?
+    lock_SNR = 10 #SNR to achieve for fringe locking
     window_size = 10 #Number of frames to FFT over
     signal_size = 2 #How wide should the "signal" be in wavenumber steps
 
     #Visibility version
-    lock_vis = 0.5 #What V^2 value should trigger fringes being found?
+    lock_vis = 0.05 #What V^2 value should trigger fringes being found?
 
     [fringe.positions]
-    num_channels = 10 #Number of wavelength channels
-    wavelengths = [600e-9,630e-9,660e-9,690e-9,720e-9] #Wavelengths of each spectral channel in m
+    num_channels = 15 #Number of wavelength channels
+    wavelengths = [600e-9,607.5e-9,615e-9,622.5e-9,630e-9,637.5e-9,645e-9,652.5e-9,660e-9,667.5e-9,675e-9,682.5e-9,690e-9,697.5e-9,705e-9] #Wavelengths of each spectral channel in m
     #Pixel indices for each interferometer spectral channel and output
-    A.indices = [183,184,185,186,187]
-    B.indices = [483,484,485,486,487]
-    C.indices = [783,784,785,786,787]
+    A.indices = [1860,1861,1862,1863,1864,1865,1866,1867,1868,1869,1870,1871,1872,1873,1874]
+    B.indices = [3222,3223,3224,3225,3226,3227,3228,3229,3230,3231,3232,3233,3234,3235,3236]
+    #C.indices = [783,784,785,786,787]
 
     [fringe.tracking]
-    num_delays = 1000 #Numbers of trial delays
-    scale_delay = 0.005 #Scale factor for the delays
+    num_delays = 10000 #Numbers of trial delays
+    scale_delay = 0.01 #Scale factor for the delays
 
       [fringe.tracking.AC]
       disp_length = 1e-3 #Extra length for dispersion (in m)
       disp_lam0 = 675e-9 #Central wavelength for group index (in m)
 
       #Determining lengths
-      max_length = 0.004 #Max length to check (in m)
+      max_length = 0.01 #Max length to check (in m)
       num_lengths = 1000 #Number of lengths
       delay0 = 0.0 #Delay to check the lengths at (in m)
 

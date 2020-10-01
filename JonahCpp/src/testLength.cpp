@@ -77,7 +77,16 @@ int main(int argc, char **argv) {
         // Set up AC delays
         CalcTrialLengths(fringe_config);
 
+        // Setup and start the camera
+        Fcam.InitCamera();
+
         Fcam.GrabFrames(10, image_array, findLength);
+
+        // Turn off camera
+        Fcam.DeinitCamera();
+
+        // Free the memory
+        free(image_array);
 
     }
 

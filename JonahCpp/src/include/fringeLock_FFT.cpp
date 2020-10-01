@@ -113,7 +113,7 @@ void FringeLockFFT(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_conf
     Fcam.GrabFrames(num_frames, image_array, FringeScan);
 
     // Stop actuator movement and retrieve position
-    double position = stage.Stop(Units::LENGTH_MILLIMETRES);
+    double position = stage.Stop();
 
     // Deinit camera
     Fcam.DeinitCamera();

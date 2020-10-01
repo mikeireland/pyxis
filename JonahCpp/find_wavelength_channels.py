@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 prism_angle = 30
 glass = "nsf11"
 f_cam = 7.6
-pix_scale = 6.5e-3
+pix_scale = 3.5e-3
 first_wav = 0.6
 final_wav = 0.75
 

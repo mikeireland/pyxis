@@ -158,6 +158,8 @@ void CalcTrialFringes(toml::table fringe_config){
             trial_fringes[i][j] /= wavelength_sum;
         }
     }
+
+    cout << trial_delays[0] << endl;
 }
 
 
@@ -186,12 +188,13 @@ int findDelay(unsigned short * frame){
         gamma_sum += abs(gamma_r[i]);
     }
 
-    double min_chi2 = 10000;
+
+
+    double min_chi2 = 10000000;
     int min_chi2_idx = 0;
 
     for (int i = 0;i<num_delays;i++){
         double chi2 = 0;
-
         // Calculate Chi2 from the trial fringes
         for (int j = 0;j<num_channels;j++) {
             double num = (trial_fringes[i][j] - gamma_r[j]/gamma_sum);
@@ -203,7 +206,10 @@ int findDelay(unsigned short * frame){
         if (chi2 < min_chi2){
             min_chi2 = chi2;
             min_chi2_idx = i;
+
         }
+        cout << min_chi2 << endl;
+        cout << min_chi2_idx << endl;
     }
 
     // Return the estimated delay

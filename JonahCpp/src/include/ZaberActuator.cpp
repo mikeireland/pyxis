@@ -45,7 +45,7 @@ ZaberActuator::ZaberActuator(toml::table config_init){
     int device_mode = ReturnDeviceMode();
     settings.set(BinarySettings::DEVICE_MODE,device_mode);
     settings.set(BinarySettings::MICROSTEP_RESOLUTION,microstep_resolution);
-    settings.set(BinarySettings::HOME_SPEED,home_speed,Units::VELOCITY_MICROMETRES_PER_SECOND);
+    //settings.set(BinarySettings::HOME_SPEED,home_speed,Units::VELOCITY_MICROMETRES_PER_SECOND);
     settings.set(BinarySettings::TARGET_SPEED,target_speed,Units::VELOCITY_MICROMETRES_PER_SECOND);
 
     // Print current actuator and settings information
@@ -56,7 +56,7 @@ ZaberActuator::ZaberActuator(toml::table config_init){
     cout << Label("Firmware version") << device.getFirmwareVersion().getMajor() << "." << device.getFirmwareVersion().getMinor() << endl;
     cout << Label("Serial number") << device.getSerialNumber() << endl;
     cout << Label("Device Mode") << settings.get(BinarySettings::DEVICE_MODE) << endl;
-    cout << Label("Home Speed (um/s)") << settings.get(BinarySettings::HOME_SPEED,Units::VELOCITY_MICROMETRES_PER_SECOND) << endl;
+    //cout << Label("Home Speed (um/s)") << settings.get(BinarySettings::HOME_SPEED,Units::VELOCITY_MICROMETRES_PER_SECOND) << endl;
     cout << Label("Target Speed (um/s)") << settings.get(BinarySettings::TARGET_SPEED,Units::VELOCITY_MICROMETRES_PER_SECOND) << endl;
     cout << Label("Acceleration (um/s/s)") << settings.get(BinarySettings::ACCELERATION,Units::ACCELERATION_MICROMETRES_PER_SECOND_SQUARED) << endl;
     cout << Label("Microstep resolution") << settings.get(BinarySettings::MICROSTEP_RESOLUTION) << endl;

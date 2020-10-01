@@ -54,6 +54,7 @@ void CalcTrialLengths(toml::table fringe_config){
         trial_lengths[i] *= 2*max_length/(double)num_lengths;
     }
 
+
     // Resize trial fringe vector
     trial_fringes.resize(num_lengths);
     for (int i =0;i<num_lengths;i++){
@@ -65,9 +66,12 @@ void CalcTrialLengths(toml::table fringe_config){
         for (int j = 0;j<num_channels;j++) {
             double envelope = sinc(delay*bandpass/(wavelengths[j]*wavelengths[j]));
             double sinusoid = cos(2*kPi*delay/wavelengths[j] - phaseshift_glass(wavelengths[j],trial_lengths[i],disp_lam0));
+
             trial_fringes[i][j] = envelope*sinusoid;
         }
     }
+
+
 
     // Normalise trial fringes over wavelength
     for (int i = 0;i<num_lengths;i++){
@@ -79,6 +83,10 @@ void CalcTrialLengths(toml::table fringe_config){
             trial_fringes[i][j] /= wavelength_sum;
         }
     }
+
+
+
+    cout << "Done setting up lengths" << endl;
 }
 
 
@@ -105,7 +113,7 @@ int findLength(unsigned short * frame){
         gamma_sum += abs(gamma_r[i]);
     }
 
-    double min_chi2 = 10000;
+    double min_chi2 = 10000000;
     int min_chi2_idx = 0;
 
     for (int i = 0;i<num_lengths;i++){
