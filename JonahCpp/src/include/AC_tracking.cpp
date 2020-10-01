@@ -113,7 +113,10 @@ void CalcTrialFringes(toml::table fringe_config){
     num_delays = fringe_config["tracking"]["num_delays"].value_or(0);
 
     // Wavelengths of each channel
-    toml::array wavelengths = *fringe_config.get("positions.wavelengths")->as_array();
+    std::vector<double> wavelengths;
+    for (int i=0; i<num_channels;i++){
+        wavelengths.push_back(fringe_config["positions"]["wavelengths"][i].value_or(0.0));
+    }
 
     // Wavelength and Wavenumber bandpass
     double bandpass = wavelengths[1] - wavelengths[0];
