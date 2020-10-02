@@ -1,6 +1,9 @@
-// Based on the work done by https://github.com/miks/spinnaker-fps-test
 #ifndef _HELPERFUNC_
 #define _HELPERFUNC_
+
+extern const double kPi;
+
+double sinc(double x);
 
 // Template function to replicate the np.arange function in Python
 template<typename T>
@@ -22,6 +25,5 @@ std::vector<T> arange(T start, T stop, T step = 1) {
       Padded string
 */
 std::string Label(std::string str, const size_t num = 25, const char padding_char = ' ');
-
 
 #endif // _HELPERFUNC_

@@ -8,8 +8,8 @@ __pycache__/
 *.o
 
 #Jonah gitignore folders
-FLIR/data/
-FLIR/bin/
+JonahCpp/data/
+JonahCpp/bin/
 
 # Distribution / packaging
 .Python

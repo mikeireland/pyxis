@@ -26,6 +26,7 @@ class ZaberActuator{
               config_init - Parsed TOML table   */
         ZaberActuator(toml::table config_init);
 
+
         /* Low(er) level function to issue a command to the device by first forming
            a connection to it, performing the command and then disconnecting.
            INPUTS:
@@ -42,27 +43,30 @@ class ZaberActuator{
                             const zaber::motion::Units input_unit = zaber::motion::Units::NATIVE,
                             const zaber::motion::Units output_unit = zaber::motion::Units::NATIVE);
 
+
         /* High level function to move an absolute distance from the home position
            INPUTS:
               position - where to move to
               unit - what unit is the position in?
               timeout - how long to wait before timing out (default 60s)
-
-           No output, but it will print the returned position to the screen
+           OUTPUT:
+              Will print and return the returned position
         */
-        void MoveAbsolute(double position, const zaber::motion::Units unit = zaber::motion::Units::NATIVE,
+        double MoveAbsolute(double position, const zaber::motion::Units unit = zaber::motion::Units::NATIVE,
                           const double timeout = 60);
+
 
         /* High level function to move a relative distance from the current position
            INPUTS:
               position - where to move to
               unit - what unit is the position in?
               timeout - how long to wait before timing out (default 60s)
-
-           No output, but it will print the returned position to the screen
+           OUTPUT:
+              Will print and return the returned position
         */
-        void MoveRelative(double position, const zaber::motion::Units unit = zaber::motion::Units::NATIVE,
+        double MoveRelative(double position, const zaber::motion::Units unit = zaber::motion::Units::NATIVE,
                           const double timeout = 60);
+
 
         /* High level function to start moving at a certain speed
            INPUTS:
@@ -72,21 +76,24 @@ class ZaberActuator{
                         this only initiates movement, we only require a message
                         saying the device has started moving and so the timeout
                         can be short
-
-           No output, but it will print current speed that the device is moving at
-        */
-        void MoveAtVelocity(double velocity, const zaber::motion::Units unit = zaber::motion::Units::NATIVE,
+           OUTPUT:
+              Will print and return current speed that the device is moving at
+         */
+        double MoveAtVelocity(double velocity, const zaber::motion::Units unit = zaber::motion::Units::NATIVE,
                             const double timeout = 0.5);
+
 
         /* High level function to tell the device to stop moving
            INPUTS:
               unit - what unit to report the stopped position in?
               timeout - how long to wait before timing out (default 60s).
 
-           No output, but it will print current stopped position in native units.
+           OUTPUT:
+              Will print and return current stopped position
         */
-        void Stop(const zaber::motion::Units unit = zaber::motion::Units::NATIVE,
+        double Stop(const zaber::motion::Units unit = zaber::motion::Units::NATIVE,
                   const double timeout = 60);
+
 
         /* High level function to tell the device to change a setting
            INPUTS:

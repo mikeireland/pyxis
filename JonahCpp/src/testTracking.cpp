@@ -4,8 +4,7 @@
 #include "FLIRCamera.h"
 #include "Spinnaker.h"
 #include "toml.hpp"
-#include "fringeLock.h"
-#include "ZaberActuator.h"
+#include "AC_tracking.h"
 
 using namespace Spinnaker;
 using namespace std;
@@ -69,17 +68,25 @@ int main(int argc, char **argv) {
 		    // Initialise FLIRCamera instance from the first available camera
         FLIRCamera Fcam (cam_list.GetByIndex(0), cam_config);
 
-        // Get the settings for the particular actuator
-        toml::table stage_config = *config.get("testZaberActuator")->as_table();
-
-        // Initialise ZaberActuator instance for the stage at the port in the config file
-        ZaberActuator stage (stage_config);
+        // Allocate memory for the image data (given by size of image and buffer size)
+        unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
 
         // Get the settings for the fringes
         toml::table fringe_config = *config.get("fringe")->as_table();
 
-        // Test the lock
-        FringeLock(Fcam,stage,fringe_config);
+        // Set up AC delays
+        CalcTrialFringes(fringe_config);
+
+        // Setup and start the camera
+        Fcam.InitCamera();
+
+        Fcam.GrabFrames(10, image_array, findDelay);
+
+        // Turn off camera
+        Fcam.DeinitCamera();
+
+        // Free the memory
+        free(image_array);
 
     }
 

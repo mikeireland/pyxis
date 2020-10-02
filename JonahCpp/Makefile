@@ -55,7 +55,7 @@ OBJ = $(addprefix ${OBJDIR}/,$(notdir $(SRCINC:.${SRCEXT}=.o)))
 ################################################################################
 # Binaries
 
-binaries = testCam testFPS testFlats testLock testZaber
+binaries = testCam testFPS testFlats testLock testZaber testLength testTracking
 
 all: ${binaries}
 

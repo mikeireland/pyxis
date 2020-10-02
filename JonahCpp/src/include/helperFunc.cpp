@@ -1,5 +1,18 @@
+#include <cmath>
 #include <string>
+
 using namespace std;
+
+extern const double kPi = 3.141592654;
+
+double sinc(double x){
+    if (x == 0){
+        return 1.0;
+    } else{
+    double result = sin(kPi*x)/(kPi*x);
+    return result;
+}
+}
 
 /* Function to pad out strings to print them nicely.
    INPUTS:

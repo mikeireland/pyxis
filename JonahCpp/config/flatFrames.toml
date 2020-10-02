@@ -1,6 +1,6 @@
 [testFLIRcamera]
     [testFLIRcamera.camera]
-    adc_bit_depth = "Bit10" #"Bit10" is a good default
+    adc_bit_depth = "Bit10" #"Bit10" is a good default for FFY, "Bit14" for BFY
     acquisition_mode = "Continuous" #"Continuous" is default
     pixel_format = "Mono16" #"Mono16" is default
     width = 900

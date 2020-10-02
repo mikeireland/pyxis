@@ -3,8 +3,9 @@
 #include <complex>
 #include <fftw3.h>
 #include <cmath>
+#include "toml.hpp"
 #include "FLIRCamera.h"
-#include "fringeLock.h"
+#include "fringeLock_FFT.h"
 #include "ZaberActuator.h"
 #include "helperFunc.h"
 #include <zaber/motion/binary.h>
@@ -25,11 +26,13 @@ static double *in;
 static fftw_complex *out;
 
 
-/* High level function to perform fringe locking
+/* High level function to perform fringe locking with FFTs
    INPUTS:
-      Fcam - Camera class
+      Fcam - FLIRCamera class
+      stage - ZaberActuator class
+      fringe_config - table of configuration values for the fringe configuration
 */
-void FringeLock(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_config){
+void FringeLockFFT(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_config){
 
     // Keep old exposure time to give back later
     int old_exposure = Fcam.exposure_time;
@@ -52,9 +55,6 @@ void FringeLock(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_config)
     // Number of meters per frame the stage will scan
     double meters_per_frame = scan_rate*(Fcam.exposure_time/1e6);
 
-    // List of trial delays to be scanned
-    std::vector<double> trial_delays = arange<double>(-scan_width/2, scan_width/2,meters_per_frame);
-
     // Maximum number of frames to take over the scan
     int num_frames = scan_width/meters_per_frame;
 
@@ -70,7 +70,7 @@ void FringeLock(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_config)
 
        // Find the wavenumber and index in the image array of the desired pixel
        flux_data_ls[i].flux_idx = fringe_config["positions"][output]["indices"][channel].value_or(0);
-       double wavelength =fringe_config["positions"][output]["frequencies"][channel].value_or(0);
+       double wavelength =fringe_config["positions"]["wavelengths"][channel].value_or(0);
        double wavenumber = 1/wavelength;
        flux_data_ls[i].wavenumber = wavenumber;
 
@@ -112,8 +112,8 @@ void FringeLock(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_config)
     // Start frame capture and scan
     Fcam.GrabFrames(num_frames, image_array, FringeScan);
 
-    // Stop actuator movement
-    stage.Stop();
+    // Stop actuator movement and retrieve position
+    double position = stage.Stop();
 
     // Deinit camera
     Fcam.DeinitCamera();
@@ -122,7 +122,7 @@ void FringeLock(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_config)
     Fcam.exposure_time = old_exposure;
 
     // Retrieve Delay and print
-    cout << endl << "END LOCKING "<< endl;
+    cout << endl << "END LOCKING at: " << position << " millimeters"<< endl;
 
     // Memory Management and reset
     free(image_array);

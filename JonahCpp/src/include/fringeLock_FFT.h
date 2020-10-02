@@ -18,11 +18,13 @@ struct fringe_lock_data{
     int fft_signal_idx;
 };
 
-/* High level function to perform fringe locking
+/* High level function to perform fringe locking with FFTs
    INPUTS:
-      Fcam - Camera class
+      Fcam - FLIRCamera class
+      stage - ZaberActuator class
+      fringe_config - table of configuration values for the fringe configuration
 */
-void FringeLock(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_config);
+void FringeLockFFT(FLIRCamera Fcam, ZaberActuator stage, toml::table fringe_config);
 
 
 /* Low level function to take a pixel from the detector, perform an
