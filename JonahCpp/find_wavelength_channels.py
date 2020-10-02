@@ -1,17 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+#Default parameters
+prism_angle = 30 #Prism angle in degrees
+glass = "nsf11" #Glass type
+f_cam = 7.6 #Focal length of camera lens in mm
+pix_scale = 3.5e-3 #Pixel scale in mm
+first_wav = 0.6 #First wavelength in spectrum in microns
+final_wav = 0.75 #Final wavelength in spectrum in microns
 
-prism_angle = 30
-glass = "nsf11"
-f_cam = 7.6
-pix_scale = 3.5e-3
-first_wav = 0.6
-final_wav = 0.75
-
+#Make this a fairly small number (larger is faster, but less precise)
 test_wav_spacing = 0.00001
 
-
+#Calculate refractive index of a glass material
 def nglass(l, glass='sio2'):
     """Refractive index of fused silica and other glasses. Note that C is
     in microns^{-2}
@@ -79,10 +80,22 @@ def nglass(l, glass='sio2'):
             n += B[i]*l**2/(l**2 - C[i])
     return np.sqrt(n)
 
+
+"""
+Snells law. 
+INPUTS:
+    i - angle of incidence in degrees
+    n1 - initial refractive index
+    n2 - final refractive index
+OUTPUT:
+    angle of refraction
+"""
 def snell(i,n1,n2):
     return np.degrees(np.arcsin(n1*np.sin(np.radians(i))/n2))
 
 
+#Calculates the dispersion angle between two wavelengths in microns
+#based on the parameters set at the beginning.
 def dispersion_angle(wav_a,wav_b):
 
     n_a = nglass(wav_a,glass=glass)[0]
@@ -90,26 +103,40 @@ def dispersion_angle(wav_a,wav_b):
 
     prism_half_angle = prism_angle/2
     air_half_angles = snell(prism_half_angle,np.array([n_a,n_b]),1)
-    #import pdb; pdb.set_trace()
+
     deviation = 2*air_half_angles
     wavelength_diff = deviation[0]-deviation[1]
+    
     return np.radians(wavelength_diff)
 
+
+#Spacing between two wavelengths on the detector in units of pixels.
 def pixel_spacing(wav_a,wav_b):
     return dispersion_angle(wav_a,wav_b)*f_cam/pix_scale
 
+
+#Scan through a bunch of wavelengths, to find the next wavelength exactly 
+#1 pixel away from the input wavelength in microns
 def find_next_wavelength(wav_a):
+    
+    #List of trial wavelengths
     wavelengths = np.arange(wav_a,final_wav,test_wav_spacing)
+    
     pix_width = 0
     i = 0
     while pix_width < 1:
         pix_width = pixel_spacing(wav_a,wavelengths[i])
-        #print(pix_width)
         i += 1
     return wavelengths[i]
 
+
+#Scan through a bunch of wavelengths, to find the previous wavelength exactly 
+#1 pixel away from the input wavelength in microns
 def find_previous_wavelength(wav_a):
+    
+    #List of trial wavelengths
     wavelengths = np.arange(first_wav,wav_a,test_wav_spacing)
+    
     pix_width = pixel_spacing(first_wav,wav_a)
     i = 0
     while pix_width > 1:
@@ -117,10 +144,23 @@ def find_previous_wavelength(wav_a):
         i += 1
     return wavelengths[i]
 
+
+"""
+Main function to find a list of pixels and their wavelengths based 
+on an input callibrator wavelength and the pixel it lands on
+INPUTS:
+    cali_Wav - callibration wavelength in microns
+    pixel - pixel that the callibration wavelength lands on
+OUTPUT:
+    Dictionary of wavelengths and the pixels they land on for the whole spectrum
+"""
 def find_wavelengths(cali_wav,pixel):
     spectrum = []
+    
+    #First pixel and wavelength
     spectrum.append({"Wavelength":cali_wav,"pixel":pixel})
 
+    #Scan for the wavelengths longer than the callibrator wavelength
     current_wav = cali_wav
     current_pix = pixel
     spacing_to_end = pixel_spacing(cali_wav,final_wav)
@@ -132,6 +172,7 @@ def find_wavelengths(cali_wav,pixel):
         current_wav = next_wav
         current_pix = new_pix
 
+    #Scan for the wavelengths shorter than the callibrator wavelength
     current_wav = cali_wav
     current_pix = pixel
     spacing_to_start = pixel_spacing(first_wav,cali_wav)
@@ -143,9 +184,11 @@ def find_wavelengths(cali_wav,pixel):
         current_wav = prev_wav
         current_pix = new_pix
 
+    #Sort the dictionary
     sorted_spectrum = sorted(spectrum, key=lambda k: k['Wavelength'])
 
     return sorted_spectrum
+
 
 if __name__=="__main__":
     #Example: start at pixel 50 for 633nm:
