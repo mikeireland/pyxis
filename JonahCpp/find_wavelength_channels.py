@@ -146,3 +146,8 @@ def find_wavelengths(cali_wav,pixel):
     sorted_spectrum = sorted(spectrum, key=lambda k: k['Wavelength'])
 
     return sorted_spectrum
+
+if __name__=="__main__":
+    #Example: start at pixel 50 for 633nm:
+    wave_dict = find_wavelengths(0.633,50)
+    print(wave_dict)	
