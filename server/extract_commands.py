@@ -3,7 +3,7 @@
 Extract commands and help strings from the server c++ file and turn them into
 the .include files. This ensures that neither help nor commands ever go missing.
 """
-import pytomlpp
+import toml
 in_cmd = False
 help_dict = {}
 with open('server.cpp', 'r') as ff:
@@ -29,7 +29,7 @@ with open('server.cpp', 'r') as ff:
 
 #All read in. Now lets dump the output for help.
 with open('help.toml', 'w') as ff:
-    pytomlpp.dump(help_dict, ff)
+    toml.dump(help_dict, ff)
     
 #Now lets go through all the commands and create the .include files
 f_elseif = open('cmd_elseif.include', 'w')
