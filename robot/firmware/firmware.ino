@@ -1,7 +1,7 @@
 #include <SPI.h>
 
 struct pitch_roll {
-  double pitch, roll;
+  double pitch, roll, x, y, z;
 };
 
 struct triple {
@@ -68,9 +68,9 @@ public:
     motor_vels[0] = (                    - vels.y            ) * k_trans - vels.yaw * k_yaw;
     motor_vels[1] = ( vels.x * sin(PI/3) + vels.y * cos(PI/3)) * k_trans - vels.yaw * k_yaw;
     motor_vels[2] = (-vels.x * sin(PI/3) + vels.y * cos(PI/3)) * k_trans - vels.yaw * k_yaw;
-    motor_vels[3] =   vels.roll  * k_lin_baseline - vels.pitch * (k_lin_baseline/2) + vels.z * k_z;
-    motor_vels[4] =  -vels.roll  * k_lin_baseline - vels.pitch * (k_lin_baseline/2) + vels.z * k_z;
-    motor_vels[5] =                               + vels.pitch * (k_lin_baseline  ) + vels.z * k_z;
+    motor_vels[3] =  vels.roll  * k_lin_baseline - vels.pitch * (k_lin_baseline/2) + vels.z * k_z;  // was not divided by 5
+    motor_vels[4] =  -vels.roll  * k_lin_baseline - vels.pitch * (k_lin_baseline/2) + vels.z * k_z;  // was not divided by 5
+    motor_vels[5] =                               + vels.pitch * (k_lin_baseline  ) + vels.z * k_z;  // was not divided by 5
     interrupts();
     
   }
@@ -113,6 +113,7 @@ private:
   const int dev_id_mst_reg = 0x01;
   const int part_id_reg = 0x02;
   const int temp_2_reg = 0x06;
+  const int temp_1_reg = 0x07;
   
   const int x_data_3_reg = 0x08;
   const int x_data_2_reg = 0x09;
@@ -126,7 +127,8 @@ private:
   const int measure_mode = 0x04;
   const int power_ctl_reg = 0x2D;
 
-  const float temp_bias = 2078.25;
+  const float temp_offset = 25.0;
+  const float temp_bias = 1885; //was 2078.25
   const float temp_slope = -9.05;
 
   const double gravity_x = 0;
@@ -137,10 +139,10 @@ private:
     
   const int SPI_max_rate = 10000000;
   
-  static const int num_accelerometers = 1;
+  static const int num_accelerometers = 3;
 
   // Add entries here to add more accelerometers
-  const int chip_select_pins[num_accelerometers] = {10};
+  const int chip_select_pins[num_accelerometers] = {8,9,10};
 
   unsigned int read_register(int index, byte this_register) {
     digitalWrite(chip_select_pins[index], LOW);
@@ -168,15 +170,18 @@ private:
   
   float get_temp(int index){
     float temp = (read_SPI_byte(index, temp_2_reg)*256);
-    return (temp - temp_bias) / temp_slope;
+    temp += (float)read_SPI_byte(index, temp_1_reg);
+    return temp_offset +(temp - temp_bias) / temp_slope;
   } 
 
   
 public:
   AccelerometerReader(){
-
     SPI.beginTransaction(SPISettings(SPI_max_rate, MSBFIRST, SPI_MODE0));
     SPI.begin();
+    
+    //while(true){
+    
     for(int i = 0; i < num_accelerometers; i++){
 
       pinMode(chip_select_pins[i], OUTPUT);
@@ -199,7 +204,24 @@ public:
       Serial.println(read_SPI_byte(i, part_id_reg), HEX);
 
       Serial.print("TEMP (C): ");
-      Serial.println(get_temp(i));       
+      Serial.println(get_temp(i));
+
+      Serial.print("X3: ");
+      Serial.println(read_SPI_byte(i, x_data_3_reg), HEX);
+      Serial.print("X2: ");
+      Serial.println(read_SPI_byte(i, x_data_2_reg), HEX);
+      Serial.print("Y3: ");
+      Serial.println(read_SPI_byte(i, y_data_3_reg), HEX);
+      Serial.print("Y2: ");
+      Serial.println(read_SPI_byte(i, y_data_2_reg), HEX);
+      Serial.print("Z3: ");
+      Serial.println(read_SPI_byte(i, z_data_3_reg), HEX);
+      Serial.print("Z2: ");
+      Serial.println(read_SPI_byte(i, z_data_2_reg), HEX);
+
+      delay(1000);
+     //}
+     
     }
   }
 
@@ -217,7 +239,10 @@ public:
       
       return (pitch_roll){
           .pitch = -atan2((double)x, z),
-          .roll = -atan2((double)y, z)
+          .roll = -atan2((double)y, z),
+          .x = x,
+          .y = y,
+          .z = z
       };
   }
 
@@ -254,6 +279,49 @@ class Controller{
     p_r = accelerometer_reader.getPitchRoll(0);
     v.pitch = p_r.pitch;
     v.roll = p_r.roll;
+//    Serial.print("v0.pitch: ");
+//    Serial.print(v.pitch);
+//    Serial.print(" | v0.roll: ");
+//    Serial.println(v.roll);
+
+    Serial.print("read.x0: ");
+    Serial.print(p_r.x, 10);
+    Serial.print(" | read.y0: ");
+    Serial.print(p_r.y, 10);
+    Serial.print(" | read.z0: ");
+    Serial.println(p_r.z, 10);
+
+    p_r = accelerometer_reader.getPitchRoll(1);
+    v.pitch = p_r.pitch;
+    v.roll = p_r.roll;
+//    Serial.print("v1.pitch: ");
+//    Serial.print(v.pitch);
+//    Serial.print(" | v1.roll: ");
+//    Serial.println(v.roll);
+//    Serial.print("read.x1: ");
+//    Serial.print(p_r.x, 10);
+//    Serial.print(" | read.y1: ");
+//    Serial.print(p_r.y, 10);
+//    Serial.print(" | read.z1: ");
+//    Serial.println(p_r.z, 10);
+
+    p_r = accelerometer_reader.getPitchRoll(2);
+    v.pitch = p_r.pitch;
+    v.roll = p_r.roll;
+//    Serial.print("v2.pitch: ");
+//    Serial.print(v.pitch);
+//    Serial.print(" | v2.roll: ");
+//    Serial.println(v.roll);
+//    Serial.println(' ');
+    
+//    Serial.print("read.x2: ");
+//    Serial.print(p_r.x, 10);
+//    Serial.print(" | read.y2: ");
+//    Serial.print(p_r.y, 10);
+//    Serial.print(" | read.z2: ");
+//    Serial.println(p_r.z, 10);
+    Serial.println(' ');
+    delay(1000);
   }
 
   void sweep_test(int index){
@@ -372,9 +440,7 @@ public:
   }
 
   void wait_for_commands() {
-    
     if(Serial.available()){
-     
       switch (Serial.read()){
           case '1':
             if (stabilise == true){
@@ -387,11 +453,34 @@ public:
             }
             break;
           case '2':
+           while(true) {
             triple a;
             a = accelerometer_reader.getAllAxesAcceleration(0);
-            Serial.println(a.x, 10);
-            Serial.println(a.y, 10);
-            Serial.println(a.x, 10);
+            Serial.print("a0.x = ");
+            Serial.print(a.x, 10);
+            Serial.print(" | a0.y = ");
+            Serial.print(a.y, 10);
+            Serial.print(" | a0.z = ");
+            Serial.println(a.z, 10);
+
+            a = accelerometer_reader.getAllAxesAcceleration(1);
+            Serial.print("a1.x = ");
+            Serial.print(a.x, 10);
+            Serial.print(" | a1.y = ");
+            Serial.print(a.y, 10);
+            Serial.print(" | a1.z = ");
+            Serial.println(a.z, 10);
+
+            a = accelerometer_reader.getAllAxesAcceleration(2);
+            Serial.print("a2.x = ");
+            Serial.print(a.x, 10);
+            Serial.print(" | a2.y = ");
+            Serial.print(a.y, 10);
+            Serial.print(" | a2.z = ");
+            Serial.println(a.z, 10);
+            Serial.println(" ");
+            delay(1000);
+           }
             break;   
           case 'z':
             Serial.println("Z up");
