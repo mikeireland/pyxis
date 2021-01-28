@@ -4,32 +4,36 @@ from datetime import datetime
 
 # Configuration variables
 # ===============================================
-# target_motor:
+# target:
 #       'Wheel0'
 #       'Wheel1'
 #       'Wheel2'
 #       'Linear0'
 #       'Linear1'
 #       'Linear2'
-#
-target_motor = 'Linear1' 
+#       'x_axis'
+#       'y_axis'
+#       'z_axis'
+#       'pitch'
+#       'roll'
+#       'yaw'
+
+target = 'y_axis'
 # ===============================================
 
 # Choose the path and name for the results file (including the time to prevent overwriting)
 dt_string = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-filename = dirname(dirname(abspath(__file__))) + '/resonance_test_results/' + target_motor + '_' + dt_string + '.log'
+filename = dirname(dirname(abspath(__file__))) + '/resonance_test_results/' + target + '_' + dt_string + '.log'
 
 print('Sending sweep test command ...')
 with serial.Serial('/dev/ttyACM0', timeout=2) as ser:
     ser.write('+'.encode('UTF-  8'))
     msg = {
-        'Wheel0': '0',
-        'Wheel1': '1',
-        'Wheel2': '2',
-        'Linear0': '3',
-        'Linear1': '4',
-        'Linear2': '5',
-    }[target_motor]
+        'Wheel0': '0',  'Wheel1': '1',  'Wheel2': '2',
+        'Linear0': '3', 'Linear1': '4', 'Linear2': '5',
+        'x_axis': 'x',  'y_axis': 'y',  'z_axis': 'z',
+        'pitch': 'p',   'roll': 'r',    'yaw': 's',
+    }[target]
     ser.write(msg.encode('UTF-  8'))
         
 print('Collecting data ...')

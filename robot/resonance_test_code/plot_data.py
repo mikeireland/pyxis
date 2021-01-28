@@ -3,6 +3,7 @@ from os.path import dirname, abspath
 import shutil
 import numpy as np
 import matplotlib.pyplot as plt
+import csv
 
 # Configuration variables
 # ===============================================
@@ -13,8 +14,8 @@ import matplotlib.pyplot as plt
 #       'y_pos'
 #       'z_pos'
 #
-filename = 'Wheel2_2020-10-14_132215.log'
-target_fourier_axis = 'x_pos'
+filename = 'y_axis_2021-01-28_125050.log'
+target_fourier_axis = 'z_pos'
 
 # ===============================================
 filename = dirname(dirname(abspath(__file__))) + '/resonance_test_results/' + filename 
@@ -52,7 +53,7 @@ with open(filename) as file:
             else: raise Exception('BAD INPUT!')
 
 name_prefix = filename.split("/")[-1].split("_")[0]
-results_directory = filename.split(".")[0]
+results_directory = filename.split(".")[0] + "_" + target_fourier_axis
 
 if os.path.isdir(results_directory):
     shutil.rmtree(results_directory)
@@ -82,7 +83,6 @@ for f, entry in raw_data.items():
     
 plot_f = 10.0
 
-    
 fs, xs, ys, zs = [], [], [], []
 for f, entry in raw_data.items():
     fs.append(f)
@@ -128,12 +128,21 @@ for f in fs:
         bode_magnitudes.append(np.abs(peak_sum))
         bode_phases.append(np.angle(peak_sum))
 
+with open(dirname(dirname(abspath(__file__))) + '/resonance_test_results/' +target_fourier_axis + '_results' + '.csv', mode='w') as test_data:
+    data_writer = csv.writer(test_data, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    
+    data_writer.writerow(['Test '])
+    data_writer.writerow(['frequency'] + bode_frequencies)
+    data_writer.writerow(['magnitude'] + bode_magnitudes)
+    data_writer.writerow(['phase'] + bode_phases)
+
 fig, axs = plt.subplots(2)
-fig.suptitle(f'Bode Plot of Target "{name_prefix}"\n Note: input amplitude decreased as 1/f')
+fig.suptitle(f'Bode Plot of Target "{name_prefix}" in {target_fourier_axis}\n Note: input amplitude decreased as 1/f')
 axs[0].plot(bode_frequencies, bode_magnitudes)
 axs[0].set(ylabel='Magnitude [microns]')
 axs[1].plot(bode_frequencies, bode_phases)
 axs[1].set(xlabel='Frequency [Hz]', ylabel='Phase [rad]')
+plt.savefig(f'{results_directory}/Bode_plot.png')
 
 
 # Generate a total of 20 fourier plots for each integer frequency
@@ -147,7 +156,7 @@ for f in fs:
         freq = [x for x in freq if x >= 0]
         vals = vals[:len(freq)]
         plt.figure(f'Fourier Plot for {f} Hz')
-        plt.title(f'Fourier Plot of Target "{name_prefix}"\nfrequency = {f} Hz')
+        plt.title(f'Fourier Plot of Target "{name_prefix}" in {target_fourier_axis}\nfrequency = {f} Hz')
         plt.xscale("log")
         
         # Filter out anything below fundamental
@@ -164,4 +173,5 @@ for f in fs:
         plt.ylabel('Magnitude (microns)')
         plt.savefig(f'{results_directory}/fourier_plot_{f}.png')
         plt.show()
+
 
