@@ -146,10 +146,10 @@ private:
     
   const int SPI_max_rate = 10000000;
   
-  static const int num_accelerometers = 3;
+  static const int num_accelerometers = 6;
 
   // Add entries here to add more accelerometers
-  const int chip_select_pins[num_accelerometers] = {8,9,10};
+  const int chip_select_pins[num_accelerometers] = {8,9,10,5,6,7};
 
   unsigned int read_register(int index, byte this_register) {
     digitalWrite(chip_select_pins[index], LOW);
@@ -186,8 +186,6 @@ public:
   AccelerometerReader(){
     SPI.beginTransaction(SPISettings(SPI_max_rate, MSBFIRST, SPI_MODE0));
     SPI.begin();
-    
-    //while(true){
     
     for(int i = 0; i < num_accelerometers; i++){
 
@@ -227,7 +225,6 @@ public:
       Serial.println(read_SPI_byte(i, z_data_2_reg), HEX);
 
       delay(1000);
-     //}
      
     }
   }
@@ -282,20 +279,21 @@ class Controller{
 
   void stabilise_platform_velocities(){
     triple read_v;
-    p_r = accelerometer_reader.getPitchRoll(0);
-    read_v.x = -0.866 * p_r.x + 0.866 * p_r.y;
-    read_v.y = -0.5 * p_r.x - 0.5 * p_r.y;
+    
+    p_r = accelerometer_reader.getPitchRoll(3);
+    read_v.x = p_r.x ;
+    read_v.y = p_r.y;
     read_v.z = p_r.z;
 
 
-    p_r = accelerometer_reader.getPitchRoll(1);
-    read_v.x = read_v.x + p_r.x;
-    read_v.y = read_v.y - p_r.y;
+    p_r = accelerometer_reader.getPitchRoll(4);
+    read_v.x = read_v.x - p_r.y;
+    read_v.y = read_v.y + p_r.x;
     read_v.z = read_v.z + p_r.z;
 
-    p_r = accelerometer_reader.getPitchRoll(2);
-    read_v.x = read_v.x - 0.5 * p_r.x - 0.866 * p_r.y;
-    read_v.y = read_v.y + 0.866 * p_r.x - 0.5 * p_r.y;
+    p_r = accelerometer_reader.getPitchRoll(5);
+    read_v.x = read_v.x - p_r.x;
+    read_v.y = read_v.y - p_r.y;
     read_v.z = read_v.z + p_r.z;
 
     read_v.x = read_v.x / 3;
@@ -388,19 +386,19 @@ class Controller{
         triple acc;
         triple a_axes;
         //Explicit matrix multiplication. See PDF from Mike.
-        a_axes = accelerometer_reader.getAllAxesAcceleration(0);
-        acc.x = -0.866 * a_axes.x + 0.866 * a_axes.y;
-        acc.y = -0.5 * a_axes.x - 0.5 * a_axes.y;
+        a_axes = accelerometer_reader.getAllAxesAcceleration(3);
+        acc.x = a_axes.x;
+        acc.y = a_axes.y;
         acc.z = a_axes.z;
 
-        a_axes = accelerometer_reader.getAllAxesAcceleration(1);
-        acc.x = acc.x + a_axes.x;
-        acc.y = acc.y - a_axes.y;
+        a_axes = accelerometer_reader.getAllAxesAcceleration(4);
+        acc.x = acc.x - a_axes.y;
+        acc.y = acc.y + a_axes.x;
         acc.z = acc.z + a_axes.z;
 
-        a_axes = accelerometer_reader.getAllAxesAcceleration(2);
-        acc.x = acc.x - 0.5 * a_axes.x - 0.866 * a_axes.y;
-        acc.y = acc.y + 0.866 * a_axes.x - 0.5 * a_axes.y;
+        a_axes = accelerometer_reader.getAllAxesAcceleration(5);
+        acc.x = acc.x - a_axes.x;
+        acc.y = acc.y - a_axes.y;
         acc.z = acc.z + a_axes.z;
 
         acc.x = acc.x / 3;
@@ -508,35 +506,67 @@ public:
             }
             break;
           case '2':
+//          while (true){
             triple a_axes;
             triple a;
-            a_axes = accelerometer_reader.getAllAxesAcceleration(0);        
-            a.x = -0.866 * a_axes.x + 0.866 * a_axes.y;
-            a.y = -0.5 * a_axes.x - 0.5 * a_axes.y;
+            a_axes = accelerometer_reader.getAllAxesAcceleration(3);
+            a.x = a_axes.x;
+            a.y = a_axes.y;
             a.z = a_axes.z;
 
-            a_axes = accelerometer_reader.getAllAxesAcceleration(1);
-            a.x = a.x + a_axes.x;
-            a.y = a.y - a_axes.y;
+            a_axes = accelerometer_reader.getAllAxesAcceleration(4);
+            a.x = a.x - a_axes.y;
+            a.y = a.y + a_axes.x;
             a.z = a.z + a_axes.z;
 
-            a_axes = accelerometer_reader.getAllAxesAcceleration(2);
-            a.x = a.x - 0.5 * a_axes.x - 0.866 * a_axes.y;
-            a.y = a.y + 0.866 * a_axes.x - 0.5 * a_axes.y;
+            a_axes = accelerometer_reader.getAllAxesAcceleration(5);
+            a.x = a.x - a_axes.x;
+            a.y = a.y - a_axes.y;
             a.z = a.z + a_axes.z;
 
             a.x = a.x / 3;
             a.y = a.y / 3;
             a.z = a.z / 3;
 
-            Serial.print("a.x = ");
-            Serial.print(a.x, 10);
-            Serial.print(" | a.y = ");
-            Serial.print(a.y, 10);
-            Serial.print(" | a.z = ");
-            Serial.println(a.z, 10);
+            triple a_3;
+            a_3 = accelerometer_reader.getAllAxesAcceleration(3);  
+
+            triple a_4;
+            a_4 = accelerometer_reader.getAllAxesAcceleration(4);
+
+            triple a_5;
+            a_5 = accelerometer_reader.getAllAxesAcceleration(5);  
+           
+              Serial.print("a.x = ");
+              Serial.print(a.x, 10);
+              Serial.print(" | a.y = ");
+              Serial.print(a.y, 10);
+              Serial.print(" | a.z = ");
+              Serial.println(a.z, 10);
+            
+//            Serial.print("a_3.x = ");
+//            Serial.print(a_3.x, 10);
+//            Serial.print(" | a_3.y = ");
+//            Serial.print(a_3.y, 10);
+//            Serial.print(" | a_3.z = ");
+//            Serial.println(a_3.z, 10);
+//            
+//            Serial.print("a_4.x = ");
+//            Serial.print(a_4.x, 10);
+//            Serial.print(" | a_4.y = ");
+//            Serial.print(a_4.y, 10);
+//            Serial.print(" | a_4.z = ");
+//            Serial.println(a_4.z, 10);
+//
+//            Serial.print("a_5.x = ");
+//            Serial.print(a_5.x, 10);
+//            Serial.print(" | a_5.y = ");
+//            Serial.print(a_5.y, 10);
+//            Serial.print(" | a_5.z = ");
+//            Serial.println(a_5.z, 10);           
             Serial.println(" ");
             delay(1000);
+//          }
             break;   
           case 'z':
             Serial.println("Z up");

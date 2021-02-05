@@ -23,7 +23,7 @@ target = 'y_axis'
 
 # Choose the path and name for the results file (including the time to prevent overwriting)
 dt_string = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-filename = dirname(dirname(abspath(__file__))) + '/resonance_test_results/' + target + '_' + dt_string + '.log'
+filename = dirname(dirname(abspath(__file__))) + '/resonance_test_results/' + target + '_top_' + dt_string + '.log'
 
 print('Sending sweep test command ...')
 with serial.Serial('/dev/ttyACM0', timeout=2) as ser:

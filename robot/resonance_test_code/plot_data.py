@@ -14,7 +14,7 @@ import csv
 #       'y_pos'
 #       'z_pos'
 #
-filename = 'y_axis_2021-01-28_125050.log'
+filename = 'y_axis_top_2021-02-05_161042.log'
 target_fourier_axis = 'z_pos'
 
 # ===============================================
