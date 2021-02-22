@@ -4,26 +4,18 @@ from datetime import datetime
 
 # Configuration variables
 # ===============================================
-# target:
-#       'Wheel0'
-#       'Wheel1'
-#       'Wheel2'
-#       'Linear0'
-#       'Linear1'
-#       'Linear2'
-#       'x_axis'
-#       'y_axis'
-#       'z_axis'
-#       'pitch'
-#       'roll'
-#       'yaw'
+# target: 
+#       'Wheel0'   'Wheel1'   'Wheel2'
+#       'Linear0'  'Linear1'  'Linear2'
+#       'x_axis'   'y_axis'   'z_axis'
+#       'pitch'    'roll'     'yaw'
 
-target = 'y_axis'
+target = 'x_axis'
 # ===============================================
 
 # Choose the path and name for the results file (including the time to prevent overwriting)
 dt_string = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-filename = dirname(dirname(abspath(__file__))) + '/resonance_test_results/' + target + '_top_' + dt_string + '.log'
+filename = dirname(dirname(abspath(__file__))) + '/resonance_test_results/' + target + '_' + dt_string + '.log'
 
 print('Sending sweep test command ...')
 with serial.Serial('/dev/ttyACM0', timeout=2) as ser:

@@ -3,7 +3,6 @@ from os.path import dirname, abspath
 import shutil
 import numpy as np
 import matplotlib.pyplot as plt
-import csv
 
 # Configuration variables
 # ===============================================
@@ -14,7 +13,7 @@ import csv
 #       'y_pos'
 #       'z_pos'
 #
-filename = 'y_axis_top_2021-02-05_161042.log'
+filename = 'x_axis_2021-02-22_160744.log'
 target_fourier_axis = 'z_pos'
 
 # ===============================================
@@ -127,14 +126,6 @@ for f in fs:
         peak_sum = np.sum(vals[peak_index-2:peak_index+2])
         bode_magnitudes.append(np.abs(peak_sum))
         bode_phases.append(np.angle(peak_sum))
-
-with open(dirname(dirname(abspath(__file__))) + '/resonance_test_results/' +target_fourier_axis + '_results' + '.csv', mode='w') as test_data:
-    data_writer = csv.writer(test_data, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-    
-    data_writer.writerow(['Test '])
-    data_writer.writerow(['frequency'] + bode_frequencies)
-    data_writer.writerow(['magnitude'] + bode_magnitudes)
-    data_writer.writerow(['phase'] + bode_phases)
 
 fig, axs = plt.subplots(2)
 fig.suptitle(f'Bode Plot of Target "{name_prefix}" in {target_fourier_axis}\n Note: input amplitude decreased as 1/f')
