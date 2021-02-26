@@ -528,60 +528,105 @@ class Controller {
             }
             break;
           case '2':
-            triple a_axes;
+            triple a_0; triple a_1; triple a_2; 
+            triple a_3; triple a_4; triple a_5;
             triple a_bottom; triple a_top;
             
-            a_axes = accelerometer_reader.getAllAxesAcceleration(0);
-            a_bottom.x = -0.866 * a_axes.x + 0.866 * a_axes.y;
-            a_bottom.y = -0.5 * a_axes.x - 0.5 * a_axes.y;
-            a_bottom.z = a_axes.z;
+            a_0 = accelerometer_reader.getAllAxesAcceleration(0);
+            a_bottom.x = -0.866 * a_0.x + 0.866 * a_0.y;
+            a_bottom.y = -0.5 * a_0.x - 0.5 * a_0.y;
+            a_bottom.z = a_0.z;
 
-            a_axes = accelerometer_reader.getAllAxesAcceleration(1);
-            a_bottom.x = a_bottom.x + a_axes.x;
-            a_bottom.y = a_bottom.y - a_axes.y;
-            a_bottom.z = a_bottom.z + a_axes.z;
+            a_1 = accelerometer_reader.getAllAxesAcceleration(1);
+            a_bottom.x = a_bottom.x + a_1.x;
+            a_bottom.y = a_bottom.y - a_1.y;
+            a_bottom.z = a_bottom.z + a_1.z;
 
-            a_axes = accelerometer_reader.getAllAxesAcceleration(2);
-            a_bottom.x = a_bottom.x - 0.5 * a_axes.x - 0.866 * a_axes.y;
-            a_bottom.y = a_bottom.y + 0.866 * a_axes.x - 0.5 * a_axes.y;
-            a_bottom.z = a_bottom.z + a_axes.z;
+            a_2 = accelerometer_reader.getAllAxesAcceleration(2);
+            a_bottom.x = a_bottom.x - 0.5 * a_2.x - 0.866 * a_2.y;
+            a_bottom.y = a_bottom.y + 0.866 * a_2.x - 0.5 * a_2.y;
+            a_bottom.z = a_bottom.z + a_2.z;
 
             a_bottom.x = a_bottom.x / 3;
             a_bottom.y = a_bottom.y / 3;
             a_bottom.z = a_bottom.z / 3;
 
-            a_axes = accelerometer_reader.getAllAxesAcceleration(3);
-            a_top.x = a_axes.x;
-            a_top.y = a_axes.y;
-            a_top.z = a_axes.z;
+            a_3 = accelerometer_reader.getAllAxesAcceleration(3);
+            a_top.x = a_3.x;
+            a_top.y = a_3.y;
+            a_top.z = a_3.z;
 
-            a_axes = accelerometer_reader.getAllAxesAcceleration(4);
-            a_top.x = a_top.x - a_axes.y;
-            a_top.y = a_top.y + a_axes.x;
-            a_top.z = a_top.z + a_axes.z;
+            a_4 = accelerometer_reader.getAllAxesAcceleration(4);
+            a_top.x = a_top.x - a_4.y;
+            a_top.y = a_top.y + a_4.x;
+            a_top.z = a_top.z + a_4.z;
 
-            a_axes = accelerometer_reader.getAllAxesAcceleration(5);
-            a_top.x = a_top.x - a_axes.x;
-            a_top.y = a_top.y - a_axes.y;
-            a_top.z = a_top.z + a_axes.z;
+            a_5 = accelerometer_reader.getAllAxesAcceleration(5);
+            a_top.x = a_top.x - a_5.x;
+            a_top.y = a_top.y - a_5.y;
+            a_top.z = a_top.z + a_5.z;
 
             a_top.x = a_top.x / 3;
             a_top.y = a_top.y / 3;
             a_top.z = a_top.z / 3;
             
-            Serial.print("a_bottom.x = ");
-            Serial.print(a_bottom.x, 5);
-            Serial.print(" | a_bottom.y = ");
-            Serial.print(a_bottom.y, 5);
-            Serial.print(" | a_bottom.z = ");
-            Serial.println(a_bottom.z, 5);
+//            Serial.print("a_bottom.x = ");
+//            Serial.print(a_bottom.x, 5);
+//            Serial.print(" | a_bottom.y = ");
+//            Serial.print(a_bottom.y, 5);
+//            Serial.print(" | a_bottom.z = ");
+//            Serial.println(a_bottom.z, 5);
+//
+//            Serial.print("a_top.x = ");
+//            Serial.print(a_top.x, 5);
+//            Serial.print(" | a_top.y = ");
+//            Serial.print(a_top.y, 5);
+//            Serial.print(" | a_top.z = ");
+//            Serial.println(a_top.z, 5);
+//            Serial.println(" ");
 
-            Serial.print("a_top.x = ");
-            Serial.print(a_top.x, 5);
-            Serial.print(" | a_top.y = ");
-            Serial.print(a_top.y, 5);
-            Serial.print(" | a_top.z = ");
-            Serial.println(a_top.z, 5);
+            Serial.print("a_0.x = ");
+            Serial.print(a_0.x, 5);
+            Serial.print(" | a_0.y = ");
+            Serial.print(a_0.y, 5);
+            Serial.print(" | a_0.z = ");
+            Serial.println(a_0.z, 5);
+
+            Serial.print("a_1.x = ");
+            Serial.print(a_1.x, 5);
+            Serial.print(" | a_1.y = ");
+            Serial.print(a_1.y, 5);
+            Serial.print(" | a_1.z = ");
+            Serial.println(a_1.z, 5);
+
+            Serial.print("a_2.x = ");
+            Serial.print(a_2.x, 5);
+            Serial.print(" | a_2.y = ");
+            Serial.print(a_2.y, 5);
+            Serial.print(" | a_2.z = ");
+            Serial.println(a_2.z, 5);
+
+            Serial.print("a_3.x = ");
+            Serial.print(a_3.x, 5);
+            Serial.print(" | a_3.y = ");
+            Serial.print(a_3.y, 5);
+            Serial.print(" | a_3.z = ");
+            Serial.println(a_3.z, 5);
+
+            Serial.print("a_4.x = ");
+            Serial.print(a_4.x, 5);
+            Serial.print(" | a_4.y = ");
+            Serial.print(a_4.y, 5);
+            Serial.print(" | a_4.z = ");
+            Serial.println(a_4.z, 5);
+
+            Serial.print("a_5.x = ");
+            Serial.print(a_5.x, 5);
+            Serial.print(" | a_5.y = ");
+            Serial.print(a_5.y, 5);
+            Serial.print(" | a_5.z = ");
+            Serial.println(a_5.z, 5);
+            
             Serial.println(" ");
 
             break;

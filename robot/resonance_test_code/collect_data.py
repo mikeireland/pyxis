@@ -10,7 +10,7 @@ from datetime import datetime
 #       'x_axis'   'y_axis'   'z_axis'
 #       'pitch'    'roll'     'yaw'
 
-target = 'x_axis'
+target = 'y_axis'
 # ===============================================
 
 # Choose the path and name for the results file (including the time to prevent overwriting)

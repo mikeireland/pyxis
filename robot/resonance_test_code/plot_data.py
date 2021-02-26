@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 #       'y_pos'
 #       'z_pos'
 #
-filename = 'x_axis_2021-02-22_160744.log'
+filename = 'x_axis_2021-02-26_121417.log'
 target_fourier_axis = 'z_pos'
 
 # ===============================================
