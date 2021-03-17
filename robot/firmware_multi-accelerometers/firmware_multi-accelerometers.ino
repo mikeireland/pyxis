@@ -347,6 +347,7 @@ class Controller {
         set_velocities(BFF_zero);
 
         while (now_t < stop_t) {
+          int sampling_time=1000;
           now_t = micros();
           double speed_ = speed_mult * sin(2 * PI * (now_t - start_t) * freq / 1000000);
           // Set the raw velocity if the motor index is '0' through '5'
@@ -386,10 +387,19 @@ class Controller {
         triple a_bottom; triple a_top;
         triple a_axes;
         triple acc;
-        //Explicit matrix multiplication. See PDF from Mike.
-        
+
+        //*** Modify/delete code below - we can always add it back later 
+        // what we want is the raw values from getAllAxesAcceleration ***
+
+        //Explicit matrix multiplication. See PDF from Mike
         //Measure bottom overall acceleration
         a_axes = accelerometer_reader.getAllAxesAcceleration(0);
+        Serial.print(a_axes.x,4);
+        Serial.print(",");
+        Serial.print(a_axes.y,4);
+        Serial.print(",");
+        Serial.print(a_axes.z,4);
+        Serial.println(";");
         a_bottom.x = -0.866 * a_axes.x + 0.866 * a_axes.y;
         a_bottom.y = -0.5 * a_axes.x - 0.5 * a_axes.y;
         a_bottom.z = a_axes.z;
@@ -423,7 +433,13 @@ class Controller {
         a_top.x = a_top.x - a_axes.x;
         a_top.y = a_top.y - a_axes.y;
         a_top.z = a_top.z + a_axes.z;
-
+        Serial.print(a_axes.x,4);
+        Serial.print(",");
+        Serial.print(a_axes.y,4);
+        Serial.print(",");
+        Serial.print(a_axes.z,4);
+        Serial.println(";");
+        
         a_top.x = a_top.x / 3;
         a_top.y = a_top.y / 3;
         a_top.z = a_top.z / 3;
@@ -433,19 +449,23 @@ class Controller {
         acc.y = (a_bottom.x + a_top.y) / 2;
         acc.z = (a_bottom.x + a_top.z) / 2;
 
-          if (d % downsample == 0) {
+        //*** Delete above here ***
+
+        //*** Downsampling is pretty complex! just change the sampling time
+        if (d % downsample == 0) {
             i += 1;
             if (i >= array_length) { break;}
-          }
-          // Record data
+        }
+        // Record data
         t[i] += now_t / ((double) downsample);
         x[i] += acc.x / ((double) downsample);
         y[i] += acc.y / ((double) downsample);
         z[i] += acc.z / ((double) downsample);
           ++d;
+        //*** So delete this bit too.
 
         // Wait for the next microsecond!
-        while (micros()-now_t < 1000);
+        while (micros()-now_t < sampling_time);
       }
 
       // Set all velocities to zero.
@@ -726,22 +746,13 @@ void pos_update() {
   controller.update_positions();
 }
 
-//int val = 0;
-//int ledPin = 5;
-//int inPin = 6;
-
 void setup() {
   // Calls controller.update_positions regularly
   // This ensures that the motors can move smoothly
   timer.begin(pos_update, 10);
-  //  pinMode(ledPin, OUTPUT);
-  //  pinMode(inPin, INPUT);
 }
 
 
 void loop() {
   controller.wait_for_commands();
-  //   val = digitalRead(inPin);   // read the input pin
-  //   digitalWrite(ledPin, val);
-
 }
