@@ -320,11 +320,11 @@ class Controller {
       long start_t, stop_t, now_t;
       BFF_velocities BFF_sweep, BFF_zero; //The struct definition initializes all axes to zero.
       const int array_length = 24000; 
-      // serial monitor will crush and restart if
+      // serial monitor will crash and restart if
       // the array length is too large
 
-      for (double freq = 2 /*Hz*/; freq <= 30; freq += 2) {
-        double test_time = 120 / freq; //!!! Was 120. Number of samples divided by frequency.
+      for (double freq = 2 /*Hz*/; freq <= 10; freq += 2) {
+        double test_time = 30 / freq; //!!! Was 120. Number of samples divided by frequency.
         int downsample = 500 / freq; // Number of samples toaverage divided by frequency.
 
         if (Serial.available()) {
@@ -443,9 +443,12 @@ class Controller {
         y[i] += acc.y / ((double) downsample);
         z[i] += acc.z / ((double) downsample);
           ++d;
-        }
 
-        // Set all velocities to zero.
+        // Wait for the next microsecond!
+        while (micros()-now_t < 1000);
+      }
+
+      // Set all velocities to zero.
       set_velocities(BFF_zero);
 
       Serial.println("SEND START;");
@@ -521,6 +524,8 @@ class Controller {
             if (stabilise == true) {
               Serial.println("Stabilisation Disabled");
               stabilise = false;
+              v.pitch = 0;
+              v.roll = 0;
             }
             else {
               Serial.println("Stabilisation Enabled");
@@ -707,14 +712,9 @@ class Controller {
 
       }
 
-      if (stabilise == true) {
-        stabilise_platform_velocities();
-      }
-      else {
-        v.pitch = 0;
-        v.roll = 0;
-      }
       motor_driver.set_velocities(v);
+      if (stabilise == true) 
+        stabilise_platform_velocities();
     }
 };
 
@@ -733,7 +733,7 @@ void pos_update() {
 void setup() {
   // Calls controller.update_positions regularly
   // This ensures that the motors can move smoothly
-  timer.begin(pos_update, 5);
+  timer.begin(pos_update, 10);
   //  pinMode(ledPin, OUTPUT);
   //  pinMode(inPin, INPUT);
 }
