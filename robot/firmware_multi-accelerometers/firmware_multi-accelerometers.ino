@@ -319,13 +319,11 @@ class Controller {
       const double speed_mult = 50;
       long start_t, stop_t, now_t;
       BFF_velocities BFF_sweep, BFF_zero; //The struct definition initializes all axes to zero.
-      const int array_length = 24000; 
       // serial monitor will crash and restart if
       // the array length is too large
 
       for (double freq = 2 /*Hz*/; freq <= 10; freq += 2) {
         double test_time = 30 / freq; //!!! Was 120. Number of samples divided by frequency.
-        int downsample = 500 / freq; // Number of samples toaverage divided by frequency.
 
         if (Serial.available()) {
           Serial.print("Testing frequency: ");
@@ -334,14 +332,6 @@ class Controller {
         start_t = micros();
         now_t = start_t;
         stop_t =  start_t + (long)(test_time * 1000000.0);
-
-
-        float t[array_length] = {0};
-        float x[array_length] = {0};
-        float y[array_length] = {0};
-        float z[array_length] = {0};
-        int i = -1;
-        int d = 0;
 
         // Initialize velocities to zero.
         set_velocities(BFF_zero);
@@ -384,136 +374,30 @@ class Controller {
             set_velocities(BFF_sweep);
           }
           
-        triple a_bottom; triple a_top;
         triple a_axes;
-        triple acc;
-
-        //*** Modify/delete code below - we can always add it back later 
-        // what we want is the raw values from getAllAxesAcceleration ***
-
+ 
         //Explicit matrix multiplication. See PDF from Mike
         //Measure bottom overall acceleration
-        a_axes = accelerometer_reader.getAllAxesAcceleration(0);
-        Serial.print(a_axes.x,4);
-        Serial.print(",");
-        Serial.print(a_axes.y,4);
-        Serial.print(",");
-        Serial.print(a_axes.z,4);
-        Serial.println(";");
-        a_bottom.x = -0.866 * a_axes.x + 0.866 * a_axes.y;
-        a_bottom.y = -0.5 * a_axes.x - 0.5 * a_axes.y;
-        a_bottom.z = a_axes.z;
-
-        a_axes = accelerometer_reader.getAllAxesAcceleration(1);
-        a_bottom.x = a_bottom.x + a_axes.x;
-        a_bottom.y = a_bottom.y - a_axes.y;
-        a_bottom.z = a_bottom.z + a_axes.z;
-
-        a_axes = accelerometer_reader.getAllAxesAcceleration(2);
-        a_bottom.x = a_bottom.x - 0.5 * a_axes.x - 0.866 * a_axes.y;
-        a_bottom.y = a_bottom.y + 0.866 * a_axes.x - 0.5 * a_axes.y;
-        a_bottom.z = a_bottom.z + a_axes.z;
-
-        a_bottom.x = a_bottom.x / 3;
-        a_bottom.y = a_bottom.y / 3;
-        a_bottom.z = a_bottom.z / 3;
-
-        //Measure top overall acceleration
-        a_axes = accelerometer_reader.getAllAxesAcceleration(3);
-        a_top.x = a_axes.x;
-        a_top.y = a_axes.y;
-        a_top.z = a_axes.z;
-
-        a_axes = accelerometer_reader.getAllAxesAcceleration(4);
-        a_top.x = a_top.x - a_axes.y;
-        a_top.y = a_top.y + a_axes.x;
-        a_top.z = a_top.z + a_axes.z;
-
-        a_axes = accelerometer_reader.getAllAxesAcceleration(5);
-        a_top.x = a_top.x - a_axes.x;
-        a_top.y = a_top.y - a_axes.y;
-        a_top.z = a_top.z + a_axes.z;
-        Serial.print(a_axes.x,4);
-        Serial.print(",");
-        Serial.print(a_axes.y,4);
-        Serial.print(",");
-        Serial.print(a_axes.z,4);
-        Serial.println(";");
-        
-        a_top.x = a_top.x / 3;
-        a_top.y = a_top.y / 3;
-        a_top.z = a_top.z / 3;
-
-        //Average top and bottom acceleration
-        acc.x = (a_bottom.x + a_top.x) / 2;
-        acc.y = (a_bottom.x + a_top.y) / 2;
-        acc.z = (a_bottom.x + a_top.z) / 2;
-
-        //*** Delete above here ***
-
-        //*** Downsampling is pretty complex! just change the sampling time
-        if (d % downsample == 0) {
-            i += 1;
-            if (i >= array_length) { break;}
+        for (int i=0;i<6;i++){
+          a_axes = accelerometer_reader.getAllAxesAcceleration(i);
+          Serial.print(a_axes.x,4); //4 decimal places
+          Serial.print(",");
+          Serial.print(a_axes.y,4);
+          Serial.print(",");
+          Serial.print(a_axes.z,4);
+          if (i==5)
+            Serial.println("");
+          else
+            Serial.print(",");
         }
-        // Record data
-        t[i] += now_t / ((double) downsample);
-        x[i] += acc.x / ((double) downsample);
-        y[i] += acc.y / ((double) downsample);
-        z[i] += acc.z / ((double) downsample);
-          ++d;
-        //*** So delete this bit too.
-
+ 
         // Wait for the next microsecond!
+        if (micros()-now_t > sampling_time) Serial.println("Timing Error!");
         while (micros()-now_t < sampling_time);
       }
 
       // Set all velocities to zero.
       set_velocities(BFF_zero);
-
-      Serial.println("SEND START;");
-
-      Serial.print("f;");
-      Serial.print(freq, 10);
-      Serial.print(";");
-      Serial.println();
-      
-      Serial.print("t");
-      Serial.print(";");
-      for (int j = 0; j < i; ++j) {
-        Serial.print(t[j],0);
-        Serial.print(";");
-      }
-      Serial.println();
-  
-      Serial.print("x");
-      Serial.print(";");
-      for (int j = 0; j < i; ++j) {
-        Serial.print(x[j], 6);
-        Serial.print(";");
-      }
-      Serial.println();
-  
-      Serial.print("y");
-      Serial.print(";");
-      for (int j = 0; j < i; ++j) {
-        Serial.print(y[j], 6);
-        Serial.print(";");
-      }
-      Serial.println();
-  
-      Serial.print("z");
-      Serial.print(";");
-      for (int j = 0; j < i; ++j) {
-        Serial.print(z[j], 6);
-        Serial.print(";");
-      }
-      Serial.println();
-      
-  
-      Serial.println("SEND END;");
-  
-      delay(1000);
 
       }
       Serial.println("&");
