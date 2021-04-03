@@ -10,7 +10,8 @@ from datetime import datetime
 #       'x_axis'   'y_axis'   'z_axis'
 #       'pitch'    'roll'     'yaw'
 
-target = 'y_axis'
+target = 'z_axis'
+mode = '-'
 # ===============================================
 
 # Choose the path and name for the results file (including the time to prevent overwriting)
@@ -19,14 +20,13 @@ filename = dirname(dirname(abspath(__file__))) + '/resonance_test_results/' + ta
 
 print('Sending sweep test command ...')
 with serial.Serial('/dev/ttyACM0', timeout=2) as ser:
-    ser.write('+'.encode('UTF-  8'))
     msg = {
         'Wheel0': '0',  'Wheel1': '1',  'Wheel2': '2',
         'Linear0': '3', 'Linear1': '4', 'Linear2': '5',
         'x_axis': 'x',  'y_axis': 'y',  'z_axis': 'z',
         'pitch': 'p',   'roll': 'r',    'yaw': 's',
     }[target]
-    ser.write(msg.encode('UTF-  8'))
+    ser.write((mode+msg).encode('UTF-  8'))
         
 print('Collecting data ...')
 

@@ -315,31 +315,11 @@ class Controller {
       delay(1000);
     }
 
-    void sweep_test(char index) {
-      const double speed_mult = 50;
-      long start_t, stop_t, now_t;
-      BFF_velocities BFF_sweep, BFF_zero; //The struct definition initializes all axes to zero.
-      // serial monitor will crash and restart if
-      // the array length is too large
-
-      for (double freq = 2 /*Hz*/; freq <= 10; freq += 2) {
-        double test_time = 30 / freq; //!!! Was 120. Number of samples divided by frequency.
-
-        if (Serial.available()) {
-          Serial.print("Testing frequency: ");
-          Serial.println(freq);
-        }
-        start_t = micros();
-        now_t = start_t;
-        stop_t =  start_t + (long)(test_time * 1000000.0);
-
-        // Initialize velocities to zero.
-        set_velocities(BFF_zero);
-
-        while (now_t < stop_t) {
-          int sampling_time=1000;
-          now_t = micros();
-          double speed_ = speed_mult * sin(2 * PI * (now_t - start_t) * freq / 1000000);
+    // Convenience functino to set a velocity based on a character 
+    // indicating direction or motor, then a speed. 
+    void set_axis_velocity(char index, double speed_)
+    {
+          BFF_velocities BFF_sweep;
           // Set the raw velocity if the motor index is '0' through '5'
           if ((index >= 48) && (index < 54))
             set_raw_velocity(index - 48, speed_);
@@ -373,11 +353,12 @@ class Controller {
             BFF_sweep.yaw = speed_;
             set_velocities(BFF_sweep);
           }
-          
+    }
+
+    // A convenience function to get velocities from the accelerometers and output them
+    //  to the USB port. No explicit matrix multiplication - do this elsewhere!
+    void get_and_output_acc(){
         triple a_axes;
- 
-        //Explicit matrix multiplication. See PDF from Mike
-        //Measure bottom overall acceleration
         for (int i=0;i<6;i++){
           a_axes = accelerometer_reader.getAllAxesAcceleration(i);
           Serial.print(a_axes.x,4); //4 decimal places
@@ -389,16 +370,106 @@ class Controller {
             Serial.println("");
           else
             Serial.print(",");
+
         }
+    }
+
+    void linear_test(char index) {
+      const double speed_mult = 50;
+      const double test_time = 5.0;
+      const int sampling_time=1000;
+      long start_t, stop_t, now_t;
+      BFF_velocities BFF_zero; //The struct definition initializes all axes to zero.
  
+      Serial.print("Linear Test: ");
+      Serial.println(index);
+
+      start_t = micros();
+      now_t = start_t;
+      stop_t =  start_t + (long)(test_time * 1000000.0);
+
+      // Initialize velocities to zero.
+      set_velocities(BFF_zero);
+
+      // Positive Sweep
+      while (now_t < stop_t) {
+        now_t = micros();
+        set_axis_velocity(index, speed_mult);
+        
+        // Read the accelerations and output them to USB 
+        get_and_output_acc();
+       
         // Wait for the next microsecond!
         if (micros()-now_t > sampling_time) Serial.println("Timing Error!");
         while (micros()-now_t < sampling_time);
       }
 
+      // Re-initialize velocities to zero.
+      set_velocities(BFF_zero);
+
+      start_t = now_t;
+      stop_t =  start_t + (long)(test_time * 1000000.0);
+
+      // Negative Sweep
+      while (now_t < stop_t) {
+        now_t = micros();
+        set_axis_velocity(index, -speed_mult);
+        
+        // Read the accelerations and output them to USB 
+        get_and_output_acc();
+       
+        // Wait for the next microsecond!
+        if (micros()-now_t > sampling_time) Serial.println("Timing Error!");
+        while (micros()-now_t < sampling_time);
+      }
+      // Reset velocities to zero.
+      set_velocities(BFF_zero);
+      
+      //Indicate that the test is over!
+      Serial.println("&");
+    }
+
+    
+    void sweep_test(char index) {
+      const double speed_mult = 50;
+      const int sampling_time=1000;
+      long start_t, stop_t, now_t;
+      BFF_velocities BFF_zero; //The struct definition initializes all axes to zero.
+      // serial monitor will crash and restart if
+      // the array length is too large
+
+      for (double freq = 2 /*Hz*/; freq <= 20; freq += 2) {
+        double test_time = 30 / freq; //!!! Was 120. Number of samples divided by frequency.
+
+        // if (Serial.available()) {
+          Serial.print("Testing frequency: ");
+          Serial.println(freq);
+        //
+        start_t = micros();
+        now_t = start_t;
+        stop_t =  start_t + (long)(test_time * 1000000.0);
+
+        // Initialize velocities to zero.
+        set_velocities(BFF_zero);
+
+        while (now_t < stop_t) {
+          now_t = micros();
+          double speed_ = speed_mult * sin(2 * PI * (now_t - start_t) * freq / 1000000);
+          set_axis_velocity(index, speed_);
+          
+          // Read the accelerations and output them to USB 
+          get_and_output_acc();
+         
+        // Wait for the next microsecond!
+        if (micros()-now_t > sampling_time) Serial.println("Timing Error!");
+        while (micros()-now_t < sampling_time);
+        }
+
       // Set all velocities to zero.
       set_velocities(BFF_zero);
 
+      //Settle vibrations from the previous frequency
+      delay(1000);
       }
       Serial.println("&");
     }
@@ -609,6 +680,9 @@ class Controller {
           case '+':
             sweep_test(Serial.read());
             break;
+          case '-':
+            linear_test(Serial.read());
+            break;          
           default:
             Serial.println("BAD CONTROLS");
             break;
