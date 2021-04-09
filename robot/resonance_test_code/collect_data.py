@@ -39,8 +39,9 @@ with open(filename, "w") as file:
         while True:
             x=ser.read(20000)
             words = x.decode('UTF-  8')
-            file.write(words)
-            if '&' in words: #Finished flag
+            if '&' in words: #Finished flag. Don't write this.
+                file.write(words.replace('&',''))
                 break
+            file.write(words)
 print('Done')
 print('Data saved to: ' + filename)
