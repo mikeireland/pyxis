@@ -158,6 +158,7 @@ for i in range(2):
     fits.writeto(outname, im, overwrite=True)
     toc = time.perf_counter()
 
+    os.system("mkdir output")
     q = run_image(outname,file_prefix,"output")
 
     tac = time.perf_counter()
