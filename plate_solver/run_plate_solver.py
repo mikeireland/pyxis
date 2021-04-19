@@ -123,7 +123,7 @@ else:
 nx=1440
 ny=1080
 
-folder = '/home/pyxis_user/Documents/plate_solver/plate_images_210409/'
+folder = 'plate_images_210409/'
 
 bytes_pix = 2
 file_prefix = "mystery2_1"
