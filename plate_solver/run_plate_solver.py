@@ -13,6 +13,8 @@ import scipy.ndimage as nd
 import glob
 import numpy as np
 
+import matplotlib.pyplot as plt
+
 """
 Function that takes a list of star positions and creates a .axy file for Astrometry.net
 
@@ -59,6 +61,59 @@ def writeANxy(filename, x, y, dim=(0,0), depth=10, scale_bounds = (0.,0.)):
     thdulist = fits.HDUList([prihdu, tbhdu])
     thdulist.writeto(filename+extension, overwrite=True)
 
+"""
+Convert xy pixel values to r,theta from the centre of the image
+r is in pixels
+theta is in degrees
+"""
+def xy_to_rt(coord,c=(720,540)):
+    x,y = coord
+    r = np.sqrt((x-c[0])**2+(y-c[1])**2)
+    theta = np.degrees(np.arctan2(y,x))
+    return (r,theta)
+
+def match_error(folder_prefix,mag_only=1):
+    corr_fits = fits.open(folder_prefix+'.corr')[1].data
+    pict_px = []
+    solved_px = []
+
+    for i, obj in enumerate(corr_fits):
+        px = (obj[4],obj[5])
+        rt_px = xy_to_rt(px)
+
+        match_px = (obj[0],obj[1])
+        rt_match_px = xy_to_rt(match_px)
+
+        pict_px.append(rt_match_px)
+        solved_px.append(rt_px)
+
+    pict_px = np.array(pict_px)
+    solved_px = np.array(solved_px)
+
+    if mag_only:
+        deltas = np.abs(pict_px - solved_px)
+    else:
+        deltas = pict_px - solved_px
+
+    plt.figure(1)
+    plt.plot(pict_px[:,0],deltas[:,0]*14.22,"k.")
+    plt.xlabel("Radii from centre [px]")
+    plt.ylabel("Error in radial coordinate [arcsec]")
+
+    plt.figure(2)
+    plt.plot(pict_px[:,0],deltas[:,1]*3600,"k.")
+    plt.xlabel("Radii from centre [px]")
+    plt.ylabel("Error in theta coordinate [arcsec]")
+
+    print("Median Values (r [arcsec], theta [arcsec])")
+    print(np.median(deltas,axis=0)[0]*14.22, np.median(deltas,axis=0)[1]*3600)
+    print("Mean Values (r [arcsec], theta [arcsec])")
+    print(np.mean(deltas,axis=0)[0]*14.22, np.mean(deltas,axis=0)[1]*3600)
+    print("Std Values (r [arcsec], theta [arcsec])")
+    print(np.std(deltas,axis=0)[0]*14.22, np.std(deltas,axis=0)[1]*3600)
+    plt.show()
+    return
+
 
 """
 Main function to run an image
@@ -92,15 +147,15 @@ def run_image(img_filename,prefix,output_folder):
     #Run astrometry.net
     print("")
     start_astro = time.perf_counter()
-    os.system("./astrometry_net_engine %s.axy"%folder_prefix)
+    os.system("astrometry-engine %s.axy -c astrometry.cfg"%folder_prefix)
     end_astro = time.perf_counter()
 
     #Extract astrometry.net WCS info and print to terminal
     print("\nRESULTS:")
-    os.system("./get_wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation|pixscale|fieldw|fieldh'"%folder_prefix)
+    os.system("wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation|pixscale|fieldw|fieldh'"%folder_prefix)
 
     #Extract RA, DEC and POSANGLE from astrometry.net output
-    output = sp.getoutput("./get_wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation'"%folder_prefix)
+    output = sp.getoutput("wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation'"%folder_prefix)
     [POS,RA,DEC] = [float(s.split(" ")[1]) for s in output.splitlines()]
 
     #Convert to quaternion
@@ -108,29 +163,31 @@ def run_image(img_filename,prefix,output_folder):
 
     print(f"\nastrometry.net in {end_astro - start_astro:0.4f} seconds")
 
+    #Check errors?
+    #match_error(folder_prefix,mag_only=1)
+
     #Return the quaternion
     return q
 
 ###############################################################################
-"""
+
 #Retrieve the filename from command line, checking for the number of arguments
-if len(sys.argv) != 2:
+if len(sys.argv) != 3:
     print("Bad number of arguments")
     exit()
 else:
-    impath = sys.argv[1]
-"""
+    folder = sys.argv[1]
+    file_prefix = sys.argv[2]
+
 nx=1440
 ny=1080
 
-folder = '/home/pyxis_user/Documents/plate_solver/plate_images_210409/'
-
 bytes_pix = 2
-file_prefix = "mystery2_1"
-file = folder + file_prefix + '.raw'
-outname = folder + file_prefix + '.fits'
-dfiles = glob.glob(folder + 'dark_?.raw')
+filename = folder +'/'+ file_prefix + '.raw'
+outname = folder +'/'+ file_prefix + '.fits'
 
+"""
+dfiles = glob.glob(folder + 'dark_?.raw')
 dmn = np.zeros((ny,nx))
 for dfn in dfiles:
     with open(dfn, 'rb') as ff:
@@ -139,21 +196,16 @@ for dfn in dfiles:
         dmn += np.frombuffer(ss, dtype=np.uint16).reshape((ny,nx))
 
 dmn /= len(dfiles)
-
+"""
 #Run the main command a few times
-for i in range(2):
+for i in range(1):
     tic = time.perf_counter()
 
-    with open(file, 'rb') as ff:
+    with open(filename, 'rb') as ff:
         ss = ff.read(nx*ny*bytes_pix)
         ff.close()
         im = np.frombuffer(ss, dtype=np.uint16).reshape((ny,nx))
     #im = (im-dmn.astype(np.int16)).astype(np.int16)
-
-    #Now some basic dark subtraction.
-
-    #imsub = im#-nd.median_filter(im,6)
-    #imsub = np.maximum(imsub,-10)
 
     fits.writeto(outname, im, overwrite=True)
     toc = time.perf_counter()
@@ -161,7 +213,7 @@ for i in range(2):
     q = run_image(outname,file_prefix,"output")
 
     tac = time.perf_counter()
-    print(f"Darksub in {toc - tic:0.4f} seconds")
+    print(f"Read/Write in {toc - tic:0.4f} seconds")
     print(f"Solve in {tac - toc:0.4f} seconds")
     print(q)
 
