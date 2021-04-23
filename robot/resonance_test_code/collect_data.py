@@ -10,7 +10,7 @@ from datetime import datetime
 #       'x_axis'   'y_axis'   'z_axis'
 #       'pitch'    'roll'     'yaw'
 
-target = 'z_axis'
+target = 'yaw'
 mode = '-'
 # ===============================================
 

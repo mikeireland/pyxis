@@ -375,7 +375,7 @@ class Controller {
     }
 
     void linear_test(char index) {
-      const double speed_mult = 50;
+      const double speed_mult = 1;
       const double test_time = 5.0;
       const int sampling_time=1000;
       long start_t, stop_t, now_t;
