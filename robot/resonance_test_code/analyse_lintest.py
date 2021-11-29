@@ -5,7 +5,7 @@ plt.ion()
 file = '/Users/mireland/pyxis/resonance_test_results/lintest/z_axis_2021-04-03_185840.log'
 file = '/Users/mireland/pyxis/resonance_test_results/lintest/x_axis_2021-04-03_185742.log'
 file = '/Users/mireland/pyxis/resonance_test_results/lintest2/x_axis_2021-04-09_094203.log'
-file = '/Users/mireland/pyxis/resonance_test_results/lintest2/yaw_2021-04-09_094545.log'
+#file = '/Users/mireland/pyxis/resonance_test_results/lintest2/yaw_2021-04-09_094545.log'
 
 dt = 0.001              #Sampling rate in seconds
 start_ix = 1000         #For final analysis, use this as a starting point.
@@ -56,6 +56,11 @@ plt.plot(time, np.degrees(up_pitch_vel)*60*60)
 plt.xlabel('Time (s)')
 plt.ylabel('Pitch Velocity (arcsec/s)')
 plt.tight_layout()
+
+#Some Fourier Analysis
+pitch_ft = np.fft.rfft(up_pitch[start_ix:stop_ix])
+freq = np.arange((stop_ix-start_ix)/2+1)/(stop_ix-start_ix)/dt
+pitch_gt50 = np.fft.irfft(pitch_ft*(freq>50))
 
 #TODO for James: Use the document "Linear Quadratic Control for the Pyxis robot" 
 #to create the x,y,z,pitch,roll,yaw for the lower platform, maybe using matrices, and
