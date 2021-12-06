@@ -279,14 +279,14 @@ class Controller {
     void stabilise_platform_velocities() {
       triple read_v;
       p_r = accelerometer_reader.getPitchRoll(0);
-      read_v.x = -0.866 * p_r.x + 0.866 * p_r.y;
-      read_v.y = -0.5 * p_r.x - 0.5 * p_r.y;
+      read_v.x = -0.5 * p_r.x + 0.866 * p_r.y;
+      read_v.y = -0.866 * p_r.x - 0.5 * p_r.y;
       read_v.z = p_r.z;
 
 
       p_r = accelerometer_reader.getPitchRoll(1);
       read_v.x = read_v.x + p_r.x;
-      read_v.y = read_v.y - p_r.y;
+      read_v.y = read_v.y + p_r.y;
       read_v.z = read_v.z + p_r.z;
 
       p_r = accelerometer_reader.getPitchRoll(2);
