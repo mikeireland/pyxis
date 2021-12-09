@@ -279,14 +279,14 @@ class Controller {
     void stabilise_platform_velocities() {
       triple read_v;
       p_r = accelerometer_reader.getPitchRoll(0);
-      read_v.x = -0.866 * p_r.x + 0.866 * p_r.y;
-      read_v.y = -0.5 * p_r.x - 0.5 * p_r.y;
+      read_v.x = -0.5 * p_r.x + 0.866 * p_r.y;
+      read_v.y = -0.866 * p_r.x - 0.5 * p_r.y;
       read_v.z = p_r.z;
 
 
       p_r = accelerometer_reader.getPitchRoll(1);
       read_v.x = read_v.x + p_r.x;
-      read_v.y = read_v.y - p_r.y;
+      read_v.y = read_v.y + p_r.y;
       read_v.z = read_v.z + p_r.z;
 
       p_r = accelerometer_reader.getPitchRoll(2);
@@ -513,13 +513,13 @@ class Controller {
             triple a_bottom; triple a_top;
             
             a_0 = accelerometer_reader.getAllAxesAcceleration(0);
-            a_bottom.x = -0.866 * a_0.x + 0.866 * a_0.y;
-            a_bottom.y = -0.5 * a_0.x - 0.5 * a_0.y;
+            a_bottom.x = -0.5 * a_0.x + 0.866 * a_0.y; 
+            a_bottom.y = -0.866 * a_0.x - 0.5 * a_0.y;
             a_bottom.z = a_0.z;
 
             a_1 = accelerometer_reader.getAllAxesAcceleration(1);
             a_bottom.x = a_bottom.x + a_1.x;
-            a_bottom.y = a_bottom.y - a_1.y;
+            a_bottom.y = a_bottom.y + a_1.y;
             a_bottom.z = a_bottom.z + a_1.z;
 
             a_2 = accelerometer_reader.getAllAxesAcceleration(2);
@@ -532,18 +532,18 @@ class Controller {
             a_bottom.z = a_bottom.z / 3;
 
             a_3 = accelerometer_reader.getAllAxesAcceleration(3);
-            a_top.x = a_3.x;
-            a_top.y = a_3.y;
+            a_top.x = a_3.y;
+            a_top.y = -a_3.x;
             a_top.z = a_3.z;
 
             a_4 = accelerometer_reader.getAllAxesAcceleration(4);
-            a_top.x = a_top.x - a_4.y;
-            a_top.y = a_top.y + a_4.x;
+            a_top.x = a_top.x + a_4.x;
+            a_top.y = a_top.y + a_4.y;
             a_top.z = a_top.z + a_4.z;
 
             a_5 = accelerometer_reader.getAllAxesAcceleration(5);
-            a_top.x = a_top.x - a_5.x;
-            a_top.y = a_top.y - a_5.y;
+            a_top.x = a_top.x - a_5.y;
+            a_top.y = a_top.y + a_5.x;
             a_top.z = a_top.z + a_5.z;
 
             a_top.x = a_top.x / 3;
