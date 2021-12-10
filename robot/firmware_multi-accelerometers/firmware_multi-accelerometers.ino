@@ -45,7 +45,7 @@ class MotorDriver {
 
     // microseconds per step at v=1; negative sign reverses direction
     // German motor gearbox ratio = 25:1. Chinese motor gearbox ratio is 20:1.
-    const double vel_scales[7] = {1000, 1000, 800, -1000, -1000, -1000, 1000};
+    const double vel_scales[7] = {800, 800, 800, -1000, -1000, -1000, 1000};
 
     // Time (microseconds) of last update
     unsigned long last_step_micros[7] = {0};
