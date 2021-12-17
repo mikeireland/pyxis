@@ -1,0 +1,112 @@
+struct BFFVelocities {
+
+  // metres / second
+  double x = 0; // forwards W.R.T wheel 0
+  double y = 0; // left W.R.T wheel 0
+  double z = 0; // up
+
+  // radians / second
+  double pitch = 0;
+  double yaw = 0;
+  double roll = 0;
+
+};
+
+class MotorDriver {
+  private:
+    //k_lin_baseline_ somehow converts from angular to linear units. See Mike's PDF for correct units! Was 500.0. Why?
+    const double k_lin_baseline_ = 1.0;
+    const double k_z_ = 1.0;
+    const double k_trans_ = 1.0;
+    const double k_yaw_ = 1.0;
+
+    // [(wheels), (linear actuators), goniometer]
+    const int step_pins_[7] = {
+      30, 32, 34,   // Wheels
+      24, 26, 28,   // Linear actuators
+      -1            // Goniometer
+    };
+
+    const int dir_pins_[7] = {
+      31, 33, 35,   // Wheels
+      25, 27, 29,   // Linear actuators
+      -1            // Goniometer
+    };
+
+    // microseconds per step at v=1; negative sign reverses direction
+    // German motor gearbox ratio = 25:1. Chinese motor gearbox ratio is 20:1.
+    const double vel_scales_[7] = {800, 800, 800, -1000, -1000, -1000, 1000};
+
+    // Time (microseconds) of last update
+    unsigned int last_step_micros_[7] = {0};
+
+  public:
+    MotorDriver() {
+      for (int i = 0; i < 7; ++i) {
+        pinMode(step_pins_[i], OUTPUT);
+        pinMode(dir_pins_[i], OUTPUT);
+      }
+    }
+
+    double motor_vels_[7] = {0};
+    bool pulse_needed_[7] = {false};
+
+    // Sets the motor velocities based on the Body Fixed Frame velocity
+    void SetVelocities(BFFVelocities vels) {
+      // PI/3 below is the angle of the linear actuator with respect to the X axis of the robot.
+      motor_vels_[0] = (                     -vels.y            ) * k_trans_ - vels.yaw * k_yaw_;
+      motor_vels_[1] = ( vels.x * sin(PI / 3) + vels.y * cos(PI / 3)) * k_trans_ - vels.yaw * k_yaw_;
+      motor_vels_[2] = (-vels.x * sin(PI / 3) + vels.y * cos(PI / 3)) * k_trans_ - vels.yaw * k_yaw_;
+      motor_vels_[3] =   sin(PI / 3) * vels.roll  * k_lin_baseline_ - vels.pitch * k_lin_baseline_ * cos(PI / 3) + vels.z * k_z_; // was not divided by 5 (?)
+      motor_vels_[4] =  -sin(PI / 3) * vels.roll  * k_lin_baseline_ - vels.pitch * k_lin_baseline_ * cos(PI / 3) + vels.z * k_z_; // was not divided by 5 (?)
+      motor_vels_[5] =                               + vels.pitch * (k_lin_baseline_  ) + vels.z * k_z_;  // was not divided by 5
+    }
+
+    void SetRawVelocity(int motor_index, float v) {
+      motor_vels_[motor_index] = v;
+    }
+
+    // This function checks if a step command should be sent to the motors, and updates them if so.
+    // It should be called regularly to ensure smooth operation of the motors. Although the
+    // motors only step on a low to high transition, we attempt to make a square wave here, i.e.
+    // the step rate will be 1/dt, where dt is defined below.
+    void UpdatePositions() {
+      for (int i(0); i < 7; ++i) {
+        unsigned int time_now = micros();
+        //Set the direction pins every time (even if velocity hasn't changed)
+        //by the sign of the motor_vels.
+        
+        digitalWrite(dir_pins_[i], motor_vels_[i] > 0);
+
+        // If the velocity is zero, don't do anything!
+        if (motor_vels_[i] == 0) {
+          last_step_micros_[i] = time_now;
+          continue;
+        }
+
+        //Compute the step period
+        double dt_float = abs((295.0*pow(10.0,-3.0))/motor_vels_[i]);
+        unsigned int dt = (unsigned int) dt_float;
+
+        // We check if enough time has passed for a step to be needed and store this fact
+        if (last_step_micros_[i] + dt <= time_now) {
+          pulse_needed_[i] = true;
+          last_step_micros_[i] += dt;
+        }
+        else{
+          pulse_needed_[i] = false;
+        }
+      }
+      //We pulse each motor with a 1microsec pulse if one is needed
+      for (int i(0); i < 7; ++i){
+        if(pulse_needed_[i]){
+          digitalWrite(step_pins_[i],HIGH);
+        }
+      }
+      delayMicroseconds(1);
+      for (int i(0); i < 7; ++i){
+        digitalWrite(step_pins_[i],LOW);
+      }
+    }
+
+};
