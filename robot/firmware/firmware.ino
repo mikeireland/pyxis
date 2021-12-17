@@ -6,6 +6,7 @@
 #include "AccelerometerReader.h"
 #include "Port.h"
 #include "Commands.h"
+#include "ErrorCodes.h"
 
 unsigned int scheduler_time_longest = 0;
 
@@ -96,86 +97,108 @@ class Controller {
             if(ScheduleToNextFree(Acc0Wr) == 0){ //We check if the task was scheduled and if it was then we move on
               break;
             } else {
-              break; //Even if it wasn't scheduled we move on anyway (I might create like an error log, or have it just do the task anyway)
+              ReportError(SchedFull); //We send back an error code if the task couldn't be scheduled
+              break;
             }
           case Acc1Wr:
             if(ScheduleToNextFree(Acc1Wr) == 0){ 
               break;
             } else {
-              break; 
+              ReportError(SchedFull);
+              break;
             }
           case Acc2Wr:
             if(ScheduleToNextFree(Acc2Wr) == 0){ 
               break;
             } else {
-              break; 
+              ReportError(SchedFull);
+              break;
             }
           case Acc3Wr:
             if(ScheduleToNextFree(Acc3Wr) == 0){ 
               break;
             } else {
+              ReportError(SchedFull);
               break;
             }
           case Acc4Wr:
             if(ScheduleToNextFree(Acc4Wr) == 0){ 
               break;
             } else {
-              break; 
+              ReportError(SchedFull);
+              break;
             }
           case Acc5Wr:
             if(ScheduleToNextFree(Acc5Wr) == 0){ 
               break;
             } else {
-              break; 
+              ReportError(SchedFull);
+              break;
             }
           
           case Raw0Wr:
             if(ScheduleToNextFree(Raw0Wr) == 0){ 
               break;
             } else {
-              break; 
+              ReportError(SchedFull);
+              break;
             }
           case Raw1Wr:
             if(ScheduleToNextFree(Raw1Wr) == 0){ 
               break;
             } else {
-              break; 
+              ReportError(SchedFull);
+              break;
             }
           case Raw2Wr:
             if(ScheduleToNextFree(Raw2Wr) == 0){ 
               break;
             } else {
-              break; 
+              ReportError(SchedFull);
+              break;
             }
           case Raw3Wr:
             if(ScheduleToNextFree(Raw3Wr) == 0){ 
               break;
             } else {
-              break; 
+              ReportError(SchedFull);
+              break;
             }
           case Raw4Wr:
             if(ScheduleToNextFree(Raw4Wr) == 0){ 
               break;
             } else {
-              break; 
+              ReportError(SchedFull);
+              break;
             }
           case Raw5Wr:
             if(ScheduleToNextFree(Raw5Wr) == 0){ 
               break;
             } else {
-              break; 
+              ReportError(SchedFull);
+              break;
             }
           case RUNTIME:
             if(ScheduleToNextFree(RUNTIME) == 0){ 
               break;
             } else {
-              break; 
+              ReportError(SchedFull);
+              break;
             }
           
           case EMPTY:
             break;
-            }
+            
+          default:
+            //If we receive a value we don't recognise, we report an error to the host
+            ReportError(UnrecVal);
+            break;
           }
+        }
+      }
+      else{
+        //If the packet doesn't begin correctly we report an error to the host
+        ReportError(PackFail);
       }
     }
 
@@ -190,11 +213,9 @@ class Controller {
         if(sched_[j] == EMPTY){
           sched_[j] = task;
           return 0;
-        } else {
-            return -1; //In the event that it fails to find a spot in the schedule we return a -1
         }
        }
-       return -1;
+       return -1;//In the event that it fails to find a spot in the schedule we return a -1
     }
 
     void WriteAcc(int index){
@@ -256,6 +277,13 @@ class Controller {
       short int v_temp = 1000000*motor_driver.motor_vels_[index];
       ShortIntToBytes(v_temp, &port.write_buffer_[temp_+1], &port.write_buffer_[temp_+2]);
       port.first_empty_ = temp_ + 3;
+    }
+
+    //Subroutine to write an error message back to the host.
+    void ReportError(byte error_code){
+      temp_ = port.first_empty_;
+      port.write_buffer_[temp_] = error_code;
+      port.first_empty_ = temp_+1;
     }
 
   public:
@@ -385,14 +413,12 @@ class Controller {
         port.write_buffer_[temp_] = RUNTIME; //We repeat the command call as an acknowledgement and to indicate the next 4 bytes are the value
         IntToBytes(scheduler_time_longest, &port.write_buffer_[temp_+1], &port.write_buffer_[temp_+2], &port.write_buffer_[temp_+3], &port.write_buffer_[temp_+4]);
         port.first_empty_ = temp_+5; //update the first empty value in the write buffer
-
-        //Clears this command from the schedule
         sched_[sched_state_] = EMPTY;
         break;
         
       default:
         //If there is a message we read it
-        if(Serial.available()>0){
+        if(Serial.available() > 0){
           port.ReadMessage();
           DecodePacket();
           break;
@@ -400,7 +426,7 @@ class Controller {
           port.WriteMessage();
           break;
         }
-          delayMicroseconds(1); //If there is nothing to do we wait slightly (this avoids a memory leak) and break
+          delayMicroseconds(10); //If there is nothing to do we wait slightly (this avoids a memory leak) and break
           break;
       }
 
