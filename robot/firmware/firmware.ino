@@ -220,6 +220,14 @@ class Controller {
 
     void WriteAcc(int index){
       //Decode and push the values from an accelerometer into the Port's write_buffer
+
+      //Check if the write buffer is full, and if so send the message (recall that we want our packets to end in three 0x00s hence we 
+       //only fill up to index 61)
+      temp_ = port.first_empty_;
+      if(port.first_empty_ + 7 > 61){
+        port.WriteMessage();
+      }
+      
       temp_ = port.first_empty_;
       switch(index){
         case 0:
@@ -250,9 +258,18 @@ class Controller {
       port.first_empty_ = temp_ + 7;
     }
 
-  void WriteVel(int index){
+    void WriteVel(int index){
       //write one of the velocities of the robot into the Port's write_buffer
       //For convenience we send it as an int which represents the velocity in microm/s
+
+       //Check if the write buffer is full, and if so send the message (recall that we want our packets to end in three 0x00s hence we 
+       //only fill up to index 61)
+      temp_ = port.first_empty_;
+      if(temp_ + 3 > 61){
+        port.WriteMessage();
+      }
+
+      //Write into the write buffer
       temp_ = port.first_empty_;
       switch(index){
         case 0:
@@ -277,6 +294,21 @@ class Controller {
       short int v_temp = 1000000*motor_driver.motor_vels_[index];
       ShortIntToBytes(v_temp, &port.write_buffer_[temp_+1], &port.write_buffer_[temp_+2]);
       port.first_empty_ = temp_ + 3;
+    }
+
+        //Write the runtime value into the message buffer.
+    void WriteRuntime(){;
+        //Check if the write buffer is full, and if so send the message (recall that we want our packets to end in three 0x00s hence we 
+        //only fill up to index 61)
+        temp_ = port.first_empty_;
+        if(temp_ + 5 > 61){
+          port.WriteMessage();
+        }
+      
+        temp_ = port.first_empty_;
+        port.write_buffer_[temp_] = RUNTIME; //We repeat the command call as an acknowledgement and to indicate the next 4 bytes are the value
+        IntToBytes(scheduler_time_longest, &port.write_buffer_[temp_+1], &port.write_buffer_[temp_+2], &port.write_buffer_[temp_+3], &port.write_buffer_[temp_+4]);
+        port.first_empty_ = temp_+5; //update the first empty value in the write buffer
     }
 
     //Subroutine to write an error message back to the host.
@@ -409,10 +441,7 @@ class Controller {
         sched_[sched_state_] = EMPTY;
         break;
       case RUNTIME:
-        temp_ = port.first_empty_;
-        port.write_buffer_[temp_] = RUNTIME; //We repeat the command call as an acknowledgement and to indicate the next 4 bytes are the value
-        IntToBytes(scheduler_time_longest, &port.write_buffer_[temp_+1], &port.write_buffer_[temp_+2], &port.write_buffer_[temp_+3], &port.write_buffer_[temp_+4]);
-        port.first_empty_ = temp_+5; //update the first empty value in the write buffer
+        WriteRuntime();
         sched_[sched_state_] = EMPTY;
         break;
         
