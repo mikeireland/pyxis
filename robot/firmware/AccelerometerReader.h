@@ -120,6 +120,7 @@ class AccelerometerReader {
        
     }
 
+    /*
     // Measure the orientation of the specified accelerometer
     PitchRoll GetPitchRoll(int index) {
 
@@ -138,6 +139,7 @@ class AccelerometerReader {
           .z = z
       };
     }
+    */
 
     // Get the 16 most significant bits from an acclerometer and store them in a buffer which I pass. (I'm moving the decode process to the NUC N.B)
     // For reference I'll keep the older firmware around (but in a separate file)

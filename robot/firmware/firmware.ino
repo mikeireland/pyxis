@@ -18,6 +18,7 @@ class Controller {
   
     MotorDriver motor_driver;
     BFFVelocities v_;
+    short int v_int_ [6] = {0}; 
     
     AccelerometerReader accelerometer_reader;
     struct Triple accel_buffer_[6];
@@ -51,9 +52,11 @@ class Controller {
       motor_driver.UpdatePositions();
     }
 
+    /*
     void SetVelocities(BFFVelocities v) {
       motor_driver.SetVelocities(v);
     }
+    */
 
     void SetRawVelocity(int motor_index, float v) {
       motor_driver.SetRawVelocity(motor_index, v);
@@ -65,32 +68,35 @@ class Controller {
       //We loop over the message portion of the packet
         for(int i = 1; i < 61; i = i+3){
         switch(port.read_buffer_[i]){
-          
-          case SetBFFx:
-            //Read the input velocity BFF velocity and store it in the v object
-            v_.x = VelocityBytesToPhysicalDouble(port.read_buffer_[i+1],port.read_buffer_[i+2]); 
-            //Push the new BFF velocity to the motor driver
-            SetVelocities(v_);
+          case SetRaw0:
+            //Read the input velocity and write it into the motor driver
+            v_int_[0] = (port.read_buffer_[i+1] << 8) | (port.read_buffer_[i+2] << 0);
+            motor_driver.SetRawVelocity(0,v_int_[0]);
             break;
-          case SetBFFy:
-            v_.y = VelocityBytesToPhysicalDouble(port.read_buffer_[i+1],port.read_buffer_[i+2]); 
-            SetVelocities(v_);
+          case SetRaw1:
+            //Read the input velocity and write it into the motor driver
+            v_int_[1] = (port.read_buffer_[i+1] << 8) | (port.read_buffer_[i+2] << 0);
+            motor_driver.SetRawVelocity(1,v_int_[1]);
             break;
-          case SetBFFz:
-            v_.z = VelocityBytesToPhysicalDouble(port.read_buffer_[i+1],port.read_buffer_[i+2]); 
-            SetVelocities(v_);
+          case SetRaw2:
+            //Read the input velocity and write it into the motor driver
+            v_int_[2] = (port.read_buffer_[i+1] << 8) | (port.read_buffer_[i+2] << 0);
+            motor_driver.SetRawVelocity(2,v_int_[2]);
             break;
-          case SetBFFp:
-            v_.pitch = VelocityBytesToPhysicalDouble(port.read_buffer_[i+1],port.read_buffer_[i+2]); 
-            SetVelocities(v_);
+          case SetRaw3:
+            //Read the input velocity and write it into the motor driver
+            v_int_[3] = (port.read_buffer_[i+1] << 8) | (port.read_buffer_[i+2] << 0);
+            motor_driver.SetRawVelocity(3,v_int_[3]);
             break;
-          case SetBFFs:
-            v_.yaw = VelocityBytesToPhysicalDouble(port.read_buffer_[i+1],port.read_buffer_[i+2]); 
-            SetVelocities(v_);
+          case SetRaw4:
+            //Read the input velocity and write it into the motor driver
+            v_int_[4] = (port.read_buffer_[i+1] << 8) | (port.read_buffer_[i+2] << 0);
+            motor_driver.SetRawVelocity(4,v_int_[4]);
             break;
-          case SetBFFr:
-            v_.roll = VelocityBytesToPhysicalDouble(port.read_buffer_[i+1],port.read_buffer_[i+2]); 
-            SetVelocities(v_);
+          case SetRaw5:
+            //Read the input velocity and write it into the motor driver
+            v_int_[5] = (port.read_buffer_[i+1] << 8) | (port.read_buffer_[i+2] << 0);
+            motor_driver.SetRawVelocity(5,v_int_[5]);
             break;
             
           case Acc0Wr:
@@ -185,6 +191,14 @@ class Controller {
               ReportError(SchedFull);
               break;
             }
+          case STOP: //When we receive a STOP command we set all motor velocities to zero
+            motor_driver.SetRawVelocity(0,0);
+            motor_driver.SetRawVelocity(1,0);
+            motor_driver.SetRawVelocity(2,0);
+            motor_driver.SetRawVelocity(3,0);
+            motor_driver.SetRawVelocity(4,0);
+            motor_driver.SetRawVelocity(5,0);
+            break;
           
           case EMPTY:
             break;

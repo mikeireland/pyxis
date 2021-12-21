@@ -3,22 +3,16 @@
 
 #define EMPTY 0x00 //The empty command
 #define RUNTIME 0x01 //Request the longest runtime of the scheduler
+#define STOP 0x02 //The command to all stop and reset the schedule
+//TODO Add commands to request the read and write times for packets
 
-//Update a BFF motor velocity
-//I will probably change this so that only x,y, and z velocities
-//can be directly written and then the pitch, roll, and yaw can be handled separately
-//via a feedback regulator. 
-#define SetBFFx 0x10
-#define SetBFFy 0x11
-#define SetBFFz 0x12
-#define SetBFFp 0x13
-#define SetBFFs 0x14
-#define SetBFFr 0x15
-
-//Update the raw actuator velocities (for closing the levelling servo loop rigorously)
-#define SetRaw0 0x20
-#define SetRaw1 0x21
-#define SetRaw2 0x22
+//Update the raw motor velocities (for closing the levelling servo loop rigorously)
+#define SetRaw0 0x10 //Motor 0
+#define SetRaw1 0x11 //Motor 1
+#define SetRaw2 0x12 //Motor 2
+#define SetRaw3 0x13 //Actuator 0
+#define SetRaw4 0x14 //Actuator 1
+#define SetRaw5 0x15 //Actuator 2
 
 //report motor_vels values
 #define Raw0Wr 0x20

@@ -1,4 +1,4 @@
-//Class object to control the I/O functions of the robot
+//Object to control the I/O functions of the robot
 class Port {
   private:
     static const int packet_size_ = 64;
@@ -24,7 +24,7 @@ class Port {
 
     void WriteMessage(){
       unsigned int timer_start = micros();
-      for(int j = 0; j<packet_size_; j++){
+      for(int j = 0; j < packet_size_; j++){
         Serial.write(write_buffer_[j]);
       }
       EmptyWriteBuffer();
