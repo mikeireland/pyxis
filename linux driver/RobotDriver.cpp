@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#define PI 3.14159265
 
 // Linux headers
 #include <unistd.h> // write(), read(), close()
@@ -17,10 +16,10 @@
 
 using namespace Control;
 
-//Ramps the velocity up of robot up linear from zero to the velocity target from 
+//Ramps the velocity of the deputy up linear from zero to the velocity target from 
 //all stop over time seconds
-void RobotDriver::LinearLateralRamp(VelDoubles velocity_target, double time) {
-    VelDoubles velocity_target_wrapper;
+void RobotDriver::LinearLateralRamp(Servo::VelDoubles velocity_target, double time) {
+    Servo::VelDoubles velocity_target_wrapper;
     RequestAllStop();  
 
     for(double velocity_scale = 0; velocity_scale < 1; velocity_scale += 1/(time*1000)){
@@ -32,8 +31,10 @@ void RobotDriver::LinearLateralRamp(VelDoubles velocity_target, double time) {
     }
 }
 
+//Ramps the yaw velocity of the deputy up linear from zero to the velocity target from 
+//all stop over time seconds
 void RobotDriver::LinearYawRamp(double yaw_rate_target, double time) {
-    VelDoubles velocity_target_wrapper;
+    Servo::VelDoubles velocity_target_wrapper;
     RequestAllStop();  
 
     for(double velocity_scale = 0; velocity_scale < 1; velocity_scale += 1/(time*1000)){
@@ -44,58 +45,52 @@ void RobotDriver::LinearYawRamp(double yaw_rate_target, double time) {
     }
 }
 
-//Command the robot to linearly sweep up to its maximum velocity while reading off the accelerations
-void RobotDriver::LinearSweep() {
-    VelDoubles vel_target_wrapper;
+//Sets the actuators to raise or lower the robot and some velocity
+//Note that the message still needs to be sent after this routine is run, it will not send it on its own
+void RobotDriver::UpdateZVelocity(double z_velocity) {
+	//Wrtie the new raise and lower velocity into 
+	//all of the outgoing actuator velocity cache 
+	//The negative sign corresponds to the fact a positive actuator velocity lowers the robot
+    PhysicalDoubleToVelocityBytes(-z_velocity,
+								  &teensy_port.actuator_velocities_out_.x[0],
+								  &teensy_port.actuator_velocities_out_.x[1]);
+	PhysicalDoubleToVelocityBytes(-z_velocity,
+								  &teensy_port.actuator_velocities_out_.y[0],
+								  &teensy_port.actuator_velocities_out_.y[1]);
+	PhysicalDoubleToVelocityBytes(-z_velocity,
+								  &teensy_port.actuator_velocities_out_.z[0],
+								  &teensy_port.actuator_velocities_out_.z[1]);
+	teensy_port.AddToPacket(SetRaw3);	
+	teensy_port.AddToPacket(SetRaw4);
+	teensy_port.AddToPacket(SetRaw5);	
+}
 
-    //Speed up in the x direction and then reverse
-    vel_target_wrapper.x = 0.014/1.414;
-    vel_target_wrapper.y = 0.014/1.414;
-    LinearLateralRamp(vel_target_wrapper,10);
-    RequestAccelerations();
-    teensy_port.AddToPacket(RUNTIME);
-    teensy_port.WriteMessage();
-    usleep(500);
-    teensy_port.ReadMessage();
-    PrintRuntime();
-    PrintAccelerations();    
-    RequestAllStop();   
+//Sets the actuators to some velocity (this is intended for use in the leveling servo loop and si is designed to pitch and roll)
+//Note that the message still needs to be sent after this routine is run, it will not send it on its own
+void RobotDriver::UpdateActuatorVelocity(Servo::VelDoubles velocity) {
+	//Write the new velocity as the velocity target
+	//Note that x,y,z corresponds to actuators 0,1,2
+    actuator_velocity_target_ = velocity;
 
-    vel_target_wrapper.x = -0.014/1.414;
-    vel_target_wrapper.y = -0.014/1.414;
-    LinearLateralRamp(vel_target_wrapper,10);
-    RequestAccelerations();
-    teensy_port.AddToPacket(RUNTIME);
-    teensy_port.WriteMessage();
-    usleep(500);
-    teensy_port.ReadMessage();
-    PrintRuntime();
-    PrintAccelerations();  
-    RequestAllStop();
-
-    LinearYawRamp(0.014,10);
-    RequestAccelerations();
-    teensy_port.AddToPacket(RUNTIME);
-    teensy_port.WriteMessage();
-    usleep(500);
-    teensy_port.ReadMessage();
-    PrintRuntime();
-    PrintAccelerations(); 
-    RequestAllStop();
-
-    LinearYawRamp(-0.014,10);
-    RequestAccelerations();
-    teensy_port.AddToPacket(RUNTIME);
-    teensy_port.WriteMessage();
-    usleep(500);
-    teensy_port.ReadMessage();
-    PrintRuntime();
-    PrintAccelerations(); 
-    RequestAllStop();
+	//Wrtie the new actuator velocities into the outgoing actuator velocity cache 
+	//The negative sign corresponds to the fact a positive actuator velocity lowers the robot
+    PhysicalDoubleToVelocityBytes(-actuator_velocity_target_.x,
+								  &teensy_port.actuator_velocities_out_.x[0],
+								  &teensy_port.actuator_velocities_out_.x[1]);
+	PhysicalDoubleToVelocityBytes(-actuator_velocity_target_.y,
+								  &teensy_port.actuator_velocities_out_.y[0],
+								  &teensy_port.actuator_velocities_out_.y[1]);
+	PhysicalDoubleToVelocityBytes(-actuator_velocity_target_.z,
+								  &teensy_port.actuator_velocities_out_.z[0],
+								  &teensy_port.actuator_velocities_out_.z[1]);
+	teensy_port.AddToPacket(SetRaw3);	
+	teensy_port.AddToPacket(SetRaw4);
+	teensy_port.AddToPacket(SetRaw5);	
 }
 
 //Requests an update of the Body Fixed Frame velocity of the robot
-void RobotDriver::UpdateBFFVelocity(VelDoubles velocities) {
+//Note that the message still needs to be sent after this routine is run, it will not send it on its own
+void RobotDriver::UpdateBFFVelocity(Servo::VelDoubles velocities) {
     //Write the new velocity as the velocity target
     BFF_velocity_target_ = velocities;
 
@@ -194,9 +189,116 @@ void RobotDriver::PrintAccelerations() {
             AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]));
 }
 
+//Command the robot to linearly sweep up to its maximum velocity 
+//we also occasionally read off the accelerations as a debugging aid
+void RobotDriver::LinearSweepTest() {
+    Servo::VelDoubles vel_target_wrapper;
+
+    //Speed up in the x direction and then reverse
+    vel_target_wrapper.x = 0.014/1.414;
+    vel_target_wrapper.y = 0.014/1.414;
+    LinearLateralRamp(vel_target_wrapper,10);
+    RequestAccelerations();
+    teensy_port.AddToPacket(RUNTIME);
+    teensy_port.WriteMessage();
+    usleep(1000);
+    teensy_port.ReadMessage();
+    PrintRuntime();
+    PrintAccelerations();    
+    RequestAllStop();   
+
+    vel_target_wrapper.x = -0.014/1.414;
+    vel_target_wrapper.y = -0.014/1.414;
+    LinearLateralRamp(vel_target_wrapper,10);
+    RequestAccelerations();
+    teensy_port.AddToPacket(RUNTIME);
+    teensy_port.WriteMessage();
+    usleep(1000);
+    teensy_port.ReadMessage();
+    PrintRuntime();
+    PrintAccelerations();  
+    RequestAllStop();
+
+    LinearYawRamp(0.014,10);
+    RequestAccelerations();
+    teensy_port.AddToPacket(RUNTIME);
+    teensy_port.WriteMessage();
+    usleep(1000);
+    teensy_port.ReadMessage();
+    PrintRuntime();
+    PrintAccelerations(); 
+    RequestAllStop();
+
+    LinearYawRamp(-0.014,10);
+    RequestAccelerations();
+    teensy_port.AddToPacket(RUNTIME);
+    teensy_port.WriteMessage();
+    usleep(1000);
+    teensy_port.ReadMessage();
+    PrintRuntime();
+    PrintAccelerations(); 
+    RequestAllStop();
+}
+
+void RobotDriver::RaiseAndLowerTest() {
+	RequestAllStop();
+	
+	UpdateZVelocity(0.01);
+	RequestAccelerations();
+	teensy_port.AddToPacket(RUNTIME);
+	teensy_port.WriteMessage();
+	usleep(1000);
+	teensy_port.ReadMessage();
+	PrintRuntime();
+	PrintAccelerations();
+	sleep(10);
+
+	RequestAllStop();
+
+	UpdateZVelocity(-0.01);
+	RequestAccelerations();
+	teensy_port.AddToPacket(RUNTIME);
+	teensy_port.WriteMessage();
+	usleep(1000);
+	teensy_port.ReadMessage();
+	PrintRuntime();
+	PrintAccelerations();
+	sleep(10);
+
+	RequestAllStop();
+}
+
+//Converts the last incoming accelerometer values into doubles and passes them to the Leveller
+void RobotDriver::PassAccelBytesToLeveller() {
+	leveller.acc0_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]);
+	leveller.acc0_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]);
+	leveller.acc0_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
+	leveller.acc1_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.x[0],teensy_port.accelerometer1_in_.x[1]);
+	leveller.acc1_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.y[0],teensy_port.accelerometer1_in_.y[1]);
+	leveller.acc1_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]);
+	leveller.acc2_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.x[0],teensy_port.accelerometer2_in_.x[1]);
+	leveller.acc2_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.y[0],teensy_port.accelerometer2_in_.y[1]);
+	leveller.acc2_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]);
+}
+
+void RobotDriver::EngageLeveller() {
+	while(true) {
+		RequestAccelerations();
+		teensy_port.WriteMessage();
+		usleep(5000);
+		teensy_port.ReadMessage();
+		PassAccelBytesToLeveller();
+		leveller.UpdateTarget();
+		UpdateActuatorVelocity(leveller.actuator_velocity_target_);
+		usleep(5000);
+	}
+}
+
 int main() {
     RobotDriver driver;
-    driver.LinearSweep();
+	driver.RaiseAndLowerTest();
+    driver.LinearSweepTest();
+	driver.EngageLeveller();
     driver.teensy_port.ClosePort();
     return 0;
 }
