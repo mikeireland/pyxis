@@ -37,6 +37,9 @@ class MotorDriver {
 
     // Time (microseconds) of last update
     unsigned int last_step_micros_[7] = {0};
+    //This array stores the physical distance which each motor moves per microstep
+    //as an integer number of nanometres (the 1000s are placeholders for real values)
+    unsigned int distance_per_microstep_[7] = {295,295,295,295,295,295,1000};
 
   public:
     MotorDriver() {
@@ -90,7 +93,7 @@ class MotorDriver {
         {
           //Compute the step period
           int v = 1000*motor_vels_[i]; 
-          unsigned int step_frequency = abs(15000*(v/32767))/295 ; //We compute the step frequency in Hz (to preserve some accuracy)
+          unsigned int step_frequency = abs(15000*(v/32767))/distance_per_microstep_[i] ; //We compute the step frequency in Hz (to preserve some accuracy)
           unsigned int dt = 1000000/step_frequency; //Compute the step period in microseconds
 
           // We check if enough time has passed for a step to be needed and store this fact
