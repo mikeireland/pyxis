@@ -6,7 +6,7 @@
 using namespace Servo;
 
 //Set a saturation velocity of 500 micron/s
-double Leveller::saturation_velocity_ = 0.00005;
+double Leveller::saturation_velocity_ = 0.0005;
 
 //Function to update Leveller's target velocitites
 //TODO Add a Kalman filter to better estimate the state
@@ -46,9 +46,9 @@ void Leveller::EstimateState() {
 }
 
 void Leveller::ApplyLQRGain() {
-    actuator_velocity_target_.x = -0.00001*(3.5*pitch_estimate_-8*roll_estimate_);
-    actuator_velocity_target_.y = -0.00001*(-7*pitch_estimate_);
-    actuator_velocity_target_.z = -0.00001*(3.5*pitch_estimate_+8*roll_estimate_);
+    actuator_velocity_target_.x = -0.0001*(3.5*pitch_estimate_-8*roll_estimate_);
+    actuator_velocity_target_.y = -0.0001*(-7*pitch_estimate_);
+    actuator_velocity_target_.z = -0.0001*(3.5*pitch_estimate_+8*roll_estimate_);
 }
 
 //Saturate the velocity if it is too high

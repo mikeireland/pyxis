@@ -292,10 +292,10 @@ void RobotDriver::EngageLeveller() {
 		teensy_port.ReadMessage();
 		PassAccelBytesToLeveller();
 		leveller.UpdateTarget();
-		LinearActuatorRamp(leveller.last_actuator_velocity_target_,leveller.actuator_velocity_target_,0.05);
+		LinearActuatorRamp(leveller.last_actuator_velocity_target_,leveller.actuator_velocity_target_,0.01);
 		usleep(1000);
 		WriteLevellerStateToFile();
-		usleep(48000);
+		usleep(88000);
 	}
 }
 
@@ -355,7 +355,7 @@ int main() {
     RobotDriver driver;
 	//driver.RaiseAndLowerTest();
     //driver.LinearSweepTest();
-	driver.EngageLeveller();
+    driver.EngageLeveller();
 	//driver.MeasureOrientationMeasurementNoise();
     driver.teensy_port.ClosePort();
     return 0;
