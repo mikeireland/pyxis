@@ -95,15 +95,23 @@ class MotorDriver {
           //Compute the step period
           int v = 1000*motor_vels_[i]; 
           unsigned int step_frequency = abs(15000*(v/32767))/distance_per_microstep_[i] ; //We compute the step frequency in Hz (to preserve some accuracy)
-          unsigned int dt = 1000000/step_frequency; //Compute the step period in microseconds
-
-          // We check if enough time has passed for a step to be needed and store this fact
-          if (last_step_micros_[i] + dt <= time_now) {
-            pulse_needed_[i] = true;
-            last_step_micros_[i] += dt;
+          
+          if(step_frequency == 0) {
+            pulse_needed_[i] = false;
           }
+          
           else {
-           pulse_needed_[i] = false;
+            unsigned int dt = 1000000/step_frequency; //Compute the step period in microseconds
+
+            // We check if enough time has passed for a step to be needed and store this fact
+            if (last_step_micros_[i] + dt <= time_now) {
+              pulse_needed_[i] = true;
+              last_step_micros_[i] += dt;
+            }
+            
+            else {
+            pulse_needed_[i] = false;
+            }
           }
         }
       }
