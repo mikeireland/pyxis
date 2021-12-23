@@ -1,19 +1,6 @@
 //Controller.cpp
 #include "RobotDriver.h"
 
-// C library headers
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-
-// Linux headers
-#include <unistd.h> // write(), read(), close()
-
-//Macro headers
-#include "Commands.h"
-#include "ErrorCodes.h"
-#include "Decode.h"
-
 using namespace Control;
 
 //Ramps the velocity of the deputy up linear from zero to the velocity target from 
@@ -30,6 +17,7 @@ void RobotDriver::LinearLateralRamp(Servo::VelDoubles velocity_target, double ti
         usleep(1000);     
     }
 }
+
 
 //Ramps the yaw velocity of the deputy up linear from zero to the velocity target from 
 //all stop over time seconds
@@ -86,6 +74,21 @@ void RobotDriver::UpdateActuatorVelocity(Servo::VelDoubles velocity) {
 	teensy_port.AddToPacket(SetRaw3);	
 	teensy_port.AddToPacket(SetRaw4);
 	teensy_port.AddToPacket(SetRaw5);	
+}
+
+//Ramps the actuators from one velocity to another over some time period
+void RobotDriver::LinearActuatorRamp(Servo::VelDoubles velocity_initial_,Servo::VelDoubles velocity_target, double time) {
+    Servo::VelDoubles velocity_target_temp;
+    RequestAllStop();  
+
+    for(double velocity_scale = 0; velocity_scale < 1; velocity_scale += 1/(time*1000)){
+		velocity_target_temp.x = velocity_initial_.x+velocity_scale*(velocity_target.x-velocity_initial_.x); 
+    	velocity_target_temp.y = velocity_initial_.y+velocity_scale*(velocity_target.y-velocity_initial_.y); 
+		velocity_target_temp.z = velocity_initial_.z+velocity_scale*(velocity_target.z-velocity_initial_.z); 
+        UpdateActuatorVelocity(velocity_target_temp);
+        teensy_port.WriteMessage();
+        usleep(1000);     
+    }
 }
 
 //Requests an update of the Body Fixed Frame velocity of the robot
@@ -243,7 +246,7 @@ void RobotDriver::LinearSweepTest() {
 void RobotDriver::RaiseAndLowerTest() {
 	RequestAllStop();
 	
-	UpdateZVelocity(0.01);
+	UpdateZVelocity(0.001);
 	RequestAccelerations();
 	teensy_port.AddToPacket(RUNTIME);
 	teensy_port.WriteMessage();
@@ -252,10 +255,10 @@ void RobotDriver::RaiseAndLowerTest() {
 	PrintRuntime();
 	PrintAccelerations();
 	sleep(10);
-
 	RequestAllStop();
+	
 
-	UpdateZVelocity(-0.01);
+	UpdateZVelocity(-0.001);
 	RequestAccelerations();
 	teensy_port.AddToPacket(RUNTIME);
 	teensy_port.WriteMessage();
@@ -285,20 +288,77 @@ void RobotDriver::EngageLeveller() {
 	while(true) {
 		RequestAccelerations();
 		teensy_port.WriteMessage();
-		usleep(5000);
+		usleep(1000);
 		teensy_port.ReadMessage();
 		PassAccelBytesToLeveller();
 		leveller.UpdateTarget();
-		UpdateActuatorVelocity(leveller.actuator_velocity_target_);
-		usleep(5000);
+		LinearActuatorRamp(leveller.last_actuator_velocity_target_,leveller.actuator_velocity_target_,0.05);
+		usleep(1000);
+		WriteLevellerStateToFile();
+		usleep(48000);
+	}
+}
+
+void RobotDriver::MeasureOrientationMeasurementNoise() {
+	for(int i = 0; i < 10000; ++i) {
+		//Each millisecond we request the current accelerometer measurements
+		RequestAccelerations();
+		teensy_port.WriteMessage();
+		usleep(500);
+		teensy_port.ReadMessage();
+
+		//We pass that data to the leveller so it can convert it into pitch and roll estimates
+		PassAccelBytesToLeveller();
+		leveller.UpdateTarget();
+		//Write the current state of the leveller to a file
+		WriteLevellerStateToFile();
+		usleep(500);
+	}
+}
+
+#include <iostream>
+#include <fstream>
+void RobotDriver::WriteLevellerStateToFile() {
+	if(!leveller_file_open_flag_){
+		//Create a new file and write the state to it
+		std::ofstream output; 
+		output.open("leveller_state.csv",std::ios::out);
+		if(output.is_open()) {printf("File opened correctly\n");}
+		output << leveller.pitch_estimate_ << ',' << leveller.roll_estimate_ << ','
+		 	   << leveller.acc0_latest_measurements_.x << ',' << leveller.acc0_latest_measurements_.y << ',' << leveller.acc0_latest_measurements_.z << ','
+			   << leveller.acc1_latest_measurements_.x << ',' << leveller.acc1_latest_measurements_.y << ',' << leveller.acc1_latest_measurements_.z << ','
+		 	   << leveller.acc2_latest_measurements_.x << ',' << leveller.acc2_latest_measurements_.y << ',' << leveller.acc2_latest_measurements_.z << ','
+			   << leveller.acc_estimate_.x << ',' << leveller.acc_estimate_.y << ',' << leveller.acc_estimate_.z << ','
+			   << leveller.actuator_velocity_target_.x << ',' << leveller.actuator_velocity_target_.y << ',' << leveller.actuator_velocity_target_.z 
+			   <<'\n';
+		output.close();
+
+		//Set the flag to say that the leveller state file is already open for this run
+		leveller_file_open_flag_ = true;
+	}
+	else {
+		std::ofstream output; 
+		output.open("leveller_state.csv",std::ios::app);
+		if(output.is_open()) {printf("File opened correctly\n");}
+		output << leveller.pitch_estimate_ << ',' << leveller.roll_estimate_ << ','
+		 	   << leveller.acc0_latest_measurements_.x << ',' << leveller.acc0_latest_measurements_.y << ',' << leveller.acc0_latest_measurements_.z << ','
+			   << leveller.acc1_latest_measurements_.x << ',' << leveller.acc1_latest_measurements_.y << ',' << leveller.acc1_latest_measurements_.z << ','
+		 	   << leveller.acc2_latest_measurements_.x << ',' << leveller.acc2_latest_measurements_.y << ',' << leveller.acc2_latest_measurements_.z << ','
+			   << leveller.acc_estimate_.x << ',' << leveller.acc_estimate_.y << ',' << leveller.acc_estimate_.z << ','
+			   << leveller.actuator_velocity_target_.x << ',' << leveller.actuator_velocity_target_.y << ',' << leveller.actuator_velocity_target_.z 
+			   <<'\n';
+		output.close();
 	}
 }
 
 int main() {
     RobotDriver driver;
-	driver.RaiseAndLowerTest();
-    driver.LinearSweepTest();
+	//driver.RaiseAndLowerTest();
+    //driver.LinearSweepTest();
 	driver.EngageLeveller();
+	//driver.MeasureOrientationMeasurementNoise();
     driver.teensy_port.ClosePort();
     return 0;
 }
+
+

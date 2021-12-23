@@ -5,12 +5,17 @@
 
 using namespace Servo;
 
+//Set a saturation velocity of 500 micron/s
+double Leveller::saturation_velocity_ = 0.00005;
+
 //Function to update Leveller's target velocitites
 //TODO Add a Kalman filter to better estimate the state
 void Leveller::UpdateTarget() {
+    last_actuator_velocity_target_ = actuator_velocity_target_;
     CombineAccelerations();
     EstimateState();
     ApplyLQRGain();
+    ApplySaturationFilter();
 }
 
 //Here we combine the three accelerometer measurements into a single
@@ -41,8 +46,21 @@ void Leveller::EstimateState() {
 }
 
 void Leveller::ApplyLQRGain() {
-    actuator_velocity_target_.x = 0.0001*(4*pitch_estimate_+7*roll_estimate_);
-    actuator_velocity_target_.y = -0.0001*(-8*pitch_estimate_);
-    actuator_velocity_target_.z = 0.0001*(4*pitch_estimate_-7*roll_estimate_);
+    actuator_velocity_target_.x = -0.00001*(3.5*pitch_estimate_-8*roll_estimate_);
+    actuator_velocity_target_.y = -0.00001*(-7*pitch_estimate_);
+    actuator_velocity_target_.z = -0.00001*(3.5*pitch_estimate_+8*roll_estimate_);
+}
+
+//Saturate the velocity if it is too high
+//There is a problem with this and I am not sure what yet (Bohlsen)
+void Leveller::ApplySaturationFilter() {
+    if(actuator_velocity_target_.x > saturation_velocity_) {actuator_velocity_target_.x = saturation_velocity_; printf("Saturated 0\n");}
+    else if(actuator_velocity_target_.x < -saturation_velocity_) {actuator_velocity_target_.x = -saturation_velocity_; printf("Saturated 0\n");}
+
+    if(actuator_velocity_target_.y > saturation_velocity_) {actuator_velocity_target_.y = saturation_velocity_; printf("Saturated 1\n");}
+    else if(actuator_velocity_target_.y < -saturation_velocity_) {actuator_velocity_target_.y = -saturation_velocity_; printf("Saturated 1\n");}
+
+    if(actuator_velocity_target_.z > saturation_velocity_) {actuator_velocity_target_.z = saturation_velocity_;printf("Saturated 2\n");}
+    else if(actuator_velocity_target_.z < -saturation_velocity_) {actuator_velocity_target_.z = -saturation_velocity_; printf("Saturated 2\n");}
 }
 

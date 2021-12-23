@@ -21,18 +21,21 @@ namespace Servo
     {
         public:
             VelDoubles actuator_velocity_target_;
+            VelDoubles last_actuator_velocity_target_;
             AccelDoubles acc0_latest_measurements_;
             AccelDoubles acc1_latest_measurements_;
             AccelDoubles acc2_latest_measurements_;
             AccelDoubles acc_estimate_; 
             void UpdateTarget();
 
-        private:
+        //private:  //(I'm just making everythin public write now)
             double pitch_estimate_;
             double roll_estimate_;
+            static double saturation_velocity_;
 
             void CombineAccelerations();
             void EstimateState();
             void ApplyLQRGain();
+            void ApplySaturationFilter();
     };
 }
