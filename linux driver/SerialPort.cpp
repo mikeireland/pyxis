@@ -25,9 +25,9 @@ int SerialPort::max_packet_size_ = 64;
 SerialPort::SerialPort() {
     teensy_ = open("/dev/ttyACM0",O_RDWR);
     //Acquire non-blocking exclusive lock
-    if(flock(teensy_, LOCK_EX | LOCK_NB) == -1) {
+    /*if(flock(teensy_, LOCK_EX | LOCK_NB) == -1) {
     printf("Serial port with file descriptor %d is already locked by another process.",teensy_);
-    }
+    }*/
 
     if(teensy_ < 0) {
         printf("Error %i from open: %s\n", errno, strerror(errno));
@@ -78,7 +78,6 @@ SerialPort::SerialPort() {
     ClearWriteBuff();
     ClearStructVelBytes(&translational_velocities_in_);
     ClearStructVelBytes(&actuator_velocities_in_);
-    ClearStructVelBytes(&translational_velocities_out_);
     ClearStructVelBytes(&actuator_velocities_out_);
     ClearStructVelBytes(&motor_velocities_out_);
     ClearStructAccelBytes(&accelerometer0_in_);
@@ -117,6 +116,48 @@ void SerialPort::ReadMessage() {
             runtime_in_[1] = read_buffer_[i+2];
             runtime_in_[2] = read_buffer_[i+3];
             runtime_in_[3] = read_buffer_[i+4];
+            i += 5;
+            break;
+        case Step0Wr:
+            step_count0_in_[0] = read_buffer_[i+1];
+            step_count0_in_[1] = read_buffer_[i+2];
+            step_count0_in_[2] = read_buffer_[i+3];
+            step_count0_in_[3] = read_buffer_[i+4];
+            i += 5;
+            break;
+        case Step1Wr:
+            step_count1_in_[0] = read_buffer_[i+1];
+            step_count1_in_[1] = read_buffer_[i+2];
+            step_count1_in_[2] = read_buffer_[i+3];
+            step_count1_in_[3] = read_buffer_[i+4];
+            i += 5;
+            break;
+        case Step2Wr:
+            step_count2_in_[0] = read_buffer_[i+1];
+            step_count2_in_[1] = read_buffer_[i+2];
+            step_count2_in_[2] = read_buffer_[i+3];
+            step_count2_in_[3] = read_buffer_[i+4];
+            i += 5;
+            break;
+        case Step3Wr:
+            step_count3_in_[0] = read_buffer_[i+1];
+            step_count3_in_[1] = read_buffer_[i+2];
+            step_count3_in_[2] = read_buffer_[i+3];
+            step_count3_in_[3] = read_buffer_[i+4];
+            i += 5;
+            break;
+        case Step4Wr:
+            step_count4_in_[0] = read_buffer_[i+1];
+            step_count4_in_[1] = read_buffer_[i+2];
+            step_count4_in_[2] = read_buffer_[i+3];
+            step_count4_in_[3] = read_buffer_[i+4];
+            i += 5;
+            break;
+        case Step5Wr:
+            step_count5_in_[0] = read_buffer_[i+1];
+            step_count5_in_[1] = read_buffer_[i+2];
+            step_count5_in_[2] = read_buffer_[i+3];
+            step_count5_in_[3] = read_buffer_[i+4];
             i += 5;
             break;
         case Acc0Wr:

@@ -49,6 +49,11 @@ unsigned int BytesTouInt(unsigned char byte0, unsigned char byte1,unsigned char 
   return integer;
 }
 
+//Takes the byte data of an signed integer and returns it as an integer
+int BytesToInt(unsigned char byte0, unsigned char byte1,unsigned char byte2, unsigned char byte3) {
+  int integer = (byte0 << 24) | (byte1 << 16) | (byte2 << 8) | (byte3 << 0);
+  return integer;
+}
 
 
       

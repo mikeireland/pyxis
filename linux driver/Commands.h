@@ -3,8 +3,9 @@
 //and the byte assigned to each name
 
 #define EMPTY 0x00 //The empty command
-#define RUNTIME 0x01 //Requests the runtime of the scheduler
-#define STOP 0x02
+#define RUNTIME 0x01 //Requests the maximum runtime of the scheduler
+#define STOP 0x02 //Sets all of the motor velocities to zero
+#define ResetSteps 0x03 //Requests that the step counts be reset
 
 //Update the raw motor velocities (for closing the levelling servo loop rigorously)
 #define SetRaw0 0x10 //Motor 0
@@ -59,4 +60,14 @@
 #define Acc3Wr 0xD3
 #define Acc4Wr 0xE3
 #define Acc5Wr 0xF3
+
+//Write step count
+#define Step0Wr 0x30
+#define Step1Wr 0x31
+#define Step2Wr 0x32
+#define Step3Wr 0x33
+#define Step4Wr 0x34
+#define Step5Wr 0x35
+
+
 

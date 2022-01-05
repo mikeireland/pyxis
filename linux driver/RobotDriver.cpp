@@ -3,10 +3,18 @@
 
 using namespace Control;
 
+/*
+MOTION IN THE PLANE 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+*/
+
 //Ramps the velocity of the deputy up linear from zero to the velocity target from 
 //all stop over time seconds
-void RobotDriver::LinearLateralRamp(Servo::VelDoubles velocity_target, double time) {
-    Servo::VelDoubles velocity_target_wrapper;
+void RobotDriver::LinearLateralRamp(Servo::Doubles velocity_target, double time) {
+    Servo::Doubles velocity_target_wrapper;
     RequestAllStop();  
 
     for(double velocity_scale = 0; velocity_scale < 1; velocity_scale += 1/(time*1000)){
@@ -18,11 +26,10 @@ void RobotDriver::LinearLateralRamp(Servo::VelDoubles velocity_target, double ti
     }
 }
 
-
 //Ramps the yaw velocity of the deputy up linear from zero to the velocity target from 
 //all stop over time seconds
 void RobotDriver::LinearYawRamp(double yaw_rate_target, double time) {
-    Servo::VelDoubles velocity_target_wrapper;
+    Servo::Doubles velocity_target_wrapper;
     RequestAllStop();  
 
     for(double velocity_scale = 0; velocity_scale < 1; velocity_scale += 1/(time*1000)){
@@ -32,6 +39,47 @@ void RobotDriver::LinearYawRamp(double yaw_rate_target, double time) {
         usleep(1000);     
     }
 }
+
+//Requests an update of the Body Fixed Frame velocity of the robot
+//Note that the message still needs to be sent after this routine is run, it will not send it on its own
+void RobotDriver::UpdateBFFVelocity(Servo::Doubles velocities) {
+    //Write the new velocity as the velocity target
+    BFF_velocity_target_ = velocities;
+
+    //We then convert from the target BFF velocitities to the 
+    //real velocity of each of the motors 
+    motor_velocities_target_.x = -BFF_velocity_target_.y - BFF_velocity_target_.z;
+    motor_velocities_target_.y = ( BFF_velocity_target_.x * sin(PI / 3) + BFF_velocity_target_.y * cos(PI / 3)) - BFF_velocity_target_.z;
+    motor_velocities_target_.z = (-BFF_velocity_target_.x * sin(PI / 3) + BFF_velocity_target_.y * cos(PI / 3)) - BFF_velocity_target_.z;
+
+    //Send that velocity to the port as a byte array
+    PhysicalDoubleToVelocityBytes(motor_velocities_target_.x,
+                                  &teensy_port.motor_velocities_out_.x[0],
+                                  &teensy_port.motor_velocities_out_.x[1]);
+    PhysicalDoubleToVelocityBytes(motor_velocities_target_.y,
+                                  &teensy_port.motor_velocities_out_.y[0],
+                                  &teensy_port.motor_velocities_out_.y[1]);
+    PhysicalDoubleToVelocityBytes(motor_velocities_target_.z,
+                                  &teensy_port.motor_velocities_out_.z[0],
+                                  &teensy_port.motor_velocities_out_.z[1]);
+
+    //Command to device to update to the new velocities
+    teensy_port.AddToPacket(SetRaw0);
+    teensy_port.AddToPacket(SetRaw1);
+    teensy_port.AddToPacket(SetRaw2);
+}
+
+
+
+
+
+/*
+ACTUATOR CONTROL
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+*/
 
 //Sets the actuators to raise or lower the robot and some velocity
 //Note that the message still needs to be sent after this routine is run, it will not send it on its own
@@ -55,7 +103,7 @@ void RobotDriver::UpdateZVelocity(double z_velocity) {
 
 //Sets the actuators to some velocity (this is intended for use in the leveling servo loop and si is designed to pitch and roll)
 //Note that the message still needs to be sent after this routine is run, it will not send it on its own
-void RobotDriver::UpdateActuatorVelocity(Servo::VelDoubles velocity) {
+void RobotDriver::UpdateActuatorVelocity(Servo::Doubles velocity) {
 	//Write the new velocity as the velocity target
 	//Note that x,y,z corresponds to actuators 0,1,2
     actuator_velocity_target_ = velocity;
@@ -77,32 +125,83 @@ void RobotDriver::UpdateActuatorVelocity(Servo::VelDoubles velocity) {
 }
 
 //Ramps the actuators from one velocity to another over some time period
-void RobotDriver::LinearActuatorRamp(Servo::VelDoubles velocity_initial_,Servo::VelDoubles velocity_target, double time) {
-    Servo::VelDoubles velocity_target_temp;
+void RobotDriver::LinearActuatorRamp(Servo::Doubles velocity_initial,Servo::Doubles velocity_target, double time) {
+    Servo::Doubles velocity_target_temp;
     RequestAllStop();  
 
     for(double velocity_scale = 0; velocity_scale < 1; velocity_scale += 1/(time*1000)){
-		velocity_target_temp.x = velocity_initial_.x+velocity_scale*(velocity_target.x-velocity_initial_.x); 
-    	velocity_target_temp.y = velocity_initial_.y+velocity_scale*(velocity_target.y-velocity_initial_.y); 
-		velocity_target_temp.z = velocity_initial_.z+velocity_scale*(velocity_target.z-velocity_initial_.z); 
-        UpdateActuatorVelocity(velocity_target_temp);
-        teensy_port.WriteMessage();
-        usleep(1000);     
+		velocity_target_temp.x = velocity_initial.x+velocity_scale*(velocity_target.x-velocity_initial.x); 
+    	velocity_target_temp.y = velocity_initial.y+velocity_scale*(velocity_target.y-velocity_initial.y); 
+		velocity_target_temp.z = velocity_initial.z+velocity_scale*(velocity_target.z-velocity_initial.z); 
+    	UpdateActuatorVelocity(velocity_target_temp);
+    	teensy_port.WriteMessage();
+    	usleep(1000);     
     }
 }
 
-//Requests an update of the Body Fixed Frame velocity of the robot
-//Note that the message still needs to be sent after this routine is run, it will not send it on its own
-void RobotDriver::UpdateBFFVelocity(Servo::VelDoubles velocities) {
-    //Write the new velocity as the velocity target
-    BFF_velocity_target_ = velocities;
 
-    //We then convert from the target BFF velocitities to the 
-    //read velocity of each of the motors 
-    motor_velocities_target_.x = -BFF_velocity_target_.y - BFF_velocity_target_.z;
-    motor_velocities_target_.y = ( BFF_velocity_target_.x * sin(PI / 3) + BFF_velocity_target_.y * cos(PI / 3)) - BFF_velocity_target_.z;
-    motor_velocities_target_.z = (-BFF_velocity_target_.x * sin(PI / 3) + BFF_velocity_target_.y * cos(PI / 3)) - BFF_velocity_target_.z;
-    //For now the Yawing is not included in the above but will need to be added
+
+
+/*
+LEVELLER CONTROL
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+*/
+
+//Converts the last incoming accelerometer values into doubles and passes them to the Leveller
+void RobotDriver::PassAccelBytesToLeveller() {
+	leveller.acc0_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]);
+	leveller.acc0_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]);
+	leveller.acc0_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
+	leveller.acc1_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.x[0],teensy_port.accelerometer1_in_.x[1]);
+	leveller.acc1_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.y[0],teensy_port.accelerometer1_in_.y[1]);
+	leveller.acc1_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]);
+	leveller.acc2_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.x[0],teensy_port.accelerometer2_in_.x[1]);
+	leveller.acc2_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.y[0],teensy_port.accelerometer2_in_.y[1]);
+	leveller.acc2_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]);
+}
+
+void RobotDriver::PassActuatorStepsToLeveller() {
+	leveller.current_step_count_.motor_0 = BytesToInt(teensy_port.step_count3_in_[0],teensy_port.step_count3_in_[1],teensy_port.step_count3_in_[2],teensy_port.step_count3_in_[3]);
+	leveller.current_step_count_.motor_1 = BytesToInt(teensy_port.step_count4_in_[0],teensy_port.step_count4_in_[1],teensy_port.step_count4_in_[2],teensy_port.step_count4_in_[3]);
+	leveller.current_step_count_.motor_2 = BytesToInt(teensy_port.step_count5_in_[0],teensy_port.step_count5_in_[1],teensy_port.step_count5_in_[2],teensy_port.step_count5_in_[3]);
+}
+
+void RobotDriver::EngageLeveller() {
+	while(true) {
+		RequestAccelerations();
+
+		teensy_port.WriteMessage();
+		usleep(1000);
+		teensy_port.ReadMessage();
+		usleep(1000);
+
+		PassAccelBytesToLeveller();
+		leveller.UpdateTarget();
+		UpdateActuatorVelocity(leveller.actuator_velocity_target_);
+		usleep(1000);
+		WriteLevellerStateToFile();
+		usleep(97000);
+	}
+}
+
+
+/*
+NAVIGATOR CONTROL
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+*/
+
+//Requests an update of the motor velocities of the robot (this is the same as the UpdateBFFVelocity, but allows for BFF to motor velocity
+//conversion to be done in the servo controller rather than in message transit.)
+//Note that the message still needs to be sent after this routine is run, it will not send it on its own
+void RobotDriver::RequestNewVelocity(Servo::Doubles velocities) {
+    //Write the new velocity as the velocity target
+    motor_velocities_target_ = velocities;
 
     //Send that velocity to the port as a byte array
     PhysicalDoubleToVelocityBytes(motor_velocities_target_.x,
@@ -121,7 +220,55 @@ void RobotDriver::UpdateBFFVelocity(Servo::VelDoubles velocities) {
     teensy_port.AddToPacket(SetRaw2);
 }
 
-//Pull all of the accelerations from the device (21 Bytes of return data)
+void RobotDriver::PassMotorStepsToNavigator() {
+	navigator.current_step_count_.motor_0 = BytesToInt(teensy_port.step_count0_in_[0],teensy_port.step_count0_in_[1],teensy_port.step_count0_in_[2],teensy_port.step_count0_in_[3]);
+	navigator.current_step_count_.motor_1 = BytesToInt(teensy_port.step_count1_in_[0],teensy_port.step_count1_in_[1],teensy_port.step_count1_in_[2],teensy_port.step_count1_in_[3]);
+	navigator.current_step_count_.motor_2 = BytesToInt(teensy_port.step_count2_in_[0],teensy_port.step_count2_in_[1],teensy_port.step_count2_in_[2],teensy_port.step_count2_in_[3]);
+}
+
+//Set the Navigator object's target position to a new location
+void RobotDriver::SetNewTargetPosition(Servo::Doubles position_target) {
+	RequestAllStop();
+	RequestResetStepCount();
+	navigator.SetNewPosition(position_target);
+}
+
+void RobotDriver::EngageNavigator() {
+	while(true) {
+		RequestStepCounts();
+
+		teensy_port.WriteMessage();
+		usleep(1000);
+		teensy_port.ReadMessage();
+
+		PassMotorStepsToNavigator();
+		PrintStepCounts();
+		navigator.UpdateTarget();
+		RequestNewVelocity(navigator.motor_velocity_target_);
+		usleep(9000);
+	}
+}
+
+void RobotDriver::NavigatorTest() {
+	Servo::Doubles target_position;
+	target_position.x = -0.5;
+	target_position.y = -0.5;
+	target_position.z = 0;
+
+	SetNewTargetPosition(target_position);
+	EngageNavigator();
+}
+
+
+/*
+GENERAL CONTROL
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+*/
+
+//Pull all of the accelerations from the device (42 Bytes of return data)
 void RobotDriver::RequestAccelerations() {
     teensy_port.AddToPacket(Acc0Wr);
     teensy_port.AddToPacket(Acc1Wr);
@@ -131,7 +278,17 @@ void RobotDriver::RequestAccelerations() {
     teensy_port.AddToPacket(Acc5Wr);
 }
 
-//Set the motor velocities to zero
+//Pull all of the step counts from the device (30 Bytes of return data)
+void RobotDriver::RequestStepCounts() {
+    teensy_port.AddToPacket(Step0Wr);
+    teensy_port.AddToPacket(Step1Wr);
+    teensy_port.AddToPacket(Step2Wr);
+    teensy_port.AddToPacket(Step3Wr);
+    teensy_port.AddToPacket(Step4Wr);
+    teensy_port.AddToPacket(Step5Wr);
+}
+
+//Set the motor and actuator velocities to zero
 void RobotDriver::RequestAllStop() {
     teensy_port.AddToPacket(STOP);
     BFF_velocity_target_.x = 0;
@@ -140,62 +297,38 @@ void RobotDriver::RequestAllStop() {
     motor_velocities_target_.x = 0;
     motor_velocities_target_.y = 0;
     motor_velocities_target_.z = 0;
+	actuator_velocity_target_.x = 0;
+    actuator_velocity_target_.y = 0;
+    actuator_velocity_target_.z = 0;
     teensy_port.WriteMessage();
     usleep(1000);
 }
 
-//Debugging function to have the runtime reported
-void RobotDriver::PrintRuntime() {
-    printf("Longest Runtime is %u\n",BytesTouInt(teensy_port.runtime_in_[0],
-                                                 teensy_port.runtime_in_[1],
-                                                 teensy_port.runtime_in_[2],
-                                                 teensy_port.runtime_in_[3]));
+//Command to robot to reset its step count
+void RobotDriver::RequestResetStepCount() {
+    teensy_port.AddToPacket(ResetSteps);
+    navigator.current_step_count_.motor_0 = 0;
+	navigator.current_step_count_.motor_1 = 0;
+	navigator.current_step_count_.motor_2 = 0;
+	leveller.current_step_count_.motor_0 = 0;
+	leveller.current_step_count_.motor_1 = 0;
+	leveller.current_step_count_.motor_2 = 0;
+    teensy_port.WriteMessage();
+    usleep(1000);
 }
 
-//Debugging function to have all of the accelerations reported
-void RobotDriver::PrintAccelerations() {
-    printf("Last Accelerometer 0 x reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]));
-    printf("Last Accelerometer 0 y reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]));
-    printf("Last Accelerometer 0 z reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]));
-    printf("Last Accelerometer 1 x reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.x[0],teensy_port.accelerometer1_in_.x[1]));
-    printf("Last Accelerometer 1 y reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.y[0],teensy_port.accelerometer1_in_.y[1]));
-    printf("Last Accelerometer 1 z reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]));
-    printf("Last Accelerometer 2 x reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.x[0],teensy_port.accelerometer2_in_.x[1]));
-    printf("Last Accelerometer 2 y reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.y[0],teensy_port.accelerometer2_in_.y[1]));
-    printf("Last Accelerometer 2 z reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]));
-    printf("Last Accelerometer 3 x reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.x[0],teensy_port.accelerometer3_in_.x[1]));
-    printf("Last Accelerometer 3 y reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.y[0],teensy_port.accelerometer3_in_.y[1]));
-    printf("Last Accelerometer 3 z reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.z[0],teensy_port.accelerometer3_in_.z[1]));
-    printf("Last Accelerometer 4 x reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.x[0],teensy_port.accelerometer4_in_.x[1]));
-    printf("Last Accelerometer 4 y reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.y[0],teensy_port.accelerometer4_in_.y[1]));
-    printf("Last Accelerometer 4 z reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.z[0],teensy_port.accelerometer4_in_.z[1]));
-    printf("Last Accelerometer 5 x reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.x[0],teensy_port.accelerometer5_in_.x[1]));
-    printf("Last Accelerometer 5 y reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.y[0],teensy_port.accelerometer5_in_.y[1]));
-    printf("Last Accelerometer 5 z reading was %f\n",
-            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]));
-}
+/*
+DEBUGGING AND I/O
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+*/
 
 //Command the robot to linearly sweep up to its maximum velocity 
 //we also occasionally read off the accelerations as a debugging aid
 void RobotDriver::LinearSweepTest() {
-    Servo::VelDoubles vel_target_wrapper;
+    Servo::Doubles vel_target_wrapper;
 
     //Speed up in the x direction and then reverse
     vel_target_wrapper.x = 0.014/1.414;
@@ -207,8 +340,15 @@ void RobotDriver::LinearSweepTest() {
     usleep(1000);
     teensy_port.ReadMessage();
     PrintRuntime();
-    PrintAccelerations();    
+    PrintAccelerations();   
     RequestAllStop();   
+	RequestStepCounts();
+	teensy_port.WriteMessage();
+	usleep(1000);
+	teensy_port.ReadMessage();
+	PassMotorStepsToNavigator();
+	PassActuatorStepsToLeveller();
+	PrintStepCounts(); 
 
     vel_target_wrapper.x = -0.014/1.414;
     vel_target_wrapper.y = -0.014/1.414;
@@ -221,6 +361,13 @@ void RobotDriver::LinearSweepTest() {
     PrintRuntime();
     PrintAccelerations();  
     RequestAllStop();
+	RequestStepCounts();
+	teensy_port.WriteMessage();
+	usleep(1000);
+	teensy_port.ReadMessage();
+	PassMotorStepsToNavigator();
+	PassActuatorStepsToLeveller();
+	PrintStepCounts(); 
 
     LinearYawRamp(0.014,10);
     RequestAccelerations();
@@ -231,6 +378,13 @@ void RobotDriver::LinearSweepTest() {
     PrintRuntime();
     PrintAccelerations(); 
     RequestAllStop();
+	RequestStepCounts();
+	teensy_port.WriteMessage();
+	usleep(1000);
+	teensy_port.ReadMessage();
+	PassMotorStepsToNavigator();
+	PassActuatorStepsToLeveller();
+	PrintStepCounts(); 
 
     LinearYawRamp(-0.014,10);
     RequestAccelerations();
@@ -241,6 +395,13 @@ void RobotDriver::LinearSweepTest() {
     PrintRuntime();
     PrintAccelerations(); 
     RequestAllStop();
+	RequestStepCounts();
+	teensy_port.WriteMessage();
+	usleep(1000);
+	teensy_port.ReadMessage();
+	PassMotorStepsToNavigator();
+	PassActuatorStepsToLeveller();
+	PrintStepCounts(); 
 }
 
 void RobotDriver::RaiseAndLowerTest() {
@@ -252,10 +413,18 @@ void RobotDriver::RaiseAndLowerTest() {
 	teensy_port.WriteMessage();
 	usleep(1000);
 	teensy_port.ReadMessage();
+	usleep(1000);
 	PrintRuntime();
 	PrintAccelerations();
 	sleep(10);
 	RequestAllStop();
+	RequestStepCounts();
+	teensy_port.WriteMessage();
+	usleep(1000);
+	teensy_port.ReadMessage();
+	PassMotorStepsToNavigator();
+	PassActuatorStepsToLeveller();
+	PrintStepCounts(); 
 	
 
 	UpdateZVelocity(-0.001);
@@ -264,39 +433,18 @@ void RobotDriver::RaiseAndLowerTest() {
 	teensy_port.WriteMessage();
 	usleep(1000);
 	teensy_port.ReadMessage();
+	usleep(1000);
 	PrintRuntime();
 	PrintAccelerations();
 	sleep(10);
-
 	RequestAllStop();
-}
-
-//Converts the last incoming accelerometer values into doubles and passes them to the Leveller
-void RobotDriver::PassAccelBytesToLeveller() {
-	leveller.acc0_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]);
-	leveller.acc0_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]);
-	leveller.acc0_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
-	leveller.acc1_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.x[0],teensy_port.accelerometer1_in_.x[1]);
-	leveller.acc1_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.y[0],teensy_port.accelerometer1_in_.y[1]);
-	leveller.acc1_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]);
-	leveller.acc2_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.x[0],teensy_port.accelerometer2_in_.x[1]);
-	leveller.acc2_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.y[0],teensy_port.accelerometer2_in_.y[1]);
-	leveller.acc2_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]);
-}
-
-void RobotDriver::EngageLeveller() {
-	while(true) {
-		RequestAccelerations();
-		teensy_port.WriteMessage();
-		usleep(1000);
-		teensy_port.ReadMessage();
-		PassAccelBytesToLeveller();
-		leveller.UpdateTarget();
-		LinearActuatorRamp(leveller.last_actuator_velocity_target_,leveller.actuator_velocity_target_,0.01);
-		usleep(1000);
-		WriteLevellerStateToFile();
-		usleep(88000);
-	}
+	RequestStepCounts();
+	teensy_port.WriteMessage();
+	usleep(1000);
+	teensy_port.ReadMessage();
+	PassMotorStepsToNavigator();
+	PassActuatorStepsToLeveller();
+	PrintStepCounts(); 
 }
 
 void RobotDriver::MeasureOrientationMeasurementNoise() {
@@ -351,11 +499,206 @@ void RobotDriver::WriteLevellerStateToFile() {
 	}
 }
 
+/*
+RESONANCE TESTING
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+*/
+
+
+//Applies a sinusoidal velocity in a certain direction at a certain frequency for some number of seconds
+//We update the velocity each 10 milliseconds to ensure smooth operation of the motors
+//We also request the accelerations and store them in a file named by the relevant frequency
+void RobotDriver::ApplySinusoidalVelocity(Servo::Doubles velocity_amplitude, unsigned int frequency, unsigned int time)	{
+	unsigned int time_counter = 0; //counts the time (somewhat inaccurately) since the start of the subroutine, in milliseconds
+	Servo::Doubles velocity_temp;
+
+	while(time_counter < 1000*time) {
+		double temp = cos(2.0*PI*(frequency/1000.0)*(time_counter/1000.0)); //cos(2PIft)
+		velocity_temp.x = temp*velocity_amplitude.x;//x
+		velocity_temp.y = temp*velocity_amplitude.y;//y
+		velocity_temp.z = temp*velocity_amplitude.z;//yaw, (this is for specialist purposes and should usually be zero)
+
+		UpdateBFFVelocity(velocity_temp);
+		RequestAccelerations();
+		teensy_port.WriteMessage();
+		usleep(500);
+		teensy_port.ReadMessage();
+		usleep(500);
+		WriteSinusoidalAccelerationsToFile(frequency);
+
+		for(int i = 0; i < 9; i++)	{
+			RequestAccelerations();
+			teensy_port.WriteMessage();
+			usleep(500);
+			teensy_port.ReadMessage();
+			usleep(500);
+			WriteSinusoidalAccelerationsToFile(frequency);
+		}
+
+		time_counter += 10;
+	}
+	RequestAllStop();
+}
+
+//Applies a sinusoidal sweep in the x direction
+//We apply each sinusoid for 30 seconds
+void RobotDriver::SinusoidalSweep(unsigned int start_frequency, unsigned int end_frequency, unsigned int step_size)	{
+	Servo::Doubles target;
+	target.x = 0.015;
+	target.y = 0.0;
+	target.z = 0.0;
+	for(unsigned int current_frequency = start_frequency; current_frequency <= end_frequency; current_frequency += step_size){
+		double temp = 0.0075/(current_frequency*0.001);//We scale the target velocity down by 1/f
+		printf("%f",temp);
+		target.x = temp; 
+		ApplySinusoidalVelocity(target,current_frequency,5);
+	}
+}
+
+void RobotDriver::WriteSinusoidalAccelerationsToFile(unsigned int frequency) {
+	if(!sinusoidal_file_open_flag_){
+		char title_buffer[50];
+		sprintf(title_buffer,"%d_milliHertz_data.csv",frequency);
+		
+		//Create a new file and write the state to it
+		std::ofstream output; 
+		output.open(title_buffer,std::ios::out);
+		if(output.is_open()) {printf("File opened correctly\n");}
+		output << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.x[0],teensy_port.accelerometer1_in_.x[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.y[0],teensy_port.accelerometer1_in_.y[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.x[0],teensy_port.accelerometer2_in_.x[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.y[0],teensy_port.accelerometer2_in_.y[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.x[0],teensy_port.accelerometer3_in_.x[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.y[0],teensy_port.accelerometer3_in_.y[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.z[0],teensy_port.accelerometer3_in_.z[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.x[0],teensy_port.accelerometer4_in_.x[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.y[0],teensy_port.accelerometer4_in_.y[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.z[0],teensy_port.accelerometer4_in_.z[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.x[0],teensy_port.accelerometer5_in_.x[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.y[0],teensy_port.accelerometer5_in_.y[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1])  
+		 	   <<'\n';
+		output.close();
+
+		//Set the flag to say that the leveller state file is already open for this run
+		sinusoidal_file_open_flag_ = true;
+		
+	}
+	else {
+		char title_buffer[50];
+		sprintf(title_buffer,"%d_milliHertz_data.csv",frequency);
+
+		std::ofstream output; 
+		output.open(title_buffer,std::ios::app);
+		if(output.is_open()) {printf("File opened correctly\n");}
+		output << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.x[0],teensy_port.accelerometer1_in_.x[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.y[0],teensy_port.accelerometer1_in_.y[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.x[0],teensy_port.accelerometer2_in_.x[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.y[0],teensy_port.accelerometer2_in_.y[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.x[0],teensy_port.accelerometer3_in_.x[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.y[0],teensy_port.accelerometer3_in_.y[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.z[0],teensy_port.accelerometer3_in_.z[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.x[0],teensy_port.accelerometer4_in_.x[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.y[0],teensy_port.accelerometer4_in_.y[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.z[0],teensy_port.accelerometer4_in_.z[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.x[0],teensy_port.accelerometer5_in_.x[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.y[0],teensy_port.accelerometer5_in_.y[1]) << ',' 
+			   << AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1])  
+		 	   <<'\n';
+		output.close();
+	}
+}
+
+
+/*
+PRIVATE DEBUGGING
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+*/
+
+//Debugging function to have the runtime reported
+void RobotDriver::PrintRuntime() {
+    printf("Longest Runtime is %u\n",BytesTouInt(teensy_port.runtime_in_[0],
+                                                 teensy_port.runtime_in_[1],
+                                                 teensy_port.runtime_in_[2],
+                                                 teensy_port.runtime_in_[3]));
+}
+
+//Debugging function to have all of the accelerations reported
+void RobotDriver::PrintAccelerations() {
+    printf("Last Accelerometer 0 x reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]));
+    printf("Last Accelerometer 0 y reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]));
+    printf("Last Accelerometer 0 z reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]));
+    printf("Last Accelerometer 1 x reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.x[0],teensy_port.accelerometer1_in_.x[1]));
+    printf("Last Accelerometer 1 y reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.y[0],teensy_port.accelerometer1_in_.y[1]));
+    printf("Last Accelerometer 1 z reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]));
+    printf("Last Accelerometer 2 x reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.x[0],teensy_port.accelerometer2_in_.x[1]));
+    printf("Last Accelerometer 2 y reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.y[0],teensy_port.accelerometer2_in_.y[1]));
+    printf("Last Accelerometer 2 z reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]));
+    printf("Last Accelerometer 3 x reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.x[0],teensy_port.accelerometer3_in_.x[1]));
+    printf("Last Accelerometer 3 y reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.y[0],teensy_port.accelerometer3_in_.y[1]));
+    printf("Last Accelerometer 3 z reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.z[0],teensy_port.accelerometer3_in_.z[1]));
+    printf("Last Accelerometer 4 x reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.x[0],teensy_port.accelerometer4_in_.x[1]));
+    printf("Last Accelerometer 4 y reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.y[0],teensy_port.accelerometer4_in_.y[1]));
+    printf("Last Accelerometer 4 z reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.z[0],teensy_port.accelerometer4_in_.z[1]));
+    printf("Last Accelerometer 5 x reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.x[0],teensy_port.accelerometer5_in_.x[1]));
+    printf("Last Accelerometer 5 y reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.y[0],teensy_port.accelerometer5_in_.y[1]));
+    printf("Last Accelerometer 5 z reading was %f\n",
+            AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]));
+}
+
+void RobotDriver::PrintStepCounts() {
+	printf("Last Motor 0 Step Count was %d\n",navigator.current_step_count_.motor_0);
+	printf("Last Motor 1 Step Count was %d\n",navigator.current_step_count_.motor_1);
+	printf("Last Motor 2 Step Count was %d\n",navigator.current_step_count_.motor_2);
+	printf("Last Actuator 0 Step Count was %d\n",leveller.current_step_count_.motor_0);
+	printf("Last Actuator 1 Step Count was %d\n",leveller.current_step_count_.motor_1);
+	printf("Last Actuator 2 Step Count was %d\n",leveller.current_step_count_.motor_2);
+}
+
 int main() {
     RobotDriver driver;
-	//driver.RaiseAndLowerTest();
+	
+	//driver.NavigatorTest();
+
+	//driver.SinusoidalSweep(500,20000,500);
+	
+    //driver.RaiseAndLowerTest();
     //driver.LinearSweepTest();
-    driver.EngageLeveller();
+	//driver.EngageLeveller();
+    
 	//driver.MeasureOrientationMeasurementNoise();
     driver.teensy_port.ClosePort();
     return 0;

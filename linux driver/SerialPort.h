@@ -24,7 +24,6 @@ namespace Comms
             void WriteMessage();
             void AddToPacket(unsigned char command);
 
-            VelBytes translational_velocities_out_;//Byte arrays to store the outgoing velocities
             VelBytes motor_velocities_out_;//Byte arrays to store the outgoing velocities
             VelBytes actuator_velocities_out_; //For these take x,y,z == 0,1,2
 
@@ -39,7 +38,12 @@ namespace Comms
             AccelBytes accelerometer5_in_;
 
             unsigned char runtime_in_ [4];//Byte array to store the incoming runtime
-
+            unsigned char step_count0_in_[4] = {0x00}; //Byte arrays to store in incoming step_counts
+            unsigned char step_count1_in_[4] = {0x00};
+            unsigned char step_count2_in_[4] = {0x00};
+            unsigned char step_count3_in_[4] = {0x00};//Actuators 0,1,2 and indexes 3,4,5
+            unsigned char step_count4_in_[4] = {0x00};
+            unsigned char step_count5_in_[4] = {0x00};
 
 
         private:
