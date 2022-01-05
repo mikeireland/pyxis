@@ -1,17 +1,3 @@
-struct BFFVelocities {
-
-  // metres / second
-  double x = 0; // forwards W.R.T wheel 0
-  double y = 0; // left W.R.T wheel 0
-  double z = 0; // up
-
-  // radians / second
-  double pitch = 0;
-  double yaw = 0;
-  double roll = 0;
-
-};
-
 class MotorDriver {
   private:
     // [(wheels), (linear actuators), goniometer]

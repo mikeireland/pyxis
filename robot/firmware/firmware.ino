@@ -17,7 +17,6 @@ class Controller {
     int sched_[sched_length_] = {0x00}; //Since variable length arrays are not allowed in C++ we just define an array which is too big
   
     MotorDriver motor_driver;
-    BFFVelocities v_;
     short int v_int_ [6] = {0}; 
     
     AccelerometerReader accelerometer_reader;
