@@ -3,7 +3,8 @@
 
 #define EMPTY 0x00 //The empty command
 #define RUNTIME 0x01 //Request the longest runtime of the scheduler
-#define STOP 0x02 //The command to all stop and reset the schedule
+#define STOP 0x02 //The command to all stop 
+#define ResetSteps 0x03 //Requests that the step counts be reset
 //TODO Add commands to request the read and write times for packets
 
 //Update the raw motor velocities (for closing the levelling servo loop rigorously)
@@ -59,3 +60,11 @@
 #define Acc3Wr 0xD3
 #define Acc4Wr 0xE3
 #define Acc5Wr 0xF3
+
+//Write step count
+#define Step0Wr 0x30
+#define Step1Wr 0x31
+#define Step2Wr 0x32
+#define Step3Wr 0x33
+#define Step4Wr 0x34
+#define Step5Wr 0x35

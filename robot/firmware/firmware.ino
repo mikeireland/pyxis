@@ -52,12 +52,6 @@ class Controller {
       motor_driver.UpdatePositions();
     }
 
-    /*
-    void SetVelocities(BFFVelocities v) {
-      motor_driver.SetVelocities(v);
-    }
-    */
-
     void SetRawVelocity(int motor_index, float v) {
       motor_driver.SetRawVelocity(motor_index, v);
     }
@@ -184,6 +178,49 @@ class Controller {
               ReportError(SchedFull);
               break;
             }
+          case Step0Wr:
+            if(ScheduleToNextFree(Step0Wr) == 0){ 
+              break;
+            } else {
+              ReportError(SchedFull);
+              break;
+            }
+          case Step1Wr:
+            if(ScheduleToNextFree(Step1Wr) == 0){ 
+              break;
+            } else {
+              ReportError(SchedFull);
+              break;
+            }
+          case Step2Wr:
+            if(ScheduleToNextFree(Step2Wr) == 0){ 
+              break;
+            } else {
+              ReportError(SchedFull);
+              break;
+            }
+          case Step3Wr:
+            if(ScheduleToNextFree(Step3Wr) == 0){ 
+              break;
+            } else {
+              ReportError(SchedFull);
+              break;
+            }
+          case Step4Wr:
+            if(ScheduleToNextFree(Step4Wr) == 0){ 
+              break;
+            } else {
+              ReportError(SchedFull);
+              break;
+            }
+          case Step5Wr:
+            if(ScheduleToNextFree(Step5Wr) == 0){ 
+              break;
+            } else {
+              ReportError(SchedFull);
+              break;
+            }
+          
           case RUNTIME:
             if(ScheduleToNextFree(RUNTIME) == 0){ 
               break;
@@ -198,6 +235,10 @@ class Controller {
             motor_driver.SetRawVelocity(3,0);
             motor_driver.SetRawVelocity(4,0);
             motor_driver.SetRawVelocity(5,0);
+            break;
+
+          case ResetSteps: //When we receive a ResetStepCount command we set all step count varibles to zero
+            motor_driver.ResetStepCount();
             break;
           
           case EMPTY:
@@ -322,6 +363,42 @@ class Controller {
         temp_ = port.first_empty_;
         port.write_buffer_[temp_] = RUNTIME; //We repeat the command call as an acknowledgement and to indicate the next 4 bytes are the value
         IntToBytes(scheduler_time_longest, &port.write_buffer_[temp_+1], &port.write_buffer_[temp_+2], &port.write_buffer_[temp_+3], &port.write_buffer_[temp_+4]);
+        port.first_empty_ = temp_+5; //update the first empty value in the write buffer
+    }
+
+    //Write a steps value into the message buffer.
+    void WriteSteps(int index){;
+        //Check if the write buffer is full, and if so send the message (recall that we want our packets to end in three 0x00s hence we 
+        //only fill up to index 61)
+        temp_ = port.first_empty_;
+        if(temp_ + 5 > 61){
+          port.WriteMessage();
+        }
+      
+        temp_ = port.first_empty_;
+        //We repeat the command call as an acknowledgement and to indicate the next 4 bytes are the value
+        switch(index){
+        case 0:
+          port.write_buffer_[temp_] = Step0Wr;
+          break;
+        case 1:
+          port.write_buffer_[temp_] = Step1Wr;
+          break;
+        case 2:
+          port.write_buffer_[temp_] = Step2Wr;
+          break;
+        case 3:
+          port.write_buffer_[temp_] = Step3Wr;
+          break;
+        case 4:
+          port.write_buffer_[temp_] = Step4Wr;
+          break;
+        case 5:
+          port.write_buffer_[temp_] = Step5Wr;
+          break;
+      }
+      
+        IntToBytes(motor_driver.step_count_[index], &port.write_buffer_[temp_+1], &port.write_buffer_[temp_+2], &port.write_buffer_[temp_+3], &port.write_buffer_[temp_+4]);
         port.first_empty_ = temp_+5; //update the first empty value in the write buffer
     }
 
@@ -452,6 +529,30 @@ class Controller {
         break;
       case Raw5Wr:
         WriteVel(5);
+        sched_[sched_state_] = EMPTY;
+        break;
+      case Step0Wr:
+        WriteSteps(0);
+        sched_[sched_state_] = EMPTY;
+        break;
+      case Step1Wr:
+        WriteSteps(1);
+        sched_[sched_state_] = EMPTY;
+        break;
+      case Step2Wr:
+        WriteSteps(2);
+        sched_[sched_state_] = EMPTY;
+        break;
+      case Step3Wr:
+        WriteSteps(3);
+        sched_[sched_state_] = EMPTY;
+        break;
+      case Step4Wr:
+        WriteSteps(4);
+        sched_[sched_state_] = EMPTY;
+        break;
+      case Step5Wr:
+        WriteSteps(5);
         sched_[sched_state_] = EMPTY;
         break;
       case RUNTIME:

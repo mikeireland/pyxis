@@ -14,14 +14,6 @@ struct BFFVelocities {
 
 class MotorDriver {
   private:
-    /*
-    //k_lin_baseline_ somehow converts from angular to linear units. See Mike's PDF for correct units! Was 500.0. Why?
-    const double k_lin_baseline_ = 1.0;
-    const double k_z_ = 1.0;
-    const double k_trans_ = 1.0;
-    const double k_yaw_ = 1.0;
-    */
-
     // [(wheels), (linear actuators), goniometer]
     const int step_pins_[7] = {
       30, 32, 34,   // Wheels
@@ -49,27 +41,19 @@ class MotorDriver {
         pinMode(dir_pins_[i], OUTPUT);
       }
     }
-
+    
     short int motor_vels_[7] = {0};
     bool pulse_needed_[7] = {false};
-
-    /*
-    // Sets the motor velocities based on the Body Fixed Frame velocity
-    void SetVelocities(BFFVelocities vels) {
-      
-      // PI/3 below is the angle of the linear actuator with respect to the X axis of the robot.
-      motor_vels_[0] = (                     -vels.y            ) * k_trans_ - vels.yaw * k_yaw_;
-      motor_vels_[1] = ( vels.x * sin(PI / 3) + vels.y * cos(PI / 3)) * k_trans_ - vels.yaw * k_yaw_;
-      motor_vels_[2] = (-vels.x * sin(PI / 3) + vels.y * cos(PI / 3)) * k_trans_ - vels.yaw * k_yaw_;
-      motor_vels_[3] =   sin(PI / 3) * vels.roll  * k_lin_baseline_ - vels.pitch * k_lin_baseline_ * cos(PI / 3) + vels.z * k_z_; // was not divided by 5 (?)
-      motor_vels_[4] =  -sin(PI / 3) * vels.roll  * k_lin_baseline_ - vels.pitch * k_lin_baseline_ * cos(PI / 3) + vels.z * k_z_; // was not divided by 5 (?)
-      motor_vels_[5] =                               + vels.pitch * (k_lin_baseline_  ) + vels.z * k_z_;  // was not divided by 5
-      
-    }
-    */
+    int step_count_[7] = {0};
 
     void SetRawVelocity(int motor_index, short int v) {
       motor_vels_[motor_index] = v;
+    }
+
+    void ResetStepCount() {
+      for(int i = 0; i < 7; i++) {
+        step_count_[i] = 0;
+      }
     }
 
     // This function checks if a step command should be sent to the motors, and updates them if so.
@@ -77,13 +61,12 @@ class MotorDriver {
     // motors only step on a low to high transition, we attempt to make a square wave here, i.e.
     // the step rate will be 1/dt, where dt is defined below.
     void UpdatePositions() {
-      for (int i(0); i < 7; ++i) {
+      for (int i = 0; i < 7; ++i) {
         unsigned int time_now = micros();
         //Set the direction pins every time (even if velocity hasn't changed)
-        //by the sign of the motor_vels.
+        //by the sign of the motor_vels_.
         
         digitalWrite(dir_pins_[i], motor_vels_[i] > 0);
-
         // If the velocity is zero, don't do anything!
         if (motor_vels_[i] == 0) 
         {
@@ -97,8 +80,9 @@ class MotorDriver {
           unsigned int step_frequency = abs(15000*(v/32767))/distance_per_microstep_[i] ; //We compute the step frequency in Hz (to preserve some accuracy)
           
           if(step_frequency == 0) {
+            last_step_micros_[i] = time_now;
             pulse_needed_[i] = false;
-          }
+          } 
           
           else {
             unsigned int dt = 1000000/step_frequency; //Compute the step period in microseconds
@@ -116,14 +100,15 @@ class MotorDriver {
         }
       }
       //We pulse each motor with a 1microsec pulse if one is needed
-      for (int i(0); i < 7; ++i){
+      for (int i = 0; i < 7; ++i){
         if(pulse_needed_[i]){
           digitalWrite(step_pins_[i],HIGH);
+          step_count_[i] = motor_vels_[i] > 0 ? step_count_[i] + 1 : step_count_[i] - 1; //update the step count
           pulse_needed_[i] = false;
         }
       }
       delayMicroseconds(1);
-      for (int i(0); i < 7; ++i){
+      for (int i = 0; i < 7; ++i){
         digitalWrite(step_pins_[i],LOW);
       }
     }
