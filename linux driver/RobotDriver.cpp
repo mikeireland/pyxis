@@ -139,7 +139,18 @@ void RobotDriver::LinearActuatorRamp(Servo::Doubles velocity_initial,Servo::Doub
     }
 }
 
-
+//Lowers the actuators uniformly for much longer than is required for them to hit the end of their throw
+//Once they hit the limit switches they will stop lowering (this is handled on the device)
+//We set this point as the step count reference
+void RobotDriver::LowerToReference() {
+	//Lower all actuators at 1mm/s for 60s
+	RequestAllStop();
+	UpdateZVelocity(-0.001);
+	teensy_port.WriteMessage();
+	sleep(60);
+	RequestAllStop();
+	RequestResetStepCount();
+}
 
 
 /*
@@ -170,6 +181,15 @@ void RobotDriver::PassActuatorStepsToLeveller() {
 }
 
 void RobotDriver::EngageLeveller() {
+	
+	LowerToReference();
+
+	//Move the platform up from its reference by 20mm
+	UpdateZVelocity(0.001);
+	teensy_port.WriteMessage();
+	sleep(20);
+	RequestAllStop();
+
 	while(true) {
 		RequestAccelerations();
 
@@ -406,6 +426,7 @@ void RobotDriver::LinearSweepTest() {
 
 void RobotDriver::RaiseAndLowerTest() {
 	RequestAllStop();
+	
 	
 	UpdateZVelocity(0.001);
 	RequestAccelerations();
@@ -697,7 +718,7 @@ int main() {
 	
     //driver.RaiseAndLowerTest();
     //driver.LinearSweepTest();
-	//driver.EngageLeveller();
+	driver.EngageLeveller();
     
 	//driver.MeasureOrientationMeasurementNoise();
     driver.teensy_port.ClosePort();

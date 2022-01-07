@@ -39,6 +39,7 @@ namespace Control
             void UpdateZVelocity(double velocity);
             void UpdateActuatorVelocity(Servo::Doubles velocity);
             void LinearActuatorRamp(Servo::Doubles velocity_initial, Servo::Doubles velocity_target, double time);
+            void LowerToReference();
 
             //Leveller Control
             void EngageLeveller();
