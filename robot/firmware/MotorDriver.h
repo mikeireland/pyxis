@@ -3,14 +3,18 @@ class MotorDriver {
     // [(wheels), (linear actuators), goniometer]
     const int step_pins_[7] = {
       30, 32, 34,   // Wheels
-      24, 26, 28,   // Linear actuators
+      28, 26, 24,   // Linear actuators 0,1,2
       -1            // Goniometer
     };
 
     const int dir_pins_[7] = {
       31, 33, 35,   // Wheels
-      25, 27, 29,   // Linear actuators
+      29, 27, 25,   // Linear actuators 0,1,2
       -1            // Goniometer
+    };
+
+    const int lim_pins_[3] = {
+      39,40,41 //Linear actuators 0,1,2
     };
 
     // Time (microseconds) of last update
@@ -25,6 +29,9 @@ class MotorDriver {
       for (int i = 0; i < 7; ++i) {
         pinMode(step_pins_[i], OUTPUT);
         pinMode(dir_pins_[i], OUTPUT);
+      }
+      for (int i = 0; i < 3; ++i) {
+        pinMode(lim_pins_[i],INPUT_PULLUP);
       }
     }
     
@@ -99,4 +106,12 @@ class MotorDriver {
       }
     }
 
+    //Checks if the limit switches on the actuators have been compressed and if so, sets the velocity of that linear actuator to 0
+    void CheckLimitSwitches(){
+      for(int i = 0; i < 3; ++i){
+        if(digitalRead(lim_pins_[i]) && (motor_vels_[3 + i] > 0)){ //A positive actuator velocity is a lowering of the robot
+          motor_vels_[3 + i] = 0;
+        }
+      }
+    }
 };

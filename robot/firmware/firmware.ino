@@ -407,7 +407,7 @@ class Controller {
       port.write_buffer_[temp_] = error_code;
       port.first_empty_ = temp_+1;
     }
-
+    
   public:
     Controller() {
       SetDefaultSchedule();
@@ -418,6 +418,9 @@ class Controller {
     //It will then update the loop state variable so that it doesn't repeat itself until the loop_state has reached its
     //maximum value which we call the loop_length.
     void Scheduler() {
+     //Check the limit switches to see if they have been pressed
+     motor_driver.CheckLimitSwitches();
+      
      //Pulse the motors
      UpdatePositions();
 
