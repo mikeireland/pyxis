@@ -44,7 +44,7 @@ void Leveller::EstimateState() {
     pitch_estimate_ =  atan(-acc_estimate_.x/sqrt(acc_estimate_.z*acc_estimate_.z+
                                                   acc_estimate_.y*acc_estimate_.y))*180/PI;
 
-    roll_estimate_ = atan(acc_estimate_.y/acc_estimate_.z)*180/PI;
+    roll_estimate_ = -atan(acc_estimate_.y/acc_estimate_.z)*180/PI;
     printf("Pitch is %f\n",pitch_estimate_);
     printf("Roll is %f\n",roll_estimate_);
 }
@@ -72,7 +72,7 @@ DEFINITIONS FOR THE Navigator OBJECT
 */
 
 //We define the following relevant quantities for the Navigator controller 
-double Navigator::saturation_velocity_ = 0.015;
+double Navigator::saturation_velocity_ = 0.002;//0.015;
 double Navigator::gain_x_ = 0.1;
 double Navigator::gain_y_ = 0.1;
 double Navigator::gain_yaw_ = 0.1;
@@ -122,7 +122,7 @@ void Navigator::ApplyPropGain() {
 
 void Navigator::ApplySaturationFilter() {
     if(motor_velocity_target_.x > saturation_velocity_) {motor_velocity_target_.x = saturation_velocity_; printf("Saturated Motor 0\n");}
-    else if(motor_velocity_target_.x < -saturation_velocity_) {motor_velocity_target_.x = -saturation_velocity_; printf("Saturated Motor  0\n");}
+    else if(motor_velocity_target_.x < -saturation_velocity_) {motor_velocity_target_.x = -saturation_velocity_; printf("Saturated Motor 0\n");}
 
     if(motor_velocity_target_.y > saturation_velocity_) {motor_velocity_target_.y = saturation_velocity_; printf("Saturated Motor 1\n");}
     else if(motor_velocity_target_.y < -saturation_velocity_) {motor_velocity_target_.y = -saturation_velocity_; printf("Saturated Motor 1\n");}

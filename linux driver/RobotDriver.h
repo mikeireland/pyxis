@@ -43,11 +43,13 @@ namespace Control
 
             //Leveller Control
             void EngageLeveller();
+            void LevellerLoop();
             void PassAccelBytesToLeveller();
             void PassActuatorStepsToLeveller();
 
             //Navigator Control
             void EngageNavigator();
+            void NavigatorLoop();
             void SetNewTargetPosition(Servo::Doubles position_target);
             void RequestNewVelocity(Servo::Doubles velocity);
             void PassMotorStepsToNavigator();

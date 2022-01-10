@@ -30,8 +30,10 @@ namespace Servo
             Steps current_step_count_; //These are actually microstep counts
             void UpdateTarget();
 
-            double pitch_estimate_;
-            double roll_estimate_;
+            double pitch_estimate_ = 0; //We initialise pitch and roll estimates to zero
+            double roll_estimate_ = 0;
+
+            bool enable_flag_ = false; //A flag to track whether the leveller should run or not
 
         private:  
             static double saturation_velocity_;
@@ -49,6 +51,8 @@ namespace Servo
             Steps current_step_count_; //These are actually microstep counts
             void UpdateTarget();
             void SetNewPosition(Doubles new_position);
+
+            bool enable_flag_ = false;
 
         private:
             Doubles position_target_;

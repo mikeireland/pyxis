@@ -23,6 +23,10 @@ namespace Comms
             void ReadMessage();
             void WriteMessage();
             void AddToPacket(unsigned char command);
+            int Request(unsigned char command);
+
+            void PacketManager();
+            
 
             VelBytes motor_velocities_out_;//Byte arrays to store the outgoing velocities
             VelBytes actuator_velocities_out_; //For these take x,y,z == 0,1,2
@@ -50,12 +54,15 @@ namespace Comms
             int teensy_;
             unsigned char write_buffer_ [64];
             unsigned char read_buffer_ [64];
+            unsigned char request_buffer_ [1024];
+            int request_buffer_first_empty_ = 0;
+
+
             void ClearReadBuff();
             void ClearWriteBuff();
+            void ClearRequestBuff();
             void ClearStructVelBytes(VelBytes *structure);
             void ClearStructAccelBytes(AccelBytes *structure);
-            
-
     }; 
 }
 

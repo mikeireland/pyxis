@@ -21,7 +21,7 @@ void RobotDriver::LinearLateralRamp(Servo::Doubles velocity_target, double time)
         velocity_target_wrapper.x = velocity_scale*velocity_target.x; 
         velocity_target_wrapper.y = velocity_scale*velocity_target.y; 
         UpdateBFFVelocity(velocity_target_wrapper);
-        teensy_port.WriteMessage();
+        teensy_port.PacketManager();
         usleep(1000);     
     }
 }
@@ -35,7 +35,7 @@ void RobotDriver::LinearYawRamp(double yaw_rate_target, double time) {
     for(double velocity_scale = 0; velocity_scale < 1; velocity_scale += 1/(time*1000)){
         velocity_target_wrapper.z = velocity_scale*yaw_rate_target;  
         UpdateBFFVelocity(velocity_target_wrapper);
-        teensy_port.WriteMessage();
+        teensy_port.PacketManager();
         usleep(1000);     
     }
 }
@@ -64,9 +64,9 @@ void RobotDriver::UpdateBFFVelocity(Servo::Doubles velocities) {
                                   &teensy_port.motor_velocities_out_.z[1]);
 
     //Command to device to update to the new velocities
-    teensy_port.AddToPacket(SetRaw0);
-    teensy_port.AddToPacket(SetRaw1);
-    teensy_port.AddToPacket(SetRaw2);
+    teensy_port.Request(SetRaw0);
+    teensy_port.Request(SetRaw1);
+    teensy_port.Request(SetRaw2);
 }
 
 
@@ -96,9 +96,9 @@ void RobotDriver::UpdateZVelocity(double z_velocity) {
 	PhysicalDoubleToVelocityBytes(-z_velocity,
 								  &teensy_port.actuator_velocities_out_.z[0],
 								  &teensy_port.actuator_velocities_out_.z[1]);
-	teensy_port.AddToPacket(SetRaw3);	
-	teensy_port.AddToPacket(SetRaw4);
-	teensy_port.AddToPacket(SetRaw5);	
+	teensy_port.Request(SetRaw3);	
+	teensy_port.Request(SetRaw4);
+	teensy_port.Request(SetRaw5);	
 }
 
 //Sets the actuators to some velocity (this is intended for use in the leveling servo loop and si is designed to pitch and roll)
@@ -119,9 +119,9 @@ void RobotDriver::UpdateActuatorVelocity(Servo::Doubles velocity) {
 	PhysicalDoubleToVelocityBytes(-actuator_velocity_target_.z,
 								  &teensy_port.actuator_velocities_out_.z[0],
 								  &teensy_port.actuator_velocities_out_.z[1]);
-	teensy_port.AddToPacket(SetRaw3);	
-	teensy_port.AddToPacket(SetRaw4);
-	teensy_port.AddToPacket(SetRaw5);	
+	teensy_port.Request(SetRaw3);	
+	teensy_port.Request(SetRaw4);
+	teensy_port.Request(SetRaw5);	
 }
 
 //Ramps the actuators from one velocity to another over some time period
@@ -134,7 +134,7 @@ void RobotDriver::LinearActuatorRamp(Servo::Doubles velocity_initial,Servo::Doub
     	velocity_target_temp.y = velocity_initial.y+velocity_scale*(velocity_target.y-velocity_initial.y); 
 		velocity_target_temp.z = velocity_initial.z+velocity_scale*(velocity_target.z-velocity_initial.z); 
     	UpdateActuatorVelocity(velocity_target_temp);
-    	teensy_port.WriteMessage();
+    	teensy_port.PacketManager();
     	usleep(1000);     
     }
 }
@@ -146,7 +146,7 @@ void RobotDriver::LowerToReference() {
 	//Lower all actuators at 1mm/s for 60s
 	RequestAllStop();
 	UpdateZVelocity(-0.001);
-	teensy_port.WriteMessage();
+	teensy_port.PacketManager();
 	sleep(60);
 	RequestAllStop();
 	RequestResetStepCount();
@@ -183,28 +183,25 @@ void RobotDriver::PassActuatorStepsToLeveller() {
 void RobotDriver::EngageLeveller() {
 	
 	LowerToReference();
-
+	
 	//Move the platform up from its reference by 20mm
 	UpdateZVelocity(0.001);
-	teensy_port.WriteMessage();
+	teensy_port.PacketManager();
 	sleep(20);
 	RequestAllStop();
+	
+	leveller.enable_flag_ = true;
+}
 
-	while(true) {
-		RequestAccelerations();
+void RobotDriver::LevellerLoop() {
+	RequestAccelerations();
+	teensy_port.PacketManager();
 
-		teensy_port.WriteMessage();
-		usleep(1000);
-		teensy_port.ReadMessage();
-		usleep(1000);
-
-		PassAccelBytesToLeveller();
-		leveller.UpdateTarget();
-		UpdateActuatorVelocity(leveller.actuator_velocity_target_);
-		usleep(1000);
-		WriteLevellerStateToFile();
-		usleep(97000);
-	}
+	PassAccelBytesToLeveller();
+	leveller.UpdateTarget();
+	UpdateActuatorVelocity(leveller.actuator_velocity_target_);
+	usleep(1000);
+	WriteLevellerStateToFile();
 }
 
 
@@ -235,9 +232,9 @@ void RobotDriver::RequestNewVelocity(Servo::Doubles velocities) {
                                   &teensy_port.motor_velocities_out_.z[1]);
 
     //Command to device to update to the new velocities
-    teensy_port.AddToPacket(SetRaw0);
-    teensy_port.AddToPacket(SetRaw1);
-    teensy_port.AddToPacket(SetRaw2);
+    teensy_port.Request(SetRaw0);
+    teensy_port.Request(SetRaw1);
+    teensy_port.Request(SetRaw2);
 }
 
 void RobotDriver::PassMotorStepsToNavigator() {
@@ -254,19 +251,15 @@ void RobotDriver::SetNewTargetPosition(Servo::Doubles position_target) {
 }
 
 void RobotDriver::EngageNavigator() {
-	while(true) {
-		RequestStepCounts();
+	RequestStepCounts();
+	navigator.enable_flag_ = true;
+}
 
-		teensy_port.WriteMessage();
-		usleep(1000);
-		teensy_port.ReadMessage();
-
-		PassMotorStepsToNavigator();
-		PrintStepCounts();
-		navigator.UpdateTarget();
-		RequestNewVelocity(navigator.motor_velocity_target_);
-		usleep(9000);
-	}
+void RobotDriver::NavigatorLoop() {	
+	PassMotorStepsToNavigator();
+	navigator.UpdateTarget();
+	RequestNewVelocity(navigator.motor_velocity_target_);
+	RequestStepCounts();
 }
 
 void RobotDriver::NavigatorTest() {
@@ -276,7 +269,6 @@ void RobotDriver::NavigatorTest() {
 	target_position.z = 0;
 
 	SetNewTargetPosition(target_position);
-	EngageNavigator();
 }
 
 
@@ -290,27 +282,27 @@ GENERAL CONTROL
 
 //Pull all of the accelerations from the device (42 Bytes of return data)
 void RobotDriver::RequestAccelerations() {
-    teensy_port.AddToPacket(Acc0Wr);
-    teensy_port.AddToPacket(Acc1Wr);
-    teensy_port.AddToPacket(Acc2Wr);
-    teensy_port.AddToPacket(Acc3Wr);
-    teensy_port.AddToPacket(Acc4Wr);
-    teensy_port.AddToPacket(Acc5Wr);
+    teensy_port.Request(Acc0Wr);
+    teensy_port.Request(Acc1Wr);
+    teensy_port.Request(Acc2Wr);
+    teensy_port.Request(Acc3Wr);
+    teensy_port.Request(Acc4Wr);
+    teensy_port.Request(Acc5Wr);
 }
 
 //Pull all of the step counts from the device (30 Bytes of return data)
 void RobotDriver::RequestStepCounts() {
-    teensy_port.AddToPacket(Step0Wr);
-    teensy_port.AddToPacket(Step1Wr);
-    teensy_port.AddToPacket(Step2Wr);
-    teensy_port.AddToPacket(Step3Wr);
-    teensy_port.AddToPacket(Step4Wr);
-    teensy_port.AddToPacket(Step5Wr);
+    teensy_port.Request(Step0Wr);
+    teensy_port.Request(Step1Wr);
+    teensy_port.Request(Step2Wr);
+    teensy_port.Request(Step3Wr);
+    teensy_port.Request(Step4Wr);
+    teensy_port.Request(Step5Wr);
 }
 
 //Set the motor and actuator velocities to zero
 void RobotDriver::RequestAllStop() {
-    teensy_port.AddToPacket(STOP);
+    teensy_port.Request(STOP);
     BFF_velocity_target_.x = 0;
     BFF_velocity_target_.y = 0;
     BFF_velocity_target_.z = 0;
@@ -320,20 +312,20 @@ void RobotDriver::RequestAllStop() {
 	actuator_velocity_target_.x = 0;
     actuator_velocity_target_.y = 0;
     actuator_velocity_target_.z = 0;
-    teensy_port.WriteMessage();
+    teensy_port.PacketManager();
     usleep(1000);
 }
 
 //Command to robot to reset its step count
 void RobotDriver::RequestResetStepCount() {
-    teensy_port.AddToPacket(ResetSteps);
+    teensy_port.Request(ResetSteps);
     navigator.current_step_count_.motor_0 = 0;
 	navigator.current_step_count_.motor_1 = 0;
 	navigator.current_step_count_.motor_2 = 0;
 	leveller.current_step_count_.motor_0 = 0;
 	leveller.current_step_count_.motor_1 = 0;
 	leveller.current_step_count_.motor_2 = 0;
-    teensy_port.WriteMessage();
+    teensy_port.PacketManager();
     usleep(1000);
 }
 
@@ -355,17 +347,13 @@ void RobotDriver::LinearSweepTest() {
     vel_target_wrapper.y = 0.014/1.414;
     LinearLateralRamp(vel_target_wrapper,10);
     RequestAccelerations();
-    teensy_port.AddToPacket(RUNTIME);
-    teensy_port.WriteMessage();
-    usleep(1000);
-    teensy_port.ReadMessage();
+    teensy_port.Request(RUNTIME);
+    teensy_port.PacketManager();
     PrintRuntime();
     PrintAccelerations();   
     RequestAllStop();   
 	RequestStepCounts();
-	teensy_port.WriteMessage();
-	usleep(1000);
-	teensy_port.ReadMessage();
+	teensy_port.PacketManager();
 	PassMotorStepsToNavigator();
 	PassActuatorStepsToLeveller();
 	PrintStepCounts(); 
@@ -374,51 +362,39 @@ void RobotDriver::LinearSweepTest() {
     vel_target_wrapper.y = -0.014/1.414;
     LinearLateralRamp(vel_target_wrapper,10);
     RequestAccelerations();
-    teensy_port.AddToPacket(RUNTIME);
-    teensy_port.WriteMessage();
-    usleep(1000);
-    teensy_port.ReadMessage();
+    teensy_port.Request(RUNTIME);
+    teensy_port.PacketManager();
     PrintRuntime();
     PrintAccelerations();  
     RequestAllStop();
 	RequestStepCounts();
-	teensy_port.WriteMessage();
-	usleep(1000);
-	teensy_port.ReadMessage();
+	teensy_port.PacketManager();
 	PassMotorStepsToNavigator();
 	PassActuatorStepsToLeveller();
 	PrintStepCounts(); 
 
     LinearYawRamp(0.014,10);
     RequestAccelerations();
-    teensy_port.AddToPacket(RUNTIME);
-    teensy_port.WriteMessage();
-    usleep(1000);
-    teensy_port.ReadMessage();
+    teensy_port.Request(RUNTIME);
+    teensy_port.PacketManager();
     PrintRuntime();
     PrintAccelerations(); 
     RequestAllStop();
 	RequestStepCounts();
-	teensy_port.WriteMessage();
-	usleep(1000);
-	teensy_port.ReadMessage();
+	teensy_port.PacketManager();
 	PassMotorStepsToNavigator();
 	PassActuatorStepsToLeveller();
 	PrintStepCounts(); 
 
     LinearYawRamp(-0.014,10);
     RequestAccelerations();
-    teensy_port.AddToPacket(RUNTIME);
-    teensy_port.WriteMessage();
-    usleep(1000);
-    teensy_port.ReadMessage();
+    teensy_port.Request(RUNTIME);
+    teensy_port.PacketManager();
     PrintRuntime();
     PrintAccelerations(); 
     RequestAllStop();
 	RequestStepCounts();
-	teensy_port.WriteMessage();
-	usleep(1000);
-	teensy_port.ReadMessage();
+	teensy_port.PacketManager();
 	PassMotorStepsToNavigator();
 	PassActuatorStepsToLeveller();
 	PrintStepCounts(); 
@@ -430,19 +406,15 @@ void RobotDriver::RaiseAndLowerTest() {
 	
 	UpdateZVelocity(0.001);
 	RequestAccelerations();
-	teensy_port.AddToPacket(RUNTIME);
-	teensy_port.WriteMessage();
-	usleep(1000);
-	teensy_port.ReadMessage();
+	teensy_port.Request(RUNTIME);
+	teensy_port.PacketManager();
 	usleep(1000);
 	PrintRuntime();
 	PrintAccelerations();
 	sleep(10);
 	RequestAllStop();
 	RequestStepCounts();
-	teensy_port.WriteMessage();
-	usleep(1000);
-	teensy_port.ReadMessage();
+	teensy_port.PacketManager();
 	PassMotorStepsToNavigator();
 	PassActuatorStepsToLeveller();
 	PrintStepCounts(); 
@@ -450,19 +422,15 @@ void RobotDriver::RaiseAndLowerTest() {
 
 	UpdateZVelocity(-0.001);
 	RequestAccelerations();
-	teensy_port.AddToPacket(RUNTIME);
-	teensy_port.WriteMessage();
-	usleep(1000);
-	teensy_port.ReadMessage();
+	teensy_port.Request(RUNTIME);
+	teensy_port.PacketManager();;
 	usleep(1000);
 	PrintRuntime();
 	PrintAccelerations();
 	sleep(10);
 	RequestAllStop();
 	RequestStepCounts();
-	teensy_port.WriteMessage();
-	usleep(1000);
-	teensy_port.ReadMessage();
+	teensy_port.PacketManager();
 	PassMotorStepsToNavigator();
 	PassActuatorStepsToLeveller();
 	PrintStepCounts(); 
@@ -472,9 +440,7 @@ void RobotDriver::MeasureOrientationMeasurementNoise() {
 	for(int i = 0; i < 10000; ++i) {
 		//Each millisecond we request the current accelerometer measurements
 		RequestAccelerations();
-		teensy_port.WriteMessage();
-		usleep(500);
-		teensy_port.ReadMessage();
+		teensy_port.PacketManager();
 
 		//We pass that data to the leveller so it can convert it into pitch and roll estimates
 		PassAccelBytesToLeveller();
@@ -544,18 +510,14 @@ void RobotDriver::ApplySinusoidalVelocity(Servo::Doubles velocity_amplitude, uns
 
 		UpdateBFFVelocity(velocity_temp);
 		RequestAccelerations();
-		teensy_port.WriteMessage();
-		usleep(500);
-		teensy_port.ReadMessage();
-		usleep(500);
+		teensy_port.PacketManager();
+		usleep(1000);
 		WriteSinusoidalAccelerationsToFile(frequency);
 
 		for(int i = 0; i < 9; i++)	{
 			RequestAccelerations();
-			teensy_port.WriteMessage();
-			usleep(500);
-			teensy_port.ReadMessage();
-			usleep(500);
+			teensy_port.PacketManager();
+			usleep(1000);
 			WriteSinusoidalAccelerationsToFile(frequency);
 		}
 
@@ -709,20 +671,59 @@ void RobotDriver::PrintStepCounts() {
 	printf("Last Actuator 2 Step Count was %d\n",leveller.current_step_count_.motor_2);
 }
 
-int main() {
-    RobotDriver driver;
-	
-	//driver.NavigatorTest();
+#include <chrono>
 
-	//driver.SinusoidalSweep(500,20000,500);
+bool closed_loop_enable_flag = true;
+
+int main() {
+	//Necessary global timing measures
+	using std::chrono::high_resolution_clock;
+	using std::chrono::duration_cast;
+	using std::chrono::duration;
+	using std::chrono::microseconds;
+
+	auto time_point_start = high_resolution_clock::now();
+	auto time_point_current = high_resolution_clock::now();
+	auto last_leveller_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+	auto last_navigator_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+	auto global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+
+	RobotDriver driver;
 	
+	driver.EngageLeveller();
+	driver.EngageNavigator();
+
+	//Open loop tests
+	//driver.SinusoidalSweep(500,20000,500);
     //driver.RaiseAndLowerTest();
     //driver.LinearSweepTest();
-	driver.EngageLeveller();
-    
 	//driver.MeasureOrientationMeasurementNoise();
-    driver.teensy_port.ClosePort();
-    return 0;
+	//driver.NavigatorTest();
+
+	while(closed_loop_enable_flag) {
+		time_point_current = high_resolution_clock::now();
+		global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+
+		if((global_timepoint-last_leveller_timepoint) > 100000) {
+			last_leveller_timepoint = global_timepoint;
+			if(driver.leveller.enable_flag_) {
+				driver.LevellerLoop();
+			}
+		}
+		
+		if((global_timepoint-last_navigator_timepoint) > 10000) {
+			last_navigator_timepoint = global_timepoint;
+			if(driver.navigator.enable_flag_) {
+				driver.NavigatorLoop();
+			}
+		}
+
+		driver.teensy_port.PacketManager();
+	}
+
+	driver.teensy_port.ClosePort();
+
+	return -1;
 }
 
 

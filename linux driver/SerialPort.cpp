@@ -264,12 +264,12 @@ void SerialPort::ReadMessage() {
             i += 1;
             break;
         default:
-            printf("Unknown Code\n");
+            printf("Unknown Code  ");
+            printf("%#X\n",read_buffer_[i]);
             i += 1;
             break;
     }} 
 }
-
 
 
 void SerialPort::ClearReadBuff() {
@@ -283,6 +283,13 @@ void SerialPort::ClearWriteBuff() {
         write_buffer_[i] = 0x00;
     }
     packet_size_ = 0;
+}
+
+void SerialPort::ClearRequestBuff() {
+    for(int i = 0; i < 1024; ++i){
+        request_buffer_[i] = 0x00;
+    }
+    request_buffer_first_empty_ = 0;
 }
 
 void SerialPort::ClearStructAccelBytes(AccelBytes *structure_ptr) {
@@ -305,6 +312,7 @@ void SerialPort::ClearStructVelBytes(VelBytes *structure_ptr) {
 
 //Write a command to a packet
 //Creating a packet if one does not already exist
+
 void SerialPort::AddToPacket(unsigned char command) {
     if(packet_size_ == 0) {
         write_buffer_[0] = 0xFF; //We open all packets with a 0xFF
@@ -359,6 +367,127 @@ void SerialPort::AddToPacket(unsigned char command) {
 }
 
 
+//Write the requested command into the request buffer 
+int SerialPort::Request(unsigned char command) {
+    if(request_buffer_first_empty_ == 1024) {
+        printf("Request buffer full\n");
+        return -1;
+    }
+    else {
+        request_buffer_[request_buffer_first_empty_] = command;
+        request_buffer_first_empty_ += 1;
+        return 0;
+    }
+}
 
+void SerialPort::PacketManager() {
+    int requested_incoming_byte_count = 0;
+    int requested_outgoing_byte_count = 0;
 
+    for(int i = 0; i < request_buffer_first_empty_; ++i) {
+        switch(request_buffer_[i]) {
+          case RUNTIME:
+              requested_incoming_byte_count += 5;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Step0Wr:
+              requested_incoming_byte_count += 5;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Step1Wr:
+              requested_incoming_byte_count += 5;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Step2Wr:
+              requested_incoming_byte_count += 5;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Step3Wr:
+              requested_incoming_byte_count += 5;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Step4Wr:
+              requested_incoming_byte_count += 5;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Step5Wr:
+              requested_incoming_byte_count += 5;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Acc0Wr:
+              requested_incoming_byte_count += 7;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Acc1Wr:
+              requested_incoming_byte_count += 7;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Acc2Wr:
+              requested_incoming_byte_count += 7;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Acc3Wr:
+              requested_incoming_byte_count += 7;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Acc4Wr:
+              requested_incoming_byte_count += 7;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Acc5Wr:
+              requested_incoming_byte_count += 7;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Raw0Wr:
+              requested_incoming_byte_count += 3;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Raw1Wr:
+              requested_incoming_byte_count += 3;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Raw2Wr:
+              requested_incoming_byte_count += 3;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Raw3Wr:
+              requested_incoming_byte_count += 3;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Raw4Wr:
+              requested_incoming_byte_count += 3;
+              requested_outgoing_byte_count += 3;
+              break;
+          case Raw5Wr:
+              requested_incoming_byte_count += 3;
+              requested_outgoing_byte_count += 3;
+              break;
+          default:
+              requested_outgoing_byte_count += 3;
+              break;
+        }
+        AddToPacket(request_buffer_[i]);
+
+        //If either the incoming or outgoing packets are full we send the messages
+        if(requested_outgoing_byte_count > 57 | requested_incoming_byte_count > 53) {
+            WriteMessage();
+            usleep(500);
+            if(requested_incoming_byte_count > 0) {
+                ReadMessage();
+            }
+            requested_outgoing_byte_count = 0;
+            requested_incoming_byte_count = 0;
+        }
+    } 
+
+    //If there is a message left to send we send it
+    if(requested_outgoing_byte_count > 0) {
+        WriteMessage();
+        usleep(500);
+        if(requested_incoming_byte_count > 0) {
+            ReadMessage();
+        }
+    }
+    ClearRequestBuff();
+}
 
