@@ -24,10 +24,6 @@ struct Triple {
   byte x[2], y[2], z[2];
 };
 
-struct PitchRoll {
-  double x, y, z;
-};
-
 class AccelerometerReader {
   private:
 
