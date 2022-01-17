@@ -69,9 +69,32 @@ namespace Control
 
             //Resonance Testing
             //NOTE: in these subroutines, all frequencies are measured in milliHertz
-            void ApplySinusoidalVelocity(Servo::Doubles velocity_amplitude, unsigned int frequency, unsigned int time);
-            void WriteSinusoidalAccelerationsToFile(unsigned int frequency);
-            void SinusoidalSweep(unsigned int start_frequency, unsigned int end_frequency, unsigned int step_size);
+            void ApplySinusoidalVelocity(Servo::Doubles velocity_amplitude, 
+                                         double amplitude_target, 
+                                         unsigned int frequency, 
+                                         unsigned int time,
+                                         char sweep_class);
+            void WriteSinusoidalAccelerationsToFile(unsigned int frequency,double amplitude,char sweep_class);
+            void SinusoidalSweepLinear(unsigned int start_frequency, 
+                                       unsigned int end_frequency, 
+                                       unsigned int step_size,
+                                       unsigned int power,
+                                       unsigned int time,
+                                       char direction,
+                                       double max_amplitude);
+            void SinusoidalSweepLog(unsigned int start_frequency, 
+                                    unsigned int end_frequency, 
+                                    double factor,
+                                    unsigned int power,
+                                    unsigned int time,
+                                    char direction,
+                                    double max_amplitude);
+            void SinusoidalAmplitudeSweepLinear(unsigned int frequency,
+                                                double amp_min,
+                                                double amp_max,
+                                                double sample_count,
+                                                unsigned int time,
+                                                char direction);
             bool sinusoidal_file_open_flag_ = false;
             
         private:

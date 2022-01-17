@@ -265,7 +265,7 @@ void RobotDriver::NavigatorLoop() {
 void RobotDriver::NavigatorTest() {
 	Servo::Doubles target_position;
 	target_position.x = -0.5;
-	target_position.y = -0.5;
+	target_position.y = 0;
 	target_position.z = 0;
 
 	SetNewTargetPosition(target_position);
@@ -496,13 +496,17 @@ RESONANCE TESTING
 
 
 //Applies a sinusoidal velocity in a certain direction at a certain frequency for some number of seconds
-//We update the velocity each 10 milliseconds to ensure smooth operation of the motors
+//We update the velocity each millisecond to ensure smooth operation of the motors
 //We also request the accelerations and store them in a file named by the relevant frequency
-void RobotDriver::ApplySinusoidalVelocity(Servo::Doubles velocity_amplitude, unsigned int frequency, unsigned int time)	{
+void RobotDriver::ApplySinusoidalVelocity(Servo::Doubles velocity_amplitude, 
+										  double amplitude_target,
+										  unsigned int frequency, 
+										  unsigned int time,
+										  char sweep_class)	{
 	unsigned int time_counter = 0; //counts the time (somewhat inaccurately) since the start of the subroutine, in milliseconds
 	Servo::Doubles velocity_temp;
 
-	while(time_counter < 1000*time) {
+	while(time_counter < 1000*(time+1)) {
 		double temp = cos(2.0*PI*(frequency/1000.0)*(time_counter/1000.0)); //cos(2PIft)
 		velocity_temp.x = temp*velocity_amplitude.x;//x
 		velocity_temp.y = temp*velocity_amplitude.y;//y
@@ -511,41 +515,126 @@ void RobotDriver::ApplySinusoidalVelocity(Servo::Doubles velocity_amplitude, uns
 		UpdateBFFVelocity(velocity_temp);
 		RequestAccelerations();
 		teensy_port.PacketManager();
-		usleep(1000);
-		WriteSinusoidalAccelerationsToFile(frequency);
+		usleep(500);
+		if(time_counter>=1000) {WriteSinusoidalAccelerationsToFile(frequency,amplitude_target,sweep_class);} //We wait 1 second to dampen any 
+																				//transient behaviour before recording
+		
 
-		for(int i = 0; i < 9; i++)	{
-			RequestAccelerations();
-			teensy_port.PacketManager();
-			usleep(1000);
-			WriteSinusoidalAccelerationsToFile(frequency);
-		}
-
-		time_counter += 10;
+		time_counter += 1;
 	}
 	RequestAllStop();
 }
 
 //Applies a sinusoidal sweep in the x direction
 //We apply each sinusoid for 30 seconds
-void RobotDriver::SinusoidalSweep(unsigned int start_frequency, unsigned int end_frequency, unsigned int step_size)	{
+//Note that the only valid direction options are 'x','y','z' (and that 'z' refers to a yaw rotation)
+void RobotDriver::SinusoidalSweepLinear(unsigned int start_frequency, 
+										unsigned int end_frequency, 
+										unsigned int step_size,
+										unsigned int power,
+										unsigned int time,
+										char direction,
+										double max_amplitude)	{
 	Servo::Doubles target;
-	target.x = 0.015;
+	target.x = 0.0;	 
 	target.y = 0.0;
 	target.z = 0.0;
 	for(unsigned int current_frequency = start_frequency; current_frequency <= end_frequency; current_frequency += step_size){
-		double temp = 0.0075/(current_frequency*0.001);//We scale the target velocity down by 1/f
-		printf("%f",temp);
-		target.x = temp; 
-		ApplySinusoidalVelocity(target,current_frequency,5);
+		double temp = max_amplitude*pow(start_frequency/(current_frequency*1.0),1.0/power);//We scale the target velocity down by 1/root_pow(f)
+		switch(direction){
+			case 'x':
+				target.x = temp;
+				break;
+			case 'y':
+				target.y = temp;
+				break;
+			case 'z':
+				target.z = temp;
+				break;
+			default:
+				printf("Direction Invalid\n");
+		}
+		ApplySinusoidalVelocity(target,temp,current_frequency,time,'f');
 	}
 }
 
-void RobotDriver::WriteSinusoidalAccelerationsToFile(unsigned int frequency) {
+//Slowly increases the magnitude of a sinusoid and stores the measured accelerations
+//Note that the only valid direction options are 'x','y','z' (and that 'z' refers to a yaw rotation)
+void RobotDriver::SinusoidalAmplitudeSweepLinear(unsigned int frequency,
+                                                double amp_min,
+                                                double amp_max,
+                                                double sample_count,
+                                                unsigned int time,
+                                                char direction)	{
+	Servo::Doubles target;
+	target.x = 0.0;	 
+	target.y = 0.0;
+	target.z = 0.0;
+	for(double amplitude = amp_min; amplitude <= amp_max; amplitude += (amp_max-amp_min)/sample_count){
+		double temp = amplitude;//We scale the target velocity down by 1/root_pow(f)
+		switch(direction){
+			case 'x':
+				target.x = temp;
+				break;
+			case 'y':
+				target.y = temp;
+				break;
+			case 'z':
+				target.z = temp;
+				break;
+			default:
+				printf("Direction Invalid\n");
+		}
+		ApplySinusoidalVelocity(target,temp,frequency,time,'a');
+	}
+}
+
+void RobotDriver::SinusoidalSweepLog(unsigned int start_frequency, 
+									 unsigned int end_frequency, 
+									 double factor,
+									 unsigned int power,
+									 unsigned int time,
+									 char direction,
+									 double max_amplitude)	{
+	Servo::Doubles target;
+	target.x = 0.0;
+	target.y = 0.0;
+	target.z = 0.0;
+	for(double current_frequency = start_frequency*1.0; current_frequency <= end_frequency; current_frequency *= factor){
+		double temp = max_amplitude*pow(start_frequency/current_frequency,1.0/power);//We scale the target velocity down by 1/root_pow(f)
+		switch(direction){
+			case 'x':
+				target.x = temp;
+				break;
+			case 'y':
+				target.y = temp;
+				break;
+			case 'z':
+				target.z = temp;
+				break;
+			default:
+				printf("Direction Invalid\n");
+		}
+		ApplySinusoidalVelocity(target,temp,lrint(current_frequency),time,'f');
+	}
+}
+
+//Writes the accelerations to a file which is named for easy passing when conducting resonance tests
+//Note that the only acceptable sweep_class values are 'a' and 'f' corresponding to amplitude
+//and frequency sweeps respectively. (N.B, this could be generalised but it is not currently necessary)
+void RobotDriver::WriteSinusoidalAccelerationsToFile(unsigned int frequency,double amplitude,char sweep_class) {
+	char title_buffer[50];
+	switch(sweep_class) {
+		case 'f':
+			sprintf(title_buffer,"%d_milliHertz_data.csv",frequency);
+			break;
+		case 'a':
+			sprintf(title_buffer,"%f_amplitude_%d_milliHertz_data.csv",amplitude,frequency);
+			break;
+		default:
+			printf("sweep class invalid");
+	}
 	if(!sinusoidal_file_open_flag_){
-		char title_buffer[50];
-		sprintf(title_buffer,"%d_milliHertz_data.csv",frequency);
-		
 		//Create a new file and write the state to it
 		std::ofstream output; 
 		output.open(title_buffer,std::ios::out);
@@ -576,9 +665,6 @@ void RobotDriver::WriteSinusoidalAccelerationsToFile(unsigned int frequency) {
 		
 	}
 	else {
-		char title_buffer[50];
-		sprintf(title_buffer,"%d_milliHertz_data.csv",frequency);
-
 		std::ofstream output; 
 		output.open(title_buffer,std::ios::app);
 		if(output.is_open()) {printf("File opened correctly\n");}
@@ -694,7 +780,9 @@ int main() {
 	driver.EngageNavigator();
 
 	//Open loop tests
-	//driver.SinusoidalSweep(500,20000,500);
+	//driver.SinusoidalSweepLog(10000,100000,1.0046,3,3,'y',0.002);
+	//driver.SinusoidalAmplitudeSweepLinear(1000,0,0.015,100,5,'y');
+
     //driver.RaiseAndLowerTest();
     //driver.LinearSweepTest();
 	//driver.MeasureOrientationMeasurementNoise();
@@ -707,7 +795,7 @@ int main() {
 		if((global_timepoint-last_leveller_timepoint) > 100000) {
 			last_leveller_timepoint = global_timepoint;
 			if(driver.leveller.enable_flag_) {
-				driver.LevellerLoop();
+				driver.LevellerLoop();	
 			}
 		}
 		
