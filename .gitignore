@@ -8,8 +8,8 @@ __pycache__/
 *.o
 
 #Jonah gitignore folders
-JonahCpp/data/
-JonahCpp/bin/
+Camera_SDKs/FLIR_SDK/data
+Camera_SDKs/FLIR_SDK/bin
 
 # Distribution / packaging
 .Python
