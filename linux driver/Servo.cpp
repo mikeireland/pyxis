@@ -41,18 +41,31 @@ void Leveller::CombineAccelerations() {
 
 //Compute the pitch and roll given the value of the accelerations
 void Leveller::EstimateState() {
-    pitch_estimate_ =  atan(-acc_estimate_.x/sqrt(acc_estimate_.z*acc_estimate_.z+
-                                                  acc_estimate_.y*acc_estimate_.y))*180/PI;
+    for(int i = 1; i <= 9; i++) {
+        pitch_estimate_arr_[i-1] = pitch_estimate_arr_[i];
+        roll_estimate_arr_[i-1] = roll_estimate_arr_[i];
+    }
 
-    roll_estimate_ = -atan(acc_estimate_.y/acc_estimate_.z)*180/PI;
-    printf("Pitch is %f\n",pitch_estimate_);
-    printf("Roll is %f\n",roll_estimate_);
+    pitch_estimate_arr_[9] =  atan(-acc_estimate_.x/sqrt(acc_estimate_.z*acc_estimate_.z+
+                                                  acc_estimate_.y*acc_estimate_.y))*180/PI;
+    roll_estimate_arr_[9] = -atan(acc_estimate_.y/acc_estimate_.z)*180/PI;
+
+    pitch_estimate_filtered_ = 0.0;
+    roll_estimate_filtered_ = 0.0;
+
+    for(int i = 0; i <= 9; i++) {
+        pitch_estimate_filtered_ += pitch_estimate_arr_[i]/10.0;
+        roll_estimate_filtered_ += roll_estimate_arr_[i]/10.0;
+    }
+
+    //printf("Pitch is %f\n",pitch_estimate_filtered_);
+    //printf("Roll is %f\n",roll_estimate_filtered_);
 }
 
 void Leveller::ApplyLQRGain() {
-    actuator_velocity_target_.x = -0.0001*(3.5*pitch_estimate_-8*roll_estimate_);
-    actuator_velocity_target_.y = -0.0001*(-7*pitch_estimate_);
-    actuator_velocity_target_.z = -0.0001*(3.5*pitch_estimate_+8*roll_estimate_);
+    actuator_velocity_target_.x = -0.0001*(4*pitch_estimate_filtered_-7*roll_estimate_filtered_);
+    actuator_velocity_target_.y = -0.0001*(-8*pitch_estimate_filtered_);
+    actuator_velocity_target_.z = -0.0001*(4*pitch_estimate_filtered_+7*roll_estimate_filtered_);
 }
 
 //Saturate the velocity if it is too high

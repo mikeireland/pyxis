@@ -200,8 +200,14 @@ void RobotDriver::LevellerLoop() {
 	PassAccelBytesToLeveller();
 	leveller.UpdateTarget();
 	UpdateActuatorVelocity(leveller.actuator_velocity_target_);
-	usleep(1000);
 	WriteLevellerStateToFile();
+}
+
+void RobotDriver::LevellerSubLoop() {
+	RequestAccelerations();
+	teensy_port.PacketManager();
+	PassAccelBytesToLeveller();
+	leveller.UpdateTarget();
 }
 
 
@@ -459,7 +465,7 @@ void RobotDriver::WriteLevellerStateToFile() {
 		std::ofstream output; 
 		output.open("leveller_state.csv",std::ios::out);
 		if(output.is_open()) {printf("File opened correctly\n");}
-		output << leveller.pitch_estimate_ << ',' << leveller.roll_estimate_ << ','
+		output << leveller.pitch_estimate_filtered_ << ',' << leveller.roll_estimate_filtered_ << ','
 		 	   << leveller.acc0_latest_measurements_.x << ',' << leveller.acc0_latest_measurements_.y << ',' << leveller.acc0_latest_measurements_.z << ','
 			   << leveller.acc1_latest_measurements_.x << ',' << leveller.acc1_latest_measurements_.y << ',' << leveller.acc1_latest_measurements_.z << ','
 		 	   << leveller.acc2_latest_measurements_.x << ',' << leveller.acc2_latest_measurements_.y << ',' << leveller.acc2_latest_measurements_.z << ','
@@ -475,7 +481,7 @@ void RobotDriver::WriteLevellerStateToFile() {
 		std::ofstream output; 
 		output.open("leveller_state.csv",std::ios::app);
 		if(output.is_open()) {printf("File opened correctly\n");}
-		output << leveller.pitch_estimate_ << ',' << leveller.roll_estimate_ << ','
+		output << leveller.pitch_estimate_filtered_ << ',' << leveller.roll_estimate_filtered_ << ','
 		 	   << leveller.acc0_latest_measurements_.x << ',' << leveller.acc0_latest_measurements_.y << ',' << leveller.acc0_latest_measurements_.z << ','
 			   << leveller.acc1_latest_measurements_.x << ',' << leveller.acc1_latest_measurements_.y << ',' << leveller.acc1_latest_measurements_.z << ','
 		 	   << leveller.acc2_latest_measurements_.x << ',' << leveller.acc2_latest_measurements_.y << ',' << leveller.acc2_latest_measurements_.z << ','
@@ -771,6 +777,7 @@ int main() {
 	auto time_point_start = high_resolution_clock::now();
 	auto time_point_current = high_resolution_clock::now();
 	auto last_leveller_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+	auto last_leveller_subtimepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 	auto last_navigator_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 	auto global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 
@@ -780,7 +787,7 @@ int main() {
 	driver.EngageNavigator();
 
 	//Open loop tests
-	//driver.SinusoidalSweepLog(10000,100000,1.0046,3,3,'y',0.002);
+	//driver.SinusoidalSweepLog(10000,100000,1.0046,1,3,'y',0.002);
 	//driver.SinusoidalAmplitudeSweepLinear(1000,0,0.015,100,5,'y');
 
     //driver.RaiseAndLowerTest();
@@ -792,10 +799,18 @@ int main() {
 		time_point_current = high_resolution_clock::now();
 		global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 
-		if((global_timepoint-last_leveller_timepoint) > 100000) {
+		
+
+		if((global_timepoint-last_leveller_timepoint) > 10000) {
 			last_leveller_timepoint = global_timepoint;
 			if(driver.leveller.enable_flag_) {
 				driver.LevellerLoop();	
+			}
+		}
+		else if(global_timepoint-last_leveller_subtimepoint > 1000) {
+			last_leveller_subtimepoint = global_timepoint;
+			if(driver.leveller.enable_flag_) {
+				driver.LevellerSubLoop();	
 			}
 		}
 		

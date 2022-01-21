@@ -44,6 +44,7 @@ namespace Control
             //Leveller Control
             void EngageLeveller();
             void LevellerLoop();
+            void LevellerSubLoop();
             void PassAccelBytesToLeveller();
             void PassActuatorStepsToLeveller();
 
