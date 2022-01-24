@@ -7,6 +7,7 @@
 #include "Port.h"
 #include "Commands.h"
 #include "ErrorCodes.h"
+#include "PowerReader.h"
 
 unsigned int scheduler_time_longest = 0;
 
@@ -21,6 +22,9 @@ class Controller {
     
     AccelerometerReader accelerometer_reader;
     struct Triple accel_buffer_[6];
+
+    PowerReader power_reader;
+    byte motor_voltage_[2] = {0};
 
     Port port;
     unsigned int temp_ = 0; //This will be used to temporarily store the next available memory write buffer location
@@ -45,6 +49,7 @@ class Controller {
       sched_[15] = Acc5ReX;
       sched_[16] = Acc5ReY;
       sched_[17] = Acc5ReZ;
+      sched_[18] = VolReM;
     }
 
     void UpdatePositions() {
@@ -219,6 +224,13 @@ class Controller {
               ReportError(SchedFull);
               break;
             }
+          case VolWrM:
+            if(ScheduleToNextFree(VolWrM) == 0){ 
+              break;
+            } else {
+              ReportError(SchedFull);
+              break;
+            }
           
           case RUNTIME:
             if(ScheduleToNextFree(RUNTIME) == 0){ 
@@ -270,6 +282,19 @@ class Controller {
         }
        }
        return -1;//In the event that it fails to find a spot in the schedule we return a -1
+    }
+
+    void WriteVol() {
+      temp_ = port.first_empty_;
+      if(port.first_empty_ + 3 > 61){
+        port.WriteMessage();
+      }
+      
+      temp_ = port.first_empty_;
+      port.write_buffer_[temp_] = VolWrM;
+      port.write_buffer_[temp_+1] = motor_voltage_[0];
+      port.write_buffer_[temp_+2] = motor_voltage_[1];
+      port.first_empty_ = temp_ + 3;
     }
 
     void WriteAcc(int index){
@@ -482,6 +507,9 @@ class Controller {
       case Acc5ReZ:
         accelerometer_reader.GetZ(5,accel_buffer_[5].z);
         break;
+      case VolReM:
+        power_reader.GetMotorVoltage(motor_voltage_);
+        break;
 
       //Push the values from the acceleration buffer to the write buffer
       case Acc0Wr:
@@ -508,7 +536,6 @@ class Controller {
         WriteAcc(5);
         sched_[sched_state_] = EMPTY;
         break;
-
       case Raw0Wr:
         WriteVel(0);
         sched_[sched_state_] = EMPTY;
@@ -555,6 +582,10 @@ class Controller {
         break;
       case Step5Wr:
         WriteSteps(5);
+        sched_[sched_state_] = EMPTY;
+        break;
+      case VolWrM:
+        WriteVol();
         sched_[sched_state_] = EMPTY;
         break;
       case RUNTIME:

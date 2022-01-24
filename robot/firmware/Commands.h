@@ -68,3 +68,7 @@
 #define Step3Wr 0x33
 #define Step4Wr 0x34
 #define Step5Wr 0x35
+
+//Read/write motor voltage
+#define VolReM 0x40
+#define VolWrM 0x41
