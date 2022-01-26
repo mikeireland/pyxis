@@ -30,22 +30,6 @@ void DFRobot_INA219::linearCalibrate(float ina219Reading_mA, float extMeterReadi
     writeInaReg(INA219_REG_CALIBRATION, calValue);
 }
 
-uint16_t * DFRobot_INA219::getBusVoltageRaw() {
-    return readInaReg(INA219_REG_BUSVOLTAGE)
-}
-
-uint16_t * DFRobot_INA219::getShuntVoltageRaw() {
-    return readInaReg(INA219_REG_SHUNTVOLTAGE)
-}
-
-uint8_t * DFRobot_INA219::getCurrentRaw() {
-    return readInaReg(INA219_REG_CURRENT)
-}
-
-uint8_t * DFRobot_INA219::getPowerRaw() {
-    return readInaReg(INA219_REG_POWER)
-}
-
 float DFRobot_INA219::getBusVoltage_V()
 {
     return (float) (readInaReg(INA219_REG_BUSVOLTAGE) >> 1) * 0.001;
@@ -164,7 +148,7 @@ void DFRobot_INA219_IIC::readReg(uint8_t reg, uint8_t *pBuf, uint16_t len)
     lastOperateStatus = eIna219_ok;
 }
 
-uint16_t DFRobot_INA219::readInaReg(uint8_t reg)
+int16_t DFRobot_INA219::readInaReg(uint8_t reg)
 {
     uint8_t buf[2] = {0};
     
