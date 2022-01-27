@@ -158,5 +158,54 @@ void Navigator::SetNewPosition(Doubles position_target) {
     position_target_ = position_target;
 }
 
+/*
+DEFINITIONS FOR THE Stabiliser OBJECT
+*/
 
+//Set a saturation velocity of 1000 micron/s
+double Stabiliser::motor_saturation_velocity_ = 0.002;
+double Stabiliser::actuator_saturation_velocity_ = 0.001;
+
+//Function to update Leveller's target velocitites
+//TODO Add a Kalman filter to better estimate the state
+void Stabiliser::UpdateTarget() {
+
+    //cacher the previous state estimate for use later
+    opto_pos_estimate_prior_ = opto_pos_estimate_;
+    opto_vel_estimate_prior_ = opto_vel_estimate_;
+    plat_pos_estimate_prior_ = plat_pos_estimate_;
+    plat_vel_estimate_prior_ = plat_vel_estimate_;
+    plat_acc_estimate_prior_ = plat_acc_estimate_; 
+
+    EstimateState();
+    ApplyLQRGain();
+    ConvertToMotorVelocity();
+    ApplySaturationFilter();
+}
+
+//Compute the Kalman filter predicted state for the system
+void Stabiliser::EstimateState() {
+}
+
+//Compute the LQR suggested physical velocity inputs
+void Stabiliser::ApplyLQRGain() {
+    input_velocity_.x = BFF_vel_reference_.x;
+    input_velocity_.y = BFF_vel_reference_.y;
+    input_velocity_.s = BFF_vel_reference_.z;
+}
+
+//Transform from physical velocties back into the velocities of the motors
+void Stabiliser::ConvertToMotorVelocity() {
+    motor_velocity_target_.x = -input_velocity_.y - input_velocity_.s;
+    motor_velocity_target_.y = ( input_velocity_.x * sin(PI / 3) + input_velocity_.y * cos(PI / 3)) - input_velocity_.s;
+    motor_velocity_target_.z = (-input_velocity_.x * sin(PI / 3) + input_velocity_.y * cos(PI / 3)) - input_velocity_.s;
+
+    actuator_velocity_target_.x = 0;
+    actuator_velocity_target_.y = 0;
+    actuator_velocity_target_.z = 0;
+}
+
+//Saturate the velocity if it is too high
+void Stabiliser::ApplySaturationFilter() {
+}
 

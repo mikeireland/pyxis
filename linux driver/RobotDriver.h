@@ -25,6 +25,7 @@ namespace Control
             Comms::SerialPort teensy_port;
             Servo::Leveller leveller;
             Servo::Navigator navigator;
+            Servo::Stabiliser stabiliser;
 
             Servo::Doubles BFF_velocity_target_; //We take these to be x,y,z = vx,vy,yaw 
             Servo::Doubles motor_velocities_target_; //For these take x,y,z == 0,1,2
@@ -34,6 +35,7 @@ namespace Control
             void LinearLateralRamp(Servo::Doubles velocity_target,double time);
             void LinearYawRamp(double yaw_rate_target,double time);
             void UpdateBFFVelocity(Servo::Doubles velocity);
+            void RequestNewVelocity(Servo::Doubles velocity);
 
             //Actuator control
             void UpdateZVelocity(double velocity);
@@ -52,9 +54,15 @@ namespace Control
             void EngageNavigator();
             void NavigatorLoop();
             void SetNewTargetPosition(Servo::Doubles position_target);
-            void RequestNewVelocity(Servo::Doubles velocity);
             void PassMotorStepsToNavigator();
             void NavigatorTest();
+
+            //Stabiliser Control
+            void EngageStabiliser();
+            void StabiliserLoop();
+            void SetNewStabiliserTarget(Servo::Doubles velocity_target, Servo::Doubles angle_target);
+            void PassAccelBytesToStabiliser();
+            void StabiliserTest();
 
             //General control
             void RequestAccelerations();
@@ -66,6 +74,7 @@ namespace Control
             void LinearSweepTest();
             void RaiseAndLowerTest();
             void WriteLevellerStateToFile();
+            void WriteStabiliserStateToFile();
             void MeasureOrientationMeasurementNoise();
 
             //Resonance Testing
@@ -106,6 +115,7 @@ namespace Control
 
             //I/O and timing data members
             bool leveller_file_open_flag_ = false;
+            bool stabiliser_file_open_flag_ = false;
     };
 
 
