@@ -106,9 +106,6 @@ namespace Servo
             Doubles acc5_latest_measurements_;
             DoublesSixAxis platform_position_measurement_;
 
-            //It is convenient to store the following
-            DoublesSixAxis input_velocity_;
-
             //Defining the input variables
             Doubles motor_velocity_target_;
             Doubles actuator_velocity_target_;
@@ -130,9 +127,13 @@ namespace Servo
             DoublesSixAxis plat_vel_estimate_prior_;
             DoublesSixAxis plat_acc_estimate_prior_;
 
-            bool enable_flag_ = false; //A flag to track whether the leveller should run or not
+            //Structure to store the velocity we want to apply to the platform
+            DoublesSixAxis input_velocity_;
 
-            void BLASTest();
+            //Structure to store the computed perturbation to the velocity
+            DoublesSixAxis plat_vel_perturbation_;
+
+            bool enable_flag_ = false; //A flag to track whether the leveller should run or not
 
         private:  
             static double motor_saturation_velocity_;
@@ -158,17 +159,22 @@ namespace Servo
 
             //Buffer vectors to store results of sub-computations necessary to the 
             //Kalman updating procedure
-            gsl_vector *x_hat_state_ = gsl_vector_alloc(30);
-            gsl_vector *x_hat_input_ = gsl_vector_alloc(30);
-            gsl_vector *x_hat_kalman_ = gsl_vector_alloc(30);
-            gsl_vector *y_error_ = gsl_vector_alloc(24);
+            gsl_vector *x_hat_state_ptr_ = gsl_vector_alloc(30);
+            gsl_vector *x_hat_input_ptr_ = gsl_vector_alloc(30);
+            gsl_vector *x_hat_kalman_ptr_ = gsl_vector_alloc(30);
 
             void ConstructMatrices(); //Reads in the gain matrices from external files. Runs at construction
+
+            //These just pass values from the user readable structs above into arrays that BLAS can handle
             void ConstructStateEstimateArray();
             void ConstructOutputArray();
             void ConstructInputArray();
 
-            void EstimateState();
+            //Passes the arrays created by the above back into user readable structs
+            void DeconstructStateEstimateArray();
+            void DeconstructInputArray();
+
+            void EstimateStateAndApplyGain();
             void ApplyLQRGain();
             void ConvertToMotorVelocity();
             void ApplySaturationFilter();

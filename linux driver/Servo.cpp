@@ -6,7 +6,11 @@
 using namespace Servo;
 
 /*
-DEFINITIONS FOR THE Leveller OBJECT
+LEVELLER DEFINITIONS
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 */
 
 //Set a saturation velocity of 1000 micron/s
@@ -81,7 +85,11 @@ void Leveller::ApplySaturationFilter() {
 }
 
 /*
-DEFINITIONS FOR THE Navigator OBJECT
+NAVIGATOR DEFINITIONS
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 */
 
 //We define the following relevant quantities for the Navigator controller 
@@ -158,7 +166,11 @@ void Navigator::SetNewPosition(Doubles position_target) {
 }
 
 /*
-DEFINITIONS FOR THE Stabiliser OBJECT
+STABILISER DEFINITIONS
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 */
 
 //Set a saturation velocity of 1000 micron/s
@@ -180,43 +192,95 @@ Stabiliser::Stabiliser() {
 //TODO Add a Kalman filter to better estimate the state
 void Stabiliser::UpdateTarget() {
 
-    //cacher the previous state estimate for use later
+    //cache the previous state estimate for use later
     opto_pos_estimate_prior_ = opto_pos_estimate_;
     opto_vel_estimate_prior_ = opto_vel_estimate_;
     plat_pos_estimate_prior_ = plat_pos_estimate_;
     plat_vel_estimate_prior_ = plat_vel_estimate_;
     plat_acc_estimate_prior_ = plat_acc_estimate_; 
 
-    EstimateState();
-    ApplyLQRGain();
+    EstimateStateAndApplyGain();
     ConvertToMotorVelocity();
     ApplySaturationFilter();
 }
 
 //Compute the Kalman filter predicted state for the system
-void Stabiliser::EstimateState() {
+void Stabiliser::EstimateStateAndApplyGain() {
+    //We update the arrays to store state variables
+    ConstructStateEstimateArray();
+    ConstructInputArray();
+    ConstructOutputArray();
+
     //We push the main model vectors to gsl vectors
     gsl_vector_view x_hat_vector = gsl_vector_view_array(x_hat_,30);
     gsl_vector_view x_hat_prior_vector = gsl_vector_view_array(x_hat_prior_,30);
     gsl_vector_view y_vector = gsl_vector_view_array(y_,24);
-    gsl_vector_view u_vector = gsl_vector_view_array(u_,30);
+    gsl_vector_view u_vector = gsl_vector_view_array(u_,6);
 
+    //We push the gain matrices to gsl matrices
+    gsl_matrix_view F_matrix = gsl_matrix_view_array(F_,30,30);
+    gsl_matrix_view B_matrix = gsl_matrix_view_array(B_,30,6);
+    gsl_matrix_view H_matrix = gsl_matrix_view_array(H_,24,30);
+    gsl_matrix_view G_matrix = gsl_matrix_view_array(G_,30,24);
+    gsl_matrix_view K_matrix = gsl_matrix_view_array(K_,6,30);
 
-}
+    //Compute the expected output from the prior state
+    gsl_blas_dgemv(CblasNoTrans,
+                    -1.0,&H_matrix.matrix,&x_hat_prior_vector.vector,
+                    1.0,&y_vector.vector); //We are computing (1.0*y-1.0*H.x_at) and we store it in the y_vector for convenience
+    //NOTE: y_vector is now storing y_error = y-H.x_hat. 
 
-//Compute the LQR suggested physical velocity inputs
-void Stabiliser::ApplyLQRGain() {
-    input_velocity_.x = BFF_vel_reference_.x;
-    input_velocity_.y = BFF_vel_reference_.y;
-    input_velocity_.s = BFF_vel_reference_.z;
+    //Compute the noise influence on the new state and pass it to the new x_hat_kalman_ buffer vector
+    gsl_blas_dgemv(CblasNoTrans,
+                    1.0, &G_matrix.matrix, &y_vector.vector,
+                    0.0, x_hat_kalman_ptr_);
+
+    //Compute the input influence on the new state estimate
+    gsl_blas_dgemv(CblasNoTrans,
+                    1.0, &B_matrix.matrix, &u_vector.vector,
+                    0.0, x_hat_input_ptr_);
+
+    //Compute the previous state estimate's influence on the new state estimate
+    gsl_blas_dgemv(CblasNoTrans,
+                    1.0, &F_matrix.matrix, &x_hat_prior_vector.vector,
+                    0.0, x_hat_state_ptr_);
+
+    //Now, we sum up all three of the vectors x_hat_vector_
+    gsl_blas_daxpy(1.0,x_hat_kalman_ptr_,&x_hat_vector.vector);
+    gsl_blas_daxpy(1.0,x_hat_input_ptr_,&x_hat_vector.vector);
+    gsl_blas_daxpy(1.0,x_hat_state_ptr_,&x_hat_vector.vector);
+
+    /*
+    The x_hat_ array now represents a prediction for the state of the system at the next timestep.
+    We then take that prediction and compute what feedback input we should apply (note the -1.0 for negative feedback)
+    NOTE: THIS MAY GET MOVED WHEN THIS IS UPGRADED TO A TRACKING CONTROLLER INSTEAD OF A REGULATOR
+    */
+
+   gsl_blas_dgemv(CblasNoTrans,
+                   -1.0, &K_matrix.matrix, &x_hat_vector.vector,
+                   0.0, &u_vector.vector);
+
+    //We pass newly computed values back into the controllers public buffers
+    DeconstructStateEstimateArray();
+    DeconstructInputArray();
 }
 
 //Transform from physical velocties back into the velocities of the motors
 void Stabiliser::ConvertToMotorVelocity() {
+    //We turn the perturbations into the new velocity values we will apply
+    input_velocity_.x = input_velocity_.x+dt_*plat_vel_perturbation_.x;
+    input_velocity_.y = input_velocity_.y+dt_*plat_vel_perturbation_.y;
+    input_velocity_.z = input_velocity_.z+dt_*plat_vel_perturbation_.z;
+    input_velocity_.r = input_velocity_.r+dt_*plat_vel_perturbation_.r;
+    input_velocity_.p = input_velocity_.p+dt_*plat_vel_perturbation_.p;
+    input_velocity_.y = input_velocity_.y+dt_*plat_vel_perturbation_.y;
+
     motor_velocity_target_.x = -input_velocity_.y - input_velocity_.s;
     motor_velocity_target_.y = ( input_velocity_.x * sin(PI / 3) + input_velocity_.y * cos(PI / 3)) - input_velocity_.s;
     motor_velocity_target_.z = (-input_velocity_.x * sin(PI / 3) + input_velocity_.y * cos(PI / 3)) - input_velocity_.s;
 
+
+    //TODO: compute what this transformation should be if we also want the z velocity as a state element (go to leveller control Mathematica notebook)
     actuator_velocity_target_.x = 0;
     actuator_velocity_target_.y = 0;
     actuator_velocity_target_.z = 0;
@@ -226,35 +290,9 @@ void Stabiliser::ConvertToMotorVelocity() {
 void Stabiliser::ApplySaturationFilter() {
 }
 
-void Stabiliser::BLASTest() {
-    /*
-    //Defining the data for the arrays
-    
-    ConstructMatrices();
-
-     double C_ [4] = {0.0,0.0,
-                    0.0,0.0};
-    
-    //Converting the arrays to gsl_matrices (BLAS wrapper)
-    gsl_matrix_view G_matrix_ = gsl_matrix_view_array(G_,2,3);
-    gsl_matrix_view H_matrix_ = gsl_matrix_view_array(H_,3,2);
-    gsl_matrix_view C_matrix_ = gsl_matrix_view_array(C_,2,2);
-    //Compute C = GH
-    gsl_blas_dgemm(CblasNoTrans,CblasNoTrans,
-                    1.0, &G_matrix_.matrix, &H_matrix_.matrix,
-                    0.0, &C_matrix_.matrix);
-         
-    printf ("[ %g, %g\n", C_[0], C_[1]);
-    printf ("  %g, %g ]\n", C_[2], C_[3]);    
-    */
-}
-
-
 void Stabiliser::ConstructMatrices() {
     //NOTE THAT THE MATRICES BELOW ARE NOT NECESSARILY IDENTICAL TO THE MATRICES USED TO COMPUTE G AND K
     //THEY ARE MINOR VARIATIONS CHOSEN TO INTRODUCE MINIMAL ERROR WHILE IMPROVING PERFORMANCE AND COMPUTATION SAFETY
-
-
     /*
     Reading in the state transition matrix
     */
@@ -455,9 +493,54 @@ void Stabiliser::ConstructOutputArray() {
     y_[23] = platform_position_measurement_.s;
 }
 
-//This subroutine isn't strictly necessary but is included for symmetry
+//Writing the last requested perturbations to the input array
 void Stabiliser::ConstructInputArray() {
-    for(int i = 0; i < 6; i++) {
-        u_[i] = 0;
-    }
+    u_[0] = plat_vel_perturbation_.x;
+    u_[1] = plat_vel_perturbation_.y;
+    u_[2] = plat_vel_perturbation_.z;
+    u_[3] = plat_vel_perturbation_.r;
+    u_[4] = plat_vel_perturbation_.p;
+    u_[5] = plat_vel_perturbation_.s;
+}
+
+void Stabiliser::DeconstructStateEstimateArray() {
+    opto_pos_estimate_.x = x_hat_[0]; 
+    opto_pos_estimate_.y = x_hat_[1]; 
+    opto_pos_estimate_.z = x_hat_[2]; 
+    opto_pos_estimate_.r = x_hat_[3]; 
+    opto_pos_estimate_.p = x_hat_[4]; 
+    opto_pos_estimate_.s = x_hat_[5]; 
+    opto_vel_estimate_.x = x_hat_[6]; 
+    opto_vel_estimate_.y = x_hat_[7]; 
+    opto_vel_estimate_.z = x_hat_[8]; 
+    opto_vel_estimate_.r = x_hat_[9]; 
+    opto_vel_estimate_.p = x_hat_[10];
+    opto_vel_estimate_.s = x_hat_[11];
+    plat_pos_estimate_.x = x_hat_[12];
+    plat_pos_estimate_.y = x_hat_[13];
+    plat_pos_estimate_.z = x_hat_[14];
+    plat_pos_estimate_.r = x_hat_[15];
+    plat_pos_estimate_.p = x_hat_[16];
+    plat_pos_estimate_.s = x_hat_[17];
+    plat_vel_estimate_.x = x_hat_[18];
+    plat_vel_estimate_.y = x_hat_[19];
+    plat_vel_estimate_.z = x_hat_[20];
+    plat_vel_estimate_.r = x_hat_[21];
+    plat_vel_estimate_.p = x_hat_[22];
+    plat_vel_estimate_.s = x_hat_[23];
+    plat_acc_estimate_.x = x_hat_[24];
+    plat_acc_estimate_.y = x_hat_[25];
+    plat_acc_estimate_.z = x_hat_[26];
+    plat_acc_estimate_.r = x_hat_[27];
+    plat_acc_estimate_.p = x_hat_[28];
+    plat_acc_estimate_.s = x_hat_[29];
+}
+
+void Stabiliser::DeconstructInputArray() {
+    plat_vel_perturbation_.x = u_[0];
+    plat_vel_perturbation_.y = u_[1];
+    plat_vel_perturbation_.z = u_[2];
+    plat_vel_perturbation_.r = u_[3];
+    plat_vel_perturbation_.p = u_[4];
+    plat_vel_perturbation_.s = u_[5];
 }

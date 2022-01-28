@@ -316,8 +316,6 @@ void RobotDriver::StabiliserLoop() {
 void RobotDriver::EngageStabiliser() {
 	stabiliser.enable_flag_ = true;
 
-	stabiliser.BLASTest();
-
 	RequestAccelerations();
 	teensy_port.PacketManager();
 	PassAccelBytesToStabiliser();
@@ -867,7 +865,7 @@ void RobotDriver::PrintStepCounts() {
 
 #include <chrono>
 
-bool closed_loop_enable_flag = false;
+bool closed_loop_enable_flag = true;
 
 int main() {
 	//Necessary global timing measures
@@ -898,7 +896,7 @@ int main() {
     //driver.LinearSweepTest();
 	//driver.MeasureOrientationMeasurementNoise();
 	//driver.NavigatorTest();
-	driver.StabiliserTest();
+	//driver.StabiliserTest();
 
 
 	while(closed_loop_enable_flag) {
