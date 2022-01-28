@@ -3,6 +3,12 @@
 #define PI 3.14159265
 
 #include <gsl/gsl_blas.h>
+// Linux headers
+#include <unistd.h> // write(), read(), close()
+#include <iostream>
+#include <fstream>
+#include <string>
+
 
 namespace Servo 
 {
@@ -85,6 +91,7 @@ namespace Servo
     class Stabiliser 
     {
         public:
+            Stabiliser();
             //Targets for the state elements we aim to control
             Doubles BFF_vel_reference_;
             Doubles BFF_pos_reference_; //NOTE: This will just be the integral of the above
@@ -133,11 +140,9 @@ namespace Servo
             static double dt_; //Time period for a controller loop (will be assumed to be 0.001)
 
             double F_ [30*30]; //Array to store the values of the state transition matrix 
-            //double H_ [24*30]; //Array to store the values of the measurement matrix 
-            double H_ [6];
+            double H_ [24*30]; //Array to store the values of the measurement matrix 
             double B_ [30*6]; //Array to store the values of the input-state coupling matrix 
-            //double G_ [30*24]; //Array to store the values of the Kalman Gain matrix
-            double G_ [6];
+            double G_ [30*24]; //Array to store the values of the Kalman Gain matrix
             double K_ [6*30]; //Array to store the proportional LQR gain
 
             //array to store the estimated state vector
@@ -151,6 +156,12 @@ namespace Servo
             //array to store the requested perturbations to the platform velocity
             double u_ [6];
 
+            //Buffer vectors to store results of sub-computations necessary to the 
+            //Kalman updating procedure
+            gsl_vector *x_hat_state_ = gsl_vector_alloc(30);
+            gsl_vector *x_hat_input_ = gsl_vector_alloc(30);
+            gsl_vector *x_hat_kalman_ = gsl_vector_alloc(30);
+            gsl_vector *y_error_ = gsl_vector_alloc(24);
 
             void ConstructMatrices(); //Reads in the gain matrices from external files. Runs at construction
             void ConstructStateEstimateArray();

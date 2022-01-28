@@ -90,7 +90,6 @@ double Navigator::gain_x_ = 0.1;
 double Navigator::gain_y_ = 0.1;
 double Navigator::gain_yaw_ = 0.1;
 
-
 //Update the target velocity of the motors based on the latest step count
 //We do this with a simple proportional gain feedback loop. A full PID controller will probably be needed
 //where precision is required but for purely slewing purposes this is likely sufficient. 
@@ -167,6 +166,16 @@ double Stabiliser::motor_saturation_velocity_ = 0.002;
 double Stabiliser::actuator_saturation_velocity_ = 0.001;
 double Stabiliser::dt_ = 0.001;
 
+
+Stabiliser::Stabiliser() {
+    //We initialise the matrices for the gains at class construction
+    //This ensures that they will always exist
+    ConstructMatrices();
+    ConstructStateEstimateArray();
+    ConstructInputArray();
+    ConstructOutputArray();
+}
+
 //Function to update Leveller's target velocitites
 //TODO Add a Kalman filter to better estimate the state
 void Stabiliser::UpdateTarget() {
@@ -186,6 +195,13 @@ void Stabiliser::UpdateTarget() {
 
 //Compute the Kalman filter predicted state for the system
 void Stabiliser::EstimateState() {
+    //We push the main model vectors to gsl vectors
+    gsl_vector_view x_hat_vector = gsl_vector_view_array(x_hat_,30);
+    gsl_vector_view x_hat_prior_vector = gsl_vector_view_array(x_hat_prior_,30);
+    gsl_vector_view y_vector = gsl_vector_view_array(y_,24);
+    gsl_vector_view u_vector = gsl_vector_view_array(u_,30);
+
+
 }
 
 //Compute the LQR suggested physical velocity inputs
@@ -211,6 +227,7 @@ void Stabiliser::ApplySaturationFilter() {
 }
 
 void Stabiliser::BLASTest() {
+    /*
     //Defining the data for the arrays
     
     ConstructMatrices();
@@ -229,25 +246,146 @@ void Stabiliser::BLASTest() {
          
     printf ("[ %g, %g\n", C_[0], C_[1]);
     printf ("  %g, %g ]\n", C_[2], C_[3]);    
+    */
 }
 
 
 void Stabiliser::ConstructMatrices() {
-    G_ [0] = 1.0;
-    G_ [1] = 2.0;
-    G_ [2] = 3.0;
+    //NOTE THAT THE MATRICES BELOW ARE NOT NECESSARILY IDENTICAL TO THE MATRICES USED TO COMPUTE G AND K
+    //THEY ARE MINOR VARIATIONS CHOSEN TO INTRODUCE MINIMAL ERROR WHILE IMPROVING PERFORMANCE AND COMPUTATION SAFETY
 
-    G_ [3] = 4.0;
-    G_ [4] = 5.0;
-    G_ [5] = 6.0;
- 
-    H_ [0] = 10.0;
-    H_ [1] = 20.0;
-    H_ [2] = 30.0;
 
-    H_ [3] = 40.0;
-    H_ [4] = 50.0;
-    H_ [5] = 60.0;
+    /*
+    Reading in the state transition matrix
+    */
+   std::ifstream file;
+   file.open("StabiliserMatrices/FDriverStabiliser.txt",std::ios::in);
+   std::string string_buffer = "";
+   int value_count = 0;
+   while(value_count < 30*30) {
+    char char_in = file.get();
+    if((char_in == ',') | (char_in == '\n') ) {
+        F_[value_count] = std::stod(string_buffer);
+        string_buffer = "";
+        value_count += 1;
+    }
+    else {
+        string_buffer += char_in;
+    }
+   }
+   file.close();
+
+   /*
+    Reading in the input-state coupling matrix
+    */
+   file.open("StabiliserMatrices/BDriverStabiliser.txt",std::ios::in);
+   string_buffer = "";
+   value_count = 0;
+   while(value_count < 30*6) {
+    char char_in = file.get();
+    if((char_in == ',') | (char_in == '\n') ) {
+        B_[value_count] = std::stod(string_buffer);
+        string_buffer = "";
+        value_count += 1;
+    }
+    else {
+        string_buffer += char_in;
+    }
+   }
+   file.close();
+
+   /*
+    Reading in the measurement matrix
+    */
+   file.open("StabiliserMatrices/HDriverStabiliser.txt",std::ios::in);
+   string_buffer = "";
+   value_count = 0;
+   while(value_count < 24*30) {
+    char char_in = file.get();
+    if((char_in == ',') | (char_in == '\n') ) {
+        H_[value_count] = std::stod(string_buffer);
+        string_buffer = "";
+        value_count += 1;
+    }
+    else {
+        string_buffer += char_in;
+    }
+   }
+   file.close();
+
+   /*
+    Reading in the Kalman Gain matrix
+    */
+   file.open("StabiliserMatrices/GDriverStabiliser.txt",std::ios::in);
+   string_buffer = "";
+   value_count = 0;
+   while(value_count < 30*24) {
+    char char_in = file.get();
+    if((char_in == ',') | (char_in == '\n') ) {
+        G_[value_count] = std::stod(string_buffer);
+        string_buffer = "";
+        value_count += 1;
+    }
+    else {
+        string_buffer += char_in;
+    }
+   }
+   file.close();
+
+   /*
+    Reading in the LQR Gain matrix
+    */
+   file.open("StabiliserMatrices/KDriverStabiliser.txt",std::ios::in);
+   string_buffer = "";
+   value_count = 0;
+   while(value_count < 6*30) {
+    char char_in = file.get();
+    if((char_in == ',') | (char_in == '\n') ) {
+        K_[value_count] = std::stod(string_buffer);
+        string_buffer = "";
+        value_count += 1;
+    }
+    else {
+        string_buffer += char_in;
+    }
+   }
+   file.close();
+
+    //Print the gain matrices as the end as a check
+   for(int i = 0; i < 30*30; i++) {
+       printf("%f,",F_[i]);
+       if(i%30 == 29){
+           printf("\n");
+       }
+   }
+   printf("\n\n\n\n\n");
+   for(int i = 0; i < 30*6; i++) {
+       printf("%f,",B_[i]);
+       if(i%6 == 5){
+           printf("\n");
+       }
+   }
+   printf("\n\n\n\n\n");
+   for(int i = 0; i < 24*30; i++) {
+       printf("%f,",H_[i]);
+       if(i%30 == 29){
+           printf("\n");
+       }
+   }
+   printf("\n\n\n\n\n");
+   for(int i = 0; i < 30*24; i++) {
+       printf("%f,",G_[i]);
+       if(i%24 == 23){
+           printf("\n");
+       }
+   }
+   printf("\n\n\n\n\n");
+   for(int i = 0; i < 6*30; i++) {
+       printf("%f,",K_[i]);
+       if(i%30 == 29){
+           printf("\n");
+       }
+   }
 }
 
 void Stabiliser::ConstructStateEstimateArray() {
