@@ -1,4 +1,4 @@
-g++ -c SerialPort.cpp
-g++ -c Servo.cpp
-g++ -c RobotDriver.cpp
-g++ RobotDriver.o Servo.o SerialPort.o -o run.out
+g++ -c SerialPort.cpp -lgsl -lgslcblas -lm
+g++ -c Servo.cpp -lgsl -lgslcblas -lm
+g++ -c RobotDriver.cpp -lgsl -lgslcblas -lm
+g++ RobotDriver.o Servo.o SerialPort.o -static -lgsl -lgslcblas -lm -o run.out

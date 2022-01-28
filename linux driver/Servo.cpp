@@ -165,6 +165,7 @@ DEFINITIONS FOR THE Stabiliser OBJECT
 //Set a saturation velocity of 1000 micron/s
 double Stabiliser::motor_saturation_velocity_ = 0.002;
 double Stabiliser::actuator_saturation_velocity_ = 0.001;
+double Stabiliser::dt_ = 0.001;
 
 //Function to update Leveller's target velocitites
 //TODO Add a Kalman filter to better estimate the state
@@ -209,3 +210,116 @@ void Stabiliser::ConvertToMotorVelocity() {
 void Stabiliser::ApplySaturationFilter() {
 }
 
+void Stabiliser::BLASTest() {
+    //Defining the data for the arrays
+    
+    ConstructMatrices();
+
+     double C_ [4] = {0.0,0.0,
+                    0.0,0.0};
+    
+    //Converting the arrays to gsl_matrices (BLAS wrapper)
+    gsl_matrix_view G_matrix_ = gsl_matrix_view_array(G_,2,3);
+    gsl_matrix_view H_matrix_ = gsl_matrix_view_array(H_,3,2);
+    gsl_matrix_view C_matrix_ = gsl_matrix_view_array(C_,2,2);
+    //Compute C = GH
+    gsl_blas_dgemm(CblasNoTrans,CblasNoTrans,
+                    1.0, &G_matrix_.matrix, &H_matrix_.matrix,
+                    0.0, &C_matrix_.matrix);
+         
+    printf ("[ %g, %g\n", C_[0], C_[1]);
+    printf ("  %g, %g ]\n", C_[2], C_[3]);    
+}
+
+
+void Stabiliser::ConstructMatrices() {
+    G_ [0] = 1.0;
+    G_ [1] = 2.0;
+    G_ [2] = 3.0;
+
+    G_ [3] = 4.0;
+    G_ [4] = 5.0;
+    G_ [5] = 6.0;
+ 
+    H_ [0] = 10.0;
+    H_ [1] = 20.0;
+    H_ [2] = 30.0;
+
+    H_ [3] = 40.0;
+    H_ [4] = 50.0;
+    H_ [5] = 60.0;
+}
+
+void Stabiliser::ConstructStateEstimateArray() {
+    for(int i = 0; i < 30; i++) {
+        x_hat_[i] = 0;
+    }
+
+    x_hat_prior_[0] = opto_pos_estimate_prior_.x;
+    x_hat_prior_[1] = opto_pos_estimate_prior_.y;
+    x_hat_prior_[2] = opto_pos_estimate_prior_.z;
+    x_hat_prior_[3] = opto_pos_estimate_prior_.r;
+    x_hat_prior_[4] = opto_pos_estimate_prior_.p;
+    x_hat_prior_[5] = opto_pos_estimate_prior_.s;
+    x_hat_prior_[6] = opto_vel_estimate_prior_.x;
+    x_hat_prior_[7] = opto_vel_estimate_prior_.y;
+    x_hat_prior_[8] = opto_vel_estimate_prior_.z;
+    x_hat_prior_[9] = opto_vel_estimate_prior_.r;
+    x_hat_prior_[10] = opto_vel_estimate_prior_.p;
+    x_hat_prior_[11] = opto_vel_estimate_prior_.s;
+    x_hat_prior_[12] = plat_pos_estimate_prior_.x;
+    x_hat_prior_[13] = plat_pos_estimate_prior_.y;
+    x_hat_prior_[14] = plat_pos_estimate_prior_.z;
+    x_hat_prior_[15] = plat_pos_estimate_prior_.r;
+    x_hat_prior_[16] = plat_pos_estimate_prior_.p;
+    x_hat_prior_[17] = plat_pos_estimate_prior_.s;
+    x_hat_prior_[18] = plat_vel_estimate_prior_.x;
+    x_hat_prior_[19] = plat_vel_estimate_prior_.y;
+    x_hat_prior_[20] = plat_vel_estimate_prior_.z;
+    x_hat_prior_[21] = plat_vel_estimate_prior_.r;
+    x_hat_prior_[22] = plat_vel_estimate_prior_.p;
+    x_hat_prior_[23] = plat_vel_estimate_prior_.s;
+    x_hat_prior_[24] = plat_acc_estimate_prior_.x;
+    x_hat_prior_[25] = plat_acc_estimate_prior_.y;
+    x_hat_prior_[26] = plat_acc_estimate_prior_.z;
+    x_hat_prior_[27] = plat_acc_estimate_prior_.r;
+    x_hat_prior_[28] = plat_acc_estimate_prior_.p;
+    x_hat_prior_[29] = plat_acc_estimate_prior_.s;
+}
+
+void Stabiliser::ConstructOutputArray() {
+    //Writing in the last accelerometer measurements
+    y_[0] = acc0_latest_measurements_.x;
+    y_[1] = acc0_latest_measurements_.y;
+    y_[2] = acc0_latest_measurements_.z;
+    y_[3] = acc1_latest_measurements_.x;
+    y_[4] = acc1_latest_measurements_.y;
+    y_[5] = acc1_latest_measurements_.z;
+    y_[6] = acc2_latest_measurements_.x;
+    y_[7] = acc2_latest_measurements_.y;
+    y_[8] = acc2_latest_measurements_.z;
+    y_[9] = acc3_latest_measurements_.x;
+    y_[10] = acc3_latest_measurements_.y;
+    y_[11] = acc3_latest_measurements_.z;
+    y_[12] = acc4_latest_measurements_.x;
+    y_[13] = acc4_latest_measurements_.y;
+    y_[14] = acc4_latest_measurements_.z;
+    y_[15] = acc5_latest_measurements_.x;
+    y_[16] = acc5_latest_measurements_.y;
+    y_[17] = acc5_latest_measurements_.z;
+
+    //Writing in the current approximation of the platform position
+    y_[18] = platform_position_measurement_.x;
+    y_[19] = platform_position_measurement_.y;
+    y_[20] = platform_position_measurement_.z;
+    y_[21] = platform_position_measurement_.r;
+    y_[22] = platform_position_measurement_.p;
+    y_[23] = platform_position_measurement_.s;
+}
+
+//This subroutine isn't strictly necessary but is included for symmetry
+void Stabiliser::ConstructInputArray() {
+    for(int i = 0; i < 6; i++) {
+        u_[i] = 0;
+    }
+}
