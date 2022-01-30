@@ -12,6 +12,9 @@
 
 namespace Servo 
 {
+    const double distance_per_microstep_motor = 0.000000297;
+    const double distance_per_microstep_actuator = 0.000004/256.0; //THIS IS A PLACEHOLDER VALUE UNTIL I CHECK THE REAL ONE
+
     struct Doubles 
     {
         double x = 0; 
@@ -105,6 +108,8 @@ namespace Servo
             Doubles acc4_latest_measurements_;
             Doubles acc5_latest_measurements_;
             DoublesSixAxis platform_position_measurement_;
+            Steps motor_steps_measurement_;
+            Steps actuator_steps_measurement_;
 
             //Defining the input variables
             Doubles motor_velocity_target_;
@@ -174,6 +179,7 @@ namespace Servo
             void DeconstructStateEstimateArray();
             void DeconstructInputArray();
 
+            void RunLogicalDistanceSensor();
             void EstimateStateAndApplyGain();
             void ApplyLQRGain();
             void ConvertToMotorVelocity();

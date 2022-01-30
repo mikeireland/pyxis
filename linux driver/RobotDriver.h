@@ -62,6 +62,7 @@ namespace Control
             void StabiliserLoop();
             void SetNewStabiliserTarget(Servo::Doubles velocity_target, Servo::Doubles angle_target);
             void PassAccelBytesToStabiliser();
+            void PassStepsToStabiliser();
             void StabiliserTest();
 
             //General control

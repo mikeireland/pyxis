@@ -1,4 +1,4 @@
-//Servo.cpp
+    //Servo.cpp
 #include "Servo.h"
 #include <math.h>
 #include <stdio.h>
@@ -118,12 +118,28 @@ void Navigator::ComputeState() {
 
     //Note that the above are being stored in units of microsteps. To convert to metres we note that there are 295nm in a microstep 
     //of the motors and therefore that we have
-    distance_from_reference_.x = temp_x*0.000000297;
-    distance_from_reference_.y = temp_y*0.000000297;
+    distance_from_reference_.x = temp_x*distance_per_microstep_motor;
+    distance_from_reference_.y = temp_y*distance_per_microstep_motor;
+
     //For the yaw we must also multiply by the rotational factor to recognise that our yaw is a dimensionless quantity in radians
     //Note that the 0.3 below represents a 30cm radius for the rotation. This is just a ballpark figure and will need to 
     //be made more accurate for any precision purposes
-    distance_from_reference_.z = temp_yaw*(0.000000297/0.3);
+    distance_from_reference_.z = temp_yaw*(distance_per_microstep_motor/0.3);
+
+    /* MUST CHANGE THE ABOVE AND THE SAME IN THE STABILISER DO NOT FORGET !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    */
 }
 
 void Navigator::ApplyPropGain() {
@@ -199,9 +215,25 @@ void Stabiliser::UpdateTarget() {
     plat_vel_estimate_prior_ = plat_vel_estimate_;
     plat_acc_estimate_prior_ = plat_acc_estimate_; 
 
+    RunLogicalDistanceSensor();
     EstimateStateAndApplyGain();
     ConvertToMotorVelocity();
     ApplySaturationFilter();
+}
+
+//For the Kalman filter to work well a logical distance sensor is required which creates an inaccurate measurement
+//of the platform position from the step counts
+void Stabiliser::RunLogicalDistanceSensor() {
+
+    //We first push the motor step count into its associated buffer with 
+    platform_position_measurement_.x = distance_per_microstep_motor*(0.5774*motor_steps_measurement_.motor_1-0.5774*motor_steps_measurement_.motor_2);//x displacement
+    platform_position_measurement_.y = distance_per_microstep_motor*(-0.6667*motor_steps_measurement_.motor_0+0.3333*motor_steps_measurement_.motor_1+0.3333*motor_steps_measurement_.motor_2);//y displacement
+    platform_position_measurement_.s = (distance_per_microstep_motor/0.3)*(-0.3333*motor_steps_measurement_.motor_0-0.3333*motor_steps_measurement_.motor_1-0.3333*motor_steps_measurement_.motor_2);//yaw displacement
+
+    //We then push the actuator step counts into their buffers
+    platform_position_measurement_.z = distance_per_microstep_actuator*0.3333*(actuator_steps_measurement_.motor_0+actuator_steps_measurement_.motor_1+actuator_steps_measurement_.motor_2);
+    platform_position_measurement_.r = distance_per_microstep_actuator*(194.0*actuator_steps_measurement_.motor_0-194.0*actuator_steps_measurement_.motor_2);
+    platform_position_measurement_.p = distance_per_microstep_actuator*(112.0*actuator_steps_measurement_.motor_0-224.0*actuator_steps_measurement_.motor_1+112.0*actuator_steps_measurement_.motor_2);
 }
 
 //Compute the Kalman filter predicted state for the system
@@ -275,19 +307,34 @@ void Stabiliser::ConvertToMotorVelocity() {
     input_velocity_.p = input_velocity_.p+dt_*plat_vel_perturbation_.p;
     input_velocity_.y = input_velocity_.y+dt_*plat_vel_perturbation_.y;
 
-    motor_velocity_target_.x = -input_velocity_.y - input_velocity_.s;
-    motor_velocity_target_.y = ( input_velocity_.x * sin(PI / 3) + input_velocity_.y * cos(PI / 3)) - input_velocity_.s;
-    motor_velocity_target_.z = (-input_velocity_.x * sin(PI / 3) + input_velocity_.y * cos(PI / 3)) - input_velocity_.s;
-
-
-    //TODO: compute what this transformation should be if we also want the z velocity as a state element (go to leveller control Mathematica notebook)
-    actuator_velocity_target_.x = 0;
-    actuator_velocity_target_.y = 0;
-    actuator_velocity_target_.z = 0;
+    //For details on these transformations see the Stabiliser Transformations Mathematica notebook or the full Stabiliser documentation 
+    motor_velocity_target_.x = -input_velocity_.y - input_velocity_.s;                                                     //Motor 0
+    motor_velocity_target_.y = ( input_velocity_.x * sin(PI / 3) + input_velocity_.y * cos(PI / 3)) - input_velocity_.s;   //Motor 1
+    motor_velocity_target_.z = (-input_velocity_.x * sin(PI / 3) + input_velocity_.y * cos(PI / 3)) - input_velocity_.s;   //Motor 2
+    actuator_velocity_target_.x = input_velocity_.z + (1.0/388.0)*input_velocity_.r+(1.0/672.0)*input_velocity_.p; //Actuator 0
+    actuator_velocity_target_.y = input_velocity_.z - (1.0/336.0)*input_velocity_.p;                               //Actuator 1
+    actuator_velocity_target_.z = input_velocity_.z - (1.0/388.0)*input_velocity_.r+(1.0/672.0)*input_velocity_.p; //Actuator 2
 }
 
 //Saturate the velocity if it is too high
 void Stabiliser::ApplySaturationFilter() {
+    if(motor_velocity_target_.x > motor_saturation_velocity_) {motor_velocity_target_.x = motor_saturation_velocity_; printf("Saturated Motor 0\n");}
+    else if(motor_velocity_target_.x < -motor_saturation_velocity_) {motor_velocity_target_.x = -motor_saturation_velocity_; printf("Saturated Motor 0\n");}
+
+    if(motor_velocity_target_.y > motor_saturation_velocity_) {motor_velocity_target_.y = motor_saturation_velocity_; printf("Saturated Motor 1\n");}
+    else if(motor_velocity_target_.y < -motor_saturation_velocity_) {motor_velocity_target_.y = -motor_saturation_velocity_; printf("Saturated Motor 1\n");}
+
+    if(motor_velocity_target_.z > motor_saturation_velocity_) {motor_velocity_target_.z = motor_saturation_velocity_;printf("Saturated Motor 2\n");}
+    else if(motor_velocity_target_.z < -motor_saturation_velocity_) {motor_velocity_target_.z = -motor_saturation_velocity_; printf("Saturated Motor 2\n");}
+
+    if(actuator_velocity_target_.x > actuator_saturation_velocity_) {actuator_velocity_target_.x = actuator_saturation_velocity_; printf("Saturated Actuator 0\n");}
+    else if(actuator_velocity_target_.x < -actuator_saturation_velocity_) {actuator_velocity_target_.x = -actuator_saturation_velocity_; printf("Saturated Actuator 0\n");}
+
+    if(actuator_velocity_target_.y > actuator_saturation_velocity_) {actuator_velocity_target_.y = actuator_saturation_velocity_; printf("Saturated Actuator 1\n");}
+    else if(actuator_velocity_target_.y < -actuator_saturation_velocity_) {actuator_velocity_target_.y = -actuator_saturation_velocity_; printf("Saturated Actuator 1\n");}
+
+    if(actuator_velocity_target_.z > actuator_saturation_velocity_) {actuator_velocity_target_.z = actuator_saturation_velocity_;printf("Saturated Actuator 2\n");}
+    else if(actuator_velocity_target_.z < -actuator_saturation_velocity_) {actuator_velocity_target_.z = -actuator_saturation_velocity_; printf("Saturated Actuator 2\n");}
 }
 
 void Stabiliser::ConstructMatrices() {

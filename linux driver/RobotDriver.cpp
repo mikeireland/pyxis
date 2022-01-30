@@ -303,12 +303,23 @@ void RobotDriver::PassAccelBytesToStabiliser() {
 	stabiliser.acc5_latest_measurements_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]);
 }
 
+void RobotDriver::PassStepsToStabiliser() {
+	stabiliser.motor_steps_measurement_.motor_0 = BytesToInt(teensy_port.step_count0_in_[0],teensy_port.step_count0_in_[1],teensy_port.step_count0_in_[2],teensy_port.step_count0_in_[3]);
+	stabiliser.motor_steps_measurement_.motor_1 = BytesToInt(teensy_port.step_count1_in_[0],teensy_port.step_count1_in_[1],teensy_port.step_count1_in_[2],teensy_port.step_count1_in_[3]);
+	stabiliser.motor_steps_measurement_.motor_2 = BytesToInt(teensy_port.step_count2_in_[0],teensy_port.step_count2_in_[1],teensy_port.step_count2_in_[2],teensy_port.step_count2_in_[3]);
+	stabiliser.actuator_steps_measurement_.motor_0 = BytesToInt(teensy_port.step_count3_in_[0],teensy_port.step_count3_in_[1],teensy_port.step_count3_in_[2],teensy_port.step_count3_in_[3]);
+	stabiliser.actuator_steps_measurement_.motor_1 = BytesToInt(teensy_port.step_count4_in_[0],teensy_port.step_count4_in_[1],teensy_port.step_count4_in_[2],teensy_port.step_count4_in_[3]);
+	stabiliser.actuator_steps_measurement_.motor_2 = BytesToInt(teensy_port.step_count5_in_[0],teensy_port.step_count5_in_[1],teensy_port.step_count5_in_[2],teensy_port.step_count5_in_[3]);
+}
+
 void RobotDriver::StabiliserLoop() {
 	PassAccelBytesToStabiliser();
+	PassStepsToStabiliser();
 	stabiliser.UpdateTarget();
 	WriteStabiliserStateToFile();
 
 	RequestAccelerations();
+	RequestStepCounts();
 	RequestNewVelocity(stabiliser.motor_velocity_target_);
 	UpdateActuatorVelocity(stabiliser.actuator_velocity_target_);	
 }
