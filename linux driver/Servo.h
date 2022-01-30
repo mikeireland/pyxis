@@ -99,6 +99,7 @@ namespace Servo
             Doubles BFF_vel_reference_;
             Doubles BFF_pos_reference_; //NOTE: This will just be the integral of the above
             Doubles angle_reference_;
+            int time_;
 
             //Structures to store the measured values
             Doubles acc0_latest_measurements_;
@@ -110,6 +111,16 @@ namespace Servo
             DoublesSixAxis platform_position_measurement_;
             Steps motor_steps_measurement_;
             Steps actuator_steps_measurement_;
+
+            //Ground state measurements for the accelerations
+            //For calibration to remove gravity
+            //Will be calibrated on engagement
+            Doubles acc0_ground_state_measurement_;
+            Doubles acc1_ground_state_measurement_;
+            Doubles acc2_ground_state_measurement_;
+            Doubles acc3_ground_state_measurement_;
+            Doubles acc4_ground_state_measurement_;
+            Doubles acc5_ground_state_measurement_;
 
             //Defining the input variables
             Doubles motor_velocity_target_;
@@ -155,6 +166,10 @@ namespace Servo
             double x_hat_ [30];
             //array to store the prior estimated state vector
             double x_hat_prior_ [30];
+
+            //Reference state array (for tracking)
+            double r_ [30];
+
             //Defining the array of output variables
             //Indices 0-17 list the accelerometer readings in order
             //Indices 18-24 list the rough measurement of platform position
@@ -174,6 +189,7 @@ namespace Servo
             void ConstructStateEstimateArray();
             void ConstructOutputArray();
             void ConstructInputArray();
+            void ConstructStateReferenceArray();
 
             //Passes the arrays created by the above back into user readable structs
             void DeconstructStateEstimateArray();

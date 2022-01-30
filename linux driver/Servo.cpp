@@ -200,12 +200,11 @@ Stabiliser::Stabiliser() {
     //This ensures that they will always exist
     ConstructMatrices();
     ConstructStateEstimateArray();
+    ConstructStateReferenceArray();
     ConstructInputArray();
     ConstructOutputArray();
 }
 
-//Function to update Leveller's target velocitites
-//TODO Add a Kalman filter to better estimate the state
 void Stabiliser::UpdateTarget() {
 
     //cache the previous state estimate for use later
@@ -214,6 +213,8 @@ void Stabiliser::UpdateTarget() {
     plat_pos_estimate_prior_ = plat_pos_estimate_;
     plat_vel_estimate_prior_ = plat_vel_estimate_;
     plat_acc_estimate_prior_ = plat_acc_estimate_; 
+
+    time_ += 1;
 
     RunLogicalDistanceSensor();
     EstimateStateAndApplyGain();
@@ -246,6 +247,7 @@ void Stabiliser::EstimateStateAndApplyGain() {
     //We push the main model vectors to gsl vectors
     gsl_vector_view x_hat_vector = gsl_vector_view_array(x_hat_,30);
     gsl_vector_view x_hat_prior_vector = gsl_vector_view_array(x_hat_prior_,30);
+    gsl_vector_view r_vector = gsl_vector_view_array(r_,30);
     gsl_vector_view y_vector = gsl_vector_view_array(y_,24);
     gsl_vector_view u_vector = gsl_vector_view_array(u_,6);
 
@@ -281,6 +283,10 @@ void Stabiliser::EstimateStateAndApplyGain() {
     gsl_blas_daxpy(1.0,x_hat_kalman_ptr_,&x_hat_vector.vector);
     gsl_blas_daxpy(1.0,x_hat_input_ptr_,&x_hat_vector.vector);
     gsl_blas_daxpy(1.0,x_hat_state_ptr_,&x_hat_vector.vector);
+
+    //For tracking purposes we remove the reference from the 
+    //state and store the new error state in the same state vector
+    gsl_blas_daxpy(-1.0,&r_vector.vector,&x_hat_vector.vector);
 
     /*
     The x_hat_ array now represents a prediction for the state of the system at the next timestep.
@@ -508,6 +514,49 @@ void Stabiliser::ConstructStateEstimateArray() {
     x_hat_prior_[27] = plat_acc_estimate_prior_.r;
     x_hat_prior_[28] = plat_acc_estimate_prior_.p;
     x_hat_prior_[29] = plat_acc_estimate_prior_.s;
+}
+
+void Stabiliser::ConstructStateReferenceArray() {
+    //We construct the postion reference as the time integral of the 
+    //velocity reference
+    r_ [0] = BFF_vel_reference_.x*time_*dt_;
+    r_ [1] = BFF_vel_reference_.y*time_*dt_;
+
+    //Reference height is equilibrium
+    r_ [2] = 0;
+
+    r_ [3] = angle_reference_.x; //roll
+    r_ [4] = angle_reference_.y; //pitch
+    r_ [5] = BFF_vel_reference_.z*time_*dt_; //We integrate for yaw
+
+    //target velocity
+    r_ [6] = BFF_vel_reference_.x;
+    r_ [7] = BFF_vel_reference_.y;
+    r_ [8] = 0;
+
+    //target angular velocity
+    r_ [9] = 0;
+    r_ [10] = 0;
+    r_ [11] = BFF_vel_reference_.z;
+
+    //Platform references
+    r_ [12] = BFF_vel_reference_.x*time_*dt_;
+    r_ [13] = BFF_vel_reference_.y*time_*dt_;
+    r_ [14] = 0;
+    r_ [15] = angle_reference_.x; 
+    r_ [16] = angle_reference_.y; 
+    r_ [17] = BFF_vel_reference_.z*time_*dt_;
+    r_ [18] = BFF_vel_reference_.x;
+    r_ [19] = BFF_vel_reference_.y;
+    r_ [20] = 0;
+    r_ [21] = 0;
+    r_ [22] = 0;
+    r_ [23] = BFF_vel_reference_.z;
+
+    //All zeroed acceleration targets
+    for(int i = 24; i < 30; i++) {
+        r_ [i] = 0;
+    }
 }
 
 void Stabiliser::ConstructOutputArray() {
