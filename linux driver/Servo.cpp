@@ -62,6 +62,9 @@ void Leveller::EstimateState() {
         roll_estimate_filtered_ += roll_estimate_arr_[i]/10.0;
     }
 
+    pitch_estimate_filtered_ = pitch_estimate_filtered_ - pitch_target_;
+    roll_estimate_filtered_ = roll_estimate_filtered_ - roll_target_;
+
     //printf("Pitch is %f\n",pitch_estimate_filtered_);
     //printf("Roll is %f\n",roll_estimate_filtered_);
 }
@@ -314,12 +317,14 @@ void Stabiliser::ConvertToMotorVelocity() {
     input_velocity_.y = input_velocity_.y+dt_*plat_vel_perturbation_.y;
 
     //For details on these transformations see the Stabiliser Transformations Mathematica notebook or the full Stabiliser documentation 
+    //Note that the transformations to degrees adjust for the fact that the Stabiliser Transformations notebooks works with pith and roll in degrees
+    //This was a convenience and could be changed with no consequence
     motor_velocity_target_.x = -input_velocity_.y - input_velocity_.s;                                                     //Motor 0
     motor_velocity_target_.y = ( input_velocity_.x * sin(PI / 3) + input_velocity_.y * cos(PI / 3)) - input_velocity_.s;   //Motor 1
     motor_velocity_target_.z = (-input_velocity_.x * sin(PI / 3) + input_velocity_.y * cos(PI / 3)) - input_velocity_.s;   //Motor 2
-    actuator_velocity_target_.x = input_velocity_.z + (1.0/388.0)*input_velocity_.r+(1.0/672.0)*input_velocity_.p; //Actuator 0
-    actuator_velocity_target_.y = input_velocity_.z - (1.0/336.0)*input_velocity_.p;                               //Actuator 1
-    actuator_velocity_target_.z = input_velocity_.z - (1.0/388.0)*input_velocity_.r+(1.0/672.0)*input_velocity_.p; //Actuator 2
+    actuator_velocity_target_.x = input_velocity_.z + (180.0/PI)*((1.0/388.0)*input_velocity_.r + (1.0/672.0)*input_velocity_.p); //Actuator 0
+    actuator_velocity_target_.y = input_velocity_.z - (1.0/336.0)*(180.0/PI)*input_velocity_.p;                                  //Actuator 1
+    actuator_velocity_target_.z = input_velocity_.z + (180.0/PI)*(- (1.0/388.0)*input_velocity_.r + (1.0/672.0)*input_velocity_.p); //Actuator 2
 }
 
 //Saturate the velocity if it is too high
@@ -560,25 +565,26 @@ void Stabiliser::ConstructStateReferenceArray() {
 }
 
 void Stabiliser::ConstructOutputArray() {
-    //Writing in the last accelerometer measurements
-    y_[0] = acc0_latest_measurements_.x;
-    y_[1] = acc0_latest_measurements_.y;
-    y_[2] = acc0_latest_measurements_.z;
-    y_[3] = acc1_latest_measurements_.x;
-    y_[4] = acc1_latest_measurements_.y;
-    y_[5] = acc1_latest_measurements_.z;
-    y_[6] = acc2_latest_measurements_.x;
-    y_[7] = acc2_latest_measurements_.y;
-    y_[8] = acc2_latest_measurements_.z;
-    y_[9] = acc3_latest_measurements_.x;
-    y_[10] = acc3_latest_measurements_.y;
-    y_[11] = acc3_latest_measurements_.z;
-    y_[12] = acc4_latest_measurements_.x;
-    y_[13] = acc4_latest_measurements_.y;
-    y_[14] = acc4_latest_measurements_.z;
-    y_[15] = acc5_latest_measurements_.x;
-    y_[16] = acc5_latest_measurements_.y;
-    y_[17] = acc5_latest_measurements_.z;
+    //Writing in the last accelerometer measurements and regularising about the target state
+    //Not sure if this is the right way to do this yet, (N.B)
+    y_[0] = acc0_latest_measurements_.x - acc0_ground_state_measurement_.x;
+    y_[1] = acc0_latest_measurements_.y - acc0_ground_state_measurement_.y;
+    y_[2] = acc0_latest_measurements_.z - acc0_ground_state_measurement_.z;
+    y_[3] = acc1_latest_measurements_.x - acc1_ground_state_measurement_.x;
+    y_[4] = acc1_latest_measurements_.y - acc1_ground_state_measurement_.y;
+    y_[5] = acc1_latest_measurements_.z - acc1_ground_state_measurement_.z;
+    y_[6] = acc2_latest_measurements_.x - acc2_ground_state_measurement_.x;
+    y_[7] = acc2_latest_measurements_.y - acc2_ground_state_measurement_.y;
+    y_[8] = acc2_latest_measurements_.z - acc2_ground_state_measurement_.z;
+    y_[9] = acc3_latest_measurements_.x - acc3_ground_state_measurement_.x;
+    y_[10] = acc3_latest_measurements_.y - acc3_ground_state_measurement_.y;
+    y_[11] = acc3_latest_measurements_.z - acc3_ground_state_measurement_.z;
+    y_[12] = acc4_latest_measurements_.x - acc4_ground_state_measurement_.x;
+    y_[13] = acc4_latest_measurements_.y - acc4_ground_state_measurement_.y;
+    y_[14] = acc4_latest_measurements_.z - acc4_ground_state_measurement_.z;
+    y_[15] = acc5_latest_measurements_.x - acc5_ground_state_measurement_.x;
+    y_[16] = acc5_latest_measurements_.y - acc5_ground_state_measurement_.y;
+    y_[17] = acc5_latest_measurements_.z - acc5_ground_state_measurement_.z;
 
     //Writing in the current approximation of the platform position
     y_[18] = platform_position_measurement_.x;

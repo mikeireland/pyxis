@@ -1,6 +1,8 @@
 //Controller.cpp
 #include "RobotDriver.h"
 
+#define PI 3.14159265
+
 using namespace Control;
 
 /*
@@ -179,6 +181,11 @@ LEVELLER CONTROL
 */
 
 //Converts the last incoming accelerometer values into doubles and passes them to the Leveller
+void RobotDriver::SetNewTargetAngle(double pitch, double roll) {
+	leveller.pitch_target_ = pitch;
+	leveller.roll_target_ = roll;
+}
+
 void RobotDriver::PassAccelBytesToLeveller() {
 	leveller.acc0_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]);
 	leveller.acc0_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]);
@@ -324,12 +331,50 @@ void RobotDriver::StabiliserLoop() {
 	UpdateActuatorVelocity(stabiliser.actuator_velocity_target_);	
 }
 
-void RobotDriver::EngageStabiliser() {
-	stabiliser.enable_flag_ = true;
+void RobotDriver::StabiliserSetup() {
+	//We initially run the leveller for 20 seconds to both set the reference for the actuators and 
+	//to determine the ground state accelerations
+	SetNewTargetAngle(stabiliser.angle_reference_.y*180.0/PI,stabiliser.angle_reference_.x*180.0/PI);
+	short_level_flag_ = true;
+	EngageLeveller();
+}
 
+void RobotDriver::EngageStabiliser() {
+	//Upon engaging the stabiliser we push the current accelerations
+	//to the ground state value
 	RequestAccelerations();
 	teensy_port.PacketManager();
+	stabiliser.acc0_ground_state_measurement_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]);
+	stabiliser.acc0_ground_state_measurement_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]);
+	stabiliser.acc0_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
+	stabiliser.acc1_ground_state_measurement_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.x[0],teensy_port.accelerometer1_in_.x[1]);
+	stabiliser.acc1_ground_state_measurement_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.y[0],teensy_port.accelerometer1_in_.y[1]);
+	stabiliser.acc1_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]);
+	stabiliser.acc2_ground_state_measurement_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.x[0],teensy_port.accelerometer2_in_.x[1]);
+	stabiliser.acc2_ground_state_measurement_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.y[0],teensy_port.accelerometer2_in_.y[1]);
+	stabiliser.acc2_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]);
+	stabiliser.acc3_ground_state_measurement_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.x[0],teensy_port.accelerometer3_in_.x[1]);
+	stabiliser.acc3_ground_state_measurement_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.y[0],teensy_port.accelerometer3_in_.y[1]);
+	stabiliser.acc3_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.z[0],teensy_port.accelerometer3_in_.z[1]);
+	stabiliser.acc4_ground_state_measurement_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.x[0],teensy_port.accelerometer4_in_.x[1]);
+	stabiliser.acc4_ground_state_measurement_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.y[0],teensy_port.accelerometer4_in_.y[1]);
+	stabiliser.acc4_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.z[0],teensy_port.accelerometer4_in_.z[1]);
+	stabiliser.acc5_ground_state_measurement_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.x[0],teensy_port.accelerometer5_in_.x[1]);
+	stabiliser.acc5_ground_state_measurement_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.y[0],teensy_port.accelerometer5_in_.y[1]);
+	stabiliser.acc5_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]);
+
+	//We switch over which controller is enables
+	stabiliser.enable_flag_ = true;
+	leveller.enable_flag_ = false;
+	short_level_flag_ = false;
+
+
+	//We then pull a set of data to fill the Stabiliser's buffers
+	RequestAccelerations();
+	RequestStepCounts();
+	teensy_port.PacketManager();
 	PassAccelBytesToStabiliser();
+	PassStepsToStabiliser();
 	stabiliser.UpdateTarget();
 }
 
@@ -345,8 +390,9 @@ void RobotDriver::StabiliserTest() {
 	temp_velocity.z = 0.0;
 
 	Servo::Doubles temp_angle;
-	temp_angle.x = 0.0;
-	temp_angle.y = 0.0;
+	//Set an angle of 2 degrees in pitch and roll
+	temp_angle.x = (PI/180.0)*2.0;
+	temp_angle.y = (PI/180.0)*2.0;
 	temp_angle.z = 0.0;
 
 	SetNewStabiliserTarget(temp_velocity,temp_angle);
@@ -538,7 +584,7 @@ void RobotDriver::WriteLevellerStateToFile() {
 		//Create a new file and write the state to it
 		std::ofstream output; 
 		output.open("leveller_state.csv",std::ios::out);
-		if(output.is_open()) {printf("File opened correctly\n");}
+		if(output.is_open()) {printf("Leveller File opened correctly\n");}
 		output << leveller.pitch_estimate_filtered_ << ',' << leveller.roll_estimate_filtered_ << ','
 		 	   << leveller.acc0_latest_measurements_.x << ',' << leveller.acc0_latest_measurements_.y << ',' << leveller.acc0_latest_measurements_.z << ','
 			   << leveller.acc1_latest_measurements_.x << ',' << leveller.acc1_latest_measurements_.y << ',' << leveller.acc1_latest_measurements_.z << ','
@@ -554,7 +600,7 @@ void RobotDriver::WriteLevellerStateToFile() {
 	else {
 		std::ofstream output; 
 		output.open("leveller_state.csv",std::ios::app);
-		if(output.is_open()) {printf("File opened correctly\n");}
+		if(output.is_open()) {printf("Leveller File opened correctly\n");}
 		output << leveller.pitch_estimate_filtered_ << ',' << leveller.roll_estimate_filtered_ << ','
 		 	   << leveller.acc0_latest_measurements_.x << ',' << leveller.acc0_latest_measurements_.y << ',' << leveller.acc0_latest_measurements_.z << ','
 			   << leveller.acc1_latest_measurements_.x << ',' << leveller.acc1_latest_measurements_.y << ',' << leveller.acc1_latest_measurements_.z << ','
@@ -571,7 +617,7 @@ void RobotDriver::WriteStabiliserStateToFile() {
 		//Create a new file and write the state to it
 		std::ofstream output; 
 		output.open("stabiliser_state.csv",std::ios::out);
-		if(output.is_open()) {printf("File opened correctly\n");}
+		if(output.is_open()) {printf("Stabiliser File opened correctly\n");}
 		output << stabiliser.input_velocity_.x*1000 << ',' << stabiliser.input_velocity_.y*1000 << ',' << stabiliser.input_velocity_.z*1000 << ','
 			   << stabiliser.input_velocity_.r << ',' << stabiliser.input_velocity_.p << ',' << stabiliser.input_velocity_.s << ','
 		 	   << stabiliser.acc0_latest_measurements_.x << ',' << stabiliser.acc0_latest_measurements_.y << ',' << stabiliser.acc0_latest_measurements_.z << ','
@@ -589,7 +635,7 @@ void RobotDriver::WriteStabiliserStateToFile() {
 	else {
 		std::ofstream output; 
 		output.open("stabiliser_state.csv",std::ios::app);
-		if(output.is_open()) {printf("File opened correctly\n");}
+		if(output.is_open()) {printf("Stabiliser File opened correctly\n");}
 		output << stabiliser.input_velocity_.x*1000 << ',' << stabiliser.input_velocity_.y*1000 << ',' << stabiliser.input_velocity_.z*1000 << ','
 			   << stabiliser.input_velocity_.r << ',' << stabiliser.input_velocity_.p << ',' << stabiliser.input_velocity_.s << ','
 		 	   << stabiliser.acc0_latest_measurements_.x << ',' << stabiliser.acc0_latest_measurements_.y << ',' << stabiliser.acc0_latest_measurements_.z << ','
@@ -895,7 +941,7 @@ int main() {
 
 	RobotDriver driver;
 	
-	driver.EngageStabiliser();
+	driver.StabiliserSetup();
 	//driver.EngageLeveller();
 	//driver.EngageNavigator();
 
@@ -909,14 +955,21 @@ int main() {
 	//driver.NavigatorTest();
 	//driver.StabiliserTest();
 
-
+	//We rest the start clock and start the closed loop operation
+	time_point_start = high_resolution_clock::now();
 	while(closed_loop_enable_flag) {
+		//Boolean to store if we have done anything on this loop and wait a little bit if we haven't
+		bool controller_active = false;
+
+
 		time_point_current = high_resolution_clock::now();
 		global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 
 		if(global_timepoint-last_stabiliser_timepoint > 1000) {
+			printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
 			last_stabiliser_timepoint = global_timepoint;
 			if(driver.stabiliser.enable_flag_) {
+				controller_active = true;
 				driver.StabiliserLoop();
 			}
 		}
@@ -924,12 +977,14 @@ int main() {
 		if((global_timepoint-last_leveller_timepoint) > 10000) {
 			last_leveller_timepoint = global_timepoint;
 			if(driver.leveller.enable_flag_) {
+				controller_active = true;
 				driver.LevellerLoop();	
 			}
 		}
 		else if(global_timepoint-last_leveller_subtimepoint > 1000) {
 			last_leveller_subtimepoint = global_timepoint;
 			if(driver.leveller.enable_flag_) {
+				controller_active = true;
 				driver.LevellerSubLoop();	
 			}
 		}
@@ -937,12 +992,26 @@ int main() {
 		if((global_timepoint-last_navigator_timepoint) > 10000) {
 			last_navigator_timepoint = global_timepoint;
 			if(driver.navigator.enable_flag_) {
+				controller_active = true;
 				driver.NavigatorLoop();
 			}
 		}
 
+		//If the leveller is only enables for a short run after 20 seconds we disable it
+		//This is for the stabiliser runs
+		if(driver.short_level_flag_){
+			if(global_timepoint > 20000000) {
+				controller_active = true;
+				driver.EngageStabiliser();
+			}
+		}
+
+		if (!controller_active) {
+			usleep(100);
+		}
+
 		driver.teensy_port.PacketManager();
-		usleep(500);
+		
 	}
 
 	driver.teensy_port.ClosePort();

@@ -49,6 +49,8 @@ namespace Servo
             Doubles acc2_latest_measurements_;
             Doubles acc_estimate_; 
             Steps current_step_count_; //These are actually microstep counts
+            double pitch_target_;
+            double roll_target_;
             void UpdateTarget();
 
             double pitch_estimate_arr_ [10] = {0}; //We initialise pitch and roll estimates to zero
@@ -97,7 +99,6 @@ namespace Servo
             Stabiliser();
             //Targets for the state elements we aim to control
             Doubles BFF_vel_reference_;
-            Doubles BFF_pos_reference_; //NOTE: This will just be the integral of the above
             Doubles angle_reference_;
             int time_;
 

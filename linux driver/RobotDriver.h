@@ -45,6 +45,7 @@ namespace Control
 
             //Leveller Control
             void EngageLeveller();
+            void SetNewTargetAngle(double pitch,double roll);
             void LevellerLoop();
             void LevellerSubLoop();
             void PassAccelBytesToLeveller();
@@ -58,12 +59,16 @@ namespace Control
             void NavigatorTest();
 
             //Stabiliser Control
-            void EngageStabiliser();
+            void StabiliserSetup();
             void StabiliserLoop();
+            void EngageStabiliser();
             void SetNewStabiliserTarget(Servo::Doubles velocity_target, Servo::Doubles angle_target);
             void PassAccelBytesToStabiliser();
             void PassStepsToStabiliser();
             void StabiliserTest();
+            //This flag indicates that after 20 seconds of running the leveller should be disabled and the stabiliser
+            //should be engaged. It is for normalising the accelerometer measurements fo the stabiliser.
+            bool short_level_flag_ = false;
 
             //General control
             void RequestAccelerations();
@@ -107,6 +112,8 @@ namespace Control
                                                 unsigned int time,
                                                 char direction);
             bool sinusoidal_file_open_flag_ = false;
+
+        
             
         private:
             //debugging
