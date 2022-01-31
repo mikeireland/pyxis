@@ -334,6 +334,9 @@ void RobotDriver::StabiliserLoop() {
 void RobotDriver::StabiliserSetup() {
 	//We initially run the leveller for 20 seconds to both set the reference for the actuators and 
 	//to determine the ground state accelerations
+	RequestResetStepCount();
+	teensy_port.PacketManager();
+
 	SetNewTargetAngle(stabiliser.angle_reference_.y*180.0/PI,stabiliser.angle_reference_.x*180.0/PI);
 	short_level_flag_ = true;
 	EngageLeveller();
@@ -343,6 +346,7 @@ void RobotDriver::EngageStabiliser() {
 	//Upon engaging the stabiliser we push the current accelerations
 	//to the ground state value
 	RequestAccelerations();
+	RequestStepCounts();
 	teensy_port.PacketManager();
 	stabiliser.acc0_ground_state_measurement_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]);
 	stabiliser.acc0_ground_state_measurement_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]);
@@ -362,6 +366,10 @@ void RobotDriver::EngageStabiliser() {
 	stabiliser.acc5_ground_state_measurement_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.x[0],teensy_port.accelerometer5_in_.x[1]);
 	stabiliser.acc5_ground_state_measurement_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.y[0],teensy_port.accelerometer5_in_.y[1]);
 	stabiliser.acc5_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]);
+
+	//We also reset the height target to the current height
+	PassStepsToStabiliser();
+	stabiliser.height_target_ = 0.015;
 
 	//We switch over which controller is enables
 	stabiliser.enable_flag_ = true;
@@ -941,6 +949,7 @@ int main() {
 
 	RobotDriver driver;
 	
+	driver.StabiliserTest();
 	driver.StabiliserSetup();
 	//driver.EngageLeveller();
 	//driver.EngageNavigator();
@@ -966,7 +975,7 @@ int main() {
 		global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 
 		if(global_timepoint-last_stabiliser_timepoint > 1000) {
-			printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
+			//printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
 			last_stabiliser_timepoint = global_timepoint;
 			if(driver.stabiliser.enable_flag_) {
 				controller_active = true;

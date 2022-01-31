@@ -23,7 +23,7 @@ int SerialPort::max_packet_size_ = 64;
 //Class constructor to sets up the serial connection to the teensy correctly
 //We also zero all of the input registers
 SerialPort::SerialPort() {
-    teensy_ = open("/dev/ttyACM1",O_RDWR);
+    teensy_ = open("/dev/ttyACM0",O_RDWR);
     //Acquire non-blocking exclusive lock
     /*if(flock(teensy_, LOCK_EX | LOCK_NB) == -1) {
     printf("Serial port with file descriptor %d is already locked by another process.",teensy_);

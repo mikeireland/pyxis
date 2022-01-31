@@ -13,7 +13,7 @@
 namespace Servo 
 {
     const double distance_per_microstep_motor = 0.000000297;
-    const double distance_per_microstep_actuator = 0.000004/256.0; //THIS IS A PLACEHOLDER VALUE UNTIL I CHECK THE REAL ONE
+    const double distance_per_microstep_actuator = 0.00001/256.0; //THIS IS A PLACEHOLDER VALUE UNTIL I CHECK THE REAL ONE
 
     struct Doubles 
     {
@@ -99,6 +99,7 @@ namespace Servo
             Stabiliser();
             //Targets for the state elements we aim to control
             Doubles BFF_vel_reference_;
+            double height_target_;
             Doubles angle_reference_;
             int time_;
 

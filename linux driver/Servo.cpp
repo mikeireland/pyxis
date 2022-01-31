@@ -1,4 +1,4 @@
-    //Servo.cpp
+//Servo.cpp
 #include "Servo.h"
 #include <math.h>
 #include <stdio.h>
@@ -50,7 +50,7 @@ void Leveller::EstimateState() {
         roll_estimate_arr_[i-1] = roll_estimate_arr_[i];
     }
 
-    pitch_estimate_arr_[9] =  atan(-acc_estimate_.x/sqrt(acc_estimate_.z*acc_estimate_.z+
+    pitch_estimate_arr_[9] =   atan(-acc_estimate_.x/sqrt(acc_estimate_.z*acc_estimate_.z+
                                                   acc_estimate_.y*acc_estimate_.y))*180/PI;
     roll_estimate_arr_[9] = -atan(acc_estimate_.y/acc_estimate_.z)*180/PI;
 
@@ -62,11 +62,13 @@ void Leveller::EstimateState() {
         roll_estimate_filtered_ += roll_estimate_arr_[i]/10.0;
     }
 
+    printf("Pitch is %f\n",pitch_estimate_filtered_);
+    printf("Roll is %f\n",roll_estimate_filtered_);
+
     pitch_estimate_filtered_ = pitch_estimate_filtered_ - pitch_target_;
     roll_estimate_filtered_ = roll_estimate_filtered_ - roll_target_;
 
-    //printf("Pitch is %f\n",pitch_estimate_filtered_);
-    //printf("Roll is %f\n",roll_estimate_filtered_);
+   
 }
 
 void Leveller::ApplyLQRGain() {
@@ -193,8 +195,8 @@ STABILISER DEFINITIONS
 */
 
 //Set a saturation velocity of 1000 micron/s
-double Stabiliser::motor_saturation_velocity_ = 0.002;
-double Stabiliser::actuator_saturation_velocity_ = 0.001;
+double Stabiliser::motor_saturation_velocity_ = 0.005;
+double Stabiliser::actuator_saturation_velocity_ = 0.0005;
 double Stabiliser::dt_ = 0.001;
 
 
@@ -235,15 +237,22 @@ void Stabiliser::RunLogicalDistanceSensor() {
     platform_position_measurement_.s = (distance_per_microstep_motor/0.3)*(-0.3333*motor_steps_measurement_.motor_0-0.3333*motor_steps_measurement_.motor_1-0.3333*motor_steps_measurement_.motor_2);//yaw displacement
 
     //We then push the actuator step counts into their buffers
-    platform_position_measurement_.z = distance_per_microstep_actuator*0.3333*(actuator_steps_measurement_.motor_0+actuator_steps_measurement_.motor_1+actuator_steps_measurement_.motor_2);
-    platform_position_measurement_.r = distance_per_microstep_actuator*(194.0*actuator_steps_measurement_.motor_0-194.0*actuator_steps_measurement_.motor_2);
-    platform_position_measurement_.p = distance_per_microstep_actuator*(112.0*actuator_steps_measurement_.motor_0-224.0*actuator_steps_measurement_.motor_1+112.0*actuator_steps_measurement_.motor_2);
+    //Remember that an actuator step refers to a downwards motion
+    platform_position_measurement_.z = -distance_per_microstep_actuator*0.3333*(actuator_steps_measurement_.motor_0+actuator_steps_measurement_.motor_1+actuator_steps_measurement_.motor_2);
+    platform_position_measurement_.r = -(PI/180)*distance_per_microstep_actuator*(194.0*actuator_steps_measurement_.motor_0-194.0*actuator_steps_measurement_.motor_2);
+    platform_position_measurement_.p = -(PI/180)*distance_per_microstep_actuator*(112.0*actuator_steps_measurement_.motor_0-224.0*actuator_steps_measurement_.motor_1+112.0*actuator_steps_measurement_.motor_2);
 }
 
 //Compute the Kalman filter predicted state for the system
 void Stabiliser::EstimateStateAndApplyGain() {
+
+    //printf("roll = %f target = %f\n",platform_position_measurement_.r,angle_reference_.x);
+    //printf("pitch = %f target = %f\n",platform_position_measurement_.p,angle_reference_.y);
+    //printf("height = %f target = %f\n",platform_position_measurement_.z,height_target_);
+
     //We update the arrays to store state variables
     ConstructStateEstimateArray();
+    ConstructStateReferenceArray();
     ConstructInputArray();
     ConstructOutputArray();
 
@@ -287,14 +296,20 @@ void Stabiliser::EstimateStateAndApplyGain() {
     gsl_blas_daxpy(1.0,x_hat_input_ptr_,&x_hat_vector.vector);
     gsl_blas_daxpy(1.0,x_hat_state_ptr_,&x_hat_vector.vector);
 
+    //To ensure we cache the whole state for the next loop we Deconstruct before removing the reference
+    DeconstructStateEstimateArray();
+
     //For tracking purposes we remove the reference from the 
-    //state and store the new error state in the same state vector
+    //state and store the new error state in a new state vector
     gsl_blas_daxpy(-1.0,&r_vector.vector,&x_hat_vector.vector);
+    for(int i = 0; i < 30; i++){
+        printf("%f,%f\n",r_[i],x_hat_[i]);
+    }
+    printf("\n\n\n\n\n\n\n\n\n\n");
 
     /*
     The x_hat_ array now represents a prediction for the state of the system at the next timestep.
     We then take that prediction and compute what feedback input we should apply (note the -1.0 for negative feedback)
-    NOTE: THIS MAY GET MOVED WHEN THIS IS UPGRADED TO A TRACKING CONTROLLER INSTEAD OF A REGULATOR
     */
 
    gsl_blas_dgemv(CblasNoTrans,
@@ -302,7 +317,6 @@ void Stabiliser::EstimateStateAndApplyGain() {
                    0.0, &u_vector.vector);
 
     //We pass newly computed values back into the controllers public buffers
-    DeconstructStateEstimateArray();
     DeconstructInputArray();
 }
 
@@ -314,7 +328,7 @@ void Stabiliser::ConvertToMotorVelocity() {
     input_velocity_.z = input_velocity_.z+dt_*plat_vel_perturbation_.z;
     input_velocity_.r = input_velocity_.r+dt_*plat_vel_perturbation_.r;
     input_velocity_.p = input_velocity_.p+dt_*plat_vel_perturbation_.p;
-    input_velocity_.y = input_velocity_.y+dt_*plat_vel_perturbation_.y;
+    input_velocity_.s = input_velocity_.s+dt_*plat_vel_perturbation_.s;
 
     //For details on these transformations see the Stabiliser Transformations Mathematica notebook or the full Stabiliser documentation 
     //Note that the transformations to degrees adjust for the fact that the Stabiliser Transformations notebooks works with pith and roll in degrees
@@ -547,7 +561,7 @@ void Stabiliser::ConstructStateReferenceArray() {
     //Platform references
     r_ [12] = BFF_vel_reference_.x*time_*dt_;
     r_ [13] = BFF_vel_reference_.y*time_*dt_;
-    r_ [14] = 0;
+    r_ [14] = height_target_;
     r_ [15] = angle_reference_.x; 
     r_ [16] = angle_reference_.y; 
     r_ [17] = BFF_vel_reference_.z*time_*dt_;
