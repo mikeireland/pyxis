@@ -189,13 +189,13 @@ void RobotDriver::SetNewTargetAngle(double pitch, double roll) {
 void RobotDriver::PassAccelBytesToLeveller() {
 	leveller.acc0_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]);
 	leveller.acc0_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]);
-	leveller.acc0_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
+	leveller.acc0_latest_measurements_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
 	leveller.acc1_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.x[0],teensy_port.accelerometer1_in_.x[1]);
 	leveller.acc1_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.y[0],teensy_port.accelerometer1_in_.y[1]);
-	leveller.acc1_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]);
+	leveller.acc1_latest_measurements_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]);
 	leveller.acc2_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.x[0],teensy_port.accelerometer2_in_.x[1]);
 	leveller.acc2_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.y[0],teensy_port.accelerometer2_in_.y[1]);
-	leveller.acc2_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]);
+	leveller.acc2_latest_measurements_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]);
 }
 
 void RobotDriver::PassActuatorStepsToLeveller() {
@@ -213,6 +213,13 @@ void RobotDriver::EngageLeveller() {
 	teensy_port.PacketManager();
 	sleep(20);
 	RequestAllStop();
+
+	if(short_level_flag2_) {
+		leveller.pitch_target_cache_ = leveller.pitch_target_;
+		leveller.roll_target_cache_ = leveller.roll_target_;
+		leveller.pitch_target_ = 0.0;
+		leveller.roll_target_ = 0.0;
+	}
 	
 	leveller.enable_flag_ = true;
 }
@@ -273,8 +280,8 @@ void RobotDriver::NavigatorLoop() {
 
 void RobotDriver::NavigatorTest() {
 	Servo::Doubles target_position;
-	target_position.x = -0.5;
-	target_position.y = 0;
+	target_position.x = 0.2;
+	target_position.y = 0.2;
 	target_position.z = 0;
 
 	SetNewTargetPosition(target_position);
@@ -327,8 +334,19 @@ void RobotDriver::StabiliserLoop() {
 
 	RequestAccelerations();
 	RequestStepCounts();
-	RequestNewVelocity(stabiliser.motor_velocity_target_);
-	UpdateActuatorVelocity(stabiliser.actuator_velocity_target_);	
+
+	if(!short_estimate_flag_) {
+		RequestNewVelocity(stabiliser.motor_velocity_target_);
+		UpdateActuatorVelocity(stabiliser.actuator_velocity_target_);	
+	}
+	else {
+		stabiliser.plat_vel_perturbation_.x = 0.0;
+		stabiliser.plat_vel_perturbation_.y = 0.0;
+		stabiliser.plat_vel_perturbation_.z = 0.0;
+		stabiliser.plat_vel_perturbation_.r = 0.0;
+		stabiliser.plat_vel_perturbation_.p = 0.0;
+		stabiliser.plat_vel_perturbation_.s = 0.0;
+	}
 }
 
 void RobotDriver::StabiliserSetup() {
@@ -339,6 +357,7 @@ void RobotDriver::StabiliserSetup() {
 
 	SetNewTargetAngle(stabiliser.angle_reference_.y*180.0/PI,stabiliser.angle_reference_.x*180.0/PI);
 	short_level_flag_ = true;
+	short_level_flag2_ = true;
 	EngageLeveller();
 }
 
@@ -348,6 +367,8 @@ void RobotDriver::EngageStabiliser() {
 	RequestAccelerations();
 	RequestStepCounts();
 	teensy_port.PacketManager();
+
+	/*
 	stabiliser.acc0_ground_state_measurement_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]);
 	stabiliser.acc0_ground_state_measurement_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]);
 	stabiliser.acc0_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
@@ -366,15 +387,41 @@ void RobotDriver::EngageStabiliser() {
 	stabiliser.acc5_ground_state_measurement_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.x[0],teensy_port.accelerometer5_in_.x[1]);
 	stabiliser.acc5_ground_state_measurement_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.y[0],teensy_port.accelerometer5_in_.y[1]);
 	stabiliser.acc5_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]);
+	*/
+	stabiliser.acc0_ground_state_measurement_.x = 0.0;
+	stabiliser.acc0_ground_state_measurement_.y = 0.0;
+	stabiliser.acc0_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
+	stabiliser.acc1_ground_state_measurement_.x = 0.0;
+	stabiliser.acc1_ground_state_measurement_.y = 0.0;
+	stabiliser.acc1_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]);
+	stabiliser.acc2_ground_state_measurement_.x = 0.0;
+	stabiliser.acc2_ground_state_measurement_.y = 0.0;
+	stabiliser.acc2_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]);
+	stabiliser.acc3_ground_state_measurement_.x = 0.0;
+	stabiliser.acc3_ground_state_measurement_.y = 0.0;
+	stabiliser.acc3_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.z[0],teensy_port.accelerometer3_in_.z[1]);
+	stabiliser.acc4_ground_state_measurement_.x = 0.0;
+	stabiliser.acc4_ground_state_measurement_.y = 0.0;
+	stabiliser.acc4_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.z[0],teensy_port.accelerometer4_in_.z[1]);
+	stabiliser.acc5_ground_state_measurement_.x = 0.0;
+	stabiliser.acc5_ground_state_measurement_.y = 0.0;
+	stabiliser.acc5_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]);
 
 	//We also reset the height target to the current height
 	PassStepsToStabiliser();
-	stabiliser.height_target_ = 0.015;
+	stabiliser.height_target_ = 0.0;
+	stabiliser.time_ = 0;
 
-	//We switch over which controller is enables
+	//We switch over which controller is enabled
 	stabiliser.enable_flag_ = true;
 	leveller.enable_flag_ = false;
 	short_level_flag_ = false;
+	short_estimate_flag_ = true;
+
+	stabiliser.plat_pos_estimate_.p = leveller.pitch_estimate_filtered_*PI/180.0;
+	stabiliser.plat_pos_estimate_.r = leveller.roll_estimate_filtered_*PI/180.0;
+	stabiliser.opto_pos_estimate_.p = leveller.pitch_estimate_filtered_*PI/180.0;
+	stabiliser.opto_pos_estimate_.r = leveller.roll_estimate_filtered_*PI/180.0;
 
 
 	//We then pull a set of data to fill the Stabiliser's buffers
@@ -459,6 +506,12 @@ void RobotDriver::RequestResetStepCount() {
 	leveller.current_step_count_.motor_0 = 0;
 	leveller.current_step_count_.motor_1 = 0;
 	leveller.current_step_count_.motor_2 = 0;
+	stabiliser.motor_steps_measurement_.motor_0 = 0;
+	stabiliser.motor_steps_measurement_.motor_1 = 0;
+	stabiliser.motor_steps_measurement_.motor_2 = 0;
+	stabiliser.actuator_steps_measurement_.motor_0 = 0;
+	stabiliser.actuator_steps_measurement_.motor_1 = 0;
+	stabiliser.actuator_steps_measurement_.motor_2 = 0;
     teensy_port.PacketManager();
     usleep(1000);
 }
@@ -962,7 +1015,7 @@ int main() {
     //driver.LinearSweepTest();
 	//driver.MeasureOrientationMeasurementNoise();
 	//driver.NavigatorTest();
-	//driver.StabiliserTest();
+	driver.StabiliserTest();
 
 	//We rest the start clock and start the closed loop operation
 	time_point_start = high_resolution_clock::now();
@@ -975,7 +1028,7 @@ int main() {
 		global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 
 		if(global_timepoint-last_stabiliser_timepoint > 1000) {
-			//printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
+			printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
 			last_stabiliser_timepoint = global_timepoint;
 			if(driver.stabiliser.enable_flag_) {
 				controller_active = true;
@@ -1008,15 +1061,32 @@ int main() {
 
 		//If the leveller is only enables for a short run after 20 seconds we disable it
 		//This is for the stabiliser runs
+		if(driver.short_level_flag2_){
+			if(global_timepoint > 20000000){
+				driver.SetNewTargetAngle(driver.leveller.pitch_target_cache_,driver.leveller.roll_target_cache_);
+				driver.RequestResetStepCount();
+				driver.short_level_flag2_ = false;
+			}
+		}
+
 		if(driver.short_level_flag_){
-			if(global_timepoint > 20000000) {
+			if(global_timepoint > 40000000) {
 				controller_active = true;
 				driver.EngageStabiliser();
+
+			}
+		}
+
+		//We run only the stabiliser's estimator subcomponent for 10seconds
+		if(driver.short_estimate_flag_){
+			if(global_timepoint > 40000001) {
+				controller_active = true;
+				driver.short_estimate_flag_ = false;
 			}
 		}
 
 		if (!controller_active) {
-			usleep(100);
+			usleep(10);
 		}
 
 		driver.teensy_port.PacketManager();

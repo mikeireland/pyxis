@@ -117,7 +117,7 @@ void Navigator::UpdateTarget() {
 void Navigator::ComputeState() {
     //This transformation is the inverse of that used to compute the motor velocities from the BFF velocities 
     //The matrix inverse was computed in Mathematica
-    double temp_x   =                                     -0.5774*current_step_count_.motor_1+0.5774*current_step_count_.motor_2;//x displacement
+    double temp_x   =                                     0.5774*current_step_count_.motor_1-0.5774*current_step_count_.motor_2;//x displacement
     double temp_y   = -0.6667*current_step_count_.motor_0+0.3333*current_step_count_.motor_1+0.3333*current_step_count_.motor_2;//y displacement
     double temp_yaw = -0.3333*current_step_count_.motor_0-0.3333*current_step_count_.motor_1-0.3333*current_step_count_.motor_2;//yaw displacement
 
@@ -156,9 +156,8 @@ void Navigator::ApplyPropGain() {
     //We then convert from the target BFF velocitities to the 
     //read velocity of each of the motors 
     motor_velocity_target_.x = -BFF_velocity_target_.y - BFF_velocity_target_.z;
-    motor_velocity_target_.y = (-BFF_velocity_target_.x * sin(PI / 3) + BFF_velocity_target_.y * cos(PI / 3)) - BFF_velocity_target_.z;
-    motor_velocity_target_.z = (BFF_velocity_target_.x * sin(PI / 3) + BFF_velocity_target_.y * cos(PI / 3)) - BFF_velocity_target_.z;
-    printf("%f,%f,%f\n",motor_velocity_target_.x,motor_velocity_target_.y,motor_velocity_target_.z);
+    motor_velocity_target_.y = ( BFF_velocity_target_.x * sin(PI / 3) + BFF_velocity_target_.y * cos(PI / 3)) - BFF_velocity_target_.z;
+    motor_velocity_target_.z = (-BFF_velocity_target_.x * sin(PI / 3) + BFF_velocity_target_.y * cos(PI / 3)) - BFF_velocity_target_.z;
 
 }
 
@@ -199,7 +198,7 @@ STABILISER DEFINITIONS
 double Stabiliser::motor_saturation_velocity_ = 0.005;
 double Stabiliser::actuator_saturation_velocity_ = 0.0005;
 double Stabiliser::dt_ = 0.001;
-double Stabiliser::global_gain_ = 0.01;
+double Stabiliser::global_gain_ = 0.1;
 
 
 Stabiliser::Stabiliser() {
@@ -234,7 +233,7 @@ void Stabiliser::UpdateTarget() {
 void Stabiliser::RunLogicalDistanceSensor() {
 
     //We first push the motor step count into its associated buffer with 
-    platform_position_measurement_.x = distance_per_microstep_motor*(-0.5774*motor_steps_measurement_.motor_1+0.5774*motor_steps_measurement_.motor_2);//x displacement
+    platform_position_measurement_.x = distance_per_microstep_motor*(0.5774*motor_steps_measurement_.motor_1-0.5774*motor_steps_measurement_.motor_2);//x displacement
     platform_position_measurement_.y = distance_per_microstep_motor*(-0.6667*motor_steps_measurement_.motor_0+0.3333*motor_steps_measurement_.motor_1+0.3333*motor_steps_measurement_.motor_2);//y displacement
     platform_position_measurement_.s = (distance_per_microstep_motor/0.3)*(-0.3333*motor_steps_measurement_.motor_0-0.3333*motor_steps_measurement_.motor_1-0.3333*motor_steps_measurement_.motor_2);//yaw displacement
 
@@ -248,10 +247,9 @@ void Stabiliser::RunLogicalDistanceSensor() {
 //Compute the Kalman filter predicted state for the system
 void Stabiliser::EstimateStateAndApplyGain() {
 
-     printf("\n\n\n\n\n"); 
-    printf("x = %f target = %f\n",platform_position_measurement_.x,BFF_vel_reference_.x*time_*dt_);
-    printf("y = %f target = %f\n",platform_position_measurement_.y,BFF_vel_reference_.y*time_*dt_);
-    printf("yaw = %f target = %f\n",platform_position_measurement_.s,BFF_vel_reference_.z*time_*dt_);
+    printf("roll = %f target = %f\n",platform_position_measurement_.r,angle_reference_.x);
+    printf("pitch = %f target = %f\n",platform_position_measurement_.p,angle_reference_.y);
+    printf("height = %f target = %f\n",platform_position_measurement_.z,height_target_);
 
     //We update the arrays to store state variables
     ConstructStateEstimateArray();
@@ -302,14 +300,13 @@ void Stabiliser::EstimateStateAndApplyGain() {
     //To ensure we cache the whole state for the next loop we Deconstruct before removing the reference
     DeconstructStateEstimateArray();
 
-    for(int i = 0; i < 30; i++){
-        printf("%f,%f,%f\n",x_hat_[i],r_[i],x_hat_[i]-r_[i]);
-    }
-
     //For tracking purposes we remove the reference from the 
     //state and store the new error state in a new state vector
     gsl_blas_daxpy(-1.0,&r_vector.vector,&x_hat_vector.vector);
-   
+    for(int i = 0; i < 30; i++){
+        printf("%f,%f\n",r_[i],x_hat_[i]);
+    }
+    printf("\n\n\n\n\n\n\n\n\n\n");
 
     /*
     The x_hat_ array now represents a prediction for the state of the system at the next timestep.
@@ -334,21 +331,12 @@ void Stabiliser::ConvertToMotorVelocity() {
     input_velocity_.p = input_velocity_.p+dt_*plat_vel_perturbation_.p;
     input_velocity_.s = input_velocity_.s+dt_*plat_vel_perturbation_.s;
 
-
-
-    printf("Input Velocity x = %f,Perturbation = %f\n",input_velocity_.x,plat_vel_perturbation_.x);
-    printf("Input Velocity y = %f, Perturbation = %f\n",input_velocity_.y,plat_vel_perturbation_.y);
-    printf("Input Velocity z = %f, Perturbation = %f\n",input_velocity_.z,plat_vel_perturbation_.z);
-    printf("Input Velocity r = %f, Perturbation = %f\n",input_velocity_.r,plat_vel_perturbation_.r);
-    printf("Input Velocity p = %f, Perturbation = %f\n",input_velocity_.p,plat_vel_perturbation_.p);
-    printf("Input Velocity s = %f, Perturbation = %f\n",input_velocity_.s,plat_vel_perturbation_.s);
-
     //For details on these transformations see the Stabiliser Transformations Mathematica notebook or the full Stabiliser documentation 
     //Note that the transformations to degrees adjust for the fact that the Stabiliser Transformations notebooks works with pith and roll in degrees
     //This was a convenience and could be changed with no consequence
     motor_velocity_target_.x = -input_velocity_.y - input_velocity_.s;                                                     //Motor 0
-    motor_velocity_target_.y = ( - input_velocity_.x * sin(PI / 3) + input_velocity_.y * cos(PI / 3)) - input_velocity_.s;   //Motor 1
-    motor_velocity_target_.z = (input_velocity_.x * sin(PI / 3) + input_velocity_.y * cos(PI / 3)) - input_velocity_.s;   //Motor 2
+    motor_velocity_target_.y = ( input_velocity_.x * sin(PI / 3) + input_velocity_.y * cos(PI / 3)) - input_velocity_.s;   //Motor 1
+    motor_velocity_target_.z = (-input_velocity_.x * sin(PI / 3) + input_velocity_.y * cos(PI / 3)) - input_velocity_.s;   //Motor 2
     actuator_velocity_target_.x = input_velocity_.z + (180.0/PI)*((1.0/388.0)*input_velocity_.r - (1.0/672.0)*input_velocity_.p); //Actuator 0
     actuator_velocity_target_.y = input_velocity_.z + (1.0/336.0)*(180.0/PI)*input_velocity_.p;                                  //Actuator 1
     actuator_velocity_target_.z = input_velocity_.z + (180.0/PI)*(- (1.0/388.0)*input_velocity_.r - (1.0/672.0)*input_velocity_.p); //Actuator 2
@@ -356,7 +344,6 @@ void Stabiliser::ConvertToMotorVelocity() {
 
 //Saturate the velocity if it is too high
 void Stabiliser::ApplySaturationFilter() {
-    /*
     if(motor_velocity_target_.x > motor_saturation_velocity_) {motor_velocity_target_.x = motor_saturation_velocity_; printf("Saturated Motor 0\n");}
     else if(motor_velocity_target_.x < -motor_saturation_velocity_) {motor_velocity_target_.x = -motor_saturation_velocity_; printf("Saturated Motor 0\n");}
 
@@ -374,7 +361,6 @@ void Stabiliser::ApplySaturationFilter() {
 
     if(actuator_velocity_target_.z > actuator_saturation_velocity_) {actuator_velocity_target_.z = actuator_saturation_velocity_;printf("Saturated Actuator 2\n");}
     else if(actuator_velocity_target_.z < -actuator_saturation_velocity_) {actuator_velocity_target_.z = -actuator_saturation_velocity_; printf("Saturated Actuator 2\n");}
-    */
 }
 
 void Stabiliser::ConstructMatrices() {

@@ -471,7 +471,7 @@ void SerialPort::PacketManager() {
         //If either the incoming or outgoing packets are full we send the messages
         if(requested_outgoing_byte_count > 57 | requested_incoming_byte_count > 53) {
             WriteMessage();
-            usleep(500);
+            usleep(360);
             if(requested_incoming_byte_count > 0) {
                 ReadMessage();
             }
@@ -483,7 +483,7 @@ void SerialPort::PacketManager() {
     //If there is a message left to send we send it
     if(requested_outgoing_byte_count > 0) {
         WriteMessage();
-        usleep(500);
+        usleep(360);
         if(requested_incoming_byte_count > 0) {
             ReadMessage();
         }

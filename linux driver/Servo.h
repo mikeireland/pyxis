@@ -51,6 +51,8 @@ namespace Servo
             Steps current_step_count_; //These are actually microstep counts
             double pitch_target_;
             double roll_target_;
+            double pitch_target_cache_;
+            double roll_target_cache_;
             void UpdateTarget();
 
             double pitch_estimate_arr_ [10] = {0}; //We initialise pitch and roll estimates to zero
@@ -151,12 +153,14 @@ namespace Servo
             //Structure to store the computed perturbation to the velocity
             DoublesSixAxis plat_vel_perturbation_;
 
+            bool estimator_enable_flag = false; //A flag to say whether to engage the Stabiliser's estimator
             bool enable_flag_ = false; //A flag to track whether the leveller should run or not
 
         private:  
             static double motor_saturation_velocity_;
             static double actuator_saturation_velocity_;
             static double dt_; //Time period for a controller loop (will be assumed to be 0.001)
+            static double global_gain_;
 
             double F_ [30*30]; //Array to store the values of the state transition matrix 
             double H_ [24*30]; //Array to store the values of the measurement matrix 

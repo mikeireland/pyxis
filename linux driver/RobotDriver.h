@@ -67,8 +67,16 @@ namespace Control
             void PassStepsToStabiliser();
             void StabiliserTest();
             //This flag indicates that after 20 seconds of running the leveller should be disabled and the stabiliser
-            //should be engaged. It is for normalising the accelerometer measurements fo the stabiliser.
+            //should be engaged. It is for normalising the accelerometer measurements of the stabiliser.
+            //The second flag indicates that the leveller should be started with a 0 pitch and 0 roll target before being 
+            //set to target the true value with a reset step count
             bool short_level_flag_ = false;
+            bool short_level_flag2_ = false;
+
+            //This flag is enabled after the Stabiliser is enaged and insructs it to attempt to spend 10 seconds
+            //just estimating its state before the feedback inputs are engaged
+            bool short_estimate_flag_ = false;
+
 
             //General control
             void RequestAccelerations();
