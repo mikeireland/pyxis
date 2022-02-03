@@ -199,7 +199,7 @@ STABILISER DEFINITIONS
 double Stabiliser::motor_saturation_velocity_ = 0.005;
 double Stabiliser::actuator_saturation_velocity_ = 0.0005;
 double Stabiliser::dt_ = 0.001;
-double Stabiliser::global_gain_ = 0.01;
+double Stabiliser::global_gain_ = 0.1;
 
 
 Stabiliser::Stabiliser() {
@@ -327,6 +327,7 @@ void Stabiliser::EstimateStateAndApplyGain() {
 //Transform from physical velocties back into the velocities of the motors
 void Stabiliser::ConvertToMotorVelocity() {
     //We turn the perturbations into the new velocity values we will apply
+    
     input_velocity_.x = input_velocity_.x+dt_*plat_vel_perturbation_.x;
     input_velocity_.y = input_velocity_.y+dt_*plat_vel_perturbation_.y;
     input_velocity_.z = input_velocity_.z+dt_*plat_vel_perturbation_.z;
@@ -334,6 +335,25 @@ void Stabiliser::ConvertToMotorVelocity() {
     input_velocity_.p = input_velocity_.p+dt_*plat_vel_perturbation_.p;
     input_velocity_.s = input_velocity_.s+dt_*plat_vel_perturbation_.s;
 
+    /*
+    if(input_velocity_.x > motor_saturation_velocity_) {input_velocity_.x = motor_saturation_velocity_; printf("Saturated x\n");}
+    else if(input_velocity_.x < -motor_saturation_velocity_) {input_velocity_.x = -motor_saturation_velocity_; printf("Saturated x\n");}
+
+    if(input_velocity_.y > motor_saturation_velocity_) {input_velocity_.y = motor_saturation_velocity_; printf("Saturated y\n");}
+    else if(input_velocity_.y < -motor_saturation_velocity_) {input_velocity_.y = -motor_saturation_velocity_; printf("Saturated y\n");}
+
+    if(input_velocity_.r > actuator_saturation_velocity_) {input_velocity_.r = actuator_saturation_velocity_; printf("Saturated Roll\n");}
+    else if(input_velocity_.r < -actuator_saturation_velocity_) {input_velocity_.r = -actuator_saturation_velocity_; printf("Saturated Roll\n");}
+
+    if(input_velocity_.p > actuator_saturation_velocity_) {input_velocity_.p = actuator_saturation_velocity_; printf("Saturated Pitch\n");}
+    else if(input_velocity_.p < -actuator_saturation_velocity_) {input_velocity_.p = -actuator_saturation_velocity_; printf("Saturated Pitch\n");}
+
+    if(input_velocity_.z > actuator_saturation_velocity_) {input_velocity_.z = actuator_saturation_velocity_;printf("Saturated z\n");}
+    else if(input_velocity_.z < -actuator_saturation_velocity_) {input_velocity_.z = -actuator_saturation_velocity_; printf("Saturated z\n");}
+
+    if(input_velocity_.s > motor_saturation_velocity_) {input_velocity_.s = motor_saturation_velocity_;printf("Saturated s\n");}
+    else if(input_velocity_.s < -motor_saturation_velocity_) {input_velocity_.s = -motor_saturation_velocity_; printf("Saturated s\n");}    
+    */
 
 
     printf("Input Velocity x = %f,Perturbation = %f\n",input_velocity_.x,plat_vel_perturbation_.x);
@@ -356,7 +376,7 @@ void Stabiliser::ConvertToMotorVelocity() {
 
 //Saturate the velocity if it is too high
 void Stabiliser::ApplySaturationFilter() {
-    /*
+    
     if(motor_velocity_target_.x > motor_saturation_velocity_) {motor_velocity_target_.x = motor_saturation_velocity_; printf("Saturated Motor 0\n");}
     else if(motor_velocity_target_.x < -motor_saturation_velocity_) {motor_velocity_target_.x = -motor_saturation_velocity_; printf("Saturated Motor 0\n");}
 
@@ -374,7 +394,7 @@ void Stabiliser::ApplySaturationFilter() {
 
     if(actuator_velocity_target_.z > actuator_saturation_velocity_) {actuator_velocity_target_.z = actuator_saturation_velocity_;printf("Saturated Actuator 2\n");}
     else if(actuator_velocity_target_.z < -actuator_saturation_velocity_) {actuator_velocity_target_.z = -actuator_saturation_velocity_; printf("Saturated Actuator 2\n");}
-    */
+    
 }
 
 void Stabiliser::ConstructMatrices() {
@@ -669,9 +689,9 @@ void Stabiliser::DeconstructStateEstimateArray() {
 
 void Stabiliser::DeconstructInputArray() {
     plat_vel_perturbation_.x = global_gain_*u_[0];
-    plat_vel_perturbation_.y = global_gain_*u_[1];
-    plat_vel_perturbation_.z = global_gain_*u_[2];
-    plat_vel_perturbation_.r = global_gain_*u_[3];
-    plat_vel_perturbation_.p = global_gain_*u_[4];
-    plat_vel_perturbation_.s = global_gain_*u_[5];
+    plat_vel_perturbation_.y = 0.0*global_gain_*u_[1];
+    plat_vel_perturbation_.z = 0.0*global_gain_*u_[2];
+    plat_vel_perturbation_.r = 0.0*global_gain_*u_[3];
+    plat_vel_perturbation_.p = 0.0*global_gain_*u_[4];
+    plat_vel_perturbation_.s = 0.0*global_gain_*u_[5];
 }

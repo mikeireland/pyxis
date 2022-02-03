@@ -364,11 +364,13 @@ void RobotDriver::StabiliserSetup() {
 void RobotDriver::EngageStabiliser() {
 	//Upon engaging the stabiliser we push the current accelerations
 	//to the ground state value
+	RequestAllStop();
+	sleep(5);
+
 	RequestAccelerations();
 	RequestStepCounts();
 	teensy_port.PacketManager();
 
-	/*
 	stabiliser.acc0_ground_state_measurement_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]);
 	stabiliser.acc0_ground_state_measurement_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]);
 	stabiliser.acc0_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
@@ -387,7 +389,30 @@ void RobotDriver::EngageStabiliser() {
 	stabiliser.acc5_ground_state_measurement_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.x[0],teensy_port.accelerometer5_in_.x[1]);
 	stabiliser.acc5_ground_state_measurement_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.y[0],teensy_port.accelerometer5_in_.y[1]);
 	stabiliser.acc5_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]);
-	*/
+
+	printf("acc0x = %f\n",stabiliser.acc0_ground_state_measurement_.x);
+	printf("acc0y = %f\n",stabiliser.acc0_ground_state_measurement_.y);
+	printf("acc0z = %f\n",stabiliser.acc0_ground_state_measurement_.z);
+	printf("acc1x = %f\n",stabiliser.acc1_ground_state_measurement_.x);
+	printf("acc1y = %f\n",stabiliser.acc1_ground_state_measurement_.y);
+	printf("acc1z = %f\n",stabiliser.acc1_ground_state_measurement_.z);
+	printf("acc2x = %f\n",stabiliser.acc2_ground_state_measurement_.x);
+	printf("acc2y = %f\n",stabiliser.acc2_ground_state_measurement_.y);
+	printf("acc2z = %f\n",stabiliser.acc2_ground_state_measurement_.z);
+	printf("acc3x = %f\n",stabiliser.acc3_ground_state_measurement_.x);
+	printf("acc3y = %f\n",stabiliser.acc3_ground_state_measurement_.y);
+	printf("acc3z = %f\n",stabiliser.acc3_ground_state_measurement_.z);
+	printf("acc4x = %f\n",stabiliser.acc4_ground_state_measurement_.x);
+	printf("acc4y = %f\n",stabiliser.acc4_ground_state_measurement_.y);
+	printf("acc4z = %f\n",stabiliser.acc4_ground_state_measurement_.z);
+	printf("acc5x = %f\n",stabiliser.acc5_ground_state_measurement_.x);
+	printf("acc5y = %f\n",stabiliser.acc5_ground_state_measurement_.y);
+	printf("acc5z = %f\n",stabiliser.acc5_ground_state_measurement_.z);
+
+	sleep(5);
+
+	
+	/*
 	stabiliser.acc0_ground_state_measurement_.x = 0.0;
 	stabiliser.acc0_ground_state_measurement_.y = 0.0;
 	stabiliser.acc0_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
@@ -406,9 +431,10 @@ void RobotDriver::EngageStabiliser() {
 	stabiliser.acc5_ground_state_measurement_.x = 0.0;
 	stabiliser.acc5_ground_state_measurement_.y = 0.0;
 	stabiliser.acc5_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]);
+	*/
 
 	//We also reset the height target to the current height
-	PassStepsToStabiliser();
+	PassStepsToStabiliser();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
 	stabiliser.height_target_ = 0.0;
 	stabiliser.time_ = 0;
 
@@ -422,11 +448,19 @@ void RobotDriver::EngageStabiliser() {
 	stabiliser.plat_pos_estimate_.r = leveller.roll_estimate_filtered_*PI/180.0;
 	stabiliser.opto_pos_estimate_.p = leveller.pitch_estimate_filtered_*PI/180.0;
 	stabiliser.opto_pos_estimate_.r = leveller.roll_estimate_filtered_*PI/180.0;
+	stabiliser.plat_vel_estimate_.x = stabiliser.BFF_vel_reference_.x;
+	stabiliser.plat_vel_estimate_.y = stabiliser.BFF_vel_reference_.y;
+	stabiliser.plat_vel_estimate_.s = stabiliser.BFF_vel_reference_.z;
+	stabiliser.opto_vel_estimate_.x = stabiliser.BFF_vel_reference_.x;
+	stabiliser.opto_vel_estimate_.y = stabiliser.BFF_vel_reference_.y;
+	stabiliser.opto_vel_estimate_.s = stabiliser.BFF_vel_reference_.z;
+
 
 
 	//We then pull a set of data to fill the Stabiliser's buffers
 	RequestAccelerations();
 	RequestStepCounts();
+	UpdateBFFVelocity(stabiliser.BFF_vel_reference_);
 	teensy_port.PacketManager();
 	PassAccelBytesToStabiliser();
 	PassStepsToStabiliser();
@@ -440,14 +474,14 @@ void RobotDriver::SetNewStabiliserTarget(Servo::Doubles velocity_target, Servo::
 
 void RobotDriver::StabiliserTest() {
 	Servo::Doubles temp_velocity;
-	temp_velocity.x = 0.0025;
+	temp_velocity.x = 0.001;
 	temp_velocity.y = 0.0;
 	temp_velocity.z = 0.0;
 
 	Servo::Doubles temp_angle;
 	//Set an angle of 2 degrees in pitch and roll
-	temp_angle.x = (PI/180.0)*2.0;
-	temp_angle.y = (PI/180.0)*2.0;
+	temp_angle.x = 0.0;//(PI/180.0)*2.0;
+	temp_angle.y = 0.0;//(PI/180.0)*2.0;
 	temp_angle.z = 0.0;
 
 	SetNewStabiliserTarget(temp_velocity,temp_angle);
@@ -679,14 +713,50 @@ void RobotDriver::WriteStabiliserStateToFile() {
 		std::ofstream output; 
 		output.open("stabiliser_state.csv",std::ios::out);
 		if(output.is_open()) {printf("Stabiliser File opened correctly\n");}
-		output << stabiliser.input_velocity_.x*1000 << ',' << stabiliser.input_velocity_.y*1000 << ',' << stabiliser.input_velocity_.z*1000 << ','
+		output << "input_vel_x" << ',' << "input_vel_y" << ',' << "input_vel_z" << ','
+			   << "input_vel_r" << ',' << "input_vel_p" << ',' << "input_vel_s" << ','
+			   << "plat_vel_perturb_x" << ',' << "plat_vel_perturb_y" << ',' << "plat_vel_perturb_z" << ','
+			   << "plat_vel_perturb_r" << ',' << "plat_vel_perturb_p" << ',' << "plat_vel_perturb_s" << ','
+			   << "accelerometer0_x" << ',' << "accelerometer0_y" << ',' << "accelerometer0_z" << ','
+			   << "accelerometer1_x" << ',' << "accelerometer1_y" << ',' << "accelerometer1_z" << ','
+			   << "accelerometer2_x" << ',' << "accelerometer2_y" << ',' << "accelerometer2_z" << ','
+			   << "accelerometer3_x" << ',' << "accelerometer3_y" << ',' << "accelerometer3_z" << ','
+			   << "accelerometer4_x" << ',' << "accelerometer4_y" << ',' << "accelerometer4_z" << ','
+			   << "accelerometer5_x" << ',' << "accelerometer5_y" << ',' << "accelerometer5_z" << ','
+			   << "accelerometer0_ground_state_x" << ',' << "accelerometer0_ground_state_y" << ',' << "accelerometer0_ground_state_z" << ','
+			   << "accelerometer1_ground_state_x" << ',' << "accelerometer1_ground_state_y" << ',' << "accelerometer1_ground_state_z" << ','
+			   << "accelerometer2_ground_state_x" << ',' << "accelerometer2_ground_state_y" << ',' << "accelerometer2_ground_state_z" << ','
+			   << "accelerometer3_ground_state_x" << ',' << "accelerometer3_ground_state_y" << ',' << "accelerometer3_ground_state_z" << ','
+			   << "accelerometer4_ground_state_x" << ',' << "accelerometer4_ground_state_y" << ',' << "accelerometer4_ground_state_z" << ','
+			   << "accelerometer5_ground_state_x" << ',' << "accelerometer5_ground_state_y" << ',' << "accelerometer5_ground_state_z" << ','
+			   << "opto_pos_estimate_x" << ',' << "opto_pos_estimate_y" << ',' << "opto_pos_estimate_z" << ',' << "opto_pos_estimate_r" << ',' << "opto_pos_estimate_p" << ',' << "opto_pos_estimate_s" << ','
+			   << "opto_vel_estimate_x" << ',' << "opto_vel_estimate_y" << ',' << "opto_vel_estimate_z" << ',' << "opto_vel_estimate_r" << ',' << "opto_vel_estimate_p" << ',' << "opto_vel_estimate_s" << ','
+			   << "plat_pos_estimate_x" << ',' << "plat_pos_estimate_y" << ',' << "plat_pos_estimate_z" << ',' << "plat_pos_estimate_r" << ',' << "plat_pos_estimate_p" << ',' << "plat_pos_estimate_s" << ','
+			   << "plat_vel_estimate_x" << ',' << "plat_vel_estimate_y" << ',' << "plat_vel_estimate_z" << ',' << "plat_vel_estimate_r" << ',' << "plat_vel_estimate_p" << ',' << "plat_vel_estimate_s" << ','
+			   << "plat_acc_estimate_x" << ',' << "plat_acc_estimate_y" << ',' << "plat_acc_estimate_z" << ',' << "plat_acc_estimate_r" << ',' << "plat_acc_estimate_p" << ',' << "plat_acc_estimate_s" 
+			   << '\n'
+
+			   << stabiliser.input_velocity_.x << ',' << stabiliser.input_velocity_.y << ',' << stabiliser.input_velocity_.z << ','
 			   << stabiliser.input_velocity_.r << ',' << stabiliser.input_velocity_.p << ',' << stabiliser.input_velocity_.s << ','
+			   << stabiliser.plat_vel_perturbation_.x << ',' << stabiliser.plat_vel_perturbation_.y << ',' << stabiliser.plat_vel_perturbation_.z << ','
+			   << stabiliser.plat_vel_perturbation_.r << ',' << stabiliser.plat_vel_perturbation_.p << ',' << stabiliser.plat_vel_perturbation_.s << ','
 		 	   << stabiliser.acc0_latest_measurements_.x << ',' << stabiliser.acc0_latest_measurements_.y << ',' << stabiliser.acc0_latest_measurements_.z << ','
 			   << stabiliser.acc1_latest_measurements_.x << ',' << stabiliser.acc1_latest_measurements_.y << ',' << stabiliser.acc1_latest_measurements_.z << ','
 		 	   << stabiliser.acc2_latest_measurements_.x << ',' << stabiliser.acc2_latest_measurements_.y << ',' << stabiliser.acc2_latest_measurements_.z << ','
 			   << stabiliser.acc3_latest_measurements_.x << ',' << stabiliser.acc3_latest_measurements_.y << ',' << stabiliser.acc3_latest_measurements_.z << ','
 			   << stabiliser.acc4_latest_measurements_.x << ',' << stabiliser.acc4_latest_measurements_.y << ',' << stabiliser.acc4_latest_measurements_.z << ','
-			   << stabiliser.acc5_latest_measurements_.x << ',' << stabiliser.acc5_latest_measurements_.y << ',' << stabiliser.acc5_latest_measurements_.z 
+			   << stabiliser.acc5_latest_measurements_.x << ',' << stabiliser.acc5_latest_measurements_.y << ',' << stabiliser.acc5_latest_measurements_.z << ','
+			   << stabiliser.acc0_ground_state_measurement_.x << ',' << stabiliser.acc0_ground_state_measurement_.y << ',' << stabiliser.acc0_ground_state_measurement_.z << ','
+			   << stabiliser.acc1_ground_state_measurement_.x << ',' << stabiliser.acc1_ground_state_measurement_.y << ',' << stabiliser.acc1_ground_state_measurement_.z << ','
+		 	   << stabiliser.acc2_ground_state_measurement_.x << ',' << stabiliser.acc2_ground_state_measurement_.y << ',' << stabiliser.acc2_ground_state_measurement_.z << ','
+			   << stabiliser.acc3_ground_state_measurement_.x << ',' << stabiliser.acc3_ground_state_measurement_.y << ',' << stabiliser.acc3_ground_state_measurement_.z << ','
+			   << stabiliser.acc4_ground_state_measurement_.x << ',' << stabiliser.acc4_ground_state_measurement_.y << ',' << stabiliser.acc4_ground_state_measurement_.z << ','
+			   << stabiliser.acc5_ground_state_measurement_.x << ',' << stabiliser.acc5_ground_state_measurement_.y << ',' << stabiliser.acc5_ground_state_measurement_.z << ','
+			   << stabiliser.opto_pos_estimate_.x << ',' << stabiliser.opto_pos_estimate_.y << ',' << stabiliser.opto_pos_estimate_.z << ',' << stabiliser.opto_pos_estimate_.r << ',' << stabiliser.opto_pos_estimate_.p << ',' << stabiliser.opto_pos_estimate_.s << ','
+			   << stabiliser.opto_vel_estimate_.x << ',' << stabiliser.opto_vel_estimate_.y << ',' << stabiliser.opto_vel_estimate_.z << ',' << stabiliser.opto_vel_estimate_.r << ',' << stabiliser.opto_vel_estimate_.p << ',' << stabiliser.opto_vel_estimate_.s << ','
+			   << stabiliser.plat_pos_estimate_.x << ',' << stabiliser.plat_pos_estimate_.y << ',' << stabiliser.plat_pos_estimate_.z << ',' << stabiliser.plat_pos_estimate_.r << ',' << stabiliser.plat_pos_estimate_.p << ',' << stabiliser.plat_pos_estimate_.s << ','
+			   << stabiliser.plat_vel_estimate_.x << ',' << stabiliser.plat_vel_estimate_.y << ',' << stabiliser.plat_vel_estimate_.z << ',' << stabiliser.plat_vel_estimate_.r << ',' << stabiliser.plat_vel_estimate_.p << ',' << stabiliser.plat_vel_estimate_.s << ','
+			   << stabiliser.plat_acc_estimate_.x << ',' << stabiliser.plat_acc_estimate_.y << ',' << stabiliser.plat_acc_estimate_.z << ',' << stabiliser.plat_acc_estimate_.r << ',' << stabiliser.plat_acc_estimate_.p << ',' << stabiliser.plat_acc_estimate_.s 
 			   <<'\n';
 		output.close();
 
@@ -697,14 +767,27 @@ void RobotDriver::WriteStabiliserStateToFile() {
 		std::ofstream output; 
 		output.open("stabiliser_state.csv",std::ios::app);
 		if(output.is_open()) {printf("Stabiliser File opened correctly\n");}
-		output << stabiliser.input_velocity_.x*1000 << ',' << stabiliser.input_velocity_.y*1000 << ',' << stabiliser.input_velocity_.z*1000 << ','
+		output << stabiliser.input_velocity_.x << ',' << stabiliser.input_velocity_.y << ',' << stabiliser.input_velocity_.z << ','
 			   << stabiliser.input_velocity_.r << ',' << stabiliser.input_velocity_.p << ',' << stabiliser.input_velocity_.s << ','
+			   << stabiliser.plat_vel_perturbation_.x << ',' << stabiliser.plat_vel_perturbation_.y << ',' << stabiliser.plat_vel_perturbation_.z << ','
+			   << stabiliser.plat_vel_perturbation_.r << ',' << stabiliser.plat_vel_perturbation_.p << ',' << stabiliser.plat_vel_perturbation_.s << ','
 		 	   << stabiliser.acc0_latest_measurements_.x << ',' << stabiliser.acc0_latest_measurements_.y << ',' << stabiliser.acc0_latest_measurements_.z << ','
 			   << stabiliser.acc1_latest_measurements_.x << ',' << stabiliser.acc1_latest_measurements_.y << ',' << stabiliser.acc1_latest_measurements_.z << ','
 		 	   << stabiliser.acc2_latest_measurements_.x << ',' << stabiliser.acc2_latest_measurements_.y << ',' << stabiliser.acc2_latest_measurements_.z << ','
 			   << stabiliser.acc3_latest_measurements_.x << ',' << stabiliser.acc3_latest_measurements_.y << ',' << stabiliser.acc3_latest_measurements_.z << ','
 			   << stabiliser.acc4_latest_measurements_.x << ',' << stabiliser.acc4_latest_measurements_.y << ',' << stabiliser.acc4_latest_measurements_.z << ','
-			   << stabiliser.acc5_latest_measurements_.x << ',' << stabiliser.acc5_latest_measurements_.y << ',' << stabiliser.acc5_latest_measurements_.z 
+			   << stabiliser.acc5_latest_measurements_.x << ',' << stabiliser.acc5_latest_measurements_.y << ',' << stabiliser.acc5_latest_measurements_.z << ','
+			   << stabiliser.acc0_ground_state_measurement_.x << ',' << stabiliser.acc0_ground_state_measurement_.y << ',' << stabiliser.acc0_ground_state_measurement_.z << ','
+			   << stabiliser.acc1_ground_state_measurement_.x << ',' << stabiliser.acc1_ground_state_measurement_.y << ',' << stabiliser.acc1_ground_state_measurement_.z << ','
+		 	   << stabiliser.acc2_ground_state_measurement_.x << ',' << stabiliser.acc2_ground_state_measurement_.y << ',' << stabiliser.acc2_ground_state_measurement_.z << ','
+			   << stabiliser.acc3_ground_state_measurement_.x << ',' << stabiliser.acc3_ground_state_measurement_.y << ',' << stabiliser.acc3_ground_state_measurement_.z << ','
+			   << stabiliser.acc4_ground_state_measurement_.x << ',' << stabiliser.acc4_ground_state_measurement_.y << ',' << stabiliser.acc4_ground_state_measurement_.z << ','
+			   << stabiliser.acc5_ground_state_measurement_.x << ',' << stabiliser.acc5_ground_state_measurement_.y << ',' << stabiliser.acc5_ground_state_measurement_.z << ','
+			   << stabiliser.opto_pos_estimate_.x << ',' << stabiliser.opto_pos_estimate_.y << ',' << stabiliser.opto_pos_estimate_.z << ',' << stabiliser.opto_pos_estimate_.r << ',' << stabiliser.opto_pos_estimate_.p << ',' << stabiliser.opto_pos_estimate_.s << ','
+			   << stabiliser.opto_vel_estimate_.x << ',' << stabiliser.opto_vel_estimate_.y << ',' << stabiliser.opto_vel_estimate_.z << ',' << stabiliser.opto_vel_estimate_.r << ',' << stabiliser.opto_vel_estimate_.p << ',' << stabiliser.opto_vel_estimate_.s << ','
+			   << stabiliser.plat_pos_estimate_.x << ',' << stabiliser.plat_pos_estimate_.y << ',' << stabiliser.plat_pos_estimate_.z << ',' << stabiliser.plat_pos_estimate_.r << ',' << stabiliser.plat_pos_estimate_.p << ',' << stabiliser.plat_pos_estimate_.s << ','
+			   << stabiliser.plat_vel_estimate_.x << ',' << stabiliser.plat_vel_estimate_.y << ',' << stabiliser.plat_vel_estimate_.z << ',' << stabiliser.plat_vel_estimate_.r << ',' << stabiliser.plat_vel_estimate_.p << ',' << stabiliser.plat_vel_estimate_.s << ','
+			   << stabiliser.plat_acc_estimate_.x << ',' << stabiliser.plat_acc_estimate_.y << ',' << stabiliser.plat_acc_estimate_.z << ',' << stabiliser.plat_acc_estimate_.r << ',' << stabiliser.plat_acc_estimate_.p << ',' << stabiliser.plat_acc_estimate_.s 
 			   <<'\n';
 		output.close();
 	}
@@ -1015,7 +1098,7 @@ int main() {
     //driver.LinearSweepTest();
 	//driver.MeasureOrientationMeasurementNoise();
 	//driver.NavigatorTest();
-	driver.StabiliserTest();
+	//driver.StabiliserTest();
 
 	//We rest the start clock and start the closed loop operation
 	time_point_start = high_resolution_clock::now();
