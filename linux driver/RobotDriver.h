@@ -73,10 +73,6 @@ namespace Control
             bool short_level_flag_ = false;
             bool short_level_flag2_ = false;
 
-            //This flag is enabled after the Stabiliser is enaged and insructs it to attempt to spend 10 seconds
-            //just estimating its state before the feedback inputs are engaged
-            bool short_estimate_flag_ = false;
-
 
             //General control
             void RequestAccelerations();

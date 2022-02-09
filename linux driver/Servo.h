@@ -103,6 +103,7 @@ namespace Servo
             Doubles BFF_vel_reference_;
             double height_target_;
             Doubles angle_reference_;
+            static double global_gain_;
             int time_;
 
             //Structures to store the measured values
@@ -113,6 +114,7 @@ namespace Servo
             Doubles acc4_latest_measurements_;
             Doubles acc5_latest_measurements_;
             DoublesSixAxis platform_position_measurement_;
+            DoublesSixAxis platform_velocity_measurement_;
             Steps motor_steps_measurement_;
             Steps actuator_steps_measurement_;
 
@@ -160,12 +162,11 @@ namespace Servo
             static double motor_saturation_velocity_;
             static double actuator_saturation_velocity_;
             static double dt_; //Time period for a controller loop (will be assumed to be 0.001)
-            static double global_gain_;
 
             double F_ [30*30]; //Array to store the values of the state transition matrix 
-            double H_ [24*30]; //Array to store the values of the measurement matrix 
+            double H_ [30*30]; //Array to store the values of the measurement matrix 
             double B_ [30*6]; //Array to store the values of the input-state coupling matrix 
-            double G_ [30*24]; //Array to store the values of the Kalman Gain matrix
+            double G_ [30*30]; //Array to store the values of the Kalman Gain matrix
             double K_ [6*30]; //Array to store the proportional LQR gain
 
             //array to store the estimated state vector
@@ -179,7 +180,7 @@ namespace Servo
             //Defining the array of output variables
             //Indices 0-17 list the accelerometer readings in order
             //Indices 18-24 list the rough measurement of platform position
-            double y_ [24];
+            double y_ [30];
             //array to store the requested perturbations to the platform velocity
             double u_ [6];
 

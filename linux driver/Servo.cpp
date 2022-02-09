@@ -196,10 +196,10 @@ STABILISER DEFINITIONS
 */
 
 //Set a saturation velocity of 1000 micron/s
-double Stabiliser::motor_saturation_velocity_ = 0.005;
+double Stabiliser::motor_saturation_velocity_ = 0.015;
 double Stabiliser::actuator_saturation_velocity_ = 0.0005;
 double Stabiliser::dt_ = 0.001;
-double Stabiliser::global_gain_ = 0.1;
+double Stabiliser::global_gain_ = 0.05;
 
 
 Stabiliser::Stabiliser() {
@@ -248,10 +248,7 @@ void Stabiliser::RunLogicalDistanceSensor() {
 //Compute the Kalman filter predicted state for the system
 void Stabiliser::EstimateStateAndApplyGain() {
 
-     printf("\n\n\n\n\n"); 
-    printf("x = %f target = %f\n",platform_position_measurement_.x,BFF_vel_reference_.x*time_*dt_);
-    printf("y = %f target = %f\n",platform_position_measurement_.y,BFF_vel_reference_.y*time_*dt_);
-    printf("yaw = %f target = %f\n",platform_position_measurement_.s,BFF_vel_reference_.z*time_*dt_);
+    printf("\n\n\n\n\n"); 
 
     //We update the arrays to store state variables
     ConstructStateEstimateArray();
@@ -263,14 +260,14 @@ void Stabiliser::EstimateStateAndApplyGain() {
     gsl_vector_view x_hat_vector = gsl_vector_view_array(x_hat_,30);
     gsl_vector_view x_hat_prior_vector = gsl_vector_view_array(x_hat_prior_,30);
     gsl_vector_view r_vector = gsl_vector_view_array(r_,30);
-    gsl_vector_view y_vector = gsl_vector_view_array(y_,24);
+    gsl_vector_view y_vector = gsl_vector_view_array(y_,30);
     gsl_vector_view u_vector = gsl_vector_view_array(u_,6);
 
     //We push the gain matrices to gsl matrices
     gsl_matrix_view F_matrix = gsl_matrix_view_array(F_,30,30);
     gsl_matrix_view B_matrix = gsl_matrix_view_array(B_,30,6);
-    gsl_matrix_view H_matrix = gsl_matrix_view_array(H_,24,30);
-    gsl_matrix_view G_matrix = gsl_matrix_view_array(G_,30,24);
+    gsl_matrix_view H_matrix = gsl_matrix_view_array(H_,30,30);
+    gsl_matrix_view G_matrix = gsl_matrix_view_array(G_,30,30);
     gsl_matrix_view K_matrix = gsl_matrix_view_array(K_,6,30);
 
     //Compute the expected output from the prior state
@@ -334,6 +331,13 @@ void Stabiliser::ConvertToMotorVelocity() {
     input_velocity_.r = input_velocity_.r+dt_*plat_vel_perturbation_.r;
     input_velocity_.p = input_velocity_.p+dt_*plat_vel_perturbation_.p;
     input_velocity_.s = input_velocity_.s+dt_*plat_vel_perturbation_.s;
+
+    platform_velocity_measurement_.x = input_velocity_.x;
+    platform_velocity_measurement_.y = input_velocity_.y;
+    platform_velocity_measurement_.z = input_velocity_.z;
+    platform_velocity_measurement_.r = input_velocity_.r;
+    platform_velocity_measurement_.p = input_velocity_.p;
+    platform_velocity_measurement_.s = input_velocity_.s;
 
     /*
     if(input_velocity_.x > motor_saturation_velocity_) {input_velocity_.x = motor_saturation_velocity_; printf("Saturated x\n");}
@@ -445,7 +449,7 @@ void Stabiliser::ConstructMatrices() {
    file.open("StabiliserMatrices/HDriverStabiliser.txt",std::ios::in);
    string_buffer = "";
    value_count = 0;
-   while(value_count < 24*30) {
+   while(value_count < 20*30) {
     char char_in = file.get();
     if((char_in == ',') | (char_in == '\n') ) {
         H_[value_count] = std::stod(string_buffer);
@@ -464,7 +468,7 @@ void Stabiliser::ConstructMatrices() {
    file.open("StabiliserMatrices/GDriverStabiliser.txt",std::ios::in);
    string_buffer = "";
    value_count = 0;
-   while(value_count < 30*24) {
+   while(value_count < 30*30) {
     char char_in = file.get();
     if((char_in == ',') | (char_in == '\n') ) {
         G_[value_count] = std::stod(string_buffer);
@@ -511,16 +515,16 @@ void Stabiliser::ConstructMatrices() {
        }
    }
    printf("\n\n\n\n\n");
-   for(int i = 0; i < 24*30; i++) {
+   for(int i = 0; i < 30*30; i++) {
        printf("%f,",H_[i]);
        if(i%30 == 29){
            printf("\n");
        }
    }
    printf("\n\n\n\n\n");
-   for(int i = 0; i < 30*24; i++) {
+   for(int i = 0; i < 30*30; i++) {
        printf("%f,",G_[i]);
-       if(i%24 == 23){
+       if(i%30 == 29){
            printf("\n");
        }
    }
@@ -642,6 +646,14 @@ void Stabiliser::ConstructOutputArray() {
     y_[21] = platform_position_measurement_.r;
     y_[22] = platform_position_measurement_.p;
     y_[23] = platform_position_measurement_.s;
+
+    //Writing in the current approximation of the velocity position
+    y_[24] = platform_velocity_measurement_.x;
+    y_[25] = platform_velocity_measurement_.y;
+    y_[26] = platform_velocity_measurement_.z;
+    y_[27] = platform_velocity_measurement_.r;
+    y_[28] = platform_velocity_measurement_.p;
+    y_[29] = platform_velocity_measurement_.s;
 }
 
 //Writing the last requested perturbations to the input array
