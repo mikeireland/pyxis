@@ -1,20 +1,21 @@
-//Controller.h
-#pragma once
+//RobotDriver.h
+#ifndef ROBOT_DRIVER_H_INCLUDE_GUARD
+#define ROBOT_DRIVER_H_INCLUDE_GUARD
+
 #include "SerialPort.h"
 #include "Servo.h"
+#include "Decode.h"
 
 // C library headers
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <iostream>
+#include <fstream>
+#include <chrono>
 
 // Linux headers
 #include <unistd.h> // write(), read(), close()
-
-//Macro headers
-#include "Commands.h"
-#include "ErrorCodes.h"
-#include "Decode.h"
 
 
 namespace Control 
@@ -116,8 +117,6 @@ namespace Control
                                                 unsigned int time,
                                                 char direction);
             bool sinusoidal_file_open_flag_ = false;
-
-        
             
         private:
             //debugging
@@ -130,5 +129,39 @@ namespace Control
             bool stabiliser_file_open_flag_ = false;
     };
 
+    //Class to store properties of the real time acceleration tester
+    class AccelerationTester
+    {
+        public:
+          AccelerationTester();
+          void UpdateVelocity();
+          void WriteToFile();
+          Servo::Doubles BFF_velocity_input_;
+          double time_;
+
+          Servo::Doubles acc0_latest_measurements_;
+          Servo::Doubles acc1_latest_measurements_;
+          Servo::Doubles acc2_latest_measurements_;
+          Servo::Doubles acc3_latest_measurements_;
+          Servo::Doubles acc4_latest_measurements_;
+          Servo::Doubles acc5_latest_measurements_;
+
+        private:
+          int test_number_;
+          static double dt_;
+
+          double amplitude_ = 0;
+          double frequency_ = 0;
+          double slope_ = 0;
+          
+
+          double Sinusoid(double amplitude, double frequency, double time);
+          double TriangleWave(double slope, double frequency, double time);
+          double SquareWave(double amplitude, double frequency, double time);
+
+          bool file_open_flag_ = false;
+    };
 
 }
+
+#endif

@@ -1,4 +1,4 @@
-//Controller.cpp
+//RobotDriver.cpp
 #include "RobotDriver.h"
 
 #define PI 3.14159265
@@ -404,28 +404,6 @@ void RobotDriver::EngageStabiliser() {
 
 	sleep(1);
 
-	
-	/*
-	stabiliser.acc0_ground_state_measurement_.x = 0.0;
-	stabiliser.acc0_ground_state_measurement_.y = 0.0;
-	stabiliser.acc0_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
-	stabiliser.acc1_ground_state_measurement_.x = 0.0;
-	stabiliser.acc1_ground_state_measurement_.y = 0.0;
-	stabiliser.acc1_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]);
-	stabiliser.acc2_ground_state_measurement_.x = 0.0;
-	stabiliser.acc2_ground_state_measurement_.y = 0.0;
-	stabiliser.acc2_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]);
-	stabiliser.acc3_ground_state_measurement_.x = 0.0;
-	stabiliser.acc3_ground_state_measurement_.y = 0.0;
-	stabiliser.acc3_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.z[0],teensy_port.accelerometer3_in_.z[1]);
-	stabiliser.acc4_ground_state_measurement_.x = 0.0;
-	stabiliser.acc4_ground_state_measurement_.y = 0.0;
-	stabiliser.acc4_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.z[0],teensy_port.accelerometer4_in_.z[1]);
-	stabiliser.acc5_ground_state_measurement_.x = 0.0;
-	stabiliser.acc5_ground_state_measurement_.y = 0.0;
-	stabiliser.acc5_ground_state_measurement_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]);
-	*/
-
 	//We also reset the height target to the current height
 	PassStepsToStabiliser();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
 	stabiliser.height_target_ = 0.0;
@@ -657,8 +635,6 @@ void RobotDriver::MeasureOrientationMeasurementNoise() {
 	}
 }
 
-#include <iostream>
-#include <fstream>
 void RobotDriver::WriteLevellerStateToFile() {
 	if(!leveller_file_open_flag_){
 		//Create a new file and write the state to it
@@ -1063,112 +1039,150 @@ void RobotDriver::PrintStepCounts() {
 	printf("Last Actuator 2 Step Count was %d\n",leveller.current_step_count_.motor_2);
 }
 
-#include <chrono>
 
-bool closed_loop_enable_flag = true;
+/*
+AccelerationTesterDefinitions
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+*/
 
-int main() {
-	//Necessary global timing measures
-	using std::chrono::high_resolution_clock;
-	using std::chrono::duration_cast;
-	using std::chrono::duration;
-	using std::chrono::microseconds;
+double AccelerationTester::dt_ = 0.001;
 
-	auto time_point_start = high_resolution_clock::now();
-	auto time_point_current = high_resolution_clock::now();
-	auto last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-	auto last_leveller_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-	auto last_leveller_subtimepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-	auto last_navigator_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-	auto global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+//Upon construction, we ask the user to input the test they would like to run, and the relevant parameters for that test
+AccelerationTester::AccelerationTester() {
+	std::cout << "0 = Sinusoid, 1 = TriangleWave, 2 = SquareWave\n";
+	std::cout << "Which test?\n";
+	std::cin >> test_number_;
 
-	RobotDriver driver;
-	
-	driver.StabiliserTest();
-	driver.StabiliserSetup();
-	//driver.EngageLeveller();
-	//driver.EngageNavigator();
+	switch(test_number_){
+		case 0:
+			std::cout << "Sinusoid Selected\n";
+			std::cout << "What amplitude? (in ms^-2)\n";
+			std::cin >> amplitude_;
+			std::cout << "What frequency? (in Hz)\n";
+			std::cin >> frequency_;
+			break;
 
-	//Open loop tests
-	//driver.SinusoidalSweepLog(10000,100000,1.0046,1,3,'y',0.002);
-	//driver.SinusoidalAmplitudeSweepLinear(1000,0,0.015,100,5,'y');
+		case 1:
+			std::cout << "TriangleWave Selected\n";
+			std::cout << "What slope (in ms^-3)\n";
+			std::cin >> slope_;
+			std::cout << "What frequency? (in Hz)\n";
+			std::cin >> frequency_;
+			break;
 
-    //driver.RaiseAndLowerTest();
-    //driver.LinearSweepTest();
-	//driver.MeasureOrientationMeasurementNoise();
-	//driver.NavigatorTest();
-	//driver.StabiliserTest();
-
-	//We rest the start clock and start the closed loop operation
-	time_point_start = high_resolution_clock::now();
-	while(closed_loop_enable_flag) {
-		//Boolean to store if we have done anything on this loop and wait a little bit if we haven't
-		bool controller_active = false;
-
-
-		time_point_current = high_resolution_clock::now();
-		global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-
-		if(global_timepoint-last_stabiliser_timepoint > 1000) {
-			printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
-			last_stabiliser_timepoint = global_timepoint;
-			if(driver.stabiliser.enable_flag_) {
-				controller_active = true;
-				driver.StabiliserLoop();
-			}
-		}
-
-		if((global_timepoint-last_leveller_timepoint) > 10000) {
-			last_leveller_timepoint = global_timepoint;
-			if(driver.leveller.enable_flag_) {
-				controller_active = true;
-				driver.LevellerLoop();	
-			}
-		}
-		else if(global_timepoint-last_leveller_subtimepoint > 1000) {
-			last_leveller_subtimepoint = global_timepoint;
-			if(driver.leveller.enable_flag_) {
-				controller_active = true;
-				driver.LevellerSubLoop();	
-			}
-		}
-		
-		if((global_timepoint-last_navigator_timepoint) > 10000) {
-			last_navigator_timepoint = global_timepoint;
-			if(driver.navigator.enable_flag_) {
-				controller_active = true;
-				driver.NavigatorLoop();
-			}
-		}
-
-		//If the leveller is only enables for a short run after 20 seconds we disable it
-		//This is for the stabiliser runs
-		if(driver.short_level_flag2_){
-			if(global_timepoint > 10000000){
-				driver.SetNewTargetAngle(driver.leveller.pitch_target_cache_,driver.leveller.roll_target_cache_);
-				driver.RequestResetStepCount();
-				driver.short_level_flag2_ = false;
-			}
-		}
-
-		if(driver.short_level_flag_){
-			if(global_timepoint > 20000000) {
-				controller_active = true;
-				driver.EngageStabiliser();
-
-			}
-		}
-
-		if (!controller_active) {
-			usleep(10);
-		}
-
-		driver.teensy_port.PacketManager();
+		case 2:
+			std::cout << "SquareWave Selected\n";
+			std::cout << "What amplitude? (in ms^-2)\n";
+			std::cin >> amplitude_;
+			std::cout << "What frequency? (in Hz)\n";
+			std::cin >> frequency_;
+			break;
 	}
-
-	driver.teensy_port.ClosePort();
-
-	return -1;
 }
 
+void AccelerationTester::UpdateVelocity() {
 
+	switch(test_number_) {
+		//For now the accelerations are purely in x
+		//This can be upgraded later
+		case 0:
+		  BFF_velocity_input_.x += dt_*Sinusoid(amplitude_,frequency_,time_);
+		  BFF_velocity_input_.y = 0;
+		  BFF_velocity_input_.z = 0;
+		  break;
+		case 1:
+		  BFF_velocity_input_.x += dt_*TriangleWave(slope_,frequency_,time_);
+		  BFF_velocity_input_.y = 0;
+		  BFF_velocity_input_.z = 0;
+		  break;
+		case 2:
+		  BFF_velocity_input_.x += dt_*SquareWave(amplitude_,frequency_,time_);
+		  BFF_velocity_input_.y = 0;
+		  BFF_velocity_input_.z = 0;
+		  break;
+	}
+}
+
+void AccelerationTester::WriteToFile() {
+	if(!file_open_flag_){
+		//Create a new file and write the state to it
+		std::ofstream readme_file;
+		readme_file.open("AccelTestParams.txt",std::ios::out);
+		readme_file << "test_number: " << test_number_ << "\n"
+					<< "amplitude: " << amplitude_<< "\n"
+					<< "frequency: " << frequency_ << "\n"
+					<< "slope (for triangle)" << slope_ << "\n";
+		readme_file.close();
+
+		std::ofstream output; 
+		output.open("AccelerationTestOutput.csv",std::ios::out);
+		if(output.is_open()) {printf("AccelerationTestOutput File opened correctly\n");}
+		output << "time (s)" << ","
+			   << "input_vel_x (m/s)" << ',' << "input_vel_y" << ',' << "input_vel_s" << ','
+			   << "accelerometer0_x (ms^-2)" << ',' << "accelerometer0_y" << ',' << "accelerometer0_z" << ','
+			   << "accelerometer1_x" << ',' << "accelerometer1_y" << ',' << "accelerometer1_z" << ','
+			   << "accelerometer2_x" << ',' << "accelerometer2_y" << ',' << "accelerometer2_z" << ','
+			   << "accelerometer3_x" << ',' << "accelerometer3_y" << ',' << "accelerometer3_z" << ','
+			   << "accelerometer4_x" << ',' << "accelerometer4_y" << ',' << "accelerometer4_z" << ','
+			   << "accelerometer5_x" << ',' << "accelerometer5_y" << ',' << "accelerometer5_z"
+			   << '\n'
+			   << time_ << ","
+			   << BFF_velocity_input_.x << ',' << BFF_velocity_input_.y << ',' << BFF_velocity_input_.z << ','
+		 	   << acc0_latest_measurements_.x << ',' << acc0_latest_measurements_.y << ',' << acc0_latest_measurements_.z << ','
+			   << acc1_latest_measurements_.x << ',' << acc1_latest_measurements_.y << ',' << acc1_latest_measurements_.z << ','
+		 	   << acc2_latest_measurements_.x << ',' << acc2_latest_measurements_.y << ',' << acc2_latest_measurements_.z << ','
+			   << acc3_latest_measurements_.x << ',' << acc3_latest_measurements_.y << ',' << acc3_latest_measurements_.z << ','
+			   << acc4_latest_measurements_.x << ',' << acc4_latest_measurements_.y << ',' << acc4_latest_measurements_.z << ','
+			   << acc5_latest_measurements_.x << ',' << acc5_latest_measurements_.y << ',' << acc5_latest_measurements_.z
+			   <<'\n';
+		output.close();
+
+		//Set the flag to say that the leveller state file is already open for this run
+		file_open_flag_ = true;
+	}
+	else {
+		std::ofstream output; 
+		output.open("AccelerationTestOutput.csv",std::ios::app);
+		if(output.is_open()) {printf("AccelerationTestOutput File opened correctly\n");}
+		output << time_ << ","
+			   << BFF_velocity_input_.x << ',' << BFF_velocity_input_.y << ',' << BFF_velocity_input_.z << ','
+		 	   << acc0_latest_measurements_.x << ',' << acc0_latest_measurements_.y << ',' << acc0_latest_measurements_.z << ','
+			   << acc1_latest_measurements_.x << ',' << acc1_latest_measurements_.y << ',' << acc1_latest_measurements_.z << ','
+		 	   << acc2_latest_measurements_.x << ',' << acc2_latest_measurements_.y << ',' << acc2_latest_measurements_.z << ','
+			   << acc3_latest_measurements_.x << ',' << acc3_latest_measurements_.y << ',' << acc3_latest_measurements_.z << ','
+			   << acc4_latest_measurements_.x << ',' << acc4_latest_measurements_.y << ',' << acc4_latest_measurements_.z << ','
+			   << acc5_latest_measurements_.x << ',' << acc5_latest_measurements_.y << ',' << acc5_latest_measurements_.z
+			   <<'\n';
+		output.close();
+	}
+}
+
+double AccelerationTester::Sinusoid(double amplitude, double frequency, double time) {
+	return amplitude*cos(2*PI*frequency*time);
+}
+
+double AccelerationTester::TriangleWave(double slope, double frequency, double time) {
+	double period = 1.0/frequency;
+	double remainder = fmod(time,period);
+
+	if(remainder < 0.5*period) {
+		return slope*(-0.25*period+remainder);
+	}
+	else {
+		return slope*(0.75*period-remainder);
+	}
+
+}
+
+double AccelerationTester::SquareWave(double amplitude, double frequency, double time) {
+	double period = 1.0/frequency;
+	if(fmod(time,period) < 0.5*period) {
+		return amplitude;
+	}
+	else {
+		return -amplitude;
+	}
+}

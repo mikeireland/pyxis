@@ -1,5 +1,21 @@
 //SerialPort.h
-#pragma once
+#ifndef SERIAL_PORT_H_INCLUDE_GUARD
+#define SERIAL_PORT_H_INCLUDE_GUARD
+
+// C library headers
+#include <stdio.h>
+#include <string.h>
+
+// Linux headers
+#include <fcntl.h> // Contains file controls like O_RDWR
+#include <errno.h> // Error integer and strerror() function
+#include <termios.h> // Contains POSIX terminal control definitions
+#include <unistd.h> // write(), read(), close()
+#include <sys/file.h> // Contains the flock command
+
+//Macro headers
+#include "Commands.h"
+#include "ErrorCodes.h"
 
 namespace Comms
 {   
@@ -66,3 +82,4 @@ namespace Comms
     }; 
 }
 
+#endif

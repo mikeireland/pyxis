@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COMMANDS_H_INCLUDE_GUARD
+#define COMMANDS_H_INCLUDE_GUARD
 //This file lists names of controller commands
 //and the byte assigned to each name
 
@@ -70,4 +71,4 @@
 #define Step5Wr 0x35
 
 
-
+#endif
