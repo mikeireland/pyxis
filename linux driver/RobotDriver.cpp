@@ -1114,7 +1114,25 @@ void AccelerationTester::WriteToFile() {
 		readme_file << "test_number: " << test_number_ << "\n"
 					<< "amplitude: " << amplitude_<< "\n"
 					<< "frequency: " << frequency_ << "\n"
-					<< "slope (for triangle)" << slope_ << "\n";
+					<< "slope (for triangle)" << slope_ << "\n"
+					<< "Acc0_x_ground_state: " << acc0_ground_state_.x << '\n'
+					<< "Acc0_y_ground_state: " << acc0_ground_state_.y << '\n'
+					<< "Acc0_z_ground_state: " << acc0_ground_state_.z << '\n'
+					<< "Acc1_x_ground_state: " << acc1_ground_state_.y << '\n'
+					<< "Acc1_y_ground_state: " << acc1_ground_state_.z << '\n'
+					<< "Acc1_z_ground_state: " << acc1_ground_state_.x << '\n'
+					<< "Acc2_x_ground_state: " << acc2_ground_state_.y << '\n'
+					<< "Acc2_y_ground_state: " << acc2_ground_state_.z << '\n'
+					<< "Acc2_z_ground_state: " << acc2_ground_state_.y << '\n'
+					<< "Acc3_x_ground_state: " << acc3_ground_state_.z << '\n'
+					<< "Acc3_y_ground_state: " << acc3_ground_state_.y << '\n'
+					<< "Acc3_z_ground_state: " << acc3_ground_state_.z << '\n'
+					<< "Acc4_x_ground_state: " << acc4_ground_state_.x << '\n'
+					<< "Acc4_y_ground_state: " << acc4_ground_state_.y << '\n'
+					<< "Acc4_z_ground_state: " << acc4_ground_state_.z << '\n'
+					<< "Acc5_x_ground_state: " << acc5_ground_state_.x << '\n'
+					<< "Acc5_y_ground_state: " << acc5_ground_state_.y << '\n'
+					<< "Acc5_z_ground_state: " << acc5_ground_state_.z << '\n';
 		readme_file.close();
 
 		std::ofstream output; 
