@@ -146,13 +146,6 @@ namespace Control
           Servo::Doubles acc4_latest_measurements_;
           Servo::Doubles acc5_latest_measurements_;
 
-          Servo::Doubles acc0_ground_state_;
-          Servo::Doubles acc1_ground_state_;
-          Servo::Doubles acc2_ground_state_;
-          Servo::Doubles acc3_ground_state_;
-          Servo::Doubles acc4_ground_state_;
-          Servo::Doubles acc5_ground_state_;
-
         private:
           int test_number_;
           static double dt_;
