@@ -1,5 +1,7 @@
 //Servo.h
-#pragma once
+#ifndef SERVO_H_INCLUDE_GUARD
+#define SERVO_H_INCLUDE_GUARD
+
 #define PI 3.14159265
 
 #include <gsl/gsl_blas.h>
@@ -209,3 +211,5 @@ namespace Servo
             void ApplySaturationFilter();
     };
 }
+
+#endif
