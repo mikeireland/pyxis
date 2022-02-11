@@ -12,7 +12,7 @@ import subprocess as sp
 import scipy.ndimage as nd
 import glob
 import numpy as np
-import tomlii
+import tomli
 
 
 """
@@ -88,9 +88,9 @@ def run_image(img_filename,config):
     img = hdul[0].data
 
     #Get list of positions (extract centroids) via Tetra3
-    lst = t3.get_centroids_from_image(img,bg_sub_mode=config["tetra3"]["bg_sub_mode"],
-                                          sigma_mode=config["tetra3"]["sigma_mode"],
-                                          filtsize=config["tetra3"]["filt_size"])
+    lst = t3.get_centroids_from_image(img,bg_sub_mode=config["Tetra3"]["bg_sub_mode"],
+                                          sigma_mode=config["Tetra3"]["sigma_mode"],
+                                          filtsize=config["Tetra3"]["filt_size"])
 
     #Write .axy file for astrometry.net
     writeANxy(folder_prefix, lst.T[1], lst.T[0], dim=img.T.shape,
@@ -103,10 +103,10 @@ def run_image(img_filename,config):
 
     #Extract astrometry.net WCS info and print to terminal
     print("\nRESULTS:")
-    os.system("./astrometry/utils/wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation|pixscale|fieldw|fieldh'"%folder_prefix)
+    os.system("./astrometry/util/wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation|pixscale|fieldw|fieldh'"%folder_prefix)
 
     #Extract RA, DEC and POSANGLE from astrometry.net output
-    output = sp.getoutput("./astrometry/utils/wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation'"%folder_prefix)
+    output = sp.getoutput("./astrometry/util/wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation'"%folder_prefix)
     [POS,RA,DEC] = [float(s.split(" ")[1]) for s in output.splitlines()]
 
     #Convert to quaternion

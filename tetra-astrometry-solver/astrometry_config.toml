@@ -1,9 +1,9 @@
 
-output_folder = "Bit10" #Folder for output
+output_folder = "output" #Folder for output
 
 [Tetra3]
-bg_sub_mode = "Continuous" #"Continuous" is default
-sigma_mode = "Mono16" #"Mono16" is default
+bg_sub_mode = "local_mean" #"Continuous" is default
+sigma_mode = "global_root_square" #"Mono16" is default
 filt_size = 15 #Size of filter
 
 [Astrometry]
