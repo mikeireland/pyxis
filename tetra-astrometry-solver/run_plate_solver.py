@@ -120,7 +120,7 @@ def run_image(img_filename,config):
     return angles
 
 def get_image(input_folder):
-    list_of_files = glob.glob(input_folder+'.fits') # * means all if need specific format then *.csv
+    list_of_files = glob.glob(input_folder+'/*.fits') # * means all if need specific format then *.csv
     latest_file = max(list_of_files, key=os.path.getctime)
     return latest_file
 
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     run_image(get_image(input_folder),config)
 
     while(1):
-        time.sleep(freq - time.monotonic() % 1)
+        time.sleep(freq - time.monotonic() % 0.5)
         run_image(get_image(input_folder),config)
 
 
