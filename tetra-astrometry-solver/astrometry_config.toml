@@ -1,5 +1,6 @@
-
+input_folder = "output"
 output_folder = "output" #Folder for output
+frequency = 2.0
 
 [Tetra3]
 bg_sub_mode = "local_mean" #"Continuous" is default

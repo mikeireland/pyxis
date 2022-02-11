@@ -13,6 +13,7 @@ import scipy.ndimage as nd
 import glob
 import numpy as np
 import tomli
+import glob
 
 
 """
@@ -110,25 +111,30 @@ def run_image(img_filename,config):
     [POS,RA,DEC] = [float(s.split(" ")[1]) for s in output.splitlines()]
 
     #Convert to quaternion
-    q = conversion.RaDec2Quat(RA,DEC,POS)
+    angles = conversion.RaDec2AltAz(RA,DEC,POS)
     end_time = time.perf_counter()
     print(f"\nCompleted in {end_time - start_time:0.4f} seconds")
 
-    return q
+    print(f"Angles: Alt={angles[1]}, Az={angles[0]}, PosAng={angles[2]}")
+
+    return angles
+
+def get_image(input_folder):
+    list_of_files = glob.glob(input_folder+'.fits') # * means all if need specific format then *.csv
+    latest_file = max(list_of_files, key=os.path.getctime)
+    return latest_file
 
 ###############################################################################
 
 if __name__ == "__main__":
 
     #Retrieve the filename from command line, checking for the number of arguments
-    if len(sys.argv) == 3:
-        file = sys.argv[1]
-        config_file = sys.argv[2]
-    elif len(sys.argv) == 2:
+    if len(sys.argv) == 2:
+        config_file = sys.argv[1]
+    elif len(sys.argv) == 1:
         config_file = "defaultConfig.toml"
         if os.path.exists(config):
             print("Using config "+config)
-            file = sys.argv[1]
         else:
             print("Default config not found. Exiting")
             exit()
@@ -139,9 +145,16 @@ if __name__ == "__main__":
     with open(config_file, "rb") as f:
         config = tomli.load(f)
 
+    input_folder = config["input_folder"]
+
+    freq = 1/config["frequency"]
+
+    run_image(get_image(input_folder),config)
+
     while(1):
-        input("Press enter to submit file")
-        run_image(file,config)
+        time.sleep(freq - time.monotonic() % 1)
+        run_image(get_image(input_folder),config)
+
 
 #-------------
 """
