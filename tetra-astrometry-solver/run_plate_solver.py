@@ -139,7 +139,9 @@ if __name__ == "__main__":
     with open(config_file, "rb") as f:
         config = tomli.load(f)
 
-    run_image(file,config)
+    while(1):
+        input("Press enter to submit file")
+        run_image(file,config)
 
 #-------------
 """
