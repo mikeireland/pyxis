@@ -12,8 +12,8 @@ import subprocess as sp
 import scipy.ndimage as nd
 import glob
 import numpy as np
+import tomlii
 
-import matplotlib.pyplot as plt
 
 """
 Function that takes a list of star positions and creates a .axy file for Astrometry.net
@@ -25,6 +25,7 @@ y = y coordinates of stars
 depth = number of stars to match to
 scale_bounds = min/max of FOV of camera in degrees
 """
+
 def writeANxy(filename, x, y, dim=(0,0), depth=10, scale_bounds = (0.,0.)):
 
     #Create FITS BINTABLE columns
@@ -61,11 +62,120 @@ def writeANxy(filename, x, y, dim=(0,0), depth=10, scale_bounds = (0.,0.)):
     thdulist = fits.HDUList([prihdu, tbhdu])
     thdulist.writeto(filename+extension, overwrite=True)
 
+
 """
+Main function to run an image
+Takes a FITS image, extracts stars, solves the field and converts into an AltAz
+attitude quaternion.
+
+INPUTS:
+img_filename = filename of the FITS image to solve
+prefix = prefix of all auxillary files (including solution)
+output_folder = folder to store auxillary and solution files
+
+OUTPUTS:
+An attitude quaternion in AltAz coordinate frame of the image
+"""
+def run_image(img_filename,config):
+    start_time = time.perf_counter()
+
+    prefix = os.path.basename(img_filename).split('.', 1)[0]
+
+    folder_prefix = config["output_folder"]+"/"+prefix
+
+    #Open FITS
+    hdul = fits.open(str(img_filename))
+    img = hdul[0].data
+
+    #Get list of positions (extract centroids) via Tetra3
+    lst = t3.get_centroids_from_image(img,bg_sub_mode=config["tetra3"]["bg_sub_mode"],
+                                          sigma_mode=config["tetra3"]["sigma_mode"],
+                                          filtsize=config["tetra3"]["filt_size"])
+
+    #Write .axy file for astrometry.net
+    writeANxy(folder_prefix, lst.T[1], lst.T[0], dim=img.T.shape,
+              depth=config["Astrometry"]["depth"],
+              scale_bounds=(config["Astrometry"]["FOV_min"],
+                            config["Astrometry"]["FOV_max"]))
+
+    #Run astrometry.net
+    os.system("./astrometry/solver/astrometry-engine %s.axy -c astrometry.cfg"%folder_prefix)
+
+    #Extract astrometry.net WCS info and print to terminal
+    print("\nRESULTS:")
+    os.system("./astrometry/utils/wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation|pixscale|fieldw|fieldh'"%folder_prefix)
+
+    #Extract RA, DEC and POSANGLE from astrometry.net output
+    output = sp.getoutput("./astrometry/utils/wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation'"%folder_prefix)
+    [POS,RA,DEC] = [float(s.split(" ")[1]) for s in output.splitlines()]
+
+    #Convert to quaternion
+    q = conversion.RaDec2Quat(RA,DEC,POS)
+    end_time = time.perf_counter()
+    print(f"\nCompleted in {end_time - start_time:0.4f} seconds")
+
+    return q
+
+###############################################################################
+
+if __name__ == "__main__":
+
+    #Retrieve the filename from command line, checking for the number of arguments
+    if len(sys.argv) == 3:
+        file = sys.argv[1]
+        config_file = sys.argv[2]
+    elif len(sys.argv) == 2:
+        config_file = "defaultConfig.toml"
+        if os.path.exists(config):
+            print("Using config "+config)
+            file = sys.argv[1]
+        else:
+            print("Default config not found. Exiting")
+            exit()
+    else:
+        print("Bad number of arguments")
+        exit()
+
+    with open(config_file, "rb") as f:
+        config = tomli.load(f)
+
+    run_image(file,config)
+
+#-------------
+"""
+
+    nx=1440
+    ny=1080
+
+    bytes_pix = 2
+    filename = folder +'/'+ file_prefix + '.raw'
+    outname = folder +'/'+ file_prefix + '.fits'
+
+    #Run the main command a few times
+    for i in range(1):
+        tic = time.perf_counter()
+
+        with open(filename, 'rb') as ff:
+            ss = ff.read(nx*ny*bytes_pix)
+            ff.close()
+            im = np.frombuffer(ss, dtype=np.uint16).reshape((ny,nx))
+        #im = (im-dmn.astype(np.int16)).astype(np.int16)
+
+        fits.writeto(outname, im, overwrite=True)
+        toc = time.perf_counter()
+
+        q = run_image(outname,file_prefix,"output")
+
+        tac = time.perf_counter()
+        print(f"Read/Write in {toc - tic:0.4f} seconds")
+        print(f"Solve in {tac - toc:0.4f} seconds")
+        print(q)
+
+
 Convert xy pixel values to r,theta from the centre of the image
 r is in pixels
 theta is in degrees
-"""
+
 def xy_to_rt(coord,c=(720,540)):
     x,y = coord
     r = np.sqrt((x-c[0])**2+(y-c[1])**2)
@@ -73,6 +183,8 @@ def xy_to_rt(coord,c=(720,540)):
     return (r,theta)
 
 def match_error(folder_prefix,mag_only=1):
+    import matplotlib.pyplot as plt
+
     corr_fits = fits.open(folder_prefix+'.corr')[1].data
     pict_px = []
     solved_px = []
@@ -113,109 +225,4 @@ def match_error(folder_prefix,mag_only=1):
     print(np.std(deltas,axis=0)[0]*14.22, np.std(deltas,axis=0)[1]*3600)
     plt.show()
     return
-
-
 """
-Main function to run an image
-Takes a FITS image, extracts stars, solves the field and converts into an AltAz
-attitude quaternion.
-
-INPUTS:
-img_filename = filename of the FITS image to solve
-prefix = prefix of all auxillary files (including solution)
-output_folder = folder to store auxillary and solution files
-
-OUTPUTS:
-An attitude quaternion in AltAz coordinate frame of the image
-"""
-def run_image(img_filename,prefix,output_folder):
-
-    folder_prefix = output_folder+"/"+prefix
-
-    #Open FITS
-    hdul = fits.open(str(img_filename))
-    img = hdul[0].data
-
-    #Get list of positions (extract centroids) via Tetra3
-    lst = t3.get_centroids_from_image(img,bg_sub_mode="local_mean",sigma_mode="global_root_square",filtsize=15)
-
-    #import pdb; pdb.set_trace()
-
-    #Write .axy file for astrometry.net
-    writeANxy(folder_prefix, lst.T[1], lst.T[0], dim=img.T.shape, scale_bounds=(5,6))
-
-    #Run astrometry.net
-    print("")
-    start_astro = time.perf_counter()
-    os.system("astrometry-engine %s.axy -c astrometry.cfg"%folder_prefix)
-    end_astro = time.perf_counter()
-
-    #Extract astrometry.net WCS info and print to terminal
-    print("\nRESULTS:")
-    os.system("wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation|pixscale|fieldw|fieldh'"%folder_prefix)
-
-    #Extract RA, DEC and POSANGLE from astrometry.net output
-    output = sp.getoutput("wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation'"%folder_prefix)
-    [POS,RA,DEC] = [float(s.split(" ")[1]) for s in output.splitlines()]
-
-    #Convert to quaternion
-    q = conversion.RaDec2Quat(RA,DEC,POS)
-
-    print(f"\nastrometry.net in {end_astro - start_astro:0.4f} seconds")
-
-    #Check errors?
-    #match_error(folder_prefix,mag_only=1)
-
-    #Return the quaternion
-    return q
-
-###############################################################################
-
-#Retrieve the filename from command line, checking for the number of arguments
-if len(sys.argv) != 3:
-    print("Bad number of arguments")
-    exit()
-else:
-    folder = sys.argv[1]
-    file_prefix = sys.argv[2]
-
-nx=1440
-ny=1080
-
-bytes_pix = 2
-filename = folder +'/'+ file_prefix + '.raw'
-outname = folder +'/'+ file_prefix + '.fits'
-
-"""
-dfiles = glob.glob(folder + 'dark_?.raw')
-dmn = np.zeros((ny,nx))
-for dfn in dfiles:
-    with open(dfn, 'rb') as ff:
-        ss = ff.read(nx*ny*bytes_pix)
-        ff.close()
-        dmn += np.frombuffer(ss, dtype=np.uint16).reshape((ny,nx))
-
-dmn /= len(dfiles)
-"""
-#Run the main command a few times
-for i in range(1):
-    tic = time.perf_counter()
-
-    with open(filename, 'rb') as ff:
-        ss = ff.read(nx*ny*bytes_pix)
-        ff.close()
-        im = np.frombuffer(ss, dtype=np.uint16).reshape((ny,nx))
-    #im = (im-dmn.astype(np.int16)).astype(np.int16)
-
-    fits.writeto(outname, im, overwrite=True)
-    toc = time.perf_counter()
-
-    q = run_image(outname,file_prefix,"output")
-
-    tac = time.perf_counter()
-    print(f"Read/Write in {toc - tic:0.4f} seconds")
-    print(f"Solve in {tac - toc:0.4f} seconds")
-    print(q)
-
-
-#-------------

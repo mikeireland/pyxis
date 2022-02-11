@@ -73,7 +73,7 @@ ALL_WCSLIB_TARGETS :=
 
 CFITS_UTILS := tablist modhead fitscopy tabmerge liststruc \
 		listhead imcopy imarith imstat
-# fitstomatlab 
+# fitstomatlab
 
 FITS_UTILS := $(CFITS_UTILS)
 
@@ -81,7 +81,7 @@ MISC_EXECS := project-usnob diffractionFlag_check hpgrid resort-xylist
 
 resort-xylist: resort-xylist-main.o resort-xylist.o $(SLIB)
 
-UTIL_OBJS := 
+UTIL_OBJS :=
 
 OTHER_OBJS := catalog.o codefile.o verify.o \
 	solver.o solvedfile.o pnpoly.o tweak.o \
@@ -105,7 +105,7 @@ SIMPLE_PROGS := wcs-grab get-wcs query-starkd
 PROGS := astrometry-engine build-astrometry-index \
 	$(MAIN_PROGS) $(SIMPLE_PROGS)
 
-JHPROGS := astrometry-engine astrometry-engine2
+JHPROGS := astrometry-engine
 
 PROSPECTUS := quadidx codeprojections quadscales quadsperstar \
 	quadcenters startree2rdls
@@ -125,7 +125,7 @@ ENGINE_OBJS += new-wcs.o fits-guess-scale.o cut-table.o \
 
 BUILD_INDEX_OBJS := build-index.o uniformize-catalog.o startree.o hpquads.o \
 	quad-builder.o quad-utils.o codefile.o codetree.o unpermute-stars.o \
-	unpermute-quads.o merge-index.o 
+	unpermute-quads.o merge-index.o
 ENGINE_OBJS += $(BUILD_INDEX_OBJS)
 
 #augment-xylist.o
@@ -188,7 +188,7 @@ simplexy: image2xy
 PY_INSTALL_DIR := $(PY_BASE_INSTALL_DIR)/solver
 LINK_DIR := $(PY_BASE_LINK_DIR)/solver
 
-PYTHON_EXECS := 
+PYTHON_EXECS :=
 PYTHON_INSTALL := $(PYTHON_EXECS) __init__.py
 
 install: $(INSTALL_EXECS) $(INSTALL_LIB)
