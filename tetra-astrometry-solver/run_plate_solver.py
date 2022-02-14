@@ -132,9 +132,9 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         config_file = sys.argv[1]
     elif len(sys.argv) == 1:
-        config_file = "defaultConfig.toml"
-        if os.path.exists(config):
-            print("Using config "+config)
+        config_file = "astrometry_config.toml"
+        if os.path.exists(config_file):
+            print("Using config "+config_file)
         else:
             print("Default config not found. Exiting")
             exit()
@@ -147,14 +147,25 @@ if __name__ == "__main__":
 
     input_folder = config["input_folder"]
 
-    freq = 1/config["frequency"]
+    """
+    period = 1/config["frequency"]
 
-    run_image(get_image(input_folder),config)
+    current_file = get_image(input_folder)
 
+    run_image(current_file,config)
+    
     while(1):
-        time.sleep(freq - time.monotonic() % 0.5)
+        time.sleep(period - time.monotonic() % period)
         run_image(get_image(input_folder),config)
-
+    """
+    
+    while(1):
+        get_input = input("Filename please")
+        if len(get_input) > 0:
+            filename = input_folder+"/"+get_input
+        else:
+            filename = get_image(input_folder)
+        run_image(filename,config)
 
 #-------------
 """
