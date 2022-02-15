@@ -14,7 +14,7 @@ import glob
 import numpy as np
 import tomli
 import glob
-
+import zmq
 
 """
 Function that takes a list of star positions and creates a .axy file for Astrometry.net
@@ -145,27 +145,26 @@ if __name__ == "__main__":
     with open(config_file, "rb") as f:
         config = tomli.load(f)
 
-    input_folder = config["input_folder"]
+    context = zmq.Context()
+    socket = context.socket(zmq.REP)
+    socket.bind(config["socket"])
 
-    """
-    period = 1/config["frequency"]
-
-    current_file = get_image(input_folder)
-
-    run_image(current_file,config)
-    
     while(1):
-        time.sleep(period - time.monotonic() % period)
-        run_image(get_image(input_folder),config)
-    """
-    
-    while(1):
-        get_input = input("Filename please")
-        if len(get_input) > 0:
-            filename = input_folder+"/"+get_input
-        else:
-            filename = get_image(input_folder)
-        run_image(filename,config)
+        #  Wait for next request from client
+        message = socket.recv()
+        print("Received message: %s" % message)
+
+        # WORK ON MESSAGE -> FILENAME
+        filename = #message
+
+        #run image
+        angles = run_image(filename,config)
+
+        # WORK ON ANGLES -> return_message
+        return_message = b"" #angles
+
+        #Send reply back to client
+        socket.send(return_message)
 
 #-------------
 """
