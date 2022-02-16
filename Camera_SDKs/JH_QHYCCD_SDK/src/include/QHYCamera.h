@@ -1,19 +1,19 @@
 // Based on the work done by https://github.com/miks/spinnaker-fps-test
-#ifndef _FLIRCAMERA_
-#define _FLIRCAMERA_
+#ifndef _QHYCAMERA_
+#define _QHYCAMERA_
 
-#include "Spinnaker.h"
+#include "qhyccd.h"
 #include "toml.hpp"
 
-/* FLIR CAMERA CLASS
+/* QHYCCD CAMERA CLASS
    Contains necessary methods and attributes for running
-   a FLIR Camera
+   a QHYCCD Camera
 */
-class FLIRCamera {
+class QHYCamera {
     public:
 
         // Pointer to camera
-        Spinnaker::CameraPtr pCam;
+        qhyccd_handle pCam;
 
         // TOML configuration table
         toml::table config;
@@ -32,17 +32,17 @@ class FLIRCamera {
         // Software gain
         int gain;
 
-        // Pixel format of images (Mono16 is good default)
-        std::string pixel_format;
-
-        // Acquisition mode of camera (continuous)
-        std::string acquisition_mode;
-
-        // Set bit depth of ADC
-        std::string adc_bit_depth;
-
         // Set black level in percent
-        double black_level;
+        int black_level;
+
+        // Pixel format of images (8 or 16)
+        int pixel_format;
+
+        // Acquisition mode of camera (0 for single, 1 for live)
+        int acquisition_mode;
+
+        // Readout mode of camera (0,1 or 2)
+        int readout_mode;
 
         // Buffer size for image data
         int buffer_size;
@@ -56,24 +56,13 @@ class FLIRCamera {
         // Timestamp of first image
         char* timestamp;
 
-        // TRIGGER VALUES
-
-        // Whether trigger is on or off
-        std::string trigger_mode;
-
-        // Trigger functionality
-        std::string trigger_selector;
-
-        // Trigger source
-        std::string trigger_source;
-
 
 		    /* Constructor: Takes the camera pointer and config table
            and saves them (and config values) as object attributes
            INPUTS:
               pCam_init - Spinnaker camera pointer
               config_init - Parsed TOML table   */
-        FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init);
+        QHYCamera(qhyccd_handle pCam_init, toml::table config_init);
 
 		    /* Function to setup and start the camera. MUST CALL BEFORE USING!!! */
         void InitCamera();
@@ -97,15 +86,6 @@ class FLIRCamera {
               num_images - number of images in the array to write
         */
         int SaveFITS(unsigned short* image_array, int num_images);
-
-
-    private:
-        // Configure the trigger
-        int ConfigTrigger(Spinnaker::GenApi::INodeMap& node_map);
-        // Reset the camera by turning off trigger
-        int ResetTrigger(Spinnaker::GenApi::INodeMap& node_map);
-        // Function to grab an image through the trigger
-        int GrabImageByTrigger(Spinnaker::GenApi::INodeMap& node_map);
 
 };
 

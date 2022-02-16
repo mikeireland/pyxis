@@ -2,8 +2,8 @@
 #include <string>
 #include <fstream>
 #include <unistd.h>
-#include "FLIRCamera.h"
-#include "Spinnaker.h"
+#include "QHYCamera.h"
+#include "qhyccd.h"
 #include "toml.hpp"
 
 using namespace Spinnaker;
@@ -63,36 +63,36 @@ int main(int argc, char **argv) {
     toml::table config = toml::parse_file(config_file);
 
     // Init SDK
-	unsigned int retVal = InitQHYCCDResource();
-	if (QHYCCD_SUCCESS == retVal){
-		printf("SDK resources initialized.\n");
-	}
-	else{
-		printf("Cannot initialize SDK resources, error: %d\n", retVal);
-	return 1;
-	}
+  	unsigned int retVal = InitQHYCCDResource();
+  	if (QHYCCD_SUCCESS == retVal){
+  		printf("SDK resources initialized.\n");
+  	}
+  	else{
+  		printf("Cannot initialize SDK resources, error: %d\n", retVal);
+  	return 1;
+  	}
 
-	// Scan cameras
-	int camCount = ScanQHYCCD();
-	if (camCount > 0){
-		printf("Number of QHYCCD cameras found: %d \n", camCount);
-	}
-	else{
-		printf("No QHYCCD camera found, please check USB or power.\n");
-		return 1;
-	}
+  	// Scan cameras
+  	int camCount = ScanQHYCCD();
+  	if (camCount > 0){
+  		printf("Number of QHYCCD cameras found: %d \n", camCount);
+  	}
+  	else{
+  		printf("No QHYCCD camera found, please check USB or power.\n");
+  		return 1;
+  	}
 
-	//Get first camera
-	bool camFound = false;
+  	//Get first camera
+  	bool camFound = false;
   	char camId[32];
-  
+
     retVal = GetQHYCCDId(0, camId);
     if (QHYCCD_SUCCESS == retVal){
     	printf("Application connected to the following camera from the list: cameraID = %s\n", camId);
     	camFound = true;
     	break;
     }
-    
+
   	if (!camFound){
     	printf("The detected camera is not QHYCCD or other error.\n");
     	// release sdk resources
@@ -104,42 +104,61 @@ int main(int argc, char **argv) {
     	}
     	return 1;
   	}
+    // Open Camera
+    qhyccd_handle *pCamHandle = OpenQHYCCD(camId);
+    if (pCamHandle != NULL){
+        printf("Open QHYCCD success.\n");
+    }else {
+        printf("Open QHYCCD failure.\n");
+        return 1;
+    }
 
     // Get the settings for the particular camera
     toml::table cam_config = *config.get("QHYcamera")->as_table();
 
-	// Initialise FLIRCamera instance from the first available camera
-    FLIRCamera Fcam (cam_list.GetByIndex(0), cam_config);
+    // Initialise QHYCamera instance from the first available camera
+    QHYCamera Qcam (pCamHandle, cam_config);
 
     // How many frames to take?
     unsigned long num_frames = cam_config["camera"]["num_frames"].value_or(0);
 
-    // Allocate memory for the image data (given by size of image and buffer size)
-    unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
-
 	    // Setup and start the camera
-    Fcam.InitCamera();
+    Qcam.InitCamera();
+
+    // get requested memory length
+    uint32_t length = GetQHYCCDMemLength(pCamHandle);
+
+    if (length > 0){
+        pImgData = new unsigned short[length*Qcam.buffer_size];
+        memset(pImgData, 0, length);
+        printf("Allocated memory for frames: %d [uchar].\n", length*Qcam.buffer_size);
+    }else {
+        printf("Cannot allocate memory for frame.\n");
+        return 1;
+    }
 
     // Acquire the images, saving them to "image_array", and call "CallbackFunc"
 	    // after each image is retrieved.
-    Fcam.GrabFrames(num_frames, image_array, CallbackFunc);
+    Qcam.GrabFrames(num_frames, pImgData, CallbackFunc);
 
     // Save the data as a FITS file
     cout << "Saving Data" << endl;
-    Fcam.SaveFITS(image_array, Fcam.buffer_size);
+    Qcam.SaveFITS(image_array, Qcam.buffer_size);
 
 	    // Turn off camera
-    Fcam.DeinitCamera();
+    Qcam.DeinitCamera();
 
 	    // Free the memory
     free(image_array);
 
-
-    // Clear camera list before releasing system
-    cam_list.Clear();
-
-    // Release system
-    system->ReleaseInstance();
+    // release sdk resources
+    retVal = ReleaseQHYCCDResource();
+    if (QHYCCD_SUCCESS == retVal){
+      printf("SDK resources released.\n");
+    }else {
+        printf("Cannot release SDK resources, error %d.\n", retVal);
+        return 1;
+    }
 
     return 0;
 }

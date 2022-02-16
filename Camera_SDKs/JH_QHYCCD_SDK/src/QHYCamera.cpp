@@ -9,6 +9,7 @@
 #include <chrono>
 #include <algorithm>
 #include "QHYCamera.h"
+#include "qhyccd.h"
 #include "toml.hpp"
 #include "fitsio.h"
 #include "helperFunc.h"
@@ -85,9 +86,9 @@ void FirmWareVersion(qhyccd_handle *h)
       pCam_init - Spinnaker camera pointer
       config_init - Parsed TOML table
 */
-FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
+QHYCamera::QHYCamera(qhyccd_handle pCam_init, toml::table config_init){
 
-    pCam = pCam_init;
+    pCamHandle = pCam_init;
     config = config_init;
 
     cout << "Loading Config" << endl;
@@ -95,240 +96,174 @@ FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
     height = config["camera"]["height"].value_or(0);
     offset_x = config["camera"]["offset_x"].value_or(0);
     offset_y = config["camera"]["offset_y"].value_or(0);
+
     exposure_time = config["camera"]["exposure_time"].value_or(0);
     gain = config["camera"]["gain"].value_or(0);
-    pixel_format = config["camera"]["pixel_format"].value_or("");
-    acquisition_mode = config["camera"]["acquisition_mode"].value_or("");
-    adc_bit_depth = config["camera"]["adc_bit_depth"].value_or("");
     black_level = config["camera"]["black_level"].value_or(0);
-    buffer_size = config["camera"]["buffer_size"].value_or(0);
-    imsize = width*height;
 
-    trigger_mode = config["camera"]["trigger"]["trigger_mode"].value_or("");
-    trigger_selector = config["camera"]["trigger"]["trigger_selector"].value_or("");
-    trigger_source = config["camera"]["trigger"]["trigger_source"].value_or("");
+    pixel_format = config["camera"]["pixel_format"].value_or(16);
+    acquisition_mode = config["camera"]["acquisition_mode"].value_or(1);
+    readout_mode = config["camera"]["readout_mode"].value_or(0);
+
+    imsize = width*height;
+    buffer_size = config["camera"]["buffer_size"].value_or(0);
+
 }
 
 
 /* Function to setup and start the camera. MUST CALL BEFORE USING!!! */
-void FLIRCamera::InitCamera(){
-    // Initialize camera
-    pCam->Init();
+void QHYCamera::InitCamera(){
 
-    INodeMap& node_map = pCam->GetNodeMap();
-
-    //Configure Camera
-    // Set width
-    CIntegerPtr ptr_width = node_map.GetNode("Width");
-    ptr_width->SetValue(width);
-
-    // Set height
-    CIntegerPtr ptr_height = node_map.GetNode("Height");
-    ptr_height->SetValue(height);
-
-    // Set x offset
-    CIntegerPtr ptr_offset_x = node_map.GetNode("OffsetX");
-    ptr_offset_x->SetValue(offset_x);
-
-    // Set y offset
-    CIntegerPtr ptr_offset_y = node_map.GetNode("OffsetY");
-    ptr_offset_y->SetValue(offset_y);
-
-    // Set auto exposure mode to OFF
-    char auto_exposure[] = "Off";
-    CEnumerationPtr ptr_auto_exposure = node_map.GetNode("ExposureAuto");
-    CEnumEntryPtr ptr_auto_exposure_node = ptr_auto_exposure->GetEntryByName(auto_exposure);
-    ptr_auto_exposure->SetIntValue(ptr_auto_exposure_node->GetValue());
-
-    // Set auto gain mode to OFF
-    char auto_gain[] = "Off";
-    CEnumerationPtr ptr_auto_gain = node_map.GetNode("GainAuto");
-    CEnumEntryPtr ptr_auto_gain_node = ptr_auto_gain->GetEntryByName(auto_gain);
-    ptr_auto_gain->SetIntValue(ptr_auto_gain_node->GetValue());
-
-    // Set Gamma Correction to OFF
-    bool gamma = false;
-    CBooleanPtr ptr_gamma = node_map.GetNode("GammaEnable");
-    ptr_gamma->SetValue(gamma);
-
-    // Set Black Level
-    CFloatPtr   ptr_black = node_map.GetNode("BlackLevel");
-    ptr_black->SetValue(black_level); // pass value in percent
-
-    // Set exposure time
-    CFloatPtr   ptr_exposure_time = node_map.GetNode("ExposureTime");
-    ptr_exposure_time->SetValue(exposure_time); // pass value in microseconds
-
-    // Set gain
-    CFloatPtr   ptr_gain = node_map.GetNode("Gain");
-    ptr_gain->SetValue(gain); // pass value in dB
-
-    // Set pixel format
-    CEnumerationPtr ptr_pixel_format = node_map.GetNode("PixelFormat");
-    CEnumEntryPtr ptr_pixel_format_node = ptr_pixel_format->GetEntryByName(pixel_format.c_str());
-    ptr_pixel_format->SetIntValue(ptr_pixel_format_node->GetValue());
-
-    // Set aqcuisition mode
-    CEnumerationPtr ptr_acquisition_mode = node_map.GetNode("AcquisitionMode");
-    CEnumEntryPtr ptr_acquisition_mode_node = ptr_acquisition_mode->GetEntryByName(acquisition_mode.c_str());
-    ptr_acquisition_mode->SetIntValue(ptr_acquisition_mode_node->GetValue());
-
-    // Set adc bit depth
-    CEnumerationPtr ptr_adc_bit_depth = node_map.GetNode("AdcBitDepth");
-    CEnumEntryPtr ptr_adc_bit_depth_node = ptr_adc_bit_depth->GetEntryByName(adc_bit_depth.c_str());
-    ptr_adc_bit_depth->SetIntValue(ptr_adc_bit_depth_node->GetValue());
-
-    // Print Camera device information.
     cout << "Camera device information" << endl
          << "=========================" << endl;
-    cout << Label("Model") << CStringPtr( node_map.GetNode( "DeviceModelName") )->GetValue() << endl;
-    cout << Label("Firmware version") << CStringPtr( node_map.GetNode( "DeviceFirmwareVersion") )->GetValue() << endl;
-    cout << Label("Serial number") << CStringPtr( node_map.GetNode( "DeviceSerialNumber") )->GetValue() << endl;
-    cout << Label("Max resolution") << ptr_width->GetMax() << " x " << ptr_height->GetMax() << endl;
-    cout << Label("Min exposure time") << ptr_exposure_time->GetMin() << endl;
-    cout << endl;
 
-    // Print Camera settings
-    cout << "Camera device settings" << endl << "======================" << endl;
-    cout << Label("Acquisition mode") << ptr_acquisition_mode->GetCurrentEntry()->GetSymbolic() << endl;
-    cout << Label("Pixel format") << ptr_pixel_format->GetCurrentEntry()->GetSymbolic() << endl;
-    cout << Label("ADC bit depth") << ptr_adc_bit_depth->GetCurrentEntry()->GetSymbolic() << endl;
-    cout << Label("Exposure time") << ptr_exposure_time->GetValue() << endl;
-    cout << Label("Gain") << ptr_gain->GetValue() << endl;
-    cout << Label("Width") << ptr_width->GetValue() << endl;
-    cout << Label("Height") << ptr_height->GetValue() << endl;
-    cout << Label("Offset X") << ptr_offset_x->GetValue() << endl;
-    cout << Label("Offset Y") << ptr_offset_y->GetValue() << endl;
-    cout << endl;
+    FirmWareVersion(pCamHandle);
 
-    // Configure trigger if requested
-    if (trigger_mode=="On"){
-        ConfigTrigger(node_map);
+    // Set Capture Mode
+    retVal = SetQHYCCDStreamMode(pCamHandle, acquisition_mode);
+    if (QHYCCD_SUCCESS == retVal){
+        printf("SetQHYCCDStreamMode set to: %d, success.\n", acquisition_mode);
+    }else {
+        printf("SetQHYCCDStreamMode: %d failure, error: %d\n", acquisition_mode, retVal);
+        return 1;
     }
 
-}
-
-int FLIRCamera::ConfigTrigger(INodeMap& node_map){
-    int result = 0;
-    cout << endl << endl << "*** CONFIGURING TRIGGER ***" << endl << endl;
-
-    try
-    {
-        // Ensure trigger mode off
-        // *** NOTES ***
-        // The trigger must be disabled in order to configure whether the source
-        // is software or hardware.
-        CEnumerationPtr ptr_trigger_mode = node_map.GetNode("TriggerMode");
-        CEnumEntryPtr ptr_trigger_mode_off = ptr_trigger_mode->GetEntryByName("Off");
-        ptr_trigger_mode->SetIntValue(ptr_trigger_mode_off->GetValue());
-        cout << "Trigger mode disabled..." << endl;
-
-        // Select trigger source
-        CEnumerationPtr ptr_trigger_source = node_map.GetNode("TriggerSource");
-        CEnumEntryPtr ptr_trigger_source_node = ptr_trigger_source->GetEntryByName(trigger_source.c_str());
-        ptr_trigger_source->SetIntValue(ptr_trigger_source_node->GetValue());
-        cout << "Trigger source set to " << trigger_source << endl;
-
-        // Select trigger selector
-        CEnumerationPtr ptr_trigger_selector = node_map.GetNode("TriggerSelector");
-        CEnumEntryPtr ptr_trigger_selector_node = ptr_trigger_selector->GetEntryByName(trigger_selector.c_str());
-        ptr_trigger_selector->SetIntValue(ptr_trigger_selector_node->GetValue());
-        cout << "Trigger selector set to " << trigger_selector << endl;
-
-        // Turn trigger mode on
-        CEnumEntryPtr ptr_trigger_mode_on = ptr_trigger_mode->GetEntryByName("On");
-        ptr_trigger_mode->SetIntValue(ptr_trigger_mode_on->GetValue());
-        cout << "Trigger mode turned back on..." << endl << endl;
+    // Set Read mode
+    retVal = SetQHYCCDReadMode(pCamHandle, readout_mode);
+    if (QHYCCD_SUCCESS == retVal){
+        printf("SetQHYCCDReadMode set to: %d, success.\n", acquisition_mode);
+        char* name;
+        retVal = GetQHYCCDReadModeName(pCamHandle,readout_mode,name);
+        if (QHYCCD_SUCCESS == retVal){
+            printf("Read mode set to: %d\n", name)
+        }else {
+            printf("Read mode name failure, error: %d\n", retVal);
+            return 1;
+        }
+    }else {
+        printf("SetQHYCCDStreamMode: %d failure, error: %d\n", acquisition_mode, retVal);
+        return 1;
     }
-    catch (Spinnaker::Exception& e)
-    {
-        cout << "Error: " << e.what() << endl;
-        result = -1;
+
+    // Initialize camera
+    retVal = InitQHYCCD(pCamHandle);
+    if (QHYCCD_SUCCESS == retVal){
+        printf("InitQHYCCD success.\n");
+    }else {
+        printf("InitQHYCCD faililure, error: %d\n", retVal);
+        return 1;
     }
-    return result;
+
+    double chipWidthMM;
+    double chipHeightMM;
+    double pixelWidthUM;
+    double pixelHeightUM;
+    unsigned int maxImageSizeX;
+    unsigned int maxImageSizeY;
+    unsigned int bpp;
+
+    // get chip info
+    retVal = GetQHYCCDChipInfo(pCamHandle, &chipWidthMM, &chipHeightMM, &maxImageSizeX, &maxImageSizeY, &pixelWidthUM, &pixelHeightUM, &bpp);
+    if (QHYCCD_SUCCESS == retVal){
+        printf("GetQHYCCDChipInfo:\n");
+        printf("Chip  size width x height     : %.3f x %.3f [mm]\n", chipWidthMM, chipHeightMM);
+        printf("Pixel size width x height     : %.3f x %.3f [um]\n", pixelWidthUM, pixelHeightUM);
+        printf("Image size width x height     : %d x %d\n", maxImageSizeX, maxImageSizeY);
+        printf("Bit depth                     : %d \n", bpp);
+    }else {
+        printf("GetQHYCCDChipInfo failure, error: %d\n", retVal);
+        return 1;
+    }
+
+    //Configure Camera
+
+    // Set Gamma to 0
+    retVal = IsQHYCCDControlAvailable(pCamHandle, CONTROL_GAMMA);
+    if (QHYCCD_SUCCESS == retVal){
+        retVal = SetQHYCCDParam(pCamHandle, CONTROL_GAMMA, 0);
+        if (retVal == QHYCCD_SUCCESS){
+            printf("SetQHYCCDParam CONTROL_GAMMA set to: %d, success\n", 0);
+        }else {
+            printf("SetQHYCCDParam CONTROL_GAMMA failure, error: %d\n", retVal);
+            getchar();
+            return 1;
+        }
+    }
+
+    // Set Black Level (Offset)
+    retVal = IsQHYCCDControlAvailable(pCamHandle, CONTROL_OFFSET);
+    if (QHYCCD_SUCCESS == retVal){
+        retVal = SetQHYCCDParam(pCamHandle, CONTROL_OFFSET, black_level);
+        if (retVal == QHYCCD_SUCCESS){
+            printf("SetQHYCCDParam CONTROL_OFFSET set to: %d, success\n", black_level);
+        }else {
+            printf("SetQHYCCDParam CONTROL_OFFSET failure, error: %d\n", retVal);
+            getchar();
+            return 1;
+        }
+    }
+    // Set exposure time
+    retVal = IsQHYCCDControlAvailable(pCamHandle, CONTROL_EXPOSURE);
+    if (QHYCCD_SUCCESS == retVal){
+        retVal = SetQHYCCDParam(pCamHandle, CONTROL_EXPOSURE, exposure_time);
+        if (retVal == QHYCCD_SUCCESS){
+            printf("SetQHYCCDParam CONTROL_EXPOSURE set to: %d, success\n", exposure_time);
+        }else {
+            printf("SetQHYCCDParam CONTROL_EXPOSURE failure, error: %d\n", retVal);
+            getchar();
+            return 1;
+        }
+    }
+
+    // Set gain
+    retVal = IsQHYCCDControlAvailable(pCamHandle, CONTROL_GAIN);
+    if (QHYCCD_SUCCESS == retVal){
+        retVal = SetQHYCCDParam(pCamHandle, CONTROL_GAIN, gain);
+        if (retVal == QHYCCD_SUCCESS){
+            printf("SetQHYCCDParam CONTROL_GAIN set to: %d, success\n", gain);
+        }else {
+            printf("SetQHYCCDParam CONTROL_GAIN failure, error: %d\n", retVal);
+            getchar();
+            return 1;
+        }
+    }
+
+    // Set pixel format
+    retVal = IsQHYCCDControlAvailable(pCamHandle, CONTROL_TRANSFERBIT);
+    if (QHYCCD_SUCCESS == retVal){
+        retVal = SetQHYCCDBitsMode(pCamHandle, pixel_format);
+        if (retVal == QHYCCD_SUCCESS){
+            printf("Bit Resolution set to: %d, success\n", pixel_format);
+        }else {
+            printf("Bit Resolution failure, error: %d\n", retVal);
+            getchar();
+            return 1;
+        }
+    }
+
+    // set image resolution
+    retVal = SetQHYCCDResolution(pCamHandle, offset_x, offset_y, width, height);
+    if (QHYCCD_SUCCESS == retVal){
+        printf("SetQHYCCDResolution roiStartX x roiStartY: %d x %d\n", offset_x, offset_y);
+        printf("SetQHYCCDResolution roiSizeX  x roiSizeY : %d x %d\n", width, height);
+    }else {
+      printf("SetQHYCCDResolution failure, error: %d\n", retVal);
+      return 1;
+    }
+
 }
 
 
 /* Function to De-initialise camera. MUST CALL AFTER USING!!! */
 void FLIRCamera::DeinitCamera(){
 
-    INodeMap& node_map = pCam->GetNodeMap();
-
-    if (trigger_mode=="On"){
-        ResetTrigger(node_map);
+    // close camera handle
+    retVal = CloseQHYCCD(pCamHandle);
+    if (QHYCCD_SUCCESS == retVal){
+        printf("Close QHYCCD success.\n");
+    }else {
+        printf("Close QHYCCD failure, error: %d\n", retVal);
     }
-
-    pCam->DeInit();
-}
-
-
-// This function returns the camera to a normal state by turning off trigger
-// mode.
-int FLIRCamera::ResetTrigger(INodeMap& node_map){
-    int result = 0;
-    try
-    {
-        // Turn trigger mode back off
-        CEnumerationPtr ptr_trigger_mode = node_map.GetNode("TriggerMode");
-        CEnumEntryPtr ptr_trigger_mode_off = ptr_trigger_mode->GetEntryByName("Off");
-        ptr_trigger_mode->SetIntValue(ptr_trigger_mode_off->GetValue());
-
-        cout << "Trigger mode disabled..." << endl << endl;
-    }
-    catch (Spinnaker::Exception& e)
-    {
-        cout << "Error: " << e.what() << endl;
-        result = -1;
-    }
-    return result;
-}
-
-
-// This function retrieves a single image using the trigger. In this example,
-// only a single image is captured and made available for acquisition - as such,
-// attempting to acquire two images for a single trigger execution would cause
-// the example to hang.
-int FLIRCamera::GrabImageByTrigger(INodeMap& node_map){
-    int result = 0;
-    try
-    {
-        //
-        // Use trigger to capture image
-        //
-        // *** NOTES ***
-        // The software trigger only feigns being executed by the Enter key;
-        // what might not be immediately apparent is that there is not a
-        // continuous stream of images being captured; in other examples that
-        // acquire images, the camera captures a continuous stream of images.
-        // When an image is retrieved, it is plucked from the stream.
-        //
-        if (trigger_source == "Software")
-        {
-            // Get user input
-            cout << "Press the Enter key to initiate software trigger." << endl;
-            getchar();
-            // Execute software trigger
-            CCommandPtr ptr_software_trigger_command = node_map.GetNode("TriggerSoftware");
-            if (!IsAvailable(ptr_software_trigger_command) || !IsWritable(ptr_software_trigger_command))
-            {
-                cout << "Unable to execute trigger. Aborting..." << endl;
-                return -1;
-            }
-            ptr_software_trigger_command->Execute();
-
-        }
-        else
-        {
-            // Execute hardware trigger
-            cout << "Use the hardware to trigger image acquisition." << endl;
-        }
-    }
-    catch (Spinnaker::Exception& e)
-    {
-        cout << "Error: " << e.what() << endl;
-        result = -1;
-    }
-    return result;
 }
 
 
@@ -343,96 +278,99 @@ void FLIRCamera::GrabFrames(unsigned long num_frames, unsigned short* image_arra
     try {
         cout << "Start Acquisition" << endl;
 
-        std::chrono::time_point<std::chrono::steady_clock> start, end;
+        if(readout_mode){
 
-        INodeMap& node_map = pCam->GetNodeMap();
 
-        //Set timestamp
-        time_t start_time = time(0);
+            std::chrono::time_point<std::chrono::steady_clock> start, end;
 
-        // Start aqcuisition
-        pCam->BeginAcquisition();
 
-        //Begin timing
-        start = std::chrono::steady_clock::now();
 
-        for (unsigned int image_cnt = 0; image_cnt < num_frames; image_cnt++){
+            //Set timestamp
+            time_t start_time = time(0);
 
-            // If trigger mode is on, wait for trigger to take image
-            if (trigger_mode=="On"){
-                GrabImageByTrigger(node_map);
-            }
+            // Start aqcuisition
+            pCam->BeginAcquisition();
 
-            // Retrive image
-            ImagePtr ptr_result_image = pCam->GetNextImage();
+            //Begin timing
+            start = std::chrono::steady_clock::now();
 
-            // Load current raw image data into an array
-            unsigned short* data = (unsigned short*)ptr_result_image->GetData();
+            for (unsigned int image_cnt = 0; image_cnt < num_frames; image_cnt++){
 
-            // Append data to an allocated memory array
-            memcpy(image_array+imsize*(image_cnt%buffer_size), data, imsize*2);
-
-            // Do something with the data in real time if required
-            // If 0 is returned by the callback function, end acquisition (regardless of
-            // number of frames to go).
-            if (*f != NULL){
-                int result;
-
-                result = (*f)(data);
-
-                if (result == 0){
-
-                    cout << endl;
-
-                    // End Timing
-                    end = std::chrono::steady_clock::now();
-
-                    // End Acquisition
-                    pCam->EndAcquisition();
-
-                    cout << "Callback Request: Finished Acquisition" << endl;
-
-                    //Set timestamp
-                    tm *gmtm = gmtime(&start_time);
-                    char* dt = asctime(gmtm);
-
-                    timestamp = dt;
-
-                    //Calculate duration
-                    double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-                    total_exposure = duration;
-
-                    return;
-
+                // If trigger mode is on, wait for trigger to take image
+                if (trigger_mode=="On"){
+                    GrabImageByTrigger(node_map);
                 }
+
+                // Retrive image
+                ImagePtr ptr_result_image = pCam->GetNextImage();
+
+                // Load current raw image data into an array
+                unsigned short* data = (unsigned short*)ptr_result_image->GetData();
+
+                // Append data to an allocated memory array
+                memcpy(image_array+imsize*(image_cnt%buffer_size), data, imsize*2);
+
+                // Do something with the data in real time if required
+                // If 0 is returned by the callback function, end acquisition (regardless of
+                // number of frames to go).
+                if (*f != NULL){
+                    int result;
+
+                    result = (*f)(data);
+
+                    if (result == 0){
+
+                        cout << endl;
+
+                        // End Timing
+                        end = std::chrono::steady_clock::now();
+
+                        // End Acquisition
+                        pCam->EndAcquisition();
+
+                        cout << "Callback Request: Finished Acquisition" << endl;
+
+                        //Set timestamp
+                        tm *gmtm = gmtime(&start_time);
+                        char* dt = asctime(gmtm);
+
+                        timestamp = dt;
+
+                        //Calculate duration
+                        double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+                        total_exposure = duration;
+
+                        return;
+
+                    }
+                }
+
+                // Release image
+                ptr_result_image->Release();
+
             }
 
-            // Release image
-            ptr_result_image->Release();
+            cout << endl;
 
-        }
+            // End Timing
+            end = std::chrono::steady_clock::now();
 
-        cout << endl;
+            // End Acquisition
+            pCam->EndAcquisition();
 
-        // End Timing
-        end = std::chrono::steady_clock::now();
+            cout << "Finished Acquisition" << endl;
 
-        // End Acquisition
-        pCam->EndAcquisition();
+            //Set timestamp
+            tm *gmtm = gmtime(&start_time);
+            char* dt = asctime(gmtm);
 
-        cout << "Finished Acquisition" << endl;
+            timestamp = dt;
 
-        //Set timestamp
-        tm *gmtm = gmtime(&start_time);
-        char* dt = asctime(gmtm);
+            //Calculate duration
+            double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-        timestamp = dt;
-
-        //Calculate duration
-        double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-        total_exposure = duration;
+            total_exposure = duration;
 
     }
     catch (Spinnaker::Exception &e) {

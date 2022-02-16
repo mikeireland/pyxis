@@ -32,7 +32,7 @@ QHY_SDK = qhy_sdk_linux64_21.10.12
 # Master inc/lib/obj/dep settings
 ################################################################################
 
-INC = -Ilib/
+INC = -Ilibs/
 INC += -I${SRCINCDIR}
 
 
@@ -55,7 +55,7 @@ binaries = SingleFrameMode
 all: ${binaries}
 
 #Install QHYCCD
-install: 
+install:
 	unzip ${QHY_SDK}.zip
 	cd ${QHY_SDK}; sudo bash install.sh
 	rm -rf ${QHY_SDK}
