@@ -155,6 +155,7 @@ def RaDec2AltAz(RA,DEC,POS_ANG):
     #Euler angles from the Alt/Az/Pos angle coordinates
     #Azimuth made to be anticlockwise in convention of Euler angles (Yaw).
     #Altitude equivalent to pitch
+
     #Pos angle equivalent to roll
     angles = (2*np.pi-AZ,ALT,np.radians(POS_ANG))
 
