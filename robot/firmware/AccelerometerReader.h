@@ -19,6 +19,8 @@
 #define range_2g 0x01
 #define measure_mode 0x04
 #define power_ctl_reg 0x2D
+#define filter_reg 0x28
+#define filter_mode 0b00000001
 
 struct Triple {
   byte x[2], y[2], z[2];
@@ -112,6 +114,7 @@ class AccelerometerReader {
 
           WriteRegister(i, range_reg, range_2g);
           WriteRegister(i, power_ctl_reg, measure_mode);
+          WriteRegister(i, filter_reg, filter_mode);
         }
        
     }
