@@ -62,53 +62,78 @@ int main(int argc, char **argv) {
     // Parse the configuration file
     toml::table config = toml::parse_file(config_file);
 
-    // Retrieve singleton reference to system object
-    SystemPtr system = System::GetInstance();
+    // Init SDK
+	unsigned int retVal = InitQHYCCDResource();
+	if (QHYCCD_SUCCESS == retVal){
+		printf("SDK resources initialized.\n");
+	}
+	else{
+		printf("Cannot initialize SDK resources, error: %d\n", retVal);
+	return 1;
+	}
 
-    // Print out current library version
-    const LibraryVersion spinnaker_library_version = system->GetLibraryVersion();
-    cout << "Spinnaker library version: " << spinnaker_library_version.major << "." << spinnaker_library_version.minor
-         << "." << spinnaker_library_version.type << "." << spinnaker_library_version.build << endl
-         << endl;
+	// Scan cameras
+	int camCount = ScanQHYCCD();
+	if (camCount > 0){
+		printf("Number of QHYCCD cameras found: %d \n", camCount);
+	}
+	else{
+		printf("No QHYCCD camera found, please check USB or power.\n");
+		return 1;
+	}
 
-    // Retrieve list of cameras from the system
-    CameraList cam_list = system->GetCameras();
-
-    if(cam_list.GetSize() == 0) {
-        cerr << "No camera connected" << endl;
-        return -1;
+	//Get first camera
+	bool camFound = false;
+  	char camId[32];
+  
+    retVal = GetQHYCCDId(0, camId);
+    if (QHYCCD_SUCCESS == retVal){
+    	printf("Application connected to the following camera from the list: cameraID = %s\n", camId);
+    	camFound = true;
+    	break;
     }
-    else {
-        // Get the settings for the particular camera
-        toml::table cam_config = *config.get("testFLIRcamera")->as_table();
+    
+  	if (!camFound){
+    	printf("The detected camera is not QHYCCD or other error.\n");
+    	// release sdk resources
+    	retVal = ReleaseQHYCCDResource();
+    	if (QHYCCD_SUCCESS == retVal){
+      		printf("SDK resources released.\n");
+    	} else{
+      		printf("Cannot release SDK resources, error %d.\n", retVal);
+    	}
+    	return 1;
+  	}
 
-		    // Initialise FLIRCamera instance from the first available camera
-        FLIRCamera Fcam (cam_list.GetByIndex(0), cam_config);
+    // Get the settings for the particular camera
+    toml::table cam_config = *config.get("QHYcamera")->as_table();
 
-        // How many frames to take?
-        unsigned long num_frames = cam_config["camera"]["num_frames"].value_or(0);
+	// Initialise FLIRCamera instance from the first available camera
+    FLIRCamera Fcam (cam_list.GetByIndex(0), cam_config);
 
-        // Allocate memory for the image data (given by size of image and buffer size)
-        unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
+    // How many frames to take?
+    unsigned long num_frames = cam_config["camera"]["num_frames"].value_or(0);
 
-		    // Setup and start the camera
-        Fcam.InitCamera();
+    // Allocate memory for the image data (given by size of image and buffer size)
+    unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
 
-        // Acquire the images, saving them to "image_array", and call "CallbackFunc"
-		    // after each image is retrieved.
-        Fcam.GrabFrames(num_frames, image_array, CallbackFunc);
+	    // Setup and start the camera
+    Fcam.InitCamera();
 
-        // Save the data as a FITS file
-        cout << "Saving Data" << endl;
-        Fcam.SaveFITS(image_array, Fcam.buffer_size);
+    // Acquire the images, saving them to "image_array", and call "CallbackFunc"
+	    // after each image is retrieved.
+    Fcam.GrabFrames(num_frames, image_array, CallbackFunc);
 
-		    // Turn off camera
-        Fcam.DeinitCamera();
+    // Save the data as a FITS file
+    cout << "Saving Data" << endl;
+    Fcam.SaveFITS(image_array, Fcam.buffer_size);
 
-		    // Free the memory
-        free(image_array);
+	    // Turn off camera
+    Fcam.DeinitCamera();
 
-    }
+	    // Free the memory
+    free(image_array);
+
 
     // Clear camera list before releasing system
     cam_list.Clear();
