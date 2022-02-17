@@ -114,7 +114,7 @@ int QHYCamera::InitCamera(){
     // Set Read mode
     retVal = SetQHYCCDReadMode(pCamHandle, readout_mode);
     if (QHYCCD_SUCCESS == retVal){
-        printf("SetQHYCCDReadMode set to: %d, success.\n", acquisition_mode);
+        printf("SetQHYCCDReadMode set to: %d, success.\n", readout_mode);
         char* name;
         retVal = GetQHYCCDReadModeName(pCamHandle,readout_mode,name);
         if (QHYCCD_SUCCESS == retVal){
@@ -316,7 +316,7 @@ int QHYCamera::GrabFramesSingle(unsigned long num_frames, unsigned char* image_a
     	}
 
         // Append data to an allocated memory array
-        memcpy(image_array+imsize*(image_cnt%buffer_size), ImgData, imsize);
+        memcpy(image_array+imsize*pixel_format/8*(image_cnt%buffer_size), ImgData, imsize*pixel_format/8);
 
         // Do something with the data in real time if required
         // If 0 is returned by the callback function, end acquisition (regardless of

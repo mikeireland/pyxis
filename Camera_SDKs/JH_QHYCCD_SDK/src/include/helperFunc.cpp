@@ -38,7 +38,7 @@ unsigned short combine_chars(unsigned char a, unsigned char b){
 
 void char_to_short(unsigned char* input, unsigned short* output, unsigned long length){
 	for (unsigned int i=0; i<length; i=i+2){
-		output[i/2] = combine_chars(input[i],input[i+1]);
+		output[i/2] = combine_chars(input[i+1],input[i]);
 	}
 	return;
 }
