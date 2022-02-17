@@ -7,6 +7,7 @@
 #define RUNTIME 0x01 //Requests the maximum runtime of the scheduler
 #define STOP 0x02 //Sets all of the motor velocities to zero
 #define ResetSteps 0x03 //Requests that the step counts be reset
+#define ID 0x04
 
 //Update the raw motor velocities (for closing the levelling servo loop rigorously)
 #define SetRaw0 0x10 //Motor 0

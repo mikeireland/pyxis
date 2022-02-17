@@ -500,6 +500,8 @@ void Stabiliser::ConstructMatrices() {
    }
    file.close();
 
+   /*
+
     //Print the gain matrices as the end as a check
    for(int i = 0; i < 30*30; i++) {
        printf("%f,",F_[i]);
@@ -535,6 +537,7 @@ void Stabiliser::ConstructMatrices() {
            printf("\n");
        }
    }
+   */
 }
 
 void Stabiliser::ConstructStateEstimateArray() {

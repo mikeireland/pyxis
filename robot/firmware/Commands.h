@@ -5,6 +5,7 @@
 #define RUNTIME 0x01 //Request the longest runtime of the scheduler
 #define STOP 0x02 //The command to all stop 
 #define ResetSteps 0x03 //Requests that the step counts be reset
+#define ID 0x04
 //TODO Add commands to request the read and write times for packets
 
 //Update the raw motor velocities (for closing the levelling servo loop rigorously)

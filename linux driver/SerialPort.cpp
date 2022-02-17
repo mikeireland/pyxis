@@ -8,73 +8,87 @@ int SerialPort::max_packet_size_ = 64;
 //Class constructor to sets up the serial connection to the teensy correctly
 //We also zero all of the input registers
 SerialPort::SerialPort() {
-    teensy_ = open("/dev/ttyACM0",O_RDWR);
-    //Acquire non-blocking exclusive lock
-    /*if(flock(teensy_, LOCK_EX | LOCK_NB) == -1) {
-    printf("Serial port with file descriptor %d is already locked by another process.",teensy_);
-    }*/
+    OpenPort();
+}
 
-    if(teensy_ < 0) {
-        printf("Error %i from open: %s\n", errno, strerror(errno));
-    }
+void SerialPort::OpenPort() {
+    char device_file_buffer [64] = {""};
+    while((teensy_ < 0) && (device_file_index_ < 16)) {
 
-    // Read in existing settings, and handle any error
-    // NOTE: This is important! POSIX states that the struct passed to tcsetattr()
-    // must have been initialized with a call to tcgetattr() overwise behaviour
-    // is undefined
-    struct termios tty;
-    if(tcgetattr(teensy_, &tty) != 0) {
-        printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
-    }
+        sprintf(device_file_buffer,"/dev/ttyACM%d",device_file_index_);
+        teensy_ = open(device_file_buffer,O_RDWR);
+        //Acquire non-blocking exclusive lock
+        /*if(flock(teensy_, LOCK_EX | LOCK_NB) == -1) {
+        printf("Serial port with file descriptor %d is already locked by another process.",teensy_);
+        }*/
 
-    tty.c_cflag &= ~PARENB; //Clear parity bit
-    tty.c_cflag &= ~CSTOPB; // Clear stop field, only one stop bit used in communication (most common)
-    tty.c_cflag &= ~CSIZE; // Clear all the size bits
-    tty.c_cflag |= CS8; // 8 bits per byte (most common)
-    tty.c_cflag &= ~CRTSCTS; // Disable RTS/CTS hardware flow control (most common) (not sure about this one, it might be meant to be enabled)
-    tty.c_cflag |= CREAD | CLOCAL; // Turn on READ & ignore ctrl lines (CLOCAL = 1)
-
-    tty.c_lflag &= ~ICANON;
-    tty.c_lflag &= ~ECHO; // Disable echo
-    tty.c_lflag &= ~ECHOE; // Disable erasure
-    tty.c_lflag &= ~ECHONL; // Disable new-line echo
-    tty.c_lflag &= ~ISIG; // Disable interpretation of INTR, QUIT and SUSP
-
-    tty.c_iflag &= ~(IXON | IXOFF | IXANY); // Turn off s/w flow ctrl
-    tty.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL); // Disable any special handling of received bytes
-    
-    tty.c_oflag &= ~OPOST; // Prevent special interpretation of output bytes (e.g. newline chars)
-    tty.c_oflag &= ~ONLCR; // Prevent conversion of newline to carriage return/line feed
-
-    tty.c_cc[VTIME] = 0;    //Return as soon as any data is received.
-    tty.c_cc[VMIN] = 0;
-
-    cfsetispeed(&tty, 480*1000000); //Set the speeds to the maxmium USB2.0 speed
-    cfsetospeed(&tty, 480*1000000);
-
-    //Set the attributes for the port correctly
-    if (tcsetattr(teensy_, TCSANOW, &tty) != 0) {
-        printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
+        if(teensy_ < 0) {
+            printf("Error %i from open: %s\n", errno, strerror(errno));
         }
-    printf("Comms Opened\n");
 
-    //Zeroing registers and buffers
-    ClearReadBuff();
-    ClearWriteBuff();
-    ClearStructVelBytes(&translational_velocities_in_);
-    ClearStructVelBytes(&actuator_velocities_in_);
-    ClearStructVelBytes(&actuator_velocities_out_);
-    ClearStructVelBytes(&motor_velocities_out_);
-    ClearStructAccelBytes(&accelerometer0_in_);
-    ClearStructAccelBytes(&accelerometer1_in_);
-    ClearStructAccelBytes(&accelerometer2_in_);
-    ClearStructAccelBytes(&accelerometer3_in_);
-    ClearStructAccelBytes(&accelerometer4_in_);
-    ClearStructAccelBytes(&accelerometer5_in_);
-    runtime_in_[0] = 0x00;
-    runtime_in_[1] = 0x00;
-    runtime_in_[2] = 0x00;
-    runtime_in_[3] = 0x00;
+        // Read in existing settings, and handle any error
+        // NOTE: This is important! POSIX states that the struct passed to tcsetattr()
+        // must have been initialized with a call to tcgetattr() overwise behaviour
+        // is undefined
+        struct termios tty;
+        if(tcgetattr(teensy_, &tty) != 0) {
+            printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
+        }
+
+        tty.c_cflag &= ~PARENB; //Clear parity bit
+        tty.c_cflag &= ~CSTOPB; // Clear stop field, only one stop bit used in communication (most common)
+        tty.c_cflag &= ~CSIZE; // Clear all the size bits
+        tty.c_cflag |= CS8; // 8 bits per byte (most common)
+        tty.c_cflag &= ~CRTSCTS; // Disable RTS/CTS hardware flow control (most common) (not sure about this one, it might be meant to be enabled)
+        tty.c_cflag |= CREAD | CLOCAL; // Turn on READ & ignore ctrl lines (CLOCAL = 1)
+
+        tty.c_lflag &= ~ICANON;
+        tty.c_lflag &= ~ECHO; // Disable echo
+        tty.c_lflag &= ~ECHOE; // Disable erasure
+        tty.c_lflag &= ~ECHONL; // Disable new-line echo
+        tty.c_lflag &= ~ISIG; // Disable interpretation of INTR, QUIT and SUSP
+
+        tty.c_iflag &= ~(IXON | IXOFF | IXANY); // Turn off s/w flow ctrl
+        tty.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL); // Disable any special handling of received bytes
+
+        tty.c_oflag &= ~OPOST; // Prevent special interpretation of output bytes (e.g. newline chars)
+        tty.c_oflag &= ~ONLCR; // Prevent conversion of newline to carriage return/line feed
+
+        tty.c_cc[VTIME] = 0;    //Return as soon as any data is received.
+        tty.c_cc[VMIN] = 0;
+
+        cfsetispeed(&tty, 480*1000000); //Set the speeds to the maxmium USB2.0 speed
+        cfsetospeed(&tty, 480*1000000);
+
+        //Set the attributes for the port correctly
+        if (tcsetattr(teensy_, TCSANOW, &tty) != 0) {
+            printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
+            }
+        printf("Comms Opened\n");
+
+        //Zeroing registers and buffers
+        ClearReadBuff();
+        ClearWriteBuff();
+        ClearStructVelBytes(&translational_velocities_in_);
+        ClearStructVelBytes(&actuator_velocities_in_);
+        ClearStructVelBytes(&actuator_velocities_out_);
+        ClearStructVelBytes(&motor_velocities_out_);
+        ClearStructAccelBytes(&accelerometer0_in_);
+        ClearStructAccelBytes(&accelerometer1_in_);
+        ClearStructAccelBytes(&accelerometer2_in_);
+        ClearStructAccelBytes(&accelerometer3_in_);
+        ClearStructAccelBytes(&accelerometer4_in_);
+        ClearStructAccelBytes(&accelerometer5_in_);
+        runtime_in_[0] = 0x00;
+        runtime_in_[1] = 0x00;
+        runtime_in_[2] = 0x00;
+        runtime_in_[3] = 0x00;
+
+        device_file_index_ = device_file_index_ + 1;
+    }
+    if(device_file_index_ == 16) {
+        printf("WARNING: teensy could not be found\n");
+    }
 }
 
 //Closes the communication with the teensy
@@ -227,6 +241,11 @@ void SerialPort::ReadMessage() {
         case Raw5Wr:
             actuator_velocities_in_.z[0] = read_buffer_[i+1];
             actuator_velocities_in_.z[1] = read_buffer_[i+2];
+            i += 3;
+            break;
+        case ID:
+            device_id_ = read_buffer_[i+1];
+            device_firmware_v_ = read_buffer_[i+2];
             i += 3;
             break;
         case 0x00:
@@ -447,6 +466,9 @@ void SerialPort::PacketManager() {
               requested_incoming_byte_count += 3;
               requested_outgoing_byte_count += 3;
               break;
+          case ID:
+               requested_incoming_byte_count += 3;
+               requested_outgoing_byte_count += 3;
           default:
               requested_outgoing_byte_count += 3;
               break;

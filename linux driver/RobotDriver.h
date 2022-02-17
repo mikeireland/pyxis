@@ -117,10 +117,12 @@ namespace Control
                                                 unsigned int time,
                                                 char direction);
             bool sinusoidal_file_open_flag_ = false;
+
+            void PrintRuntime();
             
         private:
             //debugging
-            void PrintRuntime();
+            
             void PrintAccelerations();
             void PrintStepCounts();
 

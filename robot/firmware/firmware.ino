@@ -8,6 +8,11 @@
 #include "Commands.h"
 #include "ErrorCodes.h"
 
+//This integer notes that the device is the motion control teensy and the second value 
+//is the firmware version for motion control
+unsigned short int DeviceID  = 128;
+unsigned short int FirmwareV = 2;
+
 unsigned int scheduler_time_longest = 0;
 
 class Controller {
@@ -239,6 +244,14 @@ class Controller {
           case ResetSteps: //When we receive a ResetStepCount command we set all step count varibles to zero
             motor_driver.ResetStepCount();
             break;
+
+          case ID: //We we receive an ID request we send back the DeviceID
+            if(ScheduleToNextFree(ID) == 0){ 
+              break;
+            } else {
+              ReportError(SchedFull);
+              break;
+            }
           
           case EMPTY:
             break;
@@ -401,6 +414,15 @@ class Controller {
         port.first_empty_ = temp_+5; //update the first empty value in the write buffer
     }
 
+    //Function to grab the Teensy's firmware device ID and push it in a packet
+    void WriteID() {
+      temp_ = port.first_empty_;
+      port.write_buffer_[temp_] = ID;
+      port.write_buffer_[temp_+1] = DeviceID;
+      port.write_buffer_[temp_+2] = FirmwareV;
+      port.first_empty_ = temp_+3;
+    }
+
     //Subroutine to write an error message back to the host.
     void ReportError(byte error_code){
       temp_ = port.first_empty_;
@@ -559,6 +581,10 @@ class Controller {
         break;
       case RUNTIME:
         WriteRuntime();
+        sched_[sched_state_] = EMPTY;
+        break;
+      case ID:
+        WriteID();
         sched_[sched_state_] = EMPTY;
         break;
         
