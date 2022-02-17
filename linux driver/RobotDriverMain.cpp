@@ -20,6 +20,37 @@ int main() {
 	auto global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 
 	RobotDriver driver;
+
+	//ID the teensy
+	driver.teensy_port.Request(ID);
+	driver.teensy_port.PacketManager();
+	printf("Device ID: %u\n",driver.teensy_port.device_id_);
+	printf("Device Firmware Version: %u\n",driver.teensy_port.device_firmware_v_);
+
+	while((driver.teensy_port.device_id_ != 128) && (driver.teensy_port.device_file_index_ < 16)){
+		//ID the teensy
+		driver.teensy_port.ClosePort();
+		driver.teensy_port.teensy_ = -1;
+		driver.teensy_port.OpenPort();
+		driver.teensy_port.Request(ID);
+		driver.teensy_port.PacketManager();
+		printf("Device ID: %u\n",driver.teensy_port.device_id_);
+		printf("Device Firmware Version: %u\n",driver.teensy_port.device_firmware_v_);
+	}
+
+	//We allow two attempts for convenience
+	driver.teensy_port.device_file_index_ = 0;
+
+	while((driver.teensy_port.device_id_ != 128) && (driver.teensy_port.device_file_index_ < 16)){
+		//ID the teensy
+		driver.teensy_port.ClosePort();
+		driver.teensy_port.teensy_ = -1;
+		driver.teensy_port.OpenPort();
+		driver.teensy_port.Request(ID);
+		driver.teensy_port.PacketManager();
+		printf("Device ID: %u\n",driver.teensy_port.device_id_);
+		printf("Device Firmware Version: %u\n",driver.teensy_port.device_firmware_v_);
+	}
 	
 	//driver.StabiliserTest();
 	//driver.StabiliserSetup();

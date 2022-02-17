@@ -35,12 +35,14 @@ namespace Comms
             static int max_packet_size_;
             int packet_size_;
             SerialPort();
+            void OpenPort();
             void ClosePort();
             void ReadMessage();
             void WriteMessage();
             void AddToPacket(unsigned char command);
             int Request(unsigned char command);
 
+            int teensy_ = -1;
             void PacketManager();
             
 
@@ -65,9 +67,13 @@ namespace Comms
             unsigned char step_count4_in_[4] = {0x00};
             unsigned char step_count5_in_[4] = {0x00};
 
+            unsigned char device_id_; //bytes to store the current device being commed with
+            unsigned char device_firmware_v_;
+            int device_file_index_ = 0;
+
+
 
         private:
-            int teensy_;
             unsigned char write_buffer_ [64];
             unsigned char read_buffer_ [64];
             unsigned char request_buffer_ [1024];
