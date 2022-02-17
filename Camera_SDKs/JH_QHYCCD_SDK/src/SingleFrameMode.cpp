@@ -4,8 +4,67 @@
 #include <unistd.h>
 #include <string.h>
 #include "qhyccd.h"
-#include "QHYCamera.h"
 
+void SDKVersion()
+{
+  unsigned int  YMDS[4];
+  unsigned char sVersion[80];
+
+  memset ((char *)sVersion,0x00,sizeof(sVersion));
+  GetQHYCCDSDKVersion(&YMDS[0],&YMDS[1],&YMDS[2],&YMDS[3]);
+
+  if ((YMDS[1] < 10)&&(YMDS[2] < 10))
+  {
+    sprintf((char *)sVersion,"V20%d0%d0%d_%d\n",YMDS[0],YMDS[1],YMDS[2],YMDS[3]	);
+  }
+  else if ((YMDS[1] < 10)&&(YMDS[2] > 10))
+  {
+    sprintf((char *)sVersion,"V20%d0%d%d_%d\n",YMDS[0],YMDS[1],YMDS[2],YMDS[3]	);
+  }
+  else if ((YMDS[1] > 10)&&(YMDS[2] < 10))
+  {
+    sprintf((char *)sVersion,"V20%d%d0%d_%d\n",YMDS[0],YMDS[1],YMDS[2],YMDS[3]	);
+  }
+  else
+  {
+    sprintf((char *)sVersion,"V20%d%d%d_%d\n",YMDS[0],YMDS[1],YMDS[2],YMDS[3]	);
+  }
+
+  fprintf(stderr,"QHYCCD SDK Version: %s\n", sVersion);
+}
+
+
+void FirmWareVersion(qhyccd_handle *h)
+{
+  int i = 0;
+  unsigned char fwv[32],FWInfo[256];
+  unsigned int ret;
+  memset (FWInfo,0x00,sizeof(FWInfo));
+  ret = GetQHYCCDFWVersion(h,fwv);
+  if(ret == QHYCCD_SUCCESS)
+  {
+    if((fwv[0] >> 4) <= 9)
+    {
+
+      sprintf((char *)FWInfo,"Firmware version:20%d_%d_%d\n",((fwv[0] >> 4) + 0x10),
+              (fwv[0]&~0xf0),fwv[1]);
+
+    }
+    else
+    {
+
+      sprintf((char *)FWInfo,"Firmware version:20%d_%d_%d\n",(fwv[0] >> 4),
+              (fwv[0]&~0xf0),fwv[1]);
+
+    }
+  }
+  else
+  {
+    sprintf((char *)FWInfo,"Firmware version:Not Found!\n");
+  }
+  fprintf(stderr,"%s\n", FWInfo);
+
+}
 
 
 int main(int argc, char *argv[])

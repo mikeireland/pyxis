@@ -16,65 +16,45 @@
 
 using namespace std;
 
-void SDKVersion()
-{
-  unsigned int  YMDS[4];
-  unsigned char sVersion[80];
+void SDKVersion(){
+    unsigned int  YMDS[4];
+    unsigned char sVersion[80];
 
-  memset ((char *)sVersion,0x00,sizeof(sVersion));
-  GetQHYCCDSDKVersion(&YMDS[0],&YMDS[1],&YMDS[2],&YMDS[3]);
+    memset ((char *)sVersion,0x00,sizeof(sVersion));
+    GetQHYCCDSDKVersion(&YMDS[0],&YMDS[1],&YMDS[2],&YMDS[3]);
 
-  if ((YMDS[1] < 10)&&(YMDS[2] < 10))
-  {
-    sprintf((char *)sVersion,"V20%d0%d0%d_%d\n",YMDS[0],YMDS[1],YMDS[2],YMDS[3]	);
-  }
-  else if ((YMDS[1] < 10)&&(YMDS[2] > 10))
-  {
-    sprintf((char *)sVersion,"V20%d0%d%d_%d\n",YMDS[0],YMDS[1],YMDS[2],YMDS[3]	);
-  }
-  else if ((YMDS[1] > 10)&&(YMDS[2] < 10))
-  {
-    sprintf((char *)sVersion,"V20%d%d0%d_%d\n",YMDS[0],YMDS[1],YMDS[2],YMDS[3]	);
-  }
-  else
-  {
-    sprintf((char *)sVersion,"V20%d%d%d_%d\n",YMDS[0],YMDS[1],YMDS[2],YMDS[3]	);
-  }
+    if ((YMDS[1] < 10)&&(YMDS[2] < 10)){
+        sprintf((char *)sVersion,"V20%d0%d0%d_%d\n",YMDS[0],YMDS[1],YMDS[2],YMDS[3]	);
+    } else if ((YMDS[1] < 10)&&(YMDS[2] > 10)){
+        sprintf((char *)sVersion,"V20%d0%d%d_%d\n",YMDS[0],YMDS[1],YMDS[2],YMDS[3]	);
+    } else if ((YMDS[1] > 10)&&(YMDS[2] < 10)){
+        sprintf((char *)sVersion,"V20%d%d0%d_%d\n",YMDS[0],YMDS[1],YMDS[2],YMDS[3]	);
+    } else{
+        sprintf((char *)sVersion,"V20%d%d%d_%d\n",YMDS[0],YMDS[1],YMDS[2],YMDS[3]	);
+    }
 
-  fprintf(stderr,"QHYCCD SDK Version: %s\n", sVersion);
+    fprintf(stderr,"QHYCCD SDK Version: %s\n", sVersion);
 }
 
 
-void FirmWareVersion(qhyccd_handle *h)
-{
-  int i = 0;
-  unsigned char fwv[32],FWInfo[256];
-  unsigned int ret;
-  memset (FWInfo,0x00,sizeof(FWInfo));
-  ret = GetQHYCCDFWVersion(h,fwv);
-  if(ret == QHYCCD_SUCCESS)
-  {
-    if((fwv[0] >> 4) <= 9)
-    {
-
-      sprintf((char *)FWInfo,"Firmware version:20%d_%d_%d\n",((fwv[0] >> 4) + 0x10),
-              (fwv[0]&~0xf0),fwv[1]);
-
+void FirmWareVersion(qhyccd_handle *h){
+    int i = 0;
+    unsigned char fwv[32],FWInfo[256];
+    unsigned int ret;
+    memset (FWInfo,0x00,sizeof(FWInfo));
+    ret = GetQHYCCDFWVersion(h,fwv);
+    if(ret == QHYCCD_SUCCESS){
+        if((fwv[0] >> 4) <= 9){
+            sprintf((char *)FWInfo,"Firmware version:20%d_%d_%d\n",((fwv[0] >> 4) + 0x10),
+                (fwv[0]&~0xf0),fwv[1]);
+        } else{
+            sprintf((char *)FWInfo,"Firmware version:20%d_%d_%d\n",(fwv[0] >> 4),
+                    (fwv[0]&~0xf0),fwv[1]);
+        }
+    } else{
+        sprintf((char *)FWInfo,"Firmware version:Not Found!\n");
     }
-    else
-    {
-
-      sprintf((char *)FWInfo,"Firmware version:20%d_%d_%d\n",(fwv[0] >> 4),
-              (fwv[0]&~0xf0),fwv[1]);
-
-    }
-  }
-  else
-  {
-    sprintf((char *)FWInfo,"Firmware version:Not Found!\n");
-  }
-  fprintf(stderr,"%s\n", FWInfo);
-
+        fprintf(stderr,"%s\n", FWInfo);
 }
 
 
@@ -123,7 +103,7 @@ void QHYCamera::InitCamera(){
     retVal = SetQHYCCDStreamMode(pCamHandle, acquisition_mode);
     if (QHYCCD_SUCCESS == retVal){
         printf("SetQHYCCDStreamMode set to: %d, success.\n", acquisition_mode);
-    }else {
+    } else{
         printf("SetQHYCCDStreamMode: %d failure, error: %d\n", acquisition_mode, retVal);
         return 1;
     }
@@ -136,11 +116,11 @@ void QHYCamera::InitCamera(){
         retVal = GetQHYCCDReadModeName(pCamHandle,readout_mode,name);
         if (QHYCCD_SUCCESS == retVal){
             printf("Read mode set to: %d\n", name)
-        }else {
+        } else{
             printf("Read mode name failure, error: %d\n", retVal);
             return 1;
         }
-    }else {
+    } else{
         printf("SetQHYCCDStreamMode: %d failure, error: %d\n", acquisition_mode, retVal);
         return 1;
     }
@@ -149,7 +129,7 @@ void QHYCamera::InitCamera(){
     retVal = InitQHYCCD(pCamHandle);
     if (QHYCCD_SUCCESS == retVal){
         printf("InitQHYCCD success.\n");
-    }else {
+    } else{
         printf("InitQHYCCD faililure, error: %d\n", retVal);
         return 1;
     }
@@ -160,7 +140,6 @@ void QHYCamera::InitCamera(){
     double pixelHeightUM;
     unsigned int maxImageSizeX;
     unsigned int maxImageSizeY;
-    unsigned int bpp;
 
     // get chip info
     retVal = GetQHYCCDChipInfo(pCamHandle, &chipWidthMM, &chipHeightMM, &maxImageSizeX, &maxImageSizeY, &pixelWidthUM, &pixelHeightUM, &bpp);
@@ -170,7 +149,7 @@ void QHYCamera::InitCamera(){
         printf("Pixel size width x height     : %.3f x %.3f [um]\n", pixelWidthUM, pixelHeightUM);
         printf("Image size width x height     : %d x %d\n", maxImageSizeX, maxImageSizeY);
         printf("Bit depth                     : %d \n", bpp);
-    }else {
+    } else{
         printf("GetQHYCCDChipInfo failure, error: %d\n", retVal);
         return 1;
     }
@@ -183,7 +162,7 @@ void QHYCamera::InitCamera(){
         retVal = SetQHYCCDParam(pCamHandle, CONTROL_GAMMA, 0);
         if (retVal == QHYCCD_SUCCESS){
             printf("SetQHYCCDParam CONTROL_GAMMA set to: %d, success\n", 0);
-        }else {
+        } else{
             printf("SetQHYCCDParam CONTROL_GAMMA failure, error: %d\n", retVal);
             getchar();
             return 1;
@@ -196,7 +175,7 @@ void QHYCamera::InitCamera(){
         retVal = SetQHYCCDParam(pCamHandle, CONTROL_OFFSET, black_level);
         if (retVal == QHYCCD_SUCCESS){
             printf("SetQHYCCDParam CONTROL_OFFSET set to: %d, success\n", black_level);
-        }else {
+        } else{
             printf("SetQHYCCDParam CONTROL_OFFSET failure, error: %d\n", retVal);
             getchar();
             return 1;
@@ -208,7 +187,7 @@ void QHYCamera::InitCamera(){
         retVal = SetQHYCCDParam(pCamHandle, CONTROL_EXPOSURE, exposure_time);
         if (retVal == QHYCCD_SUCCESS){
             printf("SetQHYCCDParam CONTROL_EXPOSURE set to: %d, success\n", exposure_time);
-        }else {
+        } else{
             printf("SetQHYCCDParam CONTROL_EXPOSURE failure, error: %d\n", retVal);
             getchar();
             return 1;
@@ -221,7 +200,7 @@ void QHYCamera::InitCamera(){
         retVal = SetQHYCCDParam(pCamHandle, CONTROL_GAIN, gain);
         if (retVal == QHYCCD_SUCCESS){
             printf("SetQHYCCDParam CONTROL_GAIN set to: %d, success\n", gain);
-        }else {
+        } else{
             printf("SetQHYCCDParam CONTROL_GAIN failure, error: %d\n", retVal);
             getchar();
             return 1;
@@ -234,7 +213,7 @@ void QHYCamera::InitCamera(){
         retVal = SetQHYCCDBitsMode(pCamHandle, pixel_format);
         if (retVal == QHYCCD_SUCCESS){
             printf("Bit Resolution set to: %d, success\n", pixel_format);
-        }else {
+        } else{
             printf("Bit Resolution failure, error: %d\n", retVal);
             getchar();
             return 1;
@@ -246,9 +225,9 @@ void QHYCamera::InitCamera(){
     if (QHYCCD_SUCCESS == retVal){
         printf("SetQHYCCDResolution roiStartX x roiStartY: %d x %d\n", offset_x, offset_y);
         printf("SetQHYCCDResolution roiSizeX  x roiSizeY : %d x %d\n", width, height);
-    }else {
-      printf("SetQHYCCDResolution failure, error: %d\n", retVal);
-      return 1;
+    } else{
+        printf("SetQHYCCDResolution failure, error: %d\n", retVal);
+        return 1;
     }
 
 }
@@ -261,7 +240,7 @@ void FLIRCamera::DeinitCamera(){
     retVal = CloseQHYCCD(pCamHandle);
     if (QHYCCD_SUCCESS == retVal){
         printf("Close QHYCCD success.\n");
-    }else {
+    } else{
         printf("Close QHYCCD failure, error: %d\n", retVal);
     }
 }
@@ -274,108 +253,132 @@ void FLIRCamera::DeinitCamera(){
       f - a callback function that will be applied to each image in real time.
           Give NULL for no callback function.
 */
-void FLIRCamera::GrabFrames(unsigned long num_frames, unsigned short* image_array, int (*f)(unsigned short*)) {
-    try {
-        cout << "Start Acquisition" << endl;
+void QHYCamera::GrabFrames(unsigned long num_frames, unsigned short* image_array, int (*f)(unsigned short*)) {
 
-        if(readout_mode){
+    if(readout_mode != 1){
+        printf("Wrong Readout mode! Exiting");
+        return 1;
+    }
 
+    cout << "Start Acquisition" << endl;
 
-            std::chrono::time_point<std::chrono::steady_clock> start, end;
+    ret = BeginQHYCCDLive(pCamHandle);
+    if(ret == QHYCCD_SUCCESS){
+        printf("BeginQHYCCDLive success!\n");
+    } else{
+        printf("BeginQHYCCDLive failed\n");
+        return 1;
+    }
 
+    // get requested memory length
+    uint32_t length = GetQHYCCDMemLength(pCamHandle);
 
+    unsigned short *ImgData;
+    unsigned int channels;
 
-            //Set timestamp
-            time_t start_time = time(0);
+    if(length > 0){
+        ImgData = (unsigned short *)malloc(length);
+        memset(ImgData,0,length);
+    } else{
+        printf("Frame memory space length failure \n");
+        return 1;
+    }
 
-            // Start aqcuisition
-            pCam->BeginAcquisition();
+    std::chrono::time_point<std::chrono::steady_clock> start, end;
 
-            //Begin timing
-            start = std::chrono::steady_clock::now();
+    //Set timestamp
+    time_t start_time = time(0);
 
-            for (unsigned int image_cnt = 0; image_cnt < num_frames; image_cnt++){
+    //Begin timing
+    start = std::chrono::steady_clock::now();
 
-                // If trigger mode is on, wait for trigger to take image
-                if (trigger_mode=="On"){
-                    GrabImageByTrigger(node_map);
-                }
+    for (unsigned int image_cnt = 0; image_cnt < num_frames; image_cnt++){
 
-                // Retrive image
-                ImagePtr ptr_result_image = pCam->GetNextImage();
+        // Retrive image
+        ret = GetQHYCCDLiveFrame(pCamHandle,&width,&height,&bpp,&channels,ImgData);
+        if(ret == QHYCCD_SUCCESS){
+            printf("GetQHYCCDLiveFrame: %d x %d, bpp: %d, channels: %d, success.\n", width, height, bpp, channels);
 
-                // Load current raw image data into an array
-                unsigned short* data = (unsigned short*)ptr_result_image->GetData();
+            // Append data to an allocated memory array
+            memcpy(image_array+imsize*(image_cnt%buffer_size), ImgData, imsize*2);
 
-                // Append data to an allocated memory array
-                memcpy(image_array+imsize*(image_cnt%buffer_size), data, imsize*2);
+            // Do something with the data in real time if required
+            // If 0 is returned by the callback function, end acquisition (regardless of
+            // number of frames to go).
+            if (*f != NULL){
+                int result;
 
-                // Do something with the data in real time if required
-                // If 0 is returned by the callback function, end acquisition (regardless of
-                // number of frames to go).
-                if (*f != NULL){
-                    int result;
+                result = (*f)(data);
 
-                    result = (*f)(data);
+                if (result == 0){
 
-                    if (result == 0){
+                    cout << endl;
 
-                        cout << endl;
+                    // End Timing
+                    end = std::chrono::steady_clock::now();
 
-                        // End Timing
-                        end = std::chrono::steady_clock::now();
-
-                        // End Acquisition
-                        pCam->EndAcquisition();
-
-                        cout << "Callback Request: Finished Acquisition" << endl;
-
-                        //Set timestamp
-                        tm *gmtm = gmtime(&start_time);
-                        char* dt = asctime(gmtm);
-
-                        timestamp = dt;
-
-                        //Calculate duration
-                        double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-                        total_exposure = duration;
-
-                        return;
-
+                    // End Acquisition
+                    ret = StopQHYCCDLive(pCamHandle);
+                    if(ret == QHYCCD_SUCCESS){
+                        printf("StopQHYCCDLive success!\n");
+                    } else{
+                        printf("StopQHYCCDLive failed\n");
+                        return 1;
                     }
+
+                    cout << "Callback Request: Finished Acquisition" << endl;
+
+                    //Set timestamp
+                    tm *gmtm = gmtime(&start_time);
+                    char* dt = asctime(gmtm);
+
+                    timestamp = dt;
+
+                    //Calculate duration
+                    double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+                    total_exposure = duration;
+
+                    return;
+
                 }
-
-                // Release image
-                ptr_result_image->Release();
-
             }
 
-            cout << endl;
+            // Release image
+            delete(ImgData);
 
-            // End Timing
-            end = std::chrono::steady_clock::now();
-
-            // End Acquisition
-            pCam->EndAcquisition();
-
-            cout << "Finished Acquisition" << endl;
-
-            //Set timestamp
-            tm *gmtm = gmtime(&start_time);
-            char* dt = asctime(gmtm);
-
-            timestamp = dt;
-
-            //Calculate duration
-            double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-            total_exposure = duration;
-
+          } else{
+            printf("GetQHYCCDSingleFrame failure, error: %d\n", retVal);
+          }
     }
-    catch (Spinnaker::Exception &e) {
-        cout << "Error: " << e.what() << endl;
+
+    cout << endl;
+
+    // End Timing
+    end = std::chrono::steady_clock::now();
+
+    // End Acquisition
+    ret = StopQHYCCDLive(pCamHandle);
+    if(ret == QHYCCD_SUCCESS){
+        printf("StopQHYCCDLive success!\n");
+    } else{
+        printf("StopQHYCCDLive failed\n");
+        return 1;
     }
+
+    cout << "Finished Acquisition" << endl;
+
+    //Set timestamp
+    tm *gmtm = gmtime(&start_time);
+    char* dt = asctime(gmtm);
+
+    timestamp = dt;
+
+    //Calculate duration
+    double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    total_exposure = duration;
+
 }
 
 
@@ -384,7 +387,7 @@ void FLIRCamera::GrabFrames(unsigned long num_frames, unsigned short* image_arra
       image_array - array of image data to write
       num_images - number of images in the array to writes
 */
-int FLIRCamera::SaveFITS(unsigned short* image_array, int num_images)
+int QHYCamera::SaveFITS(unsigned short* image_array, int num_images)
 {
     // Pointer to the FITS file; defined in fitsio.h
     fitsfile *fptr;

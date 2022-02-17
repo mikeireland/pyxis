@@ -50,6 +50,8 @@ class QHYCamera {
         // Number of pixels in image
         int imsize;
 
+        unsigned int bpp;
+
         // Total exposure time over all images
         double total_exposure;
 

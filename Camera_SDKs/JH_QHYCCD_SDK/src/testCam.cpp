@@ -131,9 +131,9 @@ int main(int argc, char **argv) {
     if (length > 0){
         pImgData = new unsigned short[length*Qcam.buffer_size];
         memset(pImgData, 0, length);
-        printf("Allocated memory for frames: %d [uchar].\n", length*Qcam.buffer_size);
+        printf("Allocated memory for return array: %d [uchar].\n", length*Qcam.buffer_size);
     }else {
-        printf("Cannot allocate memory for frame.\n");
+        printf("Cannot allocate memory for array.\n");
         return 1;
     }
 

@@ -50,7 +50,7 @@ OBJ = $(addprefix ${OBJDIR}/,$(notdir $(SRCINC:.${SRCEXT}=.o)))
 ################################################################################
 # Binaries
 
-binaries = SingleFrameMode
+binaries = QHYCamera
 
 all: ${binaries}
 
