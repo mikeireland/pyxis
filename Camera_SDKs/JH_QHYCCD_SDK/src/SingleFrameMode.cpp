@@ -4,8 +4,9 @@
 #include <unistd.h>
 #include <string.h>
 #include "qhyccd.h"
+#include "QHYCamera.h"
 
-void SDKVersion()
+void mySDKVersion()
 {
   unsigned int  YMDS[4];
   unsigned char sVersion[80];
@@ -34,7 +35,7 @@ void SDKVersion()
 }
 
 
-void FirmWareVersion(qhyccd_handle *h)
+void myFirmWareVersion(qhyccd_handle *h)
 {
   int i = 0;
   unsigned char fwv[32],FWInfo[256];
@@ -104,7 +105,7 @@ int main(int argc, char *argv[])
 
   unsigned char *pImgData = 0;
 
-  SDKVersion();
+  mySDKVersion();
 
   // init SDK
   unsigned int retVal = InitQHYCCDResource();
@@ -173,7 +174,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  FirmWareVersion(pCamHandle);
+  myFirmWareVersion(pCamHandle);
 
   // check camera support single frame
   retVal = IsQHYCCDControlAvailable(pCamHandle, CAM_SINGLEFRAMEMODE);
@@ -265,8 +266,8 @@ int main(int argc, char *argv[])
   // set ROI
   roiStartX = 0;
   roiStartY = 0;
-  roiSizeX = maxImageSizeX;
-  roiSizeY = maxImageSizeY;
+  roiSizeX = maxImageSizeX/2;
+  roiSizeY = maxImageSizeY/2;
 
   // check color camera
   retVal = IsQHYCCDControlAvailable(pCamHandle, CAM_COLOR);

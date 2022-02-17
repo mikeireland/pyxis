@@ -2,20 +2,20 @@
 [QHYCamera]
     [QHYcamera.camera]
     acquisition_mode = 1 #0 is single frame mode, 1 is video stream mode
-    readout_mode = 0 #...
+    readout_mode = 2 #...
     pixel_format = 16 #16 or 8 bit image? 16 by default
-    width = 68
-    height = 68
-    offset_x = 456
-    offset_y = 468
-    gain = 0
-    black_level = 0 #
+    width = 100
+    height = 100
+    offset_x = 0
+    offset_y = 0
+    gain = 5
+    black_level = 10 #
     exposure_time = 5000 # in microseconds
     num_frames = 10
     buffer_size = 10 #Set equal to numFrames unless concerned about memory
 
 
-    [testFLIRcamera.fits]
+    [QHYcamera.fits]
     bitpix = 32
     file_dir = "../data/"
     filename = "myfits2.fits"

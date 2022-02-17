@@ -30,3 +30,15 @@ std::string Label(std::string str, const size_t num, const char padding_char) {
         }
         return str + ": ";
     }
+    
+unsigned short combine_chars(unsigned char a, unsigned char b){
+	unsigned short x = 256*a + b;
+	return x;
+}
+
+void char_to_short(unsigned char* input, unsigned short* output, unsigned long length){
+	for (unsigned int i=0; i<length; i=i+2){
+		output[i/2] = combine_chars(input[i],input[i+1]);
+	}
+	return;
+}

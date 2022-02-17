@@ -12,7 +12,7 @@
 #include <opencv/highgui.h>
 #endif
 
-void SDKVersion()
+void mySDKVersion()
 {
   unsigned int  YMDS[4];
   unsigned char sVersion[80];
@@ -41,7 +41,7 @@ void SDKVersion()
 }
 
 
-void FirmWareVersion(qhyccd_handle *h)
+void myFirmWareVersion(qhyccd_handle *h)
 {
   int i = 0;
   unsigned char fwv[32],FWInfo[256];
@@ -86,7 +86,7 @@ int main(int argc,char *argv[])
   unsigned char *ImgData;
   //int camtime = 10000,camgain = 0,camspeed = 2,cambinx = 1,cambiny = 1;
 
-  SDKVersion();
+  mySDKVersion();
 
 
   ret = InitQHYCCDResource();
@@ -133,7 +133,7 @@ int main(int argc,char *argv[])
       goto failure;
     }
 
-    FirmWareVersion(camhandle);
+    myFirmWareVersion(camhandle);
 
     // check camera support live frame
     ret = IsQHYCCDControlAvailable(camhandle, CAM_LIVEVIDEOMODE);

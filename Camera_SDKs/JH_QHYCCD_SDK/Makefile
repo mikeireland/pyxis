@@ -50,7 +50,7 @@ OBJ = $(addprefix ${OBJDIR}/,$(notdir $(SRCINC:.${SRCEXT}=.o)))
 ################################################################################
 # Binaries
 
-binaries = QHYCamera
+binaries = testCam SingleFrameMode LiveFrameSample
 
 all: ${binaries}
 
@@ -69,7 +69,7 @@ ${OBJDIR}/%.o : ${SRCDIR}/%.${SRCEXT}
 	${CXX} ${CFLAGS} ${INC} -c $< -o $@
 
 # Intermediate module object files
-${OBJ} : ${OBJDIR}/%.o : ${SRCDIR}/%.${SRCEXT}
+${OBJ} : ${OBJDIR}/%.o : ${SRCINCDIR}/%.${SRCEXT}
 	@${MKDIR} ${OBJDIR}
 	${CXX} ${CFLAGS} ${INC} -c $< -o $@
 

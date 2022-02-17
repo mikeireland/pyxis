@@ -4,9 +4,9 @@
 #include <unistd.h>
 #include "QHYCamera.h"
 #include "qhyccd.h"
+#include "helperFunc.h"
 #include "toml.hpp"
 
-using namespace Spinnaker;
 using namespace std;
 
 /* Program to run the camera based on a configuration file
@@ -24,7 +24,7 @@ using namespace std;
    INPUTS:
       data - raw image data of a single frame
 */
-int CallbackFunc (unsigned short* data){
+int CallbackFunc (unsigned char* data){
 
     cout << "I could be doing something with the data here..." << endl;
 
@@ -90,7 +90,6 @@ int main(int argc, char **argv) {
     if (QHYCCD_SUCCESS == retVal){
     	printf("Application connected to the following camera from the list: cameraID = %s\n", camId);
     	camFound = true;
-    	break;
     }
 
   	if (!camFound){
@@ -123,15 +122,19 @@ int main(int argc, char **argv) {
     unsigned long num_frames = cam_config["camera"]["num_frames"].value_or(0);
 
 	    // Setup and start the camera
-    Qcam.InitCamera();
+    if(Qcam.InitCamera()){
+    	printf("Init failed");
+    	return 1;
+    }
 
     // get requested memory length
-    uint32_t length = GetQHYCCDMemLength(pCamHandle);
-
+    unsigned long length = Qcam.imsize*sizeof(unsigned char)*Qcam.pixel_format/8*Qcam.buffer_size;
+	unsigned char *arrayData;
+	
     if (length > 0){
-        pImgData = new unsigned short[length*Qcam.buffer_size];
-        memset(pImgData, 0, length);
-        printf("Allocated memory for return array: %d [uchar].\n", length*Qcam.buffer_size);
+        arrayData = (unsigned char*)malloc(length);
+        memset(arrayData, 0, length);
+        printf("Allocated memory for return array: %lu [uchar].\n", length);
     }else {
         printf("Cannot allocate memory for array.\n");
         return 1;
@@ -139,17 +142,32 @@ int main(int argc, char **argv) {
 
     // Acquire the images, saving them to "image_array", and call "CallbackFunc"
 	    // after each image is retrieved.
-    Qcam.GrabFrames(num_frames, pImgData, CallbackFunc);
+    if(Qcam.GrabFrames(num_frames, arrayData, CallbackFunc)){
+		printf("Image taking failed");
+		return 1;
+    }
+    
+    // Convert the data to 16bit
+	unsigned short *converted_data;
+	converted_data = new unsigned short[length/2];
+    memset(converted_data, 0, length/2);
+    
+    char_to_short(arrayData,converted_data,length);
+	free(arrayData);
+
 
     // Save the data as a FITS file
     cout << "Saving Data" << endl;
-    Qcam.SaveFITS(image_array, Qcam.buffer_size);
+    retVal = Qcam.SaveFITS(converted_data, Qcam.buffer_size);
+    if(retVal!=0){
+    	printf("FitsError, error %d.\n", retVal);
+    }
 
-	    // Turn off camera
+	// Turn off camera
     Qcam.DeinitCamera();
 
-	    // Free the memory
-    free(image_array);
+	// Free the memory
+    free(converted_data);
 
     // release sdk resources
     retVal = ReleaseQHYCCDResource();

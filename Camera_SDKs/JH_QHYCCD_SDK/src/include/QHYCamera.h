@@ -13,18 +13,18 @@ class QHYCamera {
     public:
 
         // Pointer to camera
-        qhyccd_handle pCam;
+        qhyccd_handle *pCamHandle;
 
         // TOML configuration table
         toml::table config;
 
 		    // Dimensions of image
-        int width;
-        int height;
+        unsigned int width;
+        unsigned int height;
 
 		    // Offset of ROI from top left corner
-        int offset_x;
-        int offset_y;
+        unsigned int offset_x;
+       	unsigned int offset_y;
 
         // Exposure time of images
         int exposure_time;
@@ -64,10 +64,10 @@ class QHYCamera {
            INPUTS:
               pCam_init - Spinnaker camera pointer
               config_init - Parsed TOML table   */
-        QHYCamera(qhyccd_handle pCam_init, toml::table config_init);
+        QHYCamera(qhyccd_handle *pCam_init, toml::table config_init);
 
 		    /* Function to setup and start the camera. MUST CALL BEFORE USING!!! */
-        void InitCamera();
+        int InitCamera();
 
 		    /* Function to De-initialise camera. MUST CALL AFTER USING!!! */
         void DeinitCamera();
@@ -80,7 +80,9 @@ class QHYCamera {
                   If f returns 0, it will end acquisition regardless of how long it has to go.
                   Give NULL for no callback function.
         */
-        void GrabFrames(unsigned long num_frames, unsigned short* image_array, int (*f)(unsigned short*));
+        int GrabFrames(unsigned long num_frames, unsigned char* image_array, int (*f)(unsigned char*));
+        
+        int GrabFramesSingle(unsigned long num_frames, unsigned char* image_array, int (*f)(unsigned char*));
 
         /* Write a given array of image data as a FITS file
            INPUTS:
