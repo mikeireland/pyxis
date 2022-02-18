@@ -23,7 +23,11 @@ namespace Control
     class RobotDriver
     {
         public:
-            Comms::SerialPort teensy_port;
+            //Class constructor here is not real. It is just here so the constructor initialiser list
+            //can pass the device_id 128 to the teensy_port member of class SerialPort
+            RobotDriver() : teensy_port(128) { };
+
+            Comms::SerialPort teensy_port;     
             Servo::Leveller leveller;
             Servo::Navigator navigator;
             Servo::Stabiliser stabiliser;

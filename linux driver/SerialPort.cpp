@@ -7,8 +7,41 @@ int SerialPort::max_packet_size_ = 64;
 
 //Class constructor to sets up the serial connection to the teensy correctly
 //We also zero all of the input registers
-SerialPort::SerialPort() {
+SerialPort::SerialPort(int device_id_target) {
+    //Open comms with the first teensy we can find
     OpenPort();
+
+    //ID the opened teensy
+    Request(ID);
+	PacketManager();
+	printf("Device ID: %u\n",device_id_);
+	printf("Device Firmware Version: %u\n",device_firmware_v_);
+
+    //If it is wrong we close it and search the rest of the device files
+	while((device_id_ != device_id_target) && (device_file_index_ < 16)){
+		//ID the teensy
+		ClosePort();
+		teensy_ = -1;
+		OpenPort();
+		Request(ID);
+		PacketManager();
+		printf("Device ID: %u\n",device_id_);
+		printf("Device Firmware Version: %u\n",device_firmware_v_);
+	}
+
+	//We allow two attempts for convenience
+	device_file_index_ = 0;
+
+	while((device_id_ != device_id_target) && (device_file_index_ < 16)){
+		//ID the teensy
+		ClosePort();
+		teensy_ = -1;
+		OpenPort();
+		Request(ID);
+		PacketManager();
+		printf("Device ID: %u\n",device_id_);
+		printf("Device Firmware Version: %u\n",device_firmware_v_);
+	}
 }
 
 void SerialPort::OpenPort() {

@@ -32,9 +32,10 @@ namespace Comms
     class SerialPort
     {
         public:
+            SerialPort(int device_id_target);
+            
             static int max_packet_size_;
             int packet_size_;
-            SerialPort();
             void OpenPort();
             void ClosePort();
             void ReadMessage();
