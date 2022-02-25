@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
     Qcam.DeinitCamera();
 
 	// Free the memory
-    free(array_data);
+    free(arrayData);
 
     // release sdk resources
     retVal = ReleaseQHYCCDResource();
