@@ -12,9 +12,7 @@ using namespace std;
 /* Program to run the camera based on a configuration file
    given to it in "toml" format. It will take a certain number
    of frames, during which it will apply a function "CallbackFunc"
-   on each image as they are acquired. It then saves all of the image
-   data into a FITS file (the specifications of which are in the
-   configuration file.
+   on each image as they are acquired.
 
    ARGUMENT: name of config file (in config/) to apply
 */

@@ -62,7 +62,7 @@ void FirmWareVersion(qhyccd_handle *h){
 /* Constructor: Takes the camera pointer and config table
    and saves them (and config values) as object attributes
    INPUTS:
-      pCam_init - Spinnaker camera pointer
+      pCam_init - Camera pointer
       config_init - Parsed TOML table
 */
 QHYCamera::QHYCamera(qhyccd_handle *pCam_init, toml::table config_init){
