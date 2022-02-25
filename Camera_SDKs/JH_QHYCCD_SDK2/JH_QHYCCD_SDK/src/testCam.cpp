@@ -47,10 +47,10 @@ int main(int argc, char **argv) {
         // Load default config if nothing is passed
         cout << "No CONFIG file loaded" << endl;
         cout << "Will attempt to load default CONFIG" << endl;
-        config_file = string("../config/defaultConfig.toml");
+        config_file = string("config/defaultConfig.toml");
     } else {
         // Assign config file value as string
-        config_file = string("../config/") + string(argv[1]);
+        config_file = string("config/") + string(argv[1]);
     }
 
     // Check whether config file is readable/exists
