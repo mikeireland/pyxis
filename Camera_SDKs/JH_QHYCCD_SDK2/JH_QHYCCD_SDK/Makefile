@@ -20,7 +20,7 @@ ifeq ($(PLATFORM),Darwin)
 OS = mac
 endif
 
-OUTDIR = .
+OUTDIR = bin
 
 ################################################################################
 # Dependencies
