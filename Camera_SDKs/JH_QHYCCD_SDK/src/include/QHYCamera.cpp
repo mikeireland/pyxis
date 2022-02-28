@@ -271,6 +271,7 @@ int QHYCamera::GrabFramesSingle(unsigned long num_frames, unsigned char* image_a
     cout << "Start Acquisition" << endl;
 
     // get requested memory length
+    //unsigned long length = GetQHYCCDMemLength(pCamHandle);
     unsigned long length = imsize*sizeof(unsigned char)*pixel_format/8;
 
     unsigned char *ImgData;
@@ -313,7 +314,7 @@ int QHYCamera::GrabFramesSingle(unsigned long num_frames, unsigned char* image_a
     		printf("GetQHYCCDSingleFrame failure, error: %d\n", retVal);
     		return 1;
     	}
-		cout << ImgData[20] << endl;
+		cout << static_cast<unsigned>(ImgData[0]) << endl;
         // Append data to an allocated memory array
         memcpy(image_array+imsize*pixel_format/8*(image_cnt%buffer_size), ImgData, imsize*pixel_format/8);
 
@@ -419,6 +420,7 @@ int QHYCamera::GrabFrames(unsigned long num_frames, unsigned char* image_array, 
     }
 
     // get requested memory length
+    //unsigned long length = GetQHYCCDMemLength(pCamHandle);
     unsigned long length = imsize*sizeof(unsigned char)*pixel_format/8;
 
     unsigned char *ImgData = (unsigned char *)malloc(length);
@@ -440,7 +442,7 @@ int QHYCamera::GrabFrames(unsigned long num_frames, unsigned char* image_array, 
         retVal = GetQHYCCDLiveFrame(pCamHandle,&width,&height,&bpp,&channels,ImgData);
         if(retVal == QHYCCD_SUCCESS){
          	image_cnt++;
-         	cout << ImgData[21] << endl;
+         	cout << static_cast<unsigned>(ImgData[0]) << endl;
             printf("GetQHYCCDLiveFrame: %d x %d, bpp: %d, channels: %d, success.\n", width, height, bpp, channels);
 
             // Append data to an allocated memory array

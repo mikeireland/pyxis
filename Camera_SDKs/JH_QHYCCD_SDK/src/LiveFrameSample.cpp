@@ -261,7 +261,7 @@ int main(int argc,char *argv[])
         ret = GetQHYCCDLiveFrame(camhandle,&w,&h,&bpp,&channels,ImgData);
         if(ret == QHYCCD_SUCCESS)
         {
-          cout << ImgData[20] << endl;
+          cout << static_cast<unsigned>(ImgData[0]) << endl;
           fps++;
           t_end = time(NULL);
           if(t_end - t_start >= 5)
