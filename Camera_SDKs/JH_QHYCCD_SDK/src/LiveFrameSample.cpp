@@ -4,6 +4,9 @@
 #include <string.h>
 #include <qhyccd.h>
 #include <sys/time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
 
 //#define OPENCV_SUPPORT
 
@@ -11,6 +14,8 @@
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 #endif
+
+using namespace std;
 
 void mySDKVersion()
 {
@@ -215,7 +220,7 @@ int main(int argc,char *argv[])
     }
 
     ret = SetQHYCCDParam(camhandle, CONTROL_TRANSFERBIT, 8);
-    ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, 200);
+    ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, 20000);
     ret = SetQHYCCDParam(camhandle, CONTROL_USBTRAFFIC, 255);
     ret = SetQHYCCDParam(camhandle, CONTROL_DDR, 1.0);
 
@@ -256,6 +261,7 @@ int main(int argc,char *argv[])
         ret = GetQHYCCDLiveFrame(camhandle,&w,&h,&bpp,&channels,ImgData);
         if(ret == QHYCCD_SUCCESS)
         {
+          cout << ImgData[20] << endl;
           fps++;
           t_end = time(NULL);
           if(t_end - t_start >= 5)

@@ -1,18 +1,18 @@
 
 [QHYCamera]
     [QHYcamera.camera]
-    acquisition_mode = 1 #0 is single frame mode, 1 is video stream mode
-    readout_mode = 2 #...
+    acquisition_mode = 0 #0 is single frame mode, 1 is video stream mode
+    readout_mode = 2 #0 is HDR mode, 1 is STD LGC mode, 2 is STD HGC mode. Use 2!
     pixel_format = 16 #16 or 8 bit image? 16 by default
-    width = 100
-    height = 100
+    width = 50
+    height = 50
     offset_x = 0
     offset_y = 0
     gain = 5
-    black_level = 10 #
-    exposure_time = 500 # in microseconds
-    num_frames = 5
-    buffer_size = 5 #Set equal to numFrames unless concerned about memory
+    black_level = 10 # Black level offset in ADU
+    exposure_time = 500000 # in microseconds
+    num_frames = 5 #Number to take
+    buffer_size = 5 #Set equal to numFrames unless concerned about memory. Will only save the last n images in the buffer. 
 
 
     [QHYcamera.fits]

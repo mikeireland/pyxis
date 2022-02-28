@@ -129,23 +129,27 @@ int main(int argc, char **argv) {
 
     // get requested memory length
     unsigned long length = Qcam.imsize*sizeof(unsigned char)*Qcam.pixel_format/8*Qcam.buffer_size;
-	unsigned char *arrayData;
-	
-    if (length > 0){
-        arrayData = (unsigned char*)malloc(length);
-        memset(arrayData, 0, length);
-        printf("Allocated memory for return array: %lu [uchar].\n", length);
-    }else {
-        printf("Cannot allocate memory for array.\n");
-        return 1;
-    }
+    unsigned char *arrayData = (unsigned char*)malloc(length);
+    memset(arrayData, 0, length);	
 
     // Acquire the images, saving them to "image_array", and call "CallbackFunc"
 	    // after each image is retrieved.
-    if(Qcam.GrabFrames(num_frames, arrayData, CallbackFunc)){
-		printf("Image taking failed");
-		return 1;
+    
+    if(Qcam.acquisition_mode==0){
+        if(Qcam.GrabFramesSingle(num_frames, arrayData, CallbackFunc)){
+			printf("Image taking failed");
+			return 1;
+    	}
+    } else if(Qcam.acquisition_mode==1){
+    	if(Qcam.GrabFrames(num_frames, arrayData, CallbackFunc)){
+			printf("Image taking failed");
+			return 1;
+		}
+    } else{
+    	printf("Bad acquisition mode!");
     }
+    
+
     
     // Convert the data to 16bit
 	unsigned short *converted_data;

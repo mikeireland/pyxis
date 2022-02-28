@@ -302,11 +302,13 @@ int QHYCamera::GrabFrames(unsigned long num_frames, unsigned char* image_array, 
     //Begin timing
     start = std::chrono::steady_clock::now();
 
-    for (unsigned int image_cnt = 0; image_cnt < num_frames; image_cnt++){
+    for (unsigned int image_cnt = 0; image_cnt < num_frames;){
 		cout << "Taking Image" << endl;
         // Retrive image
         retVal = GetQHYCCDLiveFrame(pCamHandle,&width,&height,&bpp,&channels,ImgData);
         if(retVal == QHYCCD_SUCCESS){
+        	image_cnt++;
+        	cout << ImgData[21] << endl;
             printf("GetQHYCCDLiveFrame: %d x %d, bpp: %d, channels: %d, success.\n", width, height, bpp, channels);
 
             // Append data to an allocated memory array
