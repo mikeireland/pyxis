@@ -81,7 +81,8 @@ class QHYCamera {
                   Give NULL for no callback function.
         */
         int GrabFrames(unsigned long num_frames, unsigned char* image_array, int (*f)(unsigned char*));
-        
+
+
 };
 
 #endif // _FLIRCAMERA_

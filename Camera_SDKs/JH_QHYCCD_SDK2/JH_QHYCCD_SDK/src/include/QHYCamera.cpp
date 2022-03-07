@@ -37,7 +37,6 @@ void SDKVersion(){
 
 
 void FirmWareVersion(qhyccd_handle *h){
-    int i = 0;
     unsigned char fwv[32],FWInfo[256];
     unsigned int ret;
     memset (FWInfo,0x00,sizeof(FWInfo));
@@ -62,7 +61,7 @@ void FirmWareVersion(qhyccd_handle *h){
 /* Constructor: Takes the camera pointer and config table
    and saves them (and config values) as object attributes
    INPUTS:
-      pCam_init - Camera pointer
+      pCam_init - camera pointer
       config_init - Parsed TOML table
 */
 QHYCamera::QHYCamera(qhyccd_handle *pCam_init, toml::table config_init){
@@ -114,7 +113,7 @@ int QHYCamera::InitCamera(){
     retVal = SetQHYCCDReadMode(pCamHandle, readout_mode);
     if (QHYCCD_SUCCESS == retVal){
         printf("SetQHYCCDReadMode set to: %d, success.\n", readout_mode);
-        char* name;
+        char name [32];
         retVal = GetQHYCCDReadModeName(pCamHandle,readout_mode,name);
         if (QHYCCD_SUCCESS == retVal){
             printf("Read mode set to: %s\n", name);
@@ -225,7 +224,7 @@ int QHYCamera::InitCamera(){
     // set image resolution
     retVal = SetQHYCCDResolution(pCamHandle, offset_x, offset_y, width, height);
 
-    retVal = SetQHYCCDParam(pCamHandle, CONTROL_USBTRAFFIC, 255);
+    retVal = SetQHYCCDParam(pCamHandle, CONTROL_USBTRAFFIC, 100);
     retVal = SetQHYCCDParam(pCamHandle, CONTROL_DDR, 1.0);
     if (QHYCCD_SUCCESS == retVal){
         printf("SetQHYCCDResolution roiStartX x roiStartY: %d x %d\n", offset_x, offset_y);
@@ -264,7 +263,7 @@ void QHYCamera::DeinitCamera(){
 int QHYCamera::GrabFrames(unsigned long num_frames, unsigned char* image_array, int (*f)(unsigned char*)) {
 
     if(acquisition_mode != 1){
-        printf("Wrong Readout mode! Exiting\n");
+        printf("Wrong acquisition mode! Exiting\n");
         return 1;
     }
 
@@ -280,19 +279,13 @@ int QHYCamera::GrabFrames(unsigned long num_frames, unsigned char* image_array, 
     }
 
     // get requested memory length
+    //unsigned long length = GetQHYCCDMemLength(pCamHandle);
     unsigned long length = imsize*sizeof(unsigned char)*pixel_format/8;
 
-    unsigned char *ImgData;
-    unsigned int channels;
+    unsigned char *ImgData = (unsigned char *)malloc(length);
+    memset(ImgData,0,length);
 
-    if(length > 0){
-        ImgData = (unsigned char *)malloc(length);
-        memset(ImgData,0,length);
-        printf("Allocated memory for image: %lu [uchar].\n", length);
-    } else{
-        printf("Frame memory space length failure \n");
-        return 1;
-    }
+    unsigned int channels;
 
     std::chrono::time_point<std::chrono::steady_clock> start, end;
 
@@ -301,18 +294,18 @@ int QHYCamera::GrabFrames(unsigned long num_frames, unsigned char* image_array, 
 
     //Begin timing
     start = std::chrono::steady_clock::now();
-
+	cout << "Taking Images" << endl;
     for (unsigned int image_cnt = 0; image_cnt < num_frames;){
-		cout << "Taking Image" << endl;
+
         // Retrive image
         retVal = GetQHYCCDLiveFrame(pCamHandle,&width,&height,&bpp,&channels,ImgData);
         if(retVal == QHYCCD_SUCCESS){
-        	image_cnt++;
-        	cout << ImgData[21] << endl;
+         	image_cnt++;
+         	cout << static_cast<unsigned>(ImgData[0]) << endl;
             printf("GetQHYCCDLiveFrame: %d x %d, bpp: %d, channels: %d, success.\n", width, height, bpp, channels);
 
             // Append data to an allocated memory array
-            memcpy(image_array+imsize*(image_cnt%buffer_size), ImgData, imsize*2);
+            memcpy(image_array+imsize*pixel_format/8*(image_cnt%buffer_size), ImgData, imsize*pixel_format/8);
 
             // Do something with the data in real time if required
             // If 0 is returned by the callback function, end acquisition (regardless of
@@ -356,7 +349,7 @@ int QHYCamera::GrabFrames(unsigned long num_frames, unsigned char* image_array, 
                 }
             }
 
-    	} else{
+    	} else if(retVal != -1){
             printf("GetQHYCCDLiveFrame failure, error: %d\n", retVal);
         }
     }
