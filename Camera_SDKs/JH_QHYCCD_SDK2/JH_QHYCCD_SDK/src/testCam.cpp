@@ -135,11 +135,11 @@ int main(int argc, char **argv) {
     // Acquire the images, saving them to "image_array", and call "CallbackFunc"
 	    // after each image is retrieved.
 
-    } if(Qcam.acquisition_mode==1){
+    if(Qcam.acquisition_mode==1){
     	if(Qcam.GrabFrames(num_frames, arrayData, CallbackFunc)){
 			printf("Image taking failed");
 			return 1;
-		}
+    }
     } else{
     	printf("Bad acquisition mode!");
     }
