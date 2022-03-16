@@ -51,7 +51,7 @@ OBJ = $(addprefix ${OBJDIR}/,$(notdir $(SRCSHARE:.${SRCEXT}=.o)))
 ################################################################################
 # Binaries
 
-binaries = testCam LiveFrameSample
+binaries = testCam testFPS
 
 all: ${binaries}
 

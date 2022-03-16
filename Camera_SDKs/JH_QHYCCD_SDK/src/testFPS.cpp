@@ -1,11 +1,11 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include "FLIRCamera.h"
-#include "Spinnaker.h"
+#include <unistd.h>
+#include "QHYCamera.h"
+#include "qhyccd.h"
 #include "toml.hpp"
 
-using namespace Spinnaker;
 using namespace std;
 
 /* Program to test the FPS response of a camera.
@@ -41,7 +41,7 @@ struct CsvLine {
       config - TOML configuration table
       line_data - CsvLine struct to hold the data for a line in the output CSV
 */
-void Test(Spinnaker::CameraPtr pCam, toml::table config, CsvLine& line_data) {
+void Test(char* camId, toml::table config, CsvLine& line_data) {
 
     // Reassign exposure time and ROI dimensions
     toml::table* cam_table = config.get("camera")->as_table();
@@ -49,30 +49,39 @@ void Test(Spinnaker::CameraPtr pCam, toml::table config, CsvLine& line_data) {
     cam_table->insert_or_assign("width",line_data.dimensions);
     cam_table->insert_or_assign("height",line_data.dimensions);
 
+	cout << "Starting init" << endl << endl;
+
+	// Open Camera
+    qhyccd_handle *pCam = OpenQHYCCD(camId);
+    if (pCam != NULL){
+        printf("Open QHYCCD success.\n");
+    }else {
+        printf("Open QHYCCD failure.\n");
+    }
+
     // Get a FLIRCamera instance
-    FLIRCamera Fcam (pCam, config);
+    QHYCamera Qcam (pCam, config);
 
     // Allocate memory for the image data
-    unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
+    unsigned char *image_array = (unsigned char*)malloc(Qcam.width*Qcam.height*sizeof(unsigned char)*Qcam.pixel_format/8*Qcam.buffer_size);
 
     // Init camera
-    Fcam.InitCamera();
+    Qcam.InitCamera();
 
     // Acquire the images, saving them to "image_array". No callback function
-    Fcam.GrabFrames(line_data.num_frames, image_array, NULL);
-
+    Qcam.GrabFrames(line_data.num_frames, image_array, NULL);
+    
     // Free memory (we don't care about the actual image data)
     free(image_array);
 
-    // Save the data as a FITS file
     cout << "Saving Data" << endl << endl;
 
     // Calculate FPS
-    line_data.total_exp_time = Fcam.total_exposure;
+    line_data.total_exp_time = Qcam.total_exposure;
     line_data.FPS = static_cast<double>(line_data.num_frames)*1000/line_data.total_exp_time;
 
     // Deinit camera
-    Fcam.DeinitCamera();
+    Qcam.DeinitCamera();
 }
 
 
@@ -106,74 +115,106 @@ int main(int argc, char **argv) {
     // Parse the configuration file
     toml::table config = toml::parse_file(config_file);
 
-    // Retrieve singleton reference to system object
-    SystemPtr system = System::GetInstance();
+    SDKVersion();
 
-    // Print out current library version
-    const LibraryVersion spinnaker_library_version = system->GetLibraryVersion();
-    cout << "Spinnaker library version: " << spinnaker_library_version.major << "." << spinnaker_library_version.minor
-         << "." << spinnaker_library_version.type << "." << spinnaker_library_version.build << endl
-         << endl;
+    // Init SDK
+  	unsigned int retVal = InitQHYCCDResource();
+  	if (QHYCCD_SUCCESS == retVal){
+  		printf("SDK resources initialized.\n");
+  	}
+  	else{
+  		printf("Cannot initialize SDK resources, error: %d\n", retVal);
+  	return 1;
+  	}
 
-    // Retrieve list of cameras from the system
-    CameraList cam_list = system->GetCameras();
+  	// Scan cameras
+  	int camCount = ScanQHYCCD();
+  	if (camCount > 0){
+  		printf("Number of QHYCCD cameras found: %d \n", camCount);
+  	}
+  	else{
+  		printf("No QHYCCD camera found, please check USB or power.\n");
+  		return 1;
+  	}
 
-    if(cam_list.GetSize() == 0) {
-        cerr << "No camera connected" << endl;
-        return -1;
+  	//Get first camera
+  	bool camFound = false;
+  	char camId[32];
+
+    retVal = GetQHYCCDId(0, camId);
+    if (QHYCCD_SUCCESS == retVal){
+    	printf("Application connected to the following camera from the list: cameraID = %s\n", camId);
+    	camFound = true;
     }
-    else {
-        // Get the settings for the particular camera
-        toml::table cam_config = *config.get("testFLIRcamera")->as_table();
 
-        // Filename for output file csv
-        std::ofstream out_file("../data/FPS_Test.csv");
+  	if (!camFound){
+    	printf("The detected camera is not QHYCCD or other error.\n");
+    	// release sdk resources
+    	retVal = ReleaseQHYCCDResource();
+    	if (QHYCCD_SUCCESS == retVal){
+      		printf("SDK resources released.\n");
+    	} else{
+      		printf("Cannot release SDK resources, error %d.\n", retVal);
+    	}
+    	return 1;
+  	}
 
-        // List of exposure times to check
-        int exp_times[15] = {100000, 50000, 30000, 20000, 15000, 10000, 8000, 7000, 6000, 5000, 4000, 2000, 1500, 1000, 500};
 
-        // List of ROI dimensions to check
-        int dimensions[12] = {1000, 900, 800, 700, 600, 500, 400, 300, 200, 100, 64, 32};
+    // Get the settings for the particular camera
+    toml::table cam_config = *config.get("QHYcamera")->as_table();
 
-        out_file << " Frame Exposure Time (us), Dimensions (px), Total Exposure Time (ms), Number of Frames, FPS \n";
+    // Filename for output file csv
+    std::ofstream out_file("../data/FPS_Test.csv");
 
-        CsvLine line_data;
+    // List of exposure times to check
+    int exp_times[15] = {100000, 50000, 30000, 20000, 15000, 10000, 8000, 7000, 6000, 5000, 4000, 2000, 1500, 1000, 500};
 
-        line_data.num_frames = cam_config["camera"]["num_frames"].value_or(0);
+    // List of ROI dimensions to check
+    int dimensions[12] = {1000, 900, 800, 700, 600, 500, 400, 300, 200, 100, 64, 32};
 
-        // Loop over all ROI dimensions and exposure times
-        for (int i=0;i<12;i++){
+    out_file << " Frame Exposure Time (us), Dimensions (px), Total Exposure Time (ms), Number of Frames, FPS \n";
 
-            line_data.dimensions = dimensions[i];
+    CsvLine line_data;
 
-            for (int j=0;j<15;j++){
+    line_data.num_frames = cam_config["camera"]["num_frames"].value_or(0);
 
-                cout << "Running number " << i << "," << j << endl;
+    // Loop over all ROI dimensions and exposure times
+    for (int i=0;i<12;i++){
 
-                line_data.exp_time = exp_times[j];
+        line_data.dimensions = dimensions[i];
 
-                // Run camera
-                Test(cam_list.GetByIndex(0),cam_config,line_data);
+        for (int j=0;j<15;j++){
 
-                char buffer [50];
+            cout << "Running number " << i << "," << j << endl;
 
-                // Save as an output string
-                sprintf (buffer, " %d, %d, %d, %lu, %f \n", line_data.exp_time, line_data.dimensions,
-                         static_cast<int>(line_data.total_exp_time), line_data.num_frames, line_data.FPS);
+            line_data.exp_time = exp_times[j];
 
-                // Save string to file
-                out_file << buffer;
-            }
+            // Run camera
+            Test(camId,cam_config,line_data);
+
+            char buffer [50];
+
+            // Save as an output string
+            sprintf (buffer, " %d, %d, %d, %lu, %f \n", line_data.exp_time, line_data.dimensions,
+                     static_cast<int>(line_data.total_exp_time), line_data.num_frames, line_data.FPS);
+
+            // Save string to file
+            out_file << buffer;
         }
-
-        out_file.close();
     }
 
-    // Clear camera list before releasing system
-    cam_list.Clear();
+    out_file.close();
 
-    // Release system
-    system->ReleaseInstance();
+
+    // release sdk resources
+    retVal = ReleaseQHYCCDResource();
+    if (QHYCCD_SUCCESS == retVal){
+      printf("SDK resources released.\n");
+    }else {
+        printf("Cannot release SDK resources, error %d.\n", retVal);
+        return 1;
+    }
+
 
     return 0;
 }

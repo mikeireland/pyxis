@@ -11,7 +11,7 @@
     gain = 20
     black_level = 10 # Black level offset in ADU
     exposure_time = 2000 # in microseconds
-    num_frames = 10 #Number to take
+    num_frames = 500 #Number to take
     buffer_size = 10 #Set equal to numFrames unless concerned about memory. Will only save the last n images in the buffer. 
 
 
