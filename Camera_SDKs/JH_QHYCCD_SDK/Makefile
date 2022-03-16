@@ -11,6 +11,7 @@ CXX = g++
 OBJDIR  = build
 SRCDIR  = src
 SRCINCDIR = src/include
+SRCSHAREDIR = src/shared
 
 SRCEXT = cpp
 MKDIR = mkdir -p
@@ -25,7 +26,7 @@ OUTDIR = bin
 ################################################################################
 # Dependencies
 ################################################################################
-QHY_SDK = qhy_sdk_linux64_22.02.17
+QHY_SDK = qhy_sdk_linux64_22.03.11
 
 
 ################################################################################
@@ -41,16 +42,16 @@ LIB += -lcfitsio
 LIB += -lusb-1.0 -pthread -Wl,${QHY_LIB} -Llib
 
 
-SRCINC = $(wildcard ${SRCINCDIR}/*.${SRCEXT})
+SRCSHARE = $(wildcard ${SRCSHAREDIR}/*.${SRCEXT})
 
-OBJ = $(addprefix ${OBJDIR}/,$(notdir $(SRCINC:.${SRCEXT}=.o)))
+OBJ = $(addprefix ${OBJDIR}/,$(notdir $(SRCSHARE:.${SRCEXT}=.o)))
 
 ################################################################################
 # Rules/recipes
 ################################################################################
 # Binaries
 
-binaries = testCam SingleFrameMode LiveFrameSample
+binaries = testCam LiveFrameSample
 
 all: ${binaries}
 
@@ -69,7 +70,7 @@ ${OBJDIR}/%.o : ${SRCDIR}/%.${SRCEXT}
 	${CXX} ${CFLAGS} ${INC} -c $< -o $@
 
 # Intermediate module object files
-${OBJ} : ${OBJDIR}/%.o : ${SRCINCDIR}/%.${SRCEXT}
+${OBJ} : ${OBJDIR}/%.o : ${SRCSHAREDIR}/%.${SRCEXT}
 	@${MKDIR} ${OBJDIR}
 	${CXX} ${CFLAGS} ${INC} -c $< -o $@
 

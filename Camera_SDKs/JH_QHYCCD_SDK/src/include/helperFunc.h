@@ -26,7 +26,4 @@ std::vector<T> arange(T start, T stop, T step = 1) {
 */
 std::string Label(std::string str, const size_t num = 25, const char padding_char = ' ');
 
-void char_to_short(unsigned char* input, unsigned short* output, unsigned long length);
-
-
 #endif // _HELPERFUNC_

@@ -5,6 +5,9 @@
 #include "qhyccd.h"
 #include "toml.hpp"
 
+void SDKVersion();
+
+
 /* QHYCCD CAMERA CLASS
    Contains necessary methods and attributes for running
    a QHYCCD Camera
@@ -50,6 +53,7 @@ class QHYCamera {
         // Number of pixels in image
         int imsize;
 
+		// Bits per pixel
         unsigned int bpp;
 
         // Total exposure time over all images
@@ -59,20 +63,22 @@ class QHYCamera {
         char* timestamp;
 
 
-		    /* Constructor: Takes the camera pointer and config table
-           and saves them (and config values) as object attributes
-           INPUTS:
-              pCam_init - Spinnaker camera pointer
-              config_init - Parsed TOML table   */
+	    /* Constructor: Takes the camera pointer and config table
+       and saves them (and config values) as object attributes
+       INPUTS:
+          pCam_init - Spinnaker camera pointer
+          config_init - Parsed TOML table   */
         QHYCamera(qhyccd_handle *pCam_init, toml::table config_init);
 
-		    /* Function to setup and start the camera. MUST CALL BEFORE USING!!! */
+	    /* Function to setup and start the camera. MUST CALL BEFORE USING!!! */
         int InitCamera();
 
-		    /* Function to De-initialise camera. MUST CALL AFTER USING!!! */
+	    /* Function to De-initialise camera. MUST CALL AFTER USING!!! */
         void DeinitCamera();
 
         /* Function to take a number of images with a camera and optionally work on them.
+           Default version uses live frame mode, the "Single" version uses the single frame mode.
+           The latter should only really be used for debugging.
            INPUTS:
               num_frames - number of images to take
               fits_array - allocated array to store image data in

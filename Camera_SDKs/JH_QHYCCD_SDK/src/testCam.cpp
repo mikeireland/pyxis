@@ -62,6 +62,8 @@ int main(int argc, char **argv) {
     // Parse the configuration file
     toml::table config = toml::parse_file(config_file);
 
+	SDKVersion();
+
     // Init SDK
   	unsigned int retVal = InitQHYCCDResource();
   	if (QHYCCD_SUCCESS == retVal){
@@ -149,16 +151,10 @@ int main(int argc, char **argv) {
     	printf("Bad acquisition mode!");
     }
     
-
     
     // Convert the data to 16bit
 	unsigned short *converted_data;
-	converted_data = new unsigned short[length/2];
-    memset(converted_data, 0, length/2);
-    
-    char_to_short(arrayData,converted_data,length);
-	free(arrayData);
-
+	converted_data = (unsigned short *) arrayData;
 
     // Save the data as a FITS file
     cout << "Saving Data" << endl;
@@ -171,7 +167,7 @@ int main(int argc, char **argv) {
     Qcam.DeinitCamera();
 
 	// Free the memory
-    free(converted_data);
+    free(arrayData);
 
     // release sdk resources
     retVal = ReleaseQHYCCDResource();
