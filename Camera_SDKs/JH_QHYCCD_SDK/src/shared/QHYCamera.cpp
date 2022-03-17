@@ -78,6 +78,7 @@ QHYCamera::QHYCamera(qhyccd_handle *pCam_init, toml::table config_init){
 
     exposure_time = config["camera"]["exposure_time"].value_or(0);
     gain = config["camera"]["gain"].value_or(0);
+    gamma = config["camera"]["gamma"].value_or(1.0);
     black_level = config["camera"]["black_level"].value_or(0);
 
     pixel_format = config["camera"]["pixel_format"].value_or(16);
@@ -186,6 +187,19 @@ int QHYCamera::InitCamera(){
     }
 
 
+    // Set GAMMA (Offset)
+    retVal = IsQHYCCDControlAvailable(pCamHandle, CONTROL_GAMMA);
+    if (QHYCCD_SUCCESS == retVal){
+        retVal = SetQHYCCDParam(pCamHandle, CONTROL_GAMMA, gamma);
+        if (retVal == QHYCCD_SUCCESS){
+            printf("SetQHYCCDParam CONTROL_GAMMA set to: %f, success\n", gamma);
+        } else{
+            printf("SetQHYCCDParam CONTROL_GAMMA failure, error: %d\n", retVal);
+            getchar();
+            return 1;
+        }
+    }
+    
     // Set Black Level (Offset)
     retVal = IsQHYCCDControlAvailable(pCamHandle, CONTROL_OFFSET);
     if (QHYCCD_SUCCESS == retVal){

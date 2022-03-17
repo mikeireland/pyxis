@@ -34,6 +34,9 @@ class QHYCamera {
 
         // Software gain
         int gain;
+        
+        // Software gain
+        double gamma;
 
         // Set black level in percent
         int black_level;
