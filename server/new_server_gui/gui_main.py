@@ -26,19 +26,19 @@ except:
 #Import only what we need from PyQt5, or everything from PyQt4. In any case, we'll try
 #to keep this back-compatible. Although this floods the namespace somewhat, everything
 #starts with a "Q" so there is little chance of getting mixed up.
+
 try:
-    from PyQt4.QtGui import *
-    from PyQt4.QtCore import *
+    from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QHBoxLayout, \
+        QVBoxLayout, QLabel, QLineEdit, QTextEdit, QComboBox, QTabWidget, \
+        QCheckBox, QProgressBar
+    from PyQt5.QtCore import pyqtSlot, QTimer
+    from PyQt5.QtGui import QImage, QPixmap, QFont, QIcon
 except:
-    try:
-        from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QHBoxLayout, \
-            QVBoxLayout, QLabel, QLineEdit, QTextEdit, QComboBox, QTabWidget, \
-            QCheckBox, QProgressBar
-        from PyQt5.QtCore import pyqtSlot, QTimer
-        from PyQt5.QtGui import QImage, QPixmap, QFont
-    except:
-        print("Please install PyQt4 or PyQt5.")
-        raise UserWarning
+    print("Please install PyQt4 or PyQt5.")
+    raise UserWarning
+
+from qt_material import apply_stylesheet
+
 
 #A hack to allow unicode as a type from python 2 to work in python 3.
 #It would be better to typecast everything to str
@@ -144,16 +144,16 @@ class ClientSocket:
             return 'Error parsing response!'
 
 
-class VeloceGui(QTabWidget):
+class PyxisGui(QTabWidget):
     def __init__(self, IP='127.0.0.1', parent=None):
-        """The Veloce GUI.
+        """The Pyxis GUI.
 
         Parameters
         ----------
         IP: str
-            The IP address of the Veloce server as as string
+            The IP address of the Pyxis server as as string
         """
-        super(VeloceGui,self).__init__(parent)
+        super(PyxisGui,self).__init__(parent)
 
         print("Connecting to IP %s"%IP)
         #Set up sockets. Each of the cameras needs a timeout and file number
@@ -188,6 +188,8 @@ class VeloceGui(QTabWidget):
                 vBoxlayouts[name].setSpacing(3)
 
                 desc = QLabel('Port: %s    Description: %s'%(sub_config["port"],sub_config["description"]), self)
+                desc.setStyleSheet("font-weight: bold")
+
 
                 #First, the command entry box
                 lbl1 = QLabel('Command: ', self)
@@ -210,9 +212,9 @@ class VeloceGui(QTabWidget):
                 vBoxlayouts[name].addLayout(hbox1)
 
                 #Next, the response box
-                self.response_labels[name] = QTextEdit('[No Sever Response Yet]', self)
+                self.response_labels[name] = QTextEdit('[No Server Response Yet]', self)
                 self.response_labels[name].setReadOnly(True)
-                self.response_labels[name].setStyleSheet("QTextEdit { background-color : black; color : lime; }")
+                self.response_labels[name].setStyleSheet("QTextEdit { background-color : black; }")
                 self.response_labels[name].setFixedHeight(150)
                 vBoxlayouts[name].addWidget(self.response_labels[name])
 
@@ -228,7 +230,7 @@ class VeloceGui(QTabWidget):
             for item in config[tab]:
                 sub_config = config[tab][item]
                 name = sub_config["name"]
-                self.status_labels[name] = QLabel("", self)
+                self.status_labels[name] = QLabel("STATUS", self)
                 vBoxlayouts[name].addWidget(self.status_labels[name])
                 self.sub_tab_widgets[tab][name].setLayout(vBoxlayouts[name])
                 self.tab_widgets[tab].addTab(self.sub_tab_widgets[tab][name],sub_config["tab_name"])
@@ -403,6 +405,36 @@ class VeloceGui(QTabWidget):
 
 
 app = QApplication(sys.argv)
-myapp = VeloceGui(IP=pyxis_config["server_ip"])
-myapp.show()
+apply_stylesheet(app, theme='dark_amber.xml')
+#style_string = pyqtcss.get_style("dark_orange")
+#app.setStyleSheet(style_string)
+main = QWidget()
+main.resize(1150, 750)
+
+logo_wig = QWidget()
+hbox = QHBoxLayout(logo_wig)
+
+logo = QLabel()
+qpix = QPixmap('Pyxis_logo.png')
+qpix = qpix.scaledToWidth(250)
+logo.setPixmap(qpix)
+
+ip_connect = QLabel('Connecting to server IP: %s'%pyxis_config["server_ip"])
+ip_connect.setStyleSheet("font-weight: bold; color: #ffd740; font-size:14px")
+
+hbox.addWidget(logo)
+hbox.addWidget(ip_connect)
+
+pyxis_app = PyxisGui(IP=pyxis_config["server_ip"])
+
+vbox = QVBoxLayout(main)
+
+vbox.addWidget(logo_wig)
+vbox.addWidget(pyxis_app)
+
+main.setWindowTitle("Pyxis Control")
+app.setWindowIcon(QIcon('telescope.jpg'))
+
+main.show()
+
 sys.exit(app.exec_())
