@@ -405,6 +405,7 @@ class PyxisGui(QTabWidget):
 
 
 app = QApplication(sys.argv)
+app.setStyle("Fusion")
 apply_stylesheet(app, theme='dark_amber.xml')
 #style_string = pyqtcss.get_style("dark_orange")
 #app.setStyleSheet(style_string)
