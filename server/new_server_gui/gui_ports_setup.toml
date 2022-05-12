@@ -1,5 +1,6 @@
 [Pyxis]
-server_ip = "196.111.111.12"
+server_ip = "127.1.1.1"
+refresh_time = 2 #In seconds
 
 [Navis]
     [Navis.Motors]
@@ -7,63 +8,63 @@ server_ip = "196.111.111.12"
     name = "NavisMotors"
     port = 10000
     description = "Motor/actuator control for the central robot Navis"
-    gui_type = "raw"
+    module_type = "RawWidget"
 
     [Navis.StarTracker]
     tab_name = "Star Tracker Camera"
     name = "NavisStarTracker"
     port = 10001
     description = "Navis star tracker camera control"
-    gui_type = "camera"
+    module_type = "RawWidget"
 
     [Navis.CourseMetrology]
     tab_name = "Course Met Camera"
     name = "NavisCourseMetrology"
     port = 10002
     description = "Course metrology camera control"
-    gui_type = "camera"
+    module_type = "CameraWidget"
 
     [Navis.FiberInjection]
     tab_name = "Fiber Injection Camera"
     name = "NavisFiberInjection"
     port = 10003
     description = "Fiber injection camera control"
-    gui_type = "camera"
+    module_type = "CameraWidget"
 
     [Navis.FineMetrology]
     tab_name = "Fine Metrology"
     name = "NavisFineMetrology"
     port = 10004
     description = "Fine interferometric metrology controls"
-    gui_type = "raw"
+    module_type = "RawWidget"
 
     [Navis.TOFMetrology]
     tab_name = "TOF Metrology"
     name = "NavisTOFMetrology"
     port = 10004
     description = "Time of flight metrology controls"
-    gui_type = "raw"
+    module_type = "RawWidget"
 
     [Navis.Gyro]
     tab_name = "Gyro"
     name = "NavisGyro"
     port = 10005
     description = "Gyro controls"
-    gui_type = "raw"
+    module_type = "RawWidget"
 
     [Navis.ScienceCamera]
     tab_name = "Science Camera"
     name = "NavisScienceCamera"
     port = 10006
     description = "Science camera controls"
-    gui_type = "camera"
+    module_type = "CameraWidget"
 
     [Navis.PowerSystem]
     tab_name = "Power System"
     name = "NavisPowerSystem"
     port = 10007
     description = "Navis power system controls"
-    gui_type = "raw"
+    module_type = "RawWidget"
 
 [Dextra]
     [Dextra.Motors]
@@ -71,28 +72,28 @@ server_ip = "196.111.111.12"
     name = "DextraMotors"
     port = 20000
     description = "Motor/Actuator control for the deputy Dextra"
-    gui_type = "raw"
+    module_type = "RawWidget"
 
     [Dextra.StarTracker]
     tab_name = "Star Tracker Camera"
     name = "DextraStarTracker"
     port = 20001
     description = "Camera controls for the Dextra star tracker"
-    gui_type = "camera"
+    module_type = "CameraWidget"
 
     [Dextra.PlateSolver]
     tab_name = "Plate Solver"
     name = "DextraPlateSolver"
     port = 20002
     description = "Plate solving controls for Dextra"
-    gui_type = "raw"
+    module_type = "RawWidget"
 
     [Dextra.PowerSystem]
     tab_name = "Power System"
     name = "DextraPowerSystem"
     port = 20003
     description = "Dextra power system controls"
-    gui_type = "raw"
+    module_type = "RawWidget"
 
 [Sinistra]
     [Sinistra.Motors]
@@ -100,25 +101,25 @@ server_ip = "196.111.111.12"
     name = "SinistraMotors"
     port = 30000
     description = "Motor/Actuator control for the deputy Sinistra"
-    gui_type = "raw"
+    module_type = "RawWidget"
 
     [Sinistra.StarTracker]
     tab_name = "Star Tracker Camera"
     name = "SinistraStarTracker"
     port = 30001
     description = "Camera controls for the Sinistra star tracker"
-    gui_type = "camera"
+    module_type = "CameraWidget"
 
     [Sinistra.PlateSolver]
     tab_name = "Plate Solver"
     name = "SinistraPlateSolver"
     port = 30002
     description = "Plate solving controls for Sinistra"
-    gui_type = "raw"
+    module_type = "RawWidget"
 
     [Sinistra.PowerSystem]
     tab_name = "Power System"
     name = "SinistraPowerSystem"
     port = 30003
     description = "Sinistra power system controls"
-    gui_type = "raw"
+    module_type = "RawWidget"
