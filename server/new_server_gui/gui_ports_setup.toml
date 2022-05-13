@@ -38,9 +38,9 @@ refresh_time = 2 #In seconds
     description = "Fine interferometric metrology controls"
     module_type = "RawWidget"
 
-    [Navis.TOFMetrology]
-    tab_name = "TOF Metrology"
-    name = "NavisTOFMetrology"
+    [Navis.TOSMetrology]
+    tab_name = "TOS Metrology"
+    name = "NavisTOSMetrology"
     port = 10004
     description = "Time of flight metrology controls"
     module_type = "RawWidget"
