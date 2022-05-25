@@ -29,13 +29,7 @@ except:
 
 class CameraWidget(QWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
-        """The Pyxis GUI.
 
-        Parameters
-        ----------
-        IP: str
-            The IP address of the Pyxis server as as string
-        """
         super(CameraWidget,self).__init__(parent)
 
         self.name = config["name"]
@@ -231,12 +225,12 @@ class CameraWidget(QWidget):
         except:
             response = "*** Connection Error ***"
         if type(response)==str or type(response)==unicode:
-            self.response_label.setText(response)
+            self.response_label.append(response)
         elif type(response)==bool:
             if response:
-                self.response_label.setText("Success!")
+                self.response_label.append("Success!")
             else:
-                self.response_label.setText("Failure!")
+                self.response_label.append("Failure!")
         self.line_edit.setText("")
 
 
@@ -248,7 +242,7 @@ class CameraWidget(QWidget):
         try:
             exptime = float(self.exptime_line_edit.text())
         except:
-            self.response_label.setText("Gui ERROR: exposure time must be a float")
+            self.response_label.append("Gui ERROR: exposure time must be a float")
             return
 
         expstring = "EXPOSE EXPTIME={:f}".format(exptime)
@@ -258,12 +252,12 @@ class CameraWidget(QWidget):
         except:
             response = "*** Connection Error ***"
         if type(response)==str or type(response)==unicode:
-            self.response_label.setText(response)
+            self.response_label.append(response)
         elif type(response)==bool:
             if response:
-                self.response_label.setText("Exposure Started")
+                self.response_label.append("Exposure Started")
             else:
-                self.response_label.setText("Error...")
+                self.response_label.append("Error...")
 
 
     def readout_button_click(self):
@@ -275,10 +269,10 @@ class CameraWidget(QWidget):
             response = "*** Connection Error ***"
             return
         if type(response)==str or type(response)==unicode:
-            self.response_label.setText(response)
+            self.response_label.append(response)
             return
         if type(response)!=list:
-            self.response_label.setText("Did not receive an image!")
+            self.response_label.append("Did not receive an image!")
             return
         if FITS_SAVING:
             header = pyfits.Header()

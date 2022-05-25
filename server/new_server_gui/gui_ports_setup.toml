@@ -8,7 +8,7 @@ refresh_time = 2 #In seconds
     name = "NavisMotors"
     port = 10000
     description = "Motor/actuator control for the central robot Navis"
-    module_type = "RawWidget"
+    module_type = "RobotControlWidget"
 
     [Navis.StarTracker]
     tab_name = "Star Tracker Camera"
@@ -63,8 +63,8 @@ refresh_time = 2 #In seconds
     tab_name = "Power System"
     name = "NavisPowerSystem"
     port = 10007
-    description = "Navis power system controls"
-    module_type = "RawWidget"
+    description = "Navis power system + LED controls"
+    module_type = "PowerControlWidget"
 
 [Dextra]
     [Dextra.Motors]
@@ -72,7 +72,7 @@ refresh_time = 2 #In seconds
     name = "DextraMotors"
     port = 20000
     description = "Motor/Actuator control for the deputy Dextra"
-    module_type = "RawWidget"
+    module_type = "RobotControlWidget"
 
     [Dextra.StarTracker]
     tab_name = "Star Tracker Camera"
@@ -92,8 +92,8 @@ refresh_time = 2 #In seconds
     tab_name = "Power System"
     name = "DextraPowerSystem"
     port = 20003
-    description = "Dextra power system controls"
-    module_type = "RawWidget"
+    description = "Dextra power system + LED controls"
+    module_type = "PowerControlWidget"
 
 [Sinistra]
     [Sinistra.Motors]
@@ -101,7 +101,7 @@ refresh_time = 2 #In seconds
     name = "SinistraMotors"
     port = 30000
     description = "Motor/Actuator control for the deputy Sinistra"
-    module_type = "RawWidget"
+    module_type = "RobotControlWidget"
 
     [Sinistra.StarTracker]
     tab_name = "Star Tracker Camera"
@@ -121,5 +121,5 @@ refresh_time = 2 #In seconds
     tab_name = "Power System"
     name = "SinistraPowerSystem"
     port = 30003
-    description = "Sinistra power system controls"
-    module_type = "RawWidget"
+    description = "Sinistra power system + LED controls"
+    module_type = "PowerControlWidget"

@@ -17,13 +17,7 @@ except:
 
 class RawWidget(QWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
-        """The Pyxis GUI.
 
-        Parameters
-        ----------
-        IP: str
-            The IP address of the Pyxis server as as string
-        """
         super(RawWidget,self).__init__(parent)
 
         self.name = config["name"]
@@ -133,10 +127,10 @@ class RawWidget(QWidget):
         except:
             response = "*** Connection Error ***"
         if type(response)==str or type(response)==unicode:
-            self.response_label.setText(response)
+            self.response_label.append(response)
         elif type(response)==bool:
             if response:
-                self.response_label.setText("Success!")
+                self.response_label.append("Success!")
             else:
-                self.response_label.setText("Failure!")
+                self.response_label.append("Failure!")
         self.line_edit.setText("")

@@ -13,7 +13,7 @@ sys.path.insert(0, './classes')
 try:
     from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QHBoxLayout, \
         QVBoxLayout, QGridLayout, QLabel, QTabWidget, QScrollArea
-    from PyQt5.QtCore import QTimer
+    from PyQt5.QtCore import QTimer, Qt
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtSvg import QSvgWidget
 except:
@@ -60,6 +60,21 @@ def class_for_name(module_name, class_name):
     c = getattr(m, class_name)
     return c
 
+import random
+def random_string(len):
+
+    random_str = ''
+
+    for _ in range(len):
+        # Considering only upper and lowercase letters
+        random_integer = random.randint(97, 97 + 26 - 1)
+        flip_bit = random.randint(0, 1)
+        # Convert to lowercase if the flip bit is on
+        random_integer = random_integer - 32 if flip_bit == 1 else random_integer
+        # Keep appending random characters using chr(x)
+        random_str += (chr(random_integer))
+    return random_str
+
 
 class PyxisGui(QTabWidget):
     def __init__(self, IP='127.0.0.1', parent=None):
@@ -84,13 +99,21 @@ class PyxisGui(QTabWidget):
 
         #Dashboard Tab
         self.tab_widgets["dashboard"] = QWidget()
-        self.addTab(self.tab_widgets["dashboard"],"Dashboard")
+        self.addTab(self.tab_widgets["dashboard"],"Finite State Machine")
 
         listBox = QVBoxLayout()
         self.tab_widgets["dashboard"].setLayout(listBox)
         self.dashboard_refresh_button = QPushButton("REFRESH", self)
         self.dashboard_refresh_button.clicked.connect(self.refresh_status)
         listBox.addWidget(self.dashboard_refresh_button)
+
+        hbox = QHBoxLayout()
+        self.dashboard_mainStatus = QLabel("STATUS",self)
+        hbox.addWidget(self.dashboard_mainStatus)
+        #self.dashboard_mainStatus.setAlignment(Qt.AlignCenter)
+        self.dashboard_mainStatus.setStyleSheet("QLabel {font-size: 25px; font-weight: bold; color: #ff7e40}")
+        self.dashboard_mainStatus.setFixedHeight(100)
+        listBox.addLayout(hbox)
 
         #Make Scrollable
         scroll = QScrollArea(self.tab_widgets["dashboard"])
@@ -162,22 +185,36 @@ class PyxisGui(QTabWidget):
 
     #Function to refresh the status of all clients
     def refresh_status(self):
-        for tab in config:
-            for item in config[tab]:
-                sub_config = config[tab][item]
-                name = sub_config["name"]
-                self.sub_tab_widgets[tab][name].ask_for_status()
-                self.status_lights[tab][name].load(self.sub_tab_widgets[tab][name].status_light)
-                self.status_texts[tab][name].setText(self.sub_tab_widgets[tab][name].status_text)
+        tab_index = self.currentIndex()
+
+        if tab_index == 0:
+            #ASK TO REFRESH FINITE STATE MACHINE STATUS HERE
+            print("NEED TO ASK FOR STATUS TO FSM")
+
+            self.dashboard_mainStatus.setText("PYXIS STATUS: "+random_string(25))
+
+        else:
+            tab = list(config.items())[tab_index-1][0]
+            subtab_index = self.tab_widgets[tab].currentIndex()
+            item = list(config[tab].items())[subtab_index][0]
+            sub_config = config[tab][item]
+            name = sub_config["name"]
+            self.sub_tab_widgets[tab][name].ask_for_status()
+            self.status_lights[tab][name].load(self.sub_tab_widgets[tab][name].status_light)
+            self.status_texts[tab][name].setText(self.sub_tab_widgets[tab][name].status_text)
 
     #Function to refresh the camera feeds of each relevant client
     def refresh_camera_feeds(self):
-        for tab in config:
-            for item in config[tab]:
-                sub_config = config[tab][item]
-                if sub_config["module_type"] == "CameraWidget":
-                    name = sub_config["name"]
-                    self.sub_tab_widgets[tab][name].refresh_camera_feed()
+        tab_index = self.currentIndex()
+        if tab_index > 0:
+            tab = list(config.items())[tab_index-1][0]
+            subtab_index = self.tab_widgets[tab].currentIndex()
+            item = list(config[tab].items())[subtab_index][0]
+            sub_config = config[tab][item]
+            if sub_config["module_type"] == "CameraWidget":
+                name = sub_config["name"]
+                self.sub_tab_widgets[tab][name].refresh_camera_feed()
+
 
     #Function to auto update at a given rate
     def auto_updater(self):

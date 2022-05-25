@@ -11,9 +11,11 @@ except:
     print("Please install zmq, e.g. with 'pip install --user zmq' if you don't have sudo privliges.")
     raise UserWarning
 
+"""
 #Some constants. Data types for Ian's communication protocol, and the servers
 #we'll be commecting to.
 DTYPES = {1:float, 2:int, 3:str, 4:bool, 5:"floatimg", 6:"intimg"}
+"""
 
 class ClientSocket:
     def __init__(self,IP="127.0.0.1",Port="44010"):
@@ -55,11 +57,19 @@ class ClientSocket:
 
         #Receive the response
         try:
-            response = self.client.recv()
+            response = self.client.recv_string()
+
+            if response == "success":
+                response = True
+            elif response == "fail":
+                response = False
+
+            return response
         except:
             self.connected=False
             self.count += 1
             return 'Error receiving response, connection lost ({0:d} times)\nPress Enter to reconnect.'.format(self.count)
+        """
         try:
             self.connected=True
             #Lets see what data type we have, and support all relevant ones.
@@ -84,5 +94,8 @@ class ClientSocket:
                 return [rows_cols, times, np.array(data).reshape(rows_cols)]
             else:
                 return 'Unsupported response type'
+
+
         except:
             return 'Error parsing response!'
+        """
