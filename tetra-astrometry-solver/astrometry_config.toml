@@ -1,5 +1,7 @@
 output_folder = "./output" #Folder for output
-socket = "tcp://*:5555"
+IP = 
+camera_port = "tcp://*:5555"
+robot_control_port = "tcp://*:5555"
 
 [Tetra3]
 bg_sub_mode = "local_mean" #"Continuous" is default

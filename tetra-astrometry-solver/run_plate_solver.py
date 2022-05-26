@@ -145,14 +145,31 @@ if __name__ == "__main__":
     with open(config_file, "rb") as f:
         config = tomli.load(f)
 
-    context = zmq.Context()
-    socket = context.socket(zmq.REP)
-    socket.bind(config["socket"])
+	IP = config["IP"]
+
+    try:
+        context = zmq.Context()
+        camera_socket = context.socket(zmq.REQ)
+        tcpstring = "tcp://"+IP+":"+config["camera_port"]
+        camera_socket.connect(tcpstring)
+    except:
+        print('ERROR: Could not connect to camera server. Please check that the server is running and IP is correct.')
+ 
+     try:
+        robot_control_socket = context.socket(zmq.REQ)
+        tcpstring = "tcp://"+IP+":"+config["robot_control_port"]
+        robot_control_socket.connect(tcpstring)
+    except:
+        print('ERROR: Could not connect to camera server. Please check that the server is running and IP is correct.')       
+
 
     while(1):
-        #  Wait for next request from client
-        message = socket.recv()
-        print("Received message: %s" % message)
+    
+    	camera_socket.send_string("GET_IMAGE")
+    
+        #Ask camera for next image
+        message = camera_socket.recv()
+        print("Received camera message: %s" % message)
 
         # WORK ON MESSAGE -> FILENAME
         filename = #message
@@ -163,8 +180,11 @@ if __name__ == "__main__":
         # WORK ON ANGLES -> return_message
         return_message = b"" #angles
 
-        #Send reply back to client
-        socket.send(return_message)
+        #Send reply to robot
+        robot_control_socket.send_string(return_message)
+        
+        message = robot_control_socket.recv()
+        print("Robot response: %s" % message)
 
 #-------------
 """

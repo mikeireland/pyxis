@@ -4,6 +4,9 @@ import sys
 import pytomlpp
 import collections
 import importlib
+import faulthandler
+
+faulthandler.enable()
 
 #Import only what we need from PyQt5, or everything from PyQt4. In any case, we'll try
 #to keep this back-compatible. Although this floods the namespace somewhat, everything
@@ -77,17 +80,9 @@ def random_string(len):
 
 
 class PyxisGui(QTabWidget):
-    def __init__(self, IP='127.0.0.1', parent=None):
-        """The Pyxis GUI.
+    def __init__(self, pyx_IPs,parent=None):
 
-        Parameters
-        ----------
-        IP: str
-            The IP address of the Pyxis server as as string
-        """
         super(PyxisGui,self).__init__(parent)
-
-        print("Connecting to IP %s"%IP)
 
         #We'll have tabs for different servers
         self.resize(900, 550)
@@ -149,7 +144,7 @@ class PyxisGui(QTabWidget):
                 #Load class and create instance, add to tab container
                 class_name = sub_config["module_type"]
                 widget_module = class_for_name(class_name,class_name)
-                self.sub_tab_widgets[tab][name] = widget_module(sub_config,IP)
+                self.sub_tab_widgets[tab][name] = widget_module(sub_config,pyx_IPs[tab])
                 self.tab_widgets[tab].addTab(self.sub_tab_widgets[tab][name],sub_config["tab_name"])
 
                 #Add status indicator to dashboard
@@ -238,13 +233,28 @@ qpix = QPixmap('assets/Pyxis_logo.png')
 qpix = qpix.scaledToWidth(250)
 logo.setPixmap(qpix)
 
-ip_connect = QLabel('Connecting to server IP: %s'%pyxis_config["server_ip"])
-ip_connect.setStyleSheet("font-weight: bold; color: #ffd740; font-size:14px")
-
 hbox.addWidget(logo)
+IP = pyxis_config["IP"]["External"]
+ip_connect = QLabel('Connecting to External IP: %s'%(IP))
+ip_connect.setStyleSheet("font-weight: bold; color: #ffd740; font-size:14px")
 hbox.addWidget(ip_connect)
 
-pyxis_app = PyxisGui(IP=pyxis_config["server_ip"])
+vbox = QVBoxLayout()
+
+IPs = pyxis_config["IP"]
+IPs.pop("External")
+IPs = collections.OrderedDict({k: IPs[k] for k in ["Navis","Dextra","Sinistra"]})
+for IP_name in IPs:
+	if IP_name != "External":
+		IP = IPs[IP_name]
+		ip_connect = QLabel('Connecting to %s LAN IP: %s'%(IP_name,IP))
+		ip_connect.setStyleSheet("font-weight: bold; color: #ffd740; font-size:14px")
+		vbox.addWidget(ip_connect)
+
+
+hbox.addLayout(vbox)
+
+pyxis_app = PyxisGui(pyx_IPs=pyxis_config["IP"])
 
 vbox = QVBoxLayout(main)
 
