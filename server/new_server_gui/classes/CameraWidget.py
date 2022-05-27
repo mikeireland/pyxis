@@ -80,11 +80,6 @@ class CameraWidget(QWidget):
 
         bigfont = QFont("Times", 20, QFont.Bold)
 
-
-
-
-
-
         #Add controls for taking exposures with the camera
         #Missing COLOFFSET and ROWOFFSET because they don't work.
         #Have: COLBIN=, ROWBIN=, EXPTIME=, DARK
@@ -144,8 +139,8 @@ class CameraWidget(QWidget):
         vBoxlayout.addLayout(hbox2)
 
         status_layout = QHBoxLayout()
-        self.status_light = 'assets/green.svg'
-        self.status_text = 'STATUS'
+        self.status_light = 'assets/red.svg'
+        self.status_text = 'Socket Not Connected'
         self.svgWidget = QSvgWidget(self.status_light)
         self.svgWidget.setFixedSize(20,20)
         self.status_label = QLabel(self.status_text, self)
@@ -169,7 +164,7 @@ class CameraWidget(QWidget):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
             response = self.socket.send_command("INFO")
-            self.status_text = "Socket Connected; STATUS:"
+            self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
             if type(response)!=str and type(response)!=unicode:
                 raise UserWarning("Incorrect INFO response!")

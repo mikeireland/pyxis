@@ -169,11 +169,12 @@ class StarTrackerCameraWidget(QWidget):
         hbox4.addSpacing(80)
 
         vbox3 = QVBoxLayout()
-        self.Connect_button = QPushButton("Connect", self)
-        self.Connect_button.setCheckable(True)
-        self.Connect_button.setFixedWidth(220)
-        self.Connect_button.clicked.connect(self.connect_camera)
-        vbox3.addWidget(self.Connect_button)
+
+        self.Reconfigure_button = QPushButton("Reconfigure", self)
+        self.Reconfigure_button.setFixedWidth(220)
+        self.Reconfigure_button.clicked.connect(self.reconfigure_camera)
+        vbox3.addWidget(self.Reconfigure_button)
+
 
         self.Single_button = QPushButton("Start Single Burst Mode", self)
         self.Single_button.setCheckable(True)
@@ -196,10 +197,16 @@ class StarTrackerCameraWidget(QWidget):
         hbox4.addLayout(vbox3)
 
         vbox1.addLayout(hbox4)
-        print("d")
-
 
         #vbox2 things
+        hbox3 = QHBoxLayout()
+        self.Connect_button = QPushButton("Connect", self)
+        self.Connect_button.setCheckable(True)
+        self.Connect_button.setFixedWidth(220)
+        self.Connect_button.clicked.connect(self.connect_camera)
+        hbox3.addWidget(self.Connect_button)
+        vbox2.addLayout(hbox3)
+
         self.cam_feed = QLabel(self)
         self.cam_feed.setStyleSheet("padding: 30")
         self.cam_qpix = QPixmap()
@@ -218,8 +225,8 @@ class StarTrackerCameraWidget(QWidget):
         vBoxlayout.addLayout(hbox2)
 
         status_layout = QHBoxLayout()
-        self.status_light = 'assets/green.svg'
-        self.status_text = 'STATUS'
+        self.status_light = 'assets/red.svg'
+        self.status_text = 'Socket Not Connected'
         self.svgWidget = QSvgWidget(self.status_light)
         self.svgWidget.setFixedSize(20,20)
         self.status_label = QLabel(self.status_text, self)
@@ -243,7 +250,7 @@ class StarTrackerCameraWidget(QWidget):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
             response = self.socket.send_command("INFO")
-            self.status_text = "Socket Connected; STATUS:"
+            self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
             if type(response)!=str and type(response)!=unicode:
                 raise UserWarning("Incorrect INFO response!")
@@ -283,6 +290,11 @@ class StarTrackerCameraWidget(QWidget):
             self.Connect_button.setText("Connect")
             print("Disconnecting Camera")
             self.send_to_server("DISCONNECT")
+
+
+    def reconfigure_camera(self):
+        #LOAD VALUES
+        return
 
 
     def continuous_mode(self):

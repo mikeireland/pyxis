@@ -6,16 +6,18 @@ import collections
 import importlib
 import faulthandler
 
+
 faulthandler.enable()
 
 #Import only what we need from PyQt5, or everything from PyQt4. In any case, we'll try
 #to keep this back-compatible. Although this floods the namespace somewhat, everything
 #starts with a "Q" so there is little chance of getting mixed up.
 sys.path.insert(0, './classes')
+from client_socket import ClientSocket
 
 try:
     from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QHBoxLayout, \
-        QVBoxLayout, QGridLayout, QLabel, QTabWidget, QScrollArea
+        QVBoxLayout, QGridLayout, QLabel, QTabWidget, QScrollArea, QLineEdit, QTextEdit
     from PyQt5.QtCore import QTimer, Qt
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtSvg import QSvgWidget
@@ -98,9 +100,23 @@ class PyxisGui(QTabWidget):
 
         listBox = QVBoxLayout()
         self.tab_widgets["dashboard"].setLayout(listBox)
-        self.dashboard_refresh_button = QPushButton("REFRESH", self)
-        self.dashboard_refresh_button.clicked.connect(self.refresh_status)
-        listBox.addWidget(self.dashboard_refresh_button)
+
+        hbox1 = QHBoxLayout()
+        self.fsm_socket = ClientSocket(pyx_IPs["FSM"], pyx_IPs["FSM_port"])
+
+        self.connect_fsm_button = QPushButton("Connect to FSM", self)
+        self.connect_fsm_button.setFixedWidth(200)
+        self.connect_fsm_button.clicked.connect(self.connect_fsm)
+        hbox1.addWidget(self.connect_fsm_button)
+
+        self.power_button = QPushButton("START SERVERS", self)
+        self.power_button.clicked.connect(self.power)
+        self.power_button.setCheckable(True)
+        self.power_button.setStyleSheet("QPushButton {background-color: #005500;border-color: #005500; color: #ffd740}")
+        self.power_button.setFixedWidth(200)
+        hbox1.addWidget(self.power_button)
+
+        listBox.addLayout(hbox1)
 
         hbox = QHBoxLayout()
         self.dashboard_mainStatus = QLabel("STATUS",self)
@@ -110,13 +126,49 @@ class PyxisGui(QTabWidget):
         self.dashboard_mainStatus.setFixedHeight(100)
         listBox.addLayout(hbox)
 
+        #First, the command entry box
+        lbl1 = QLabel('Command: ', self)
+        self.line_edit = QLineEdit("")
+        self.line_edit.returnPressed.connect(self.command_enter)
+
+        #Next, the info button
+        self.info_button = QPushButton("INFO", self)
+        self.info_button.clicked.connect(self.info_click)
+
+        hbox4 = QHBoxLayout()
+        vbox3 = QVBoxLayout()
+
         #Make Scrollable
         scroll = QScrollArea(self.tab_widgets["dashboard"])
-        listBox.addWidget(scroll)
+        hbox4.addWidget(scroll)
         scroll.setWidgetResizable(True)
         scrollContent = QWidget(scroll)
         scrollLayout = QVBoxLayout()
         scrollContent.setLayout(scrollLayout)
+
+
+        hbox1 = QHBoxLayout()
+        hbox1.addWidget(lbl1)
+        hbox1.addWidget(self.line_edit)
+        hbox1.addWidget(self.info_button)
+        vbox3.addLayout(hbox1)
+
+        #Next, the response box
+        self.response_label = QTextEdit('[No Server Response Yet]', self)
+        self.response_label.setReadOnly(True)
+        self.response_label.setStyleSheet("QTextEdit { background-color : black; }")
+        self.response_label.setFixedHeight(150)
+        vbox3.addWidget(self.response_label)
+
+
+
+        self.dashboard_refresh_button = QPushButton("REFRESH", self)
+        self.dashboard_refresh_button.clicked.connect(self.refresh_status)
+        vbox3.addWidget(self.dashboard_refresh_button)
+
+
+        hbox4.addLayout(vbox3)
+
 
         #For each tab...
         for tab in config:
@@ -171,6 +223,8 @@ class PyxisGui(QTabWidget):
 
         scroll.setWidget(scrollContent)
 
+        listBox.addLayout(hbox4)
+
         #Now show everything, and start status timers.
         self.setWindowTitle("Pyxis Server Gui")
 
@@ -213,10 +267,48 @@ class PyxisGui(QTabWidget):
 
     #Function to auto update at a given rate
     def auto_updater(self):
-        self.refresh_status()
-        self.refresh_camera_feeds()
-        self.stimer.singleShot(refresh_time, self.auto_updater)
+        #self.refresh_status()
+        #self.refresh_camera_feeds()
+        #self.stimer.singleShot(refresh_time, self.auto_updater)
+        return
 
+    def connect_fsm(self):
+        return
+
+    def power(self):
+        if self.power_button.isChecked():
+            self.power_button.setText("Kill Servers")
+            self.power_button.setStyleSheet("QPushButton {background-color: #550000; border-color: #550000; color: #ffd740}")
+        else:
+            self.power_button.setText("Start Servers")
+            self.power_button.setStyleSheet("QPushButton {background-color: #005500; border-color: #005500; color: #ffd740}")
+
+        return
+
+    def send_to_FSM_server(self, text):
+        """Send a command to the server, dependent on the current tab.
+        """
+        try:
+            response = self.fsm_socket.send_command(text)
+        except:
+            response = "*** Connection Error ***"
+        if type(response)==str or type(response)==unicode:
+            self.response_label.append(response)
+        elif type(response)==bool:
+            if response:
+                self.response_label.append("Success!")
+            else:
+                self.response_label.append("Failure!")
+        self.line_edit.setText("")
+
+    def command_enter(self):
+        """Parse the LineEdit string and send_to_server
+        """
+        self.send_to_FSM_server(str(self.line_edit.text()))
+
+    #What happens when you click the info button
+    def info_click(self):
+        self.send_to_FSM_server("INFO")
 
 app = QApplication(sys.argv)
 app.setStyle("Fusion")
@@ -242,14 +334,12 @@ hbox.addWidget(ip_connect)
 vbox = QVBoxLayout()
 
 IPs = pyxis_config["IP"]
-IPs.pop("External")
-IPs = collections.OrderedDict({k: IPs[k] for k in ["Navis","Dextra","Sinistra"]})
+IPs = collections.OrderedDict({k: IPs[k] for k in ["FSM","Navis","Dextra","Sinistra"]})
 for IP_name in IPs:
-	if IP_name != "External":
-		IP = IPs[IP_name]
-		ip_connect = QLabel('Connecting to %s LAN IP: %s'%(IP_name,IP))
-		ip_connect.setStyleSheet("font-weight: bold; color: #ffd740; font-size:14px")
-		vbox.addWidget(ip_connect)
+	IP = IPs[IP_name]
+	ip_connect = QLabel('Connecting to %s LAN IP: %s'%(IP_name,IP))
+	ip_connect.setStyleSheet("font-weight: bold; color: #ffd740; font-size:14px")
+	vbox.addWidget(ip_connect)
 
 
 hbox.addLayout(vbox)
