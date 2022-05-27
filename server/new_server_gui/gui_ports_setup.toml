@@ -8,123 +8,109 @@ refresh_time = 2 #In seconds
 		External = "150.203.91.206"
 
 [Navis]
-    [Navis.Motors]
-    tab_name = "Motors"
-    name = "NavisMotors"
-    port = 10000
+    [Navis.RobotControl]
+    tab_name = "RobotControl"
+    name = "NavisRobotControl"
+    port = 43000
     description = "Motor/actuator control for the central robot Navis"
     module_type = "RobotControlWidget"
 
     [Navis.StarTracker]
     tab_name = "Star Tracker Camera"
     name = "NavisStarTracker"
-    port = 10001
+    port = 43001
     description = "Navis star tracker camera control"
     module_type = "RawWidget"
 
     [Navis.CourseMetrology]
     tab_name = "Course Met Camera"
     name = "NavisCourseMetrology"
-    port = 10002
+    port = 43002
     description = "Course metrology camera control"
     module_type = "CameraWidget"
 
     [Navis.FiberInjection]
     tab_name = "Fiber Injection Camera"
     name = "NavisFiberInjection"
-    port = 10003
+    port = 43003
     description = "Fiber injection camera control"
     module_type = "CameraWidget"
 
     [Navis.FineMetrology]
     tab_name = "Fine Metrology"
     name = "NavisFineMetrology"
-    port = 10004
+    port = 43004
     description = "Fine interferometric metrology controls"
     module_type = "RawWidget"
 
     [Navis.TOSMetrology]
     tab_name = "TOS Metrology"
     name = "NavisTOSMetrology"
-    port = 10004
+    port = 43005
     description = "Time of flight metrology controls"
     module_type = "RawWidget"
 
     [Navis.Gyro]
     tab_name = "Gyro"
     name = "NavisGyro"
-    port = 10005
+    port = 43006
     description = "Gyro controls"
     module_type = "RawWidget"
 
     [Navis.ScienceCamera]
     tab_name = "Science Camera"
     name = "NavisScienceCamera"
-    port = 10006
+    port = 43007
     description = "Science camera controls"
     module_type = "CameraWidget"
 
     [Navis.PowerSystem]
     tab_name = "Power System"
     name = "NavisPowerSystem"
-    port = 10007
+    port = 43008
     description = "Navis power system + LED controls"
     module_type = "PowerControlWidget"
 
 [Dextra]
-    [Dextra.Motors]
-    tab_name = "Motors"
-    name = "DextraMotors"
-    port = 20000
+    [Dextra.RobotControl]
+    tab_name = "Robot Control"
+    name = "DextraRobotControl"
+    port = 44000
     description = "Motor/Actuator control for the deputy Dextra"
     module_type = "RobotControlWidget"
 
     [Dextra.StarTracker]
     tab_name = "Star Tracker Camera"
     name = "DextraStarTracker"
-    port = 20001
+    port = 44001
     description = "Camera controls for the Dextra star tracker"
     module_type = "CameraWidget"
-
-    [Dextra.PlateSolver]
-    tab_name = "Plate Solver"
-    name = "DextraPlateSolver"
-    port = 20002
-    description = "Plate solving controls for Dextra"
-    module_type = "RawWidget"
 
     [Dextra.PowerSystem]
     tab_name = "Power System"
     name = "DextraPowerSystem"
-    port = 20003
+    port = 44002
     description = "Dextra power system + LED controls"
     module_type = "PowerControlWidget"
 
 [Sinistra]
-    [Sinistra.Motors]
-    tab_name = "Motors"
-    name = "SinistraMotors"
-    port = 30000
+    [Sinistra.RobotControl]
+    tab_name = "Robot Control"
+    name = "SinistraRobotControl"
+    port = 45000
     description = "Motor/Actuator control for the deputy Sinistra"
     module_type = "RobotControlWidget"
 
     [Sinistra.StarTracker]
     tab_name = "Star Tracker Camera"
     name = "SinistraStarTracker"
-    port = 30001
+    port = 45001
     description = "Camera controls for the Sinistra star tracker"
     module_type = "CameraWidget"
-
-    [Sinistra.PlateSolver]
-    tab_name = "Plate Solver"
-    name = "SinistraPlateSolver"
-    port = 30002
-    description = "Plate solving controls for Sinistra"
-    module_type = "RawWidget"
 
     [Sinistra.PowerSystem]
     tab_name = "Power System"
     name = "SinistraPowerSystem"
-    port = 30003
+    port = 45002
     description = "Sinistra power system + LED controls"
     module_type = "PowerControlWidget"

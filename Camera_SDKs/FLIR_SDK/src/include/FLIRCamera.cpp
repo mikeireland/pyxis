@@ -35,9 +35,11 @@ FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
     offset_y = config["camera"]["offset_y"].value_or(0);
     exposure_time = config["camera"]["exposure_time"].value_or(0);
     gain = config["camera"]["gain"].value_or(0);
+    
     pixel_format = config["camera"]["pixel_format"].value_or("");
     acquisition_mode = config["camera"]["acquisition_mode"].value_or("");
     adc_bit_depth = config["camera"]["adc_bit_depth"].value_or("");
+    
     black_level = config["camera"]["black_level"].value_or(0);
     buffer_size = config["camera"]["buffer_size"].value_or(0);
     imsize = width*height;
@@ -45,6 +47,8 @@ FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
     trigger_mode = config["camera"]["trigger"]["trigger_mode"].value_or("");
     trigger_selector = config["camera"]["trigger"]["trigger_selector"].value_or("");
     trigger_source = config["camera"]["trigger"]["trigger_source"].value_or("");
+    
+    savefile_dir = config["fits"]["filename"].value_or("");
 }
 
 
@@ -145,6 +149,33 @@ void FLIRCamera::InitCamera(){
     }
 
 }
+
+void FLIRCamera::Reconfigure(std::string parameter, int value){
+
+    INodeMap& node_map = pCam->GetNodeMap();
+
+    // Set parameter
+    CIntegerPtr ptr_parameter = node_map.GetNode(parameter);
+    ptr_parameter->SetValue(value);
+
+    // Print Camera setting
+    cout << "Setting " << parameter << " to:" << ptr_parameter->GetValue() << endl ;
+}
+
+
+void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, int new_offsetY, int new_blacklevel){
+
+    Reconfigure("Gain",new_gain);
+    Reconfigure("ExposureTime",new_exptime);
+    Reconfigure("Width",new_width);
+    Reconfigure("Height",new_height);
+    Reconfigure("OffsetX",new_offsetX);
+    Reconfigure("OffsetY",new_offsetY);
+    Reconfigure("BlackLevel",new_blacklevel);
+
+}
+	
+
 
 int FLIRCamera::ConfigTrigger(INodeMap& node_map){
     int result = 0;
@@ -277,8 +308,9 @@ int FLIRCamera::GrabImageByTrigger(INodeMap& node_map){
       f - a callback function that will be applied to each image in real time.
           Give NULL for no callback function.
 */
-void FLIRCamera::GrabFrames(unsigned long num_frames, unsigned short* image_array, int (*f)(unsigned short*)) {
+int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned short* image_array, int (*f)(unsigned short*)) {
     try {
+    	main_result = 0;
         cout << "Start Acquisition" << endl;
 
         std::chrono::time_point<std::chrono::steady_clock> start, end;
@@ -319,6 +351,8 @@ void FLIRCamera::GrabFrames(unsigned long num_frames, unsigned short* image_arra
                 result = (*f)(data);
 
                 if (result == 0){
+                
+                	main_result = 1
 
                     cout << endl;
 
@@ -341,7 +375,7 @@ void FLIRCamera::GrabFrames(unsigned long num_frames, unsigned short* image_arra
 
                     total_exposure = duration;
 
-                    return;
+                    return main_result;
 
                 }
             }
@@ -371,6 +405,8 @@ void FLIRCamera::GrabFrames(unsigned long num_frames, unsigned short* image_arra
         double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
         total_exposure = duration;
+        
+        return main_result
 
     }
     catch (Spinnaker::Exception &e) {
@@ -390,9 +426,7 @@ int FLIRCamera::SaveFITS(unsigned short* image_array, int num_images)
     fitsfile *fptr;
 
     // Define filepath and name for the FITS file
-    std::string file_dir = config["fits"]["file_dir"].value_or("");
-    std::string filename = config["fits"]["filename"].value_or("");
-    string file_path = "!" + file_dir + filename;
+    string file_path = "!" + savefile_dir + ".fits";
 
     // Configure FITS file
     int bitpix = config["fits"]["bitpix"].value_or(16);

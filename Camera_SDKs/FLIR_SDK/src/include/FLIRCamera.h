@@ -78,6 +78,11 @@ class FLIRCamera {
 		    /* Function to setup and start the camera. MUST CALL BEFORE USING!!! */
         void InitCamera();
 
+		void Reconfigure(std::string parameter, int value);
+		
+		void ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, int new_offsetY, int new_blacklevel);
+
+
 		    /* Function to De-initialise camera. MUST CALL AFTER USING!!! */
         void DeinitCamera();
 
