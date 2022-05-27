@@ -80,6 +80,11 @@ class CameraWidget(QWidget):
 
         bigfont = QFont("Times", 20, QFont.Bold)
 
+
+
+
+
+
         #Add controls for taking exposures with the camera
         #Missing COLOFFSET and ROWOFFSET because they don't work.
         #Have: COLBIN=, ROWBIN=, EXPTIME=, DARK

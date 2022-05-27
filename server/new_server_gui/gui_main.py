@@ -206,7 +206,7 @@ class PyxisGui(QTabWidget):
             subtab_index = self.tab_widgets[tab].currentIndex()
             item = list(config[tab].items())[subtab_index][0]
             sub_config = config[tab][item]
-            if sub_config["module_type"] == "CameraWidget":
+            if sub_config["module_type"] == "CameraWidget" or sub_config["module_type"] == "StarTrackerCameraWidget":
                 name = sub_config["name"]
                 self.sub_tab_widgets[tab][name].refresh_camera_feed()
 
@@ -223,7 +223,7 @@ app.setStyle("Fusion")
 apply_stylesheet(app, theme='dark_amber.xml')  #Design file
 
 main = QWidget()
-main.resize(1150, 750)
+main.resize(1200, 750)
 
 #Add logo
 logo_wig = QWidget()
