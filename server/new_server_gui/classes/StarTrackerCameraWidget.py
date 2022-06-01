@@ -175,24 +175,19 @@ class StarTrackerCameraWidget(QWidget):
         self.Reconfigure_button.clicked.connect(self.reconfigure_camera)
         vbox3.addWidget(self.Reconfigure_button)
 
+        hbox3 = QHBoxLayout()
+        lbl1 = QLabel('Buffer Size: ', self)
+        self.numframes_edit = QLineEdit("")
+        self.numframes_edit.setFixedWidth(120)
+        hbox3.addWidget(lbl1)
+        hbox3.addWidget(self.numframes_edit)
+        vbox3.addLayout(hbox3)
 
-        self.Single_button = QPushButton("Start Single Burst Mode", self)
-        self.Single_button.setCheckable(True)
-        self.Single_button.setFixedWidth(220)
-        self.Single_button.clicked.connect(self.single_mode)
-        vbox3.addWidget(self.Single_button)
-
-        self.Multi_button = QPushButton("Start Multi Burst Mode", self)
-        self.Multi_button.setCheckable(True)
-        self.Multi_button.setFixedWidth(220)
-        self.Multi_button.clicked.connect(self.multi_mode)
-        vbox3.addWidget(self.Multi_button)
-
-        self.Continuous_button = QPushButton("Start Continuous Mode", self)
-        self.Continuous_button.setCheckable(True)
-        self.Continuous_button.setFixedWidth(220)
-        self.Continuous_button.clicked.connect(self.continuous_mode)
-        vbox3.addWidget(self.Continuous_button)
+        self.run_button = QPushButton("Start Camera", self)
+        self.run_button.setCheckable(True)
+        self.run_button.setFixedWidth(220)
+        self.run_button.clicked.connect(self.run_camera)
+        vbox3.addWidget(self.run_button)
 
         hbox4.addLayout(vbox3)
 
@@ -282,7 +277,7 @@ class StarTrackerCameraWidget(QWidget):
             print("Camera is now Connected")
             self.send_to_server("CONNECT")
 
-        elif self.Single_button.isChecked() or self.Multi_button.isChecked() or self.Continuous_button.isChecked():
+        elif self.run_button.isChecked():
             self.Connect_button.setChecked(True)
             print("Can't Disconnect; Camera Running")
 
@@ -293,69 +288,37 @@ class StarTrackerCameraWidget(QWidget):
 
 
     def reconfigure_camera(self):
-        #LOAD VALUES
+    	if self.Connect_button.isChecked():
+            if self.run_button.isChecked():
+                print("Camera currently running!")
+            else:
+            	#LOAD VALUES
+                print("Reconfiguring Camera")
+
+        else:
+            print("CAMERA NOT CONNECTED")
+
+
         return
 
 
-    def continuous_mode(self):
+
+    def run_camera(self):
 
         if self.Connect_button.isChecked():
-            if self.Single_button.isChecked() or self.Multi_button.isChecked():
-                self.Continuous_button.setChecked(False)
-                print("Another Mode is Running")
+            if self.run_button.isChecked():
+                # Refresh camera
+                #EXTRACT NUMBER OF FRAMES
+                self.run_button.setText("Stop Camera")
+                print("Starting Camera")
+                self.send_to_server("STARTCAM")
             else:
-                if self.Continuous_button.isChecked():
-                    # Refresh camera
-                    self.Continuous_button.setText("Stop Continuous Mode")
-                    print("Starting Continuous Mode")
-                    self.send_to_server("CONTINUOUS")
-                else:
-                    self.Continuous_button.setText("Start Continuous Mode")
+                self.run_button.setText("Start Camera")
+                print("Stopping Camera")
+                self.send_to_server("STOPCAM")
 
         else:
-            self.Continuous_button.setChecked(False)
-            print("CAMERA NOT CONNECTED")
-
-
-
-    def single_mode(self):
-
-        if self.Connect_button.isChecked():
-            if self.Continuous_button.isChecked() or self.Multi_button.isChecked():
-                self.Single_button.setChecked(False)
-                print("Another Mode is Running")
-            else:
-                if self.Single_button.isChecked():
-                    # Refresh camera
-                    self.Single_button.setText("Stop Single Burst Mode")
-                    print("Starting Single Burst Exposure Mode")
-                    self.send_to_server("CONTINUOUS")
-                else:
-                    self.Single_button.setText("Start Single Burst Mode")
-
-        else:
-            self.Single_button.setChecked(False)
-            print("CAMERA NOT CONNECTED")
-
-
-
-    def multi_mode(self):
-
-        if self.Connect_button.isChecked():
-            if self.Single_button.isChecked() or self.Continuous_button.isChecked():
-                self.Multi_button.setChecked(False)
-                print("Another Mode is Running")
-            else:
-                if self.Multi_button.isChecked():
-                    # Refresh camera
-                    self.Multi_button.setText("Stop Multi Burst Mode")
-                    print("Starting Multi Burst Exposure Mode")
-                    self.send_to_server("MULTI")
-                else:
-                    self.Multi_button.setText("Start Multi Burst Mode")
-
-        else:
-            self.Multi_button.setChecked(False)
+            self.run_button.setChecked(False)
             print("CAMERA NOT CONNECTED")
 
 
