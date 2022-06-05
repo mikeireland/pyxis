@@ -48,7 +48,8 @@ FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
     trigger_selector = config["camera"]["trigger"]["trigger_selector"].value_or("");
     trigger_source = config["camera"]["trigger"]["trigger_source"].value_or("");
     
-    savefile_dir = config["fits"]["filename"].value_or("");
+    savefilename_prefix = config["fits"]["filename_prefix"].value_or("");
+    savefilename = savefilename_prefix;
 }
 
 
@@ -163,7 +164,7 @@ void FLIRCamera::Reconfigure(std::string parameter, int value){
 }
 
 
-void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, int new_offsetY, int new_blacklevel){
+void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, int new_offsetY, int new_blacklevel, int new_buffersize, string new_savefilename_prefix){
 
     Reconfigure("Gain",new_gain);
     Reconfigure("ExposureTime",new_exptime);
@@ -172,7 +173,24 @@ void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, in
     Reconfigure("OffsetX",new_offsetX);
     Reconfigure("OffsetY",new_offsetY);
     Reconfigure("BlackLevel",new_blacklevel);
+    buffer_size = new_buffersize
+    savefilename_prefix = new_savefilename_prefix
 
+}
+
+namespace nlohmann {
+    template <>
+    struct adl_serializer<Status> {
+        static void to_json(json& j, const Status& p) {
+            j = json{{"code", p.code}, {"message", p.message}};
+        }
+
+        static void from_json(const json& j, Status& p) {
+            j.at("code").get_to(p.code);
+            j.at("message").get_to(p.message);
+
+        }
+    };
 }
 	
 
@@ -426,7 +444,7 @@ int FLIRCamera::SaveFITS(unsigned short* image_array, int num_images)
     fitsfile *fptr;
 
     // Define filepath and name for the FITS file
-    string file_path = "!" + savefile_dir + ".fits";
+    string file_path = "!" + savefilename + ".fits";
 
     // Configure FITS file
     int bitpix = config["fits"]["bitpix"].value_or(16);

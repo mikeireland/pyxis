@@ -9,6 +9,17 @@
 using namespace Spinnaker;
 using namespace std;
 
+/* CURRENT FLAGS:
+	Stop exp = END_EXP==1
+	Start exp = EXPOSING==1
+	Camera status = CAM_STATUS
+	NUM_FRAMES (essentially; how many to save?)
+	reconfigure = RECONFIGURE
+*/
+
+
+
+
 /* Program to run the camera based on a configuration file
    given to it in "toml" format. It will take a certain number
    of frames, during which it will apply a function "CallbackFunc"
@@ -26,8 +37,12 @@ using namespace std;
 */
 int CallbackFunc (unsigned short* data){
 
-
-	/* NEED TO CHECK FOR STOP MESSAGE, AND RETURN ONE IF THAT IS THE CASE */
+	if END_EXP==1{
+	
+		return 0
+	
+	}
+	/* NEED TO CHECK FOR STOP MESSAGE, AND RETURN ZERO IF THAT IS THE CASE */
 	
 	/* ALSO, CHECK IF THERE IS A FEED REQUEST, AND SEND LATEST IMAGE */
 
@@ -36,6 +51,28 @@ int CallbackFunc (unsigned short* data){
     return 1;
 }
 
+struct configuration
+{
+    int gain; 
+    int exptime; 
+    int width; 
+    int height; 
+    int offsetX; 
+    int offsetY; 
+    int blacklevel;
+    int buffersize;
+    string savedir;
+};
+
+
+int reconfigure(configuration c, FLIRCamera Fcam){
+
+	int ret_val = 0;
+
+	Fcam.ReconfigureAll(c.gain, c.exptime, c.width, c.height, c.offsetX, c.offsetY, c.blacklevel, c.buffersize, c.savedir);
+	
+	return ret_val;
+}
 
 int main(int argc, char **argv) {
 
@@ -87,115 +124,66 @@ int main(int argc, char **argv) {
         // Get the settings for the particular camera
         toml::table cam_config = *config.get("testFLIRcamera")->as_table();
 
-		    // Initialise FLIRCamera instance from the first available camera
+		int CAM_STATUS = 1;
+
+		// Initialise FLIRCamera instance from the first available camera
         FLIRCamera Fcam (cam_list.GetByIndex(0), cam_config);
 
-		    // Setup and start the camera
+		 // Setup and start the camera
         Fcam.InitCamera();
         
         
-        int ret_val = 0;
-        while (ret_val = 0){
+        while (CAM_STATUS==1){
         
-		    // WAIT FOR MESSAGE
-		    
-		    if message == RECONFIGURE){
-		    
-		    	Fcam.ReconfigureAll(MESSAGE)
-		    
-		    }
-		    else if message == Single{
-		    
-		    	int result = 0;
-		    
+        	if(RECONFIGURE=1){
+        		new_params = ????;
+        		reconfigure(new_params,Fcam);
+        		RECONFIGURE=0;
+        	}
+        
+        	if(EXPOSING== 1){
+
+				int finish = 0;
 				// How many frames to take?
-				unsigned long num_frames = MESSAGE
+				unsigned long num_frames = NUM_FRAMES
 				
-				Fcam.savefile_dir = MESSAGE
+				SAVE_FLAG = 1
 				
-				Fcam.buffer_size = num_frames;
+				if(num_frames == 0){
+					SAVE_FLAG = 0
+					num_frames = 100000
+				}
 
-				// Allocate memory for the image data (given by size of image and buffer size)
-				unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
-				
-				// Acquire the images, saving them to "image_array", and call "CallbackFunc"
-				// after each image is retrieved.
-				result = Fcam.GrabFrames(num_frames, image_array, CallbackFunc);
-
-				// Save the data as a FITS file
-				cout << "Saving Data" << endl;
-				Fcam.SaveFITS(image_array, Fcam.buffer_size);
-				
-			   	// Free the memory
-		    	free(image_array);
-
-	 	
-		    
-		    }else if message == BURST{
-		    
-		    	int result = 0;
-				// How many frames to take?
-				unsigned long num_frames = MESSAGE
-				
-				temp_savefile_dir = MESSAGE
-				
 				int img_no = 0;
-				
-				Fcam.buffer_size = num_frames;
 
 				// Allocate memory for the image data (given by size of image and buffer size)
 				unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
-		    	while (result == 0){
-		    	
-		    		string img_no_str = std::to_string(img_no);
-		    		Fcam.savefile_dir = temp_savefile_dir + "_" + img_no_str;
-
-					// Acquire the images, saving them to "image_array", and call "CallbackFunc"
-					// after each image is retrieved. CallbackFunc to return 1 when exiting!
-					result = Fcam.GrabFrames(num_frames, image_array, CallbackFunc);
-
-					// Save the data as a FITS file
-					cout << "Saving Data" << endl;
-					
-					Fcam.SaveFITS(image_array, Fcam.buffer_size);
-					
-					img_no++;
-
-					}
-								
-			   	// Free the memory
-				free(image_array);
-					
-					
-		    }else if message == CONTINUOUS{
-		    
-		    	int result = 0;
-				// How many frames to take?
-				unsigned long num_frames = 1000000;
+				while (finish == 0){
 				
-				Fcam.buffer_size = MESSAGE
-
-				// Allocate memory for the image data (given by size of image and buffer size)
-				unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
-		    	while (result == 0){
-		    
-
 					// Acquire the images, saving them to "image_array", and call "CallbackFunc"
 					// after each image is retrieved. CallbackFunc to return 1 when exiting!
-					result = Fcam.GrabFrames(num_frames, image_array, CallbackFunc);
+					finish = Fcam.GrabFrames(num_frames, image_array, CallbackFunc);
 
+					if (SAVE_FLAG == 1){
+						// Save the data as a FITS file
+						cout << "Saving Data" << endl;
+
+						string img_no_str = std::to_string(img_no);
+						Fcam.savefilename = Fcam.savefilename_prefix + "_" + img_no_str;
+						
+						Fcam.SaveFITS(image_array, Fcam.buffer_size);
+						
+						img_no++;
 					}
+				}
 								
 			   	// Free the memory
 				free(image_array);
-					
-		    
-		    }else if message == DISCONECT{
-		    
-				ret_val = 1;
-				// Turn off camera
-				Fcam.DeinitCamera();
+				EXPOSING = 0
 			}
+			
+			//Sleep for a bit??
+
 		}
 	}
 
