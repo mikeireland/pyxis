@@ -5,9 +5,15 @@
 #include "FLIRCamera.h"
 #include "Spinnaker.h"
 #include "toml.hpp"
+#include <pthread.h>
+#include "mainCam.h"
+#include "helperFunc.h"
 
 using namespace Spinnaker;
 using namespace std;
+
+
+
 
 /* Program to run the camera based on a configuration file
    given to it in "toml" format. It will take a certain number
@@ -26,10 +32,15 @@ using namespace std;
 */
 int CallbackFunc (unsigned short* data){
 
-
-	/* NEED TO CHECK FOR STOP MESSAGE, AND RETURN ONE IF THAT IS THE CASE */
-
-	/* ALSO, CHECK IF THERE IS A FEED REQUEST, AND SEND LATEST IMAGE */
+	if (GLOB_STOPPING==1){
+		
+		pthread_mutex_lock(&flag_lock);
+    	GLOB_STOPPING = 0;
+		pthread_mutex_unlock(&flag_lock);
+		
+		return 0;
+	
+	}
 
     cout << "I could be doing something with the data here..." << endl;
 
@@ -37,35 +48,45 @@ int CallbackFunc (unsigned short* data){
 }
 
 
-int main(int argc, char **argv) {
 
+int reconfigure(configuration c, FLIRCamera Fcam){
+
+	int ret_val = 0;
+
+	Fcam.ReconfigureAll(c.gain, c.exptime, c.width, c.height, c.offsetX, c.offsetY, c.blacklevel, c.buffersize, c.savedir);
+	
+	return ret_val;
+}
+
+
+
+//void main(void*) {
+int main(int argc, char **argv) {
+	
+	pthread_mutex_lock(&flag_lock);
+    GLOB_CAM_STATUS = 1;
+    string config_file = GLOB_CONFIGFILE;
+	pthread_mutex_unlock(&flag_lock);
+	
+	cout << GLOB_CONFIGFILE << endl;
+	
     // Print application build information
     cout << "Application build date: " << __DATE__ << " " << __TIME__ << endl << endl;
 
-    string config_file;
-
-    // Check if config file path is passed as argument
-    if (argc > 2) {
-        cout << "Too many arguments!" << endl;
-        exit(1);
-    } else if (argc < 2){
-        // Load default config if nothing is passed
-        cout << "No CONFIG file loaded" << endl;
-        cout << "Will attempt to load default CONFIG" << endl;
-        config_file = string("../config/defaultConfig.toml");
-    } else {
-        // Assign config file value as string
-        config_file = string("../config/") + string(argv[1]);
-    }
 
     // Check whether config file is readable/exists
     if (access(config_file.c_str(), R_OK) == -1) {
         cerr << "Config file is not readable" << endl;
-        exit(0);
+        pthread_exit(NULL);
     }
 
+	cout << "about to connect" << endl;
     // Parse the configuration file
+    
+	//toml::table config;
     toml::table config = toml::parse_file(config_file);
+    
+    cout << "about to connect" << endl;
 
     // Retrieve singleton reference to system object
     SystemPtr system = System::GetInstance();
@@ -81,121 +102,86 @@ int main(int argc, char **argv) {
 
     if(cam_list.GetSize() == 0) {
         cerr << "No camera connected" << endl;
-        return -1;
-    }
-    else {
+        pthread_exit(NULL);
+    }else {
         // Get the settings for the particular camera
         toml::table cam_config = *config.get("testFLIRcamera")->as_table();
 
-		    // Initialise FLIRCamera instance from the first available camera
+
+	// Initialise FLIRCamera instance from the first available camera
         FLIRCamera Fcam (cam_list.GetByIndex(0), cam_config);
 
-		    // Setup and start the camera
+	 // Setup and start the camera
         Fcam.InitCamera();
+        
+        pthread_mutex_lock(&flag_lock);
+        GLOB_CAM_STATUS = 2;
+        pthread_mutex_unlock(&flag_lock);
 
+		
 
-        int ret_val = 0;
-        while (ret_val = 0){
+        while (GLOB_CAM_STATUS==2){
+        
+        	if(GLOB_RECONFIGURE==1){
+        		configuration new_params;
+        		reconfigure(new_params,Fcam);
+        		
+        		pthread_mutex_lock(&flag_lock);
+        		GLOB_RECONFIGURE=0;
+        		pthread_mutex_unlock(&flag_lock);
+        	}
+        
+        	if(GLOB_RUNNING==1){
 
-		    // WAIT FOR MESSAGE
-
-		    if message == RECONFIGURE){
-
-		    	Fcam.ReconfigureAll(MESSAGE)
-
-		    }
-		    else if message == Single{
-
-		    	int result = 0;
-
+				int finish = 0;
 				// How many frames to take?
-				unsigned long num_frames = MESSAGE
+				
+				pthread_mutex_lock(&flag_lock);
+				unsigned long num_frames = GLOB_NUMFRAMES;
+				pthread_mutex_unlock(&flag_lock);
+				
+				int SAVE_FLAG = 1;
+				
+				if(num_frames == 0){
+					SAVE_FLAG = 0;
+					num_frames = 100000;
+				};
 
-				Fcam.savefile_dir = MESSAGE
-
-				Fcam.buffer_size = num_frames;
+				unsigned long buffer_no = 0;
+				unsigned long save_no = 0;
 
 				// Allocate memory for the image data (given by size of image and buffer size)
 				unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.imsize*Fcam.buffer_size);
-
-				// Acquire the images, saving them to "image_array", and call "CallbackFunc"
-				// after each image is retrieved.
-				result = Fcam.GrabFrames(num_frames, image_array, CallbackFunc);
-
-				// Save the data as a FITS file
-				cout << "Saving Data" << endl;
-				Fcam.SaveFITS(image_array, Fcam.buffer_size);
-
-			   	// Free the memory
-		    	free(image_array);
-
-
-
-		    }else if message == BURST{
-
-		    	int result = 0;
-				// How many frames to take?
-				unsigned long num_frames = MESSAGE
-
-				temp_savefile_dir = MESSAGE
-
-				int img_no = 0;
-
-				Fcam.buffer_size = num_frames;
-
-				// Allocate memory for the image data (given by size of image and buffer size)
-				unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
-		    	while (result == 0){
-
-		    		string img_no_str = std::to_string(img_no);
-		    		Fcam.savefile_dir = temp_savefile_dir + "_" + img_no_str;
-
+				while (finish == 0){
+				
 					// Acquire the images, saving them to "image_array", and call "CallbackFunc"
 					// after each image is retrieved. CallbackFunc to return 1 when exiting!
-					result = Fcam.GrabFrames(num_frames, image_array, CallbackFunc);
+					finish = Fcam.GrabFrames(num_frames, buffer_no, image_array, CallbackFunc);
 
-					// Save the data as a FITS file
-					cout << "Saving Data" << endl;
+					if (SAVE_FLAG == 1){
+						// Save the data as a FITS file
+						cout << "Saving Data" << endl;
 
-					Fcam.SaveFITS(image_array, Fcam.buffer_size);
-
-					img_no++;
-
+						string save_no_str = std::to_string(save_no);
+						Fcam.savefilename = Fcam.savefilename_prefix + "_" + save_no_str;
+						
+						Fcam.SaveFITS(image_array, num_frames, buffer_no);
+						
+						save_no++;
 					}
-
+					buffer_no = (buffer_no+num_frames)%Fcam.buffer_size;
+				}
+								
 			   	// Free the memory
 				free(image_array);
-
-
-		    }else if message == CONTINUOUS{
-
-		    	int result = 0;
-				// How many frames to take?
-				unsigned long num_frames = 1000000;
-
-				Fcam.buffer_size = MESSAGE
-
-				// Allocate memory for the image data (given by size of image and buffer size)
-				unsigned short *image_array = (unsigned short*)malloc(sizeof(unsigned short)*Fcam.width*Fcam.height*Fcam.buffer_size);
-		    	while (result == 0){
-
-
-					// Acquire the images, saving them to "image_array", and call "CallbackFunc"
-					// after each image is retrieved. CallbackFunc to return 1 when exiting!
-					result = Fcam.GrabFrames(num_frames, image_array, CallbackFunc);
-
-					}
-
-			   	// Free the memory
-				free(image_array);
-
-
-		    }else if message == DISCONECT{
-
-				ret_val = 1;
-				// Turn off camera
-				Fcam.DeinitCamera();
+				
+				pthread_mutex_lock(&flag_lock);
+        		GLOB_RUNNING = 0;
+        		pthread_mutex_unlock(&flag_lock);
 			}
+			
+			//Sleep for a bit??
+
 		}
 	}
 
@@ -204,6 +190,7 @@ int main(int argc, char **argv) {
 
     // Release system
     system->ReleaseInstance();
+    
 
-    return 0;
+    pthread_exit(NULL);
 }

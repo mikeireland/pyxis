@@ -1,7 +1,26 @@
 #include <cmath>
 #include <string>
+#include <pthread.h>
+#include "helperFunc.h"
 
 using namespace std;
+
+//Flags
+int GLOB_CAM_STATUS = 0;
+int GLOB_RECONFIGURE = 0;
+int GLOB_RUNNING = 0;
+int GLOB_STOPPING = 0;
+int GLOB_NUMFRAMES = 0;
+
+//config_file
+char* GLOB_CONFIGFILE = (char*)"config/defaultConfig.toml";
+
+pthread_mutex_t flag_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t img_array_lock = PTHREAD_MUTEX_INITIALIZER;
+
+//Thread!!!!! POSSIBLY VERY WRONG!!!!!!
+pthread_t camthread = 0;
+
 
 extern const double kPi = 3.141592654;
 

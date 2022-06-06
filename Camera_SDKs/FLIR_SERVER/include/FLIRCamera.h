@@ -45,19 +45,23 @@ class FLIRCamera {
         double black_level;
 
         // Buffer size for image data
-        int buffer_size;
+        unsigned int buffer_size;
 
         // Number of pixels in image
-        int imsize;
+        unsigned int imsize;
 
         // Total exposure time over all images
         double total_exposure;
 
         // Timestamp of first image
         char* timestamp;
+        
+        //Saving directory
+        std::string savefilename_prefix;
+        std::string savefilename;
 
 
-		    /* Constructor: Takes the camera pointer and config table
+		/* Constructor: Takes the camera pointer and config table
            and saves them (and config values) as object attributes
            INPUTS:
               pCam_init - Spinnaker camera pointer
@@ -68,6 +72,8 @@ class FLIRCamera {
         void InitCamera();
 
         void Reconfigure(std::string parameter, int value);
+        
+        void ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, int new_offsetY, int new_blacklevel, int new_buffersize, std::string new_savedir);
 
 
 		/* Function to De-initialise camera. MUST CALL AFTER USING!!! */
@@ -81,14 +87,14 @@ class FLIRCamera {
                   If f returns 0, it will end acquisition regardless of how long it has to go.
                   Give NULL for no callback function.
         */
-        void GrabFrames(unsigned long num_frames, unsigned short* image_array, int (*f)(unsigned short*));
+        int GrabFrames(unsigned long num_frames, unsigned long start_index, unsigned short* image_array, int (*f)(unsigned short*));
 
         /* Write a given array of image data as a FITS file
            INPUTS:
               image_array - array of image data to write
               num_images - number of images in the array to write
         */
-        int SaveFITS(unsigned short* image_array, int num_images);
+        int SaveFITS(unsigned short* image_array, unsigned long num_images, unsigned long start_index);
 
 
 };

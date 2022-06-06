@@ -44,7 +44,8 @@ FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
     buffer_size = config["camera"]["buffer_size"].value_or(0);
     imsize = width*height;
 
-    savefile_dir = config["fits"]["filename"].value_or("");
+    savefilename_prefix = config["fits"]["filename_prefix"].value_or("");
+    savefilename = savefilename_prefix;
 }
 
 
@@ -145,8 +146,11 @@ void FLIRCamera::Reconfigure(std::string parameter, int value){
 
     INodeMap& node_map = pCam->GetNodeMap();
 
+	char* temp_param;
+	temp_param = &parameter[0];
+
     // Set parameter
-    CIntegerPtr ptr_parameter = node_map.GetNode(parameter);
+    CIntegerPtr ptr_parameter = node_map.GetNode(temp_param);
     ptr_parameter->SetValue(value);
 
     // Print Camera setting
@@ -154,7 +158,7 @@ void FLIRCamera::Reconfigure(std::string parameter, int value){
 }
 
 
-void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, int new_offsetY, int new_blacklevel){
+void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, int new_offsetY, int new_blacklevel, int new_buffersize, string new_savedir){
 
     Reconfigure("Gain",new_gain);
     Reconfigure("ExposureTime",new_exptime);
@@ -163,19 +167,15 @@ void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, in
     Reconfigure("OffsetX",new_offsetX);
     Reconfigure("OffsetY",new_offsetY);
     Reconfigure("BlackLevel",new_blacklevel);
+    buffer_size = new_buffersize;
+    savefilename_prefix = new_savedir;
 
 }
 
 
 /* Function to De-initialise camera. MUST CALL AFTER USING!!! */
 void FLIRCamera::DeinitCamera(){
-
-    INodeMap& node_map = pCam->GetNodeMap();
-
-    if (trigger_mode=="On"){
-        ResetTrigger(node_map);
-    }
-
+	INodeMap& node_map = pCam->GetNodeMap();
     pCam->DeInit();
 }
 
@@ -189,8 +189,8 @@ void FLIRCamera::DeinitCamera(){
           Give NULL for no callback function.
 */
 int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, unsigned short* image_array, int (*f)(unsigned short*)) {
-    try {
-    	main_result = 0;
+    int main_result = 0;
+    try {	
         cout << "Start Acquisition" << endl;
 
         std::chrono::time_point<std::chrono::steady_clock> start, end;
@@ -227,9 +227,9 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
 
                 if (result == 0){
 
-                	main_result = 1
+                	main_result = 1;
                     ptr_result_image->Release();
-                    break
+                    break;
 
                 }
             }
@@ -260,12 +260,13 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
 
         total_exposure = duration;
 
-        return main_result
+        return main_result;
 
     }
     catch (Spinnaker::Exception &e) {
         cout << "Error: " << e.what() << endl;
     }
+    return main_result;
 }
 
 
@@ -279,16 +280,18 @@ int FLIRCamera::SaveFITS(unsigned short* image_array, unsigned long num_images, 
     // Pointer to the FITS file; defined in fitsio.h
     fitsfile *fptr;
 
-    if (buffer_size >= (num_images+start_index){
-        unsigned short *linear_image_array = image_array + imsize*start_index
+	unsigned short *linear_image_array;
+
+    if (buffer_size >= (num_images+start_index)){
+        linear_image_array = image_array + imsize*start_index;
     }else{
-        unsigned short *linear_image_array = (unsigned short*)malloc(sizeof(unsigned short)*imsize*num_images);
+        linear_image_array = (unsigned short*)malloc(sizeof(unsigned short)*imsize*num_images);
         memcpy(linear_image_array,image_array+imsize*start_index, (buffer_size-start_index)*imsize*2);
         memcpy(linear_image_array+(buffer_size-start_index)*imsize, image_array, ((start_index+num_images)%buffer_size)*imsize*2);
     };
 
     // Define filepath and name for the FITS file
-    string file_path = "!" + savefile_dir + ".fits";
+    string file_path = "!" + savefilename + ".fits";
 
     // Configure FITS file
     int bitpix = config["fits"]["bitpix"].value_or(16);

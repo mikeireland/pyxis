@@ -20,24 +20,24 @@ ifeq ($(PLATFORM),Darwin)
 OS = mac
 endif
 
-OUTDIR = bin
+OUTDIR = .
 
 ################################################################################
 # Dependencies
 ################################################################################
 # Spinnaker deps
-SPINNAKER_LIB = -lSpinnaker${D} ${SPIN_DEPS}
+SPINNAKER_LIB = -L/opt/spinnaker/lib -lSpinnaker${D} ${SPIN_DEPS}
 
 ################################################################################
 # Master inc/lib/obj/dep settings
 ################################################################################
 
-INC = -Ilib/
-INC += -I${SRCINCDIR}
+INC = -I${INCDIR}
 ifneq ($(OS),mac)
-INC += -I/usr/include/spinnaker
+INC += -I/opt/spinnaker/include
 LIB += -Wl,-Bdynamic ${SPINNAKER_LIB}
 LIB += -lcfitsio
+LIB += -lpthread
 #LIB += -lfftw3
 #LIB += -lzml
 else
@@ -46,21 +46,27 @@ LIB += ${SPINNAKER_LIB}
 
 endif
 
-SRCINC = $(wildcard ${SRCINCDIR}/*.${SRCEXT})
-
-OBJ = $(addprefix ${OBJDIR}/,$(notdir $(SRCINC:.${SRCEXT}=.o)))
 
 ################################################################################
 # Rules/recipes
 ################################################################################
 # Binaries
 
-binaries = testCam testFPS testFlats testLock testZaber testLength testTracking
+_OBJ = mainCam.o FLIRCamera.o helperFunc.o 
+OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 
-all: ${binaries}
 
-${binaries}: % : ${OBJDIR}/%.o ${OBJ}
+all: mainCam
+
+mainCam: $(OBJ)
 	${CXX} -o ${OUTDIR}/$@ $^ ${LIB}
+
+
+
+
+
+#${binaries}: % : ${OBJDIR}/%.o ${OBJ}
+#	${CXX} -o ${OUTDIR}/$@ $^ ${LIB}
 
 # Intermediate script object files
 ${OBJDIR}/%.o : ${SRCDIR}/%.${SRCEXT}
@@ -68,9 +74,9 @@ ${OBJDIR}/%.o : ${SRCDIR}/%.${SRCEXT}
 	${CXX} ${CFLAGS} ${INC} -c $< -o $@
 
 # Intermediate module object files
-${OBJ} : ${OBJDIR}/%.o : ${SRCINCDIR}/%.${SRCEXT}
-	@${MKDIR} ${OBJDIR}
-	${CXX} ${CFLAGS} ${INC} -c $< -o $@
+#${OBJ} : ${OBJDIR}/%.o : ${SRCINCDIR}/%.${SRCEXT}
+#	@${MKDIR} ${OBJDIR}
+#	${CXX} ${CFLAGS} ${INC} -c $< -o $@
 
 # Clean up intermediate objects
 clean_obj:
@@ -79,5 +85,5 @@ clean_obj:
 
 # Clean up everything.
 clean: clean_obj
-	rm -f ${OUTDIR}/*
+	#rm -f ${OUTDIR}/*
 	@echo "all cleaned up!"

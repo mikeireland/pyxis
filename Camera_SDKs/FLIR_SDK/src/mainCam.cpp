@@ -51,8 +51,7 @@ int CallbackFunc (unsigned short* data){
     return 1;
 }
 
-struct configuration
-{
+struct configuration{
     int gain; 
     int exptime; 
     int width; 
@@ -75,6 +74,8 @@ int reconfigure(configuration c, FLIRCamera Fcam){
 }
 
 int main(int argc, char **argv) {
+
+    int CAM_STATUS = 0;
 
     // Print application build information
     cout << "Application build date: " << __DATE__ << " " << __TIME__ << endl << endl;
@@ -124,24 +125,24 @@ int main(int argc, char **argv) {
         // Get the settings for the particular camera
         toml::table cam_config = *config.get("testFLIRcamera")->as_table();
 
-		int CAM_STATUS = 1;
+	
 
-		// Initialise FLIRCamera instance from the first available camera
+	// Initialise FLIRCamera instance from the first available camera
         FLIRCamera Fcam (cam_list.GetByIndex(0), cam_config);
 
-		 // Setup and start the camera
+	 // Setup and start the camera
         Fcam.InitCamera();
         
-        
+        int CAM_STATUS = 1;
         while (CAM_STATUS==1){
         
-        	if(RECONFIGURE=1){
+        	if(RECONFIGURE==1){
         		new_params = ????;
         		reconfigure(new_params,Fcam);
         		RECONFIGURE=0;
         	}
         
-        	if(EXPOSING== 1){
+        	if(EXPOSING==1){
 
 				int finish = 0;
 				// How many frames to take?
