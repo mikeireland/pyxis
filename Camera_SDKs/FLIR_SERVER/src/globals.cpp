@@ -1,7 +1,7 @@
 #include <cmath>
 #include <string>
 #include <pthread.h>
-#include "helperFunc.h"
+#include "globals.h"
 
 using namespace std;
 
@@ -10,16 +10,30 @@ int GLOB_CAM_STATUS = 0;
 int GLOB_RECONFIGURE = 0;
 int GLOB_RUNNING = 0;
 int GLOB_STOPPING = 0;
+
+//Global Params
 int GLOB_NUMFRAMES = 0;
+int GLOB_IMSIZE = 0;
 
 //config_file
 char* GLOB_CONFIGFILE = (char*)"config/defaultConfig.toml";
 
-pthread_mutex_t flag_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t img_array_lock = PTHREAD_MUTEX_INITIALIZER;
-
 //Thread!!!!! POSSIBLY VERY WRONG!!!!!!
-pthread_t camthread = 0;
+pthread_t GLOB_CAMTHREAD = 0;
+
+//Locks
+pthread_mutex_t GLOB_FLAG_LOCK = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t GLOB_LATEST_FILE_LOCK = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t GLOB_LATEST_IMG_INDEX_LOCK = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t *GLOB_IMG_MUTEX_ARRAY;
+
+//Image Array
+unsigned short *GLOB_IMG_ARRAY;
+
+// Latest file/image
+string GLOB_LATEST_FILE = "NOFILESAVED";
+int GLOB_LATEST_IMG_INDEX = 0;
+
 
 
 extern const double kPi = 3.141592654;

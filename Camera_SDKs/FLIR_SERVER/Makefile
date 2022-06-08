@@ -20,7 +20,7 @@ ifeq ($(PLATFORM),Darwin)
 OS = mac
 endif
 
-OUTDIR = .
+OUTDIR = bin
 
 ################################################################################
 # Dependencies
@@ -52,31 +52,21 @@ endif
 ################################################################################
 # Binaries
 
-_OBJ = mainCam.o FLIRCamera.o helperFunc.o 
+_OBJ =  main.o mainCam.o FLIRCamera.o globals.o
 OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 
 
-all: mainCam
+all: main
 
-mainCam: $(OBJ)
+main: $(OBJ)
 	${CXX} -o ${OUTDIR}/$@ $^ ${LIB}
 
 
-
-
-
-#${binaries}: % : ${OBJDIR}/%.o ${OBJ}
-#	${CXX} -o ${OUTDIR}/$@ $^ ${LIB}
-
-# Intermediate script object files
+# Intermediate object files
 ${OBJDIR}/%.o : ${SRCDIR}/%.${SRCEXT}
 	@${MKDIR} ${OBJDIR}
 	${CXX} ${CFLAGS} ${INC} -c $< -o $@
 
-# Intermediate module object files
-#${OBJ} : ${OBJDIR}/%.o : ${SRCINCDIR}/%.${SRCEXT}
-#	@${MKDIR} ${OBJDIR}
-#	${CXX} ${CFLAGS} ${INC} -c $< -o $@
 
 # Clean up intermediate objects
 clean_obj:
@@ -85,5 +75,5 @@ clean_obj:
 
 # Clean up everything.
 clean: clean_obj
-	#rm -f ${OUTDIR}/*
+	rm -f ${OUTDIR}/*
 	@echo "all cleaned up!"

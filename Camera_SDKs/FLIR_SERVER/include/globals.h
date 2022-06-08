@@ -1,5 +1,5 @@
-#ifndef _HELPERFUNC_
-#define _HELPERFUNC_
+#ifndef _GLOBALS_
+#define _GLOBALS_
 
 #include <string>
 #include <pthread.h>
@@ -11,17 +11,29 @@ extern int GLOB_CAM_STATUS;
 extern int GLOB_RECONFIGURE;
 extern int GLOB_RUNNING;
 extern int GLOB_STOPPING;
+
+//Global Params
 extern int GLOB_NUMFRAMES;
+extern int GLOB_IMSIZE;
 
 //config_file
 extern char * GLOB_CONFIGFILE ;
 
 //Thread
-extern pthread_t camthread;
+extern pthread_t GLOB_CAMTHREAD;
 
 //Locks
-extern pthread_mutex_t flag_lock;
-extern pthread_mutex_t img_array_lock;
+extern pthread_mutex_t GLOB_FLAG_LOCK;
+extern pthread_mutex_t GLOB_LATEST_FILE_LOCK;
+extern pthread_mutex_t GLOB_LATEST_IMG_INDEX_LOCK;
+extern pthread_mutex_t *GLOB_IMG_MUTEX_ARRAY;
+
+// Image Array
+extern unsigned short *GLOB_IMG_ARRAY;
+
+// Latest file/image
+extern std::string GLOB_LATEST_FILE ;
+extern int GLOB_LATEST_IMG_INDEX;
 
 struct configuration{
     int gain; 
@@ -59,4 +71,4 @@ std::vector<T> arange(T start, T stop, T step = 1) {
 */
 std::string Label(std::string str, const size_t num = 25, const char padding_char = ' ');
 
-#endif // _HELPERFUNC_
+#endif // _GLOBALS_

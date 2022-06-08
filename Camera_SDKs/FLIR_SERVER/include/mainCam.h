@@ -2,7 +2,7 @@
 #define _MAINCAM_
 
 #include "FLIRCamera.h"
-#include "helperFunc.h"
+#include "globals.h"
 
 int CallbackFunc (unsigned short* data);
 

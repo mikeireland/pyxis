@@ -87,14 +87,14 @@ class FLIRCamera {
                   If f returns 0, it will end acquisition regardless of how long it has to go.
                   Give NULL for no callback function.
         */
-        int GrabFrames(unsigned long num_frames, unsigned long start_index, unsigned short* image_array, int (*f)(unsigned short*));
+        int GrabFrames(unsigned long num_frames, unsigned long start_index, int (*f)(unsigned short*));
 
         /* Write a given array of image data as a FITS file
            INPUTS:
               image_array - array of image data to write
               num_images - number of images in the array to write
         */
-        int SaveFITS(unsigned short* image_array, unsigned long num_images, unsigned long start_index);
+        int SaveFITS(unsigned long num_images, unsigned long start_index);
 
 
 };

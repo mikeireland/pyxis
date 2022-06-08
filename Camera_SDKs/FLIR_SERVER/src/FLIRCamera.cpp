@@ -9,7 +9,7 @@
 #include "FLIRCamera.h"
 #include "toml.hpp"
 #include "fitsio.h"
-#include "helperFunc.h"
+#include "globals.h"
 
 using namespace Spinnaker;
 using namespace Spinnaker::GenApi;
@@ -139,6 +139,8 @@ void FLIRCamera::InitCamera(){
     cout << Label("Offset X") << ptr_offset_x->GetValue() << endl;
     cout << Label("Offset Y") << ptr_offset_y->GetValue() << endl;
     cout << endl;
+    
+    GLOB_IMSIZE = imsize;
 
 }
 
@@ -168,7 +170,10 @@ void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, in
     Reconfigure("OffsetY",new_offsetY);
     Reconfigure("BlackLevel",new_blacklevel);
     buffer_size = new_buffersize;
+    imsize = new_width*new_height;
     savefilename_prefix = new_savedir;
+    
+    GLOB_IMSIZE = imsize;
 
 }
 
@@ -188,7 +193,7 @@ void FLIRCamera::DeinitCamera(){
       f - a callback function that will be applied to each image in real time.
           Give NULL for no callback function.
 */
-int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, unsigned short* image_array, int (*f)(unsigned short*)) {
+int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, int (*f)(unsigned short*)) {
     int main_result = 0;
     try {	
         cout << "Start Acquisition" << endl;
@@ -206,6 +211,7 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
         //Begin timing
         start = std::chrono::steady_clock::now();
 
+		int current_index = 0;
         for (unsigned int image_cnt = 0; image_cnt < num_frames; image_cnt++){
 
             // Retrive image
@@ -214,8 +220,11 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
             // Load current raw image data into an array
             unsigned short* data = (unsigned short*)ptr_result_image->GetData();
 
+			current_index = (start_index + image_cnt)%buffer_size;
             // Append data to an allocated memory array
-            memcpy(image_array+imsize*((start_index + image_cnt)%buffer_size), data, imsize*2);
+            pthread_mutex_lock(&GLOB_IMG_MUTEX_ARRAY[current_index]);
+			memcpy(GLOB_IMG_ARRAY+imsize*current_index, data, imsize*2);
+			pthread_mutex_unlock(&GLOB_IMG_MUTEX_ARRAY[current_index]);
 
             // Do something with the data in real time if required
             // If 0 is returned by the callback function, end acquisition (regardless of
@@ -235,11 +244,14 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
             }
 
             // Release image
+            pthread_mutex_lock(&GLOB_LATEST_IMG_INDEX_LOCK);
+            GLOB_LATEST_IMG_INDEX = current_index;
+            pthread_mutex_unlock(&GLOB_LATEST_IMG_INDEX_LOCK);
+            
             ptr_result_image->Release();
 
         }
 
-        cout << endl;
 
         // End Timing
         end = std::chrono::steady_clock::now();
@@ -247,7 +259,7 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
         // End Acquisition
         pCam->EndAcquisition();
 
-        cout << "Finished Acquisition" << endl;
+        cout << "Finished Acquisition" << endl << endl;
 
         //Set timestamp
         tm *gmtm = gmtime(&start_time);
@@ -275,20 +287,21 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
       image_array - array of image data to write
       num_images - number of images in the array to writes
 */
-int FLIRCamera::SaveFITS(unsigned short* image_array, unsigned long num_images, unsigned long start_index)
+int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
 {
     // Pointer to the FITS file; defined in fitsio.h
     fitsfile *fptr;
 
 	unsigned short *linear_image_array;
-
-    if (buffer_size >= (num_images+start_index)){
-        linear_image_array = image_array + imsize*start_index;
-    }else{
-        linear_image_array = (unsigned short*)malloc(sizeof(unsigned short)*imsize*num_images);
-        memcpy(linear_image_array,image_array+imsize*start_index, (buffer_size-start_index)*imsize*2);
-        memcpy(linear_image_array+(buffer_size-start_index)*imsize, image_array, ((start_index+num_images)%buffer_size)*imsize*2);
-    };
+	linear_image_array = (unsigned short*)malloc(sizeof(unsigned short)*imsize*num_images);
+	
+	unsigned long current_index;
+	for(unsigned long i=0;i<num_images;i++){
+		current_index = (start_index + i)%buffer_size;
+		pthread_mutex_lock(&GLOB_IMG_MUTEX_ARRAY[current_index]);
+		memcpy(linear_image_array,GLOB_IMG_ARRAY+imsize*current_index,imsize*2);
+		pthread_mutex_unlock(&GLOB_IMG_MUTEX_ARRAY[current_index]);
+	}
 
     // Define filepath and name for the FITS file
     string file_path = "!" + savefilename + ".fits";
@@ -377,5 +390,9 @@ int FLIRCamera::SaveFITS(unsigned short* image_array, unsigned long num_images, 
 
     // Close file
     fits_close_file(fptr, &status);
+	pthread_mutex_lock(&GLOB_LATEST_FILE_LOCK);
+    GLOB_LATEST_FILE = savefilename + ".fits";
+   	pthread_mutex_unlock(&GLOB_LATEST_FILE_LOCK);
+   	
     return( status );
 }
