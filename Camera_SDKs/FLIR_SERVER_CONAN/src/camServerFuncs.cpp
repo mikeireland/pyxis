@@ -300,7 +300,7 @@ string getlatestimage(){
 
 				printf( "%hu\n", s );
 
-				ret_msg = "Retrieved Image Successfully";
+				ret_msg = "Retrieved Image Successfully"+s;
 			}else{
 				ret_msg = "Camera Busy!";
 			}
