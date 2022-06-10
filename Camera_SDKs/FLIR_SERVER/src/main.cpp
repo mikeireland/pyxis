@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include "globals.h"
 #include "mainCam.h"
+#include <commander/commander.h>
 
 using namespace std;
 
