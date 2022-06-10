@@ -6,9 +6,11 @@
 #include "globals.h"
 #include "mainCam.h"
 #include <fmt/core.h>
+#include <opencv2/opencv.hpp>
 #include <commander/commander.h>
 
 using namespace std;
+using json = nlohmann::json;
 
 struct FLIRCameraServer {
 
@@ -38,9 +40,9 @@ string status(){
 	}else{
 		ret_msg = "Camera Waiting";
 	}
-	
+
 	return ret_msg;
-	
+
 }
 
 configuration getparams(){
@@ -160,8 +162,8 @@ string connectcam(){
 		ret_msg = "Connecting Camera";
 	}else{
 		ret_msg = "Camera Already Connecting/Connected!";
-	}	
-	
+	}
+
 	return ret_msg;
 }
 
@@ -171,14 +173,14 @@ string disconnectcam(){
 		pthread_mutex_lock(&GLOB_FLAG_LOCK);
 		GLOB_CAM_STATUS = 0;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-		
+
 		pthread_join(GLOB_CAMTHREAD, NULL);
 		ret_msg = "Disconnected Camera";
-		
+
 	}else{
 		ret_msg = "Camera Not Connected or Currently Connecting!";
 	}
-	
+
 	return ret_msg;
 }
 
@@ -201,7 +203,7 @@ string startcam(int num_frames){
 	}else{
 		ret_msg = "Camera Not Connected or Currently Connecting!";
 	}
-	
+
 	return ret_msg;
 
 }
@@ -224,7 +226,7 @@ string stopcam(){
 	}else{
 		ret_msg = "Camera Not Connected or Currently Connecting!";
 	}
-	
+
 	return ret_msg;
 }
 
@@ -245,7 +247,7 @@ string getlatestfilename(){
 	}else{
 		ret_msg = "Camera Not Connected or Currently Connecting!";
 	}
-	
+
 	return ret_msg;
 }
 
@@ -259,19 +261,45 @@ string getlatestimage(){
 				pthread_mutex_lock(&GLOB_LATEST_IMG_INDEX_LOCK);
 				int img_index = GLOB_LATEST_IMG_INDEX;
 				pthread_mutex_unlock(&GLOB_LATEST_IMG_INDEX_LOCK);
-				
+
 				unsigned short *ret_image_array;
 				ret_image_array = (unsigned short*)malloc(sizeof(unsigned short)*GLOB_IMSIZE);
-				
+
+
+
 				pthread_mutex_lock(&GLOB_IMG_MUTEX_ARRAY[img_index]);
 				memcpy(ret_image_array,GLOB_IMG_ARRAY+GLOB_IMSIZE*img_index,GLOB_IMSIZE*2);
 				pthread_mutex_unlock(&GLOB_IMG_MUTEX_ARRAY[img_index]);
-				
-				// COMPRESSION???
-				
-				
-				printf( "%hu\n", ret_image_array[0] );
-				
+
+
+
+				cv::Mat mat (1,GLOB_IMSIZE,CV_16U,ret_image_array);
+
+                std::vector<uchar> array;
+                if (mat.isContinuous())
+                  {
+                    array.assign(mat.datastart, mat.dataend);
+                  }
+
+                else
+                  {
+                    for (int i = 0; i < mat.rows; ++i)
+                      {
+                          array.insert(array.end(), mat.ptr<uchar>(i), mat.ptr<uchar>(i)+mat.cols);
+                       }
+                  }
+
+
+                json j;
+                j["Image"]["rows"] = mat.rows;
+                j["Image"]["cols"] = mat.cols;
+                j["Image"]["channels"] = mat.channels();
+                j["Image"]["data"] = array;
+
+                std::string s = j.dump();
+
+				printf( "%hu\n", s );
+
 				ret_msg = "Retrieved Image Successfully";
 			}else{
 				ret_msg = "Camera Busy!";
@@ -282,7 +310,7 @@ string getlatestimage(){
 	}else{
 		ret_msg = "Camera Not Connected or Currently Connecting!";
 	}
-	
+
 	return ret_msg;
 }
 
@@ -293,7 +321,7 @@ namespace nlohmann {
     struct adl_serializer<configuration> {
         static void to_json(json& j, const configuration& p) {
             j = json{{"gain", p.gain}, {"exptime", p.exptime},
-                     {"width", p.width}, {"height", p.height}, 
+                     {"width", p.width}, {"height", p.height},
                      {"offsetX", p.offsetX}, {"offsetY", p.offsetY},
                      {"blacklevel", p.blacklevel}, {"buffersize", p.buffersize},
                      {"savedir", p.savedir}};
@@ -342,5 +370,3 @@ COMMANDER_REGISTER(m)
         .def("getparams", &FLIRCameraServer::getparams, "Get all parameters");
 
 }
-
-
