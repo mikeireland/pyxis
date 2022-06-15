@@ -23,12 +23,14 @@ class ClientSocket:
         """
         ADS = (IP,Port)
         self.count=0
+
         try:
             self.context = zmq.Context()
             self.client = self.context.socket(zmq.REQ)
-            tcpstring = "tcp://"+IP+":"+Port
+            tcpstring = "tcp://"+IP+":"+Port 
+            print(tcpstring)   
             self.client.connect(tcpstring)
-            self.client.RCVTIMEO = 20000
+            self.client.RCVTIMEO = 5000
             self.connected=True
         except:
             print('ERROR: Could not connect to server. Please check that the server is running and IP is correct.')

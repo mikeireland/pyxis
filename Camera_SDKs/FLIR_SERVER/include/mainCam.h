@@ -6,7 +6,7 @@
 
 int CallbackFunc (unsigned short* data);
 
-int reconfigure(configuration c, FLIRCamera Fcam);
+int reconfigure(configuration c, FLIRCamera& Fcam);
 
 void *runCam(void*);
 

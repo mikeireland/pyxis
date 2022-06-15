@@ -21,7 +21,8 @@ class PowerControlWidget(QWidget):
         super(PowerControlWidget,self).__init__(parent)
 
         self.name = config["name"]
-        self.socket = ClientSocket(IP=IP, Port=config["port"])
+        self.port = config["port"]
+        self.socket = ClientSocket(IP=IP, Port=self.port)
 
         #Layout the common elements
         vBoxlayout = QVBoxLayout()
@@ -115,6 +116,8 @@ class PowerControlWidget(QWidget):
 
         self.setLayout(vBoxlayout)
 
+    def change_ip(self,IP):
+        self.socket = ClientSocket(IP=IP, Port=self.port)
 
     def ask_for_status(self):
         """Ask for status for the server that applies to the current tab (as we can

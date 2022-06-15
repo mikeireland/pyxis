@@ -45,7 +45,7 @@ FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
     imsize = width*height;
 
     savefilename_prefix = config["fits"]["filename_prefix"].value_or("");
-    savefilename = savefilename_prefix;
+    savefilename = savefilename_prefix + ".fits";
 }
 
 
@@ -140,11 +140,39 @@ void FLIRCamera::InitCamera(){
     cout << Label("Offset Y") << ptr_offset_y->GetValue() << endl;
     cout << endl;
     
+    
+    pthread_mutex_lock(&GLOB_FLAG_LOCK);
     GLOB_IMSIZE = imsize;
+    GLOB_WIDTH = width;
+    GLOB_CONFIG_PARAMS.gain = gain;
+    GLOB_CONFIG_PARAMS.exptime = exposure_time;
+    GLOB_CONFIG_PARAMS.width = width;
+    GLOB_CONFIG_PARAMS.height = height;
+    GLOB_CONFIG_PARAMS.offsetX = offset_x;
+    GLOB_CONFIG_PARAMS.offsetY = offset_y;
+    GLOB_CONFIG_PARAMS.blacklevel = black_level;
+    GLOB_CONFIG_PARAMS.buffersize = buffer_size;
+    GLOB_CONFIG_PARAMS.savedir = savefilename;
+    pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 
 }
 
-void FLIRCamera::Reconfigure(std::string parameter, int value){
+void FLIRCamera::ReconfigureFloat(std::string parameter, float value){
+
+    INodeMap& node_map = pCam->GetNodeMap();
+
+	char* temp_param;
+	temp_param = &parameter[0];
+
+    // Set parameter
+    CFloatPtr ptr_parameter = node_map.GetNode(temp_param);
+    ptr_parameter->SetValue(value);
+
+    // Print Camera setting
+    cout << "Setting " << parameter << " to: " << ptr_parameter->GetValue() << endl ;
+}
+
+void FLIRCamera::ReconfigureInt(std::string parameter, int value){
 
     INodeMap& node_map = pCam->GetNodeMap();
 
@@ -156,24 +184,35 @@ void FLIRCamera::Reconfigure(std::string parameter, int value){
     ptr_parameter->SetValue(value);
 
     // Print Camera setting
-    cout << "Setting " << parameter << " to:" << ptr_parameter->GetValue() << endl ;
+    cout << "Setting " << parameter << " to: " << ptr_parameter->GetValue() << endl ;
 }
 
 
 void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, int new_offsetY, int new_blacklevel, int new_buffersize, string new_savedir){
 
-    Reconfigure("Gain",new_gain);
-    Reconfigure("ExposureTime",new_exptime);
-    Reconfigure("Width",new_width);
-    Reconfigure("Height",new_height);
-    Reconfigure("OffsetX",new_offsetX);
-    Reconfigure("OffsetY",new_offsetY);
-    Reconfigure("BlackLevel",new_blacklevel);
+    ReconfigureFloat("Gain",new_gain);
+    gain = new_gain;
+    ReconfigureFloat("ExposureTime",new_exptime);
+    exposure_time = new_exptime;
+    ReconfigureInt("Width",new_width);
+    width = new_width;
+    ReconfigureInt("Height",new_height);
+    height = new_height;
+    ReconfigureInt("OffsetX",new_offsetX);
+    offset_x = new_offsetX;
+    ReconfigureInt("OffsetY",new_offsetY);
+    offset_y = new_offsetY;
+    ReconfigureFloat("BlackLevel",new_blacklevel);
+    black_level = new_blacklevel;
     buffer_size = new_buffersize;
-    imsize = new_width*new_height;
+    this->imsize = new_width*new_height;
     savefilename_prefix = new_savedir;
     
     GLOB_IMSIZE = imsize;
+    GLOB_WIDTH = new_width;
+    
+    cout << imsize << endl;
+    cout << width << endl;
 
 }
 
@@ -293,6 +332,7 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
     fitsfile *fptr;
 
 	unsigned short *linear_image_array;
+	cout << imsize <<endl;
 	linear_image_array = (unsigned short*)malloc(sizeof(unsigned short)*imsize*num_images);
 	
 	unsigned long current_index;

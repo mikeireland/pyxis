@@ -15,6 +15,7 @@ extern int GLOB_STOPPING;
 //Global Params
 extern int GLOB_NUMFRAMES;
 extern int GLOB_IMSIZE;
+extern int GLOB_WIDTH;
 
 //config_file
 extern char * GLOB_CONFIGFILE ;
@@ -36,17 +37,18 @@ extern std::string GLOB_LATEST_FILE ;
 extern int GLOB_LATEST_IMG_INDEX;
 
 struct configuration{
-    int gain; 
-    int exptime; 
+    float gain; 
+    float exptime; 
     int width; 
     int height; 
     int offsetX; 
     int offsetY; 
-    int blacklevel;
+    float blacklevel;
     int buffersize;
     std::string savedir;
 };
 
+extern configuration GLOB_CONFIG_PARAMS;
 
 double sinc(double x);
 

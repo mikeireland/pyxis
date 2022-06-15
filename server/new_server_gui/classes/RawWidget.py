@@ -21,7 +21,8 @@ class RawWidget(QWidget):
         super(RawWidget,self).__init__(parent)
 
         self.name = config["name"]
-        self.socket = ClientSocket(IP=IP, Port=config["port"])
+        self.port = config["port"]
+        self.socket = ClientSocket(IP=IP, Port=self.port)
 
         #Layout the common elements
         vBoxlayout = QVBoxLayout()
@@ -70,6 +71,9 @@ class RawWidget(QWidget):
         vBoxlayout.addLayout(status_layout)
 
         self.setLayout(vBoxlayout)
+
+    def change_ip(self,IP):
+        self.socket = ClientSocket(IP=IP, Port=self.port)
 
 
     def ask_for_status(self):

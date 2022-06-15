@@ -49,7 +49,7 @@ int CallbackFunc (unsigned short* data){
 
 
 
-int reconfigure(configuration c, FLIRCamera Fcam){
+int reconfigure(configuration c, FLIRCamera& Fcam){
 
 	int ret_val = 0;
 
@@ -125,10 +125,8 @@ void *runCam(void*) {
 		
 
         while (GLOB_CAM_STATUS==2){
-        
         	if(GLOB_RECONFIGURE==1){
-        		configuration new_params;
-        		reconfigure(new_params,Fcam);
+        		reconfigure(GLOB_CONFIG_PARAMS,Fcam);
         		
         		pthread_mutex_lock(&GLOB_FLAG_LOCK);
         		GLOB_RECONFIGURE=0;

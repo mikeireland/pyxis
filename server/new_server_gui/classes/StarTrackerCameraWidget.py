@@ -3,6 +3,8 @@ from __future__ import print_function, division
 from client_socket import ClientSocket
 import time
 import random
+import json
+import numpy as np
 
 try:
     try:
@@ -20,7 +22,7 @@ except:
 try:
     from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, \
         QVBoxLayout, QGridLayout, QLabel, QLineEdit, QTextEdit, QProgressBar
-    from PyQt5.QtGui import QPixmap, QFont
+    from PyQt5.QtGui import QPixmap, QFont, QImage
     from PyQt5.QtSvg import QSvgWidget
 except:
     print("Please install PyQt5.")
@@ -33,7 +35,8 @@ class StarTrackerCameraWidget(QWidget):
         super(StarTrackerCameraWidget,self).__init__(parent)
 
         self.name = config["name"]
-        self.socket = ClientSocket(IP=IP, Port=config["port"])
+        self.port = config["port"]
+        self.socket = ClientSocket(IP=IP, Port=self.port)
 
         #Layout the common elements
         vBoxlayout = QVBoxLayout()
@@ -170,17 +173,23 @@ class StarTrackerCameraWidget(QWidget):
 
         vbox3 = QVBoxLayout()
 
+        self.RefreshParams_button = QPushButton("Refresh Parameters", self)
+        self.RefreshParams_button.setFixedWidth(220)
+        self.RefreshParams_button.clicked.connect(self.get_params)
+        vbox3.addWidget(self.RefreshParams_button)
+
         self.Reconfigure_button = QPushButton("Reconfigure", self)
         self.Reconfigure_button.setFixedWidth(220)
         self.Reconfigure_button.clicked.connect(self.reconfigure_camera)
         vbox3.addWidget(self.Reconfigure_button)
 
         hbox3 = QHBoxLayout()
-        lbl1 = QLabel('Buffer Size: ', self)
-        self.numframes_edit = QLineEdit("")
-        self.numframes_edit.setFixedWidth(120)
+        lbl1 = QLabel('Number of Frames: ', self)
+        self.numframes_edit = QLineEdit("0")
+        self.numframes_edit.setFixedWidth(100)
         hbox3.addWidget(lbl1)
         hbox3.addWidget(self.numframes_edit)
+        hbox3.addStretch()
         vbox3.addLayout(hbox3)
 
         self.run_button = QPushButton("Start Camera", self)
@@ -205,7 +214,8 @@ class StarTrackerCameraWidget(QWidget):
         self.cam_feed = QLabel(self)
         self.cam_feed.setStyleSheet("padding: 30")
         self.cam_qpix = QPixmap()
-        self.get_new_frame()
+        self.cam_qpix.load("assets/camtest1.png")
+        self.cam_feed.setPixmap(self.cam_qpix.scaledToWidth(300))
         vbox2.addWidget(self.cam_feed)
         hbox3 = QHBoxLayout()
         self.Camera_button = QPushButton("Start Feed", self)
@@ -231,37 +241,24 @@ class StarTrackerCameraWidget(QWidget):
         vBoxlayout.addLayout(status_layout)
 
         self.setLayout(vBoxlayout)
+        self.ask_for_status()
 
+    def change_ip(self,IP):
+        self.socket = ClientSocket(IP=IP, Port=self.port)
 
     def ask_for_status(self):
         """Ask for status for the server that applies to the current tab (as we can
         only see one server at a time)"""
-        command = "INFO"
         #As this is on a continuous timer, only do anything if we are
         #connected
-        k = random.randint(0, 1)
-        #if (self.socket.connected):
-        if k:
+        if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
-            response = self.socket.send_command("INFO")
+            self.send_to_server("FLIRCam.status")
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
-            if type(response)!=str and type(response)!=unicode:
-                raise UserWarning("Incorrect INFO response!")
-            if response[:5]=='Error':
-                print("Error in INFO response from {:s}...".format(self.name))
-            else:
-                status_list = response.split('\n')
-                if len(status_list)<3:
-                    status_list = response.split(' ')
-                status = {t.split("=")[0].lstrip():t.split("=")[1] for t in status_list if t.find("=")>0}
-                #Now deal with the response in a different way for each server.
-                self.status_text = "Text: {:6.3f} Tset: {:6.3f} Tmc: {:6.3f}".format(\
-                    float(status["externalenclosure"]),\
-                    float(status["externalenclosure.setpoint"]),\
-                    float(status["minichiller.internal"]))
-                self.status_label.setText(self.status_text)
+            self.get_params()
+            
         else:
             self.status_light = "assets/red.svg"
             self.status_text = "Socket Not Connected"
@@ -269,13 +266,35 @@ class StarTrackerCameraWidget(QWidget):
             self.svgWidget.load(self.status_light)
 
 
+    def get_params(self):
+        """Ask for status for the server that applies to the current tab (as we can
+        only see one server at a time)"""
+        command = "FLIRCam.getparams"
+
+        if (self.socket.connected):
+
+            response = self.socket.send_command("FLIRCam.getparams")
+            response_dict = json.loads(response)
+            self.width_edit.setText(str(response_dict["width"]))
+            self.height_edit.setText(str(response_dict["height"]))
+            self.xoffset_edit.setText(str(response_dict["offsetX"]))
+            self.yoffset_edit.setText(str(response_dict["offsetY"]))
+            self.expT_edit.setText(str(response_dict["exptime"]))
+            self.gain_edit.setText(str(response_dict["gain"]))
+            self.BL_edit.setText(str(response_dict["blacklevel"]))
+            self.buffersize_edit.setText(str(response_dict["buffersize"]))
+            self.save_dir_line_edit.setText(str(response_dict["savedir"]))
+            
+            
     def connect_camera(self):
 
         if self.Connect_button.isChecked():
             # Refresh camera
             self.Connect_button.setText("Disconnect")
             print("Camera is now Connected")
-            self.send_to_server("CONNECT")
+            self.send_to_server("FLIRCam.connect")
+            time.sleep(2)
+            self.get_params()
 
         elif self.run_button.isChecked():
             self.Connect_button.setChecked(True)
@@ -284,16 +303,28 @@ class StarTrackerCameraWidget(QWidget):
         else:
             self.Connect_button.setText("Connect")
             print("Disconnecting Camera")
-            self.send_to_server("DISCONNECT")
+            self.send_to_server("FLIRCam.disconnect")
 
 
     def reconfigure_camera(self):
-    	if self.Connect_button.isChecked():
+        if self.Connect_button.isChecked():
             if self.run_button.isChecked():
                 print("Camera currently running!")
             else:
-            	#LOAD VALUES
+                response_dict = {}
+                response_dict["width"] = int(self.width_edit.text())
+                response_dict["height"] = int(self.height_edit.text())
+                response_dict["offsetX"] = int(self.xoffset_edit.text())
+                response_dict["offsetY"] = int(self.yoffset_edit.text())
+                response_dict["exptime"] = float(self.expT_edit.text())
+                response_dict["gain"] = float(self.gain_edit.text())
+                response_dict["blacklevel"] = float(self.BL_edit.text())
+                response_dict["buffersize"] = int(self.buffersize_edit.text())
+                response_dict["savedir"] = self.save_dir_line_edit.text()
                 print("Reconfiguring Camera")
+                
+                response_str = json.dumps(response_dict)
+                self.send_to_server("FLIRCam.reconfigure_all [%s]"%response_str)
 
         else:
             print("CAMERA NOT CONNECTED")
@@ -311,11 +342,12 @@ class StarTrackerCameraWidget(QWidget):
                 #EXTRACT NUMBER OF FRAMES
                 self.run_button.setText("Stop Camera")
                 print("Starting Camera")
-                self.send_to_server("STARTCAM")
+                num_frames = str(self.numframes_edit.text())
+                self.send_to_server("FLIRCam.start [%s]"%num_frames)
             else:
                 self.run_button.setText("Start Camera")
                 print("Stopping Camera")
-                self.send_to_server("STOPCAM")
+                self.send_to_server("FLIRCam.stop")
 
         else:
             self.run_button.setChecked(False)
@@ -325,7 +357,7 @@ class StarTrackerCameraWidget(QWidget):
 
     def refresh_camera_feed(self):
         if self.Connect_button.isChecked():
-            if self.Single_button.isChecked() or self.Multi_button.isChecked() or self.Continuous_button.isChecked():
+            if self.run_button.isChecked():
                 if self.Camera_button.isChecked():
                     # Refresh camera
                     self.Camera_button.setText("Stop Feed")
@@ -340,17 +372,23 @@ class StarTrackerCameraWidget(QWidget):
             self.Camera_button.setChecked(False)
             print("CAMERA NOT CONNECTED")
 
+
     def get_new_frame(self):
         j = random.randint(1, 6)
-        self.send_to_server("GET FRAME")
-        self.cam_qpix.load("assets/camtest%s.png"%j)
+        response = self.socket.send_command("FLIRCam.getlatestimage")
+        data = json.loads(json.loads(response))
+        img_data = np.array(data["Image"]["data"])
+        img_data = (img_data/256).astype(np.uint8)
+        qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Indexed8)
+        ##########
+        
+        self.cam_qpix = QPixmap.fromImage(qimg)
         self.cam_feed.setPixmap(self.cam_qpix.scaledToWidth(300))
 
 
     def info_click(self):
         print(self.name)
         self.ask_for_status()
-        self.send_to_server("INFO")
 
 
     def command_enter(self):

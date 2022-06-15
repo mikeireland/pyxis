@@ -17,7 +17,7 @@ from client_socket import ClientSocket
 
 try:
     from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QHBoxLayout, \
-        QVBoxLayout, QGridLayout, QLabel, QTabWidget, QScrollArea, QLineEdit, QTextEdit
+        QVBoxLayout, QGridLayout, QLabel, QTabWidget, QScrollArea, QLineEdit, QTextEdit, QFrame
     from PyQt5.QtCore import QTimer, Qt
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtSvg import QSvgWidget
@@ -36,7 +36,7 @@ if (sys.version_info > (3, 0)):
 if len(sys.argv) > 1:
     config = pytomlpp.load(sys.argv[1])
 else:
-    config = pytomlpp.load("gui_ports_setup.toml")
+    config = pytomlpp.load("test_setup.toml")
 
 pyxis_config = config["Pyxis"]
 config.pop("Pyxis")
@@ -94,6 +94,11 @@ class PyxisGui(QTabWidget):
         self.status_lights = {}
         self.status_texts = {}
 
+        self.FSM_port = pyx_IPs["FSM_port"]
+        self.int_IPs = pyx_IPs["Internal"]
+        self.ext_IPs = pyx_IPs["External"]
+
+
         #Dashboard Tab
         self.tab_widgets["dashboard"] = QWidget()
         self.addTab(self.tab_widgets["dashboard"],"Finite State Machine")
@@ -102,7 +107,7 @@ class PyxisGui(QTabWidget):
         self.tab_widgets["dashboard"].setLayout(listBox)
 
         hbox1 = QHBoxLayout()
-        self.fsm_socket = ClientSocket(pyx_IPs["FSM"], pyx_IPs["FSM_port"])
+        self.fsm_socket = ClientSocket(self.int_IPs["FSM"], self.FSM_port)
 
         self.connect_fsm_button = QPushButton("Connect to FSM", self)
         self.connect_fsm_button.setFixedWidth(200)
@@ -196,7 +201,7 @@ class PyxisGui(QTabWidget):
                 #Load class and create instance, add to tab container
                 class_name = sub_config["module_type"]
                 widget_module = class_for_name(class_name,class_name)
-                self.sub_tab_widgets[tab][name] = widget_module(sub_config,pyx_IPs[tab])
+                self.sub_tab_widgets[tab][name] = widget_module(sub_config,self.int_IPs[tab])
                 self.tab_widgets[tab].addTab(self.sub_tab_widgets[tab][name],sub_config["tab_name"])
 
                 #Add status indicator to dashboard
@@ -231,6 +236,14 @@ class PyxisGui(QTabWidget):
         self.stimer = QTimer()
 
         self.auto_updater()
+        
+    def change_IPs(self, new_IPs):
+        self.fsm_socket = ClientSocket(new_IPs["FSM"], self.FSM_port)
+        for tab in config:
+            new_IP = new_IPs[tab]
+            for item in self.sub_tab_widgets[tab]:
+                self.sub_tab_widgets[tab][item].change_ip(new_IP)
+
 
     #Function to refresh the status of all clients
     def refresh_status(self):
@@ -252,6 +265,7 @@ class PyxisGui(QTabWidget):
             self.status_lights[tab][name].load(self.sub_tab_widgets[tab][name].status_light)
             self.status_texts[tab][name].setText(self.sub_tab_widgets[tab][name].status_text)
 
+
     #Function to refresh the camera feeds of each relevant client
     def refresh_camera_feeds(self):
         tab_index = self.currentIndex()
@@ -268,8 +282,9 @@ class PyxisGui(QTabWidget):
     #Function to auto update at a given rate
     def auto_updater(self):
         #self.refresh_status()
-        #self.refresh_camera_feeds()
-        #self.stimer.singleShot(refresh_time, self.auto_updater)
+        self.refresh_camera_feeds()
+        print("hello")
+        self.stimer.singleShot(refresh_time, self.auto_updater)
         return
 
     def connect_fsm(self):
@@ -309,6 +324,8 @@ class PyxisGui(QTabWidget):
     #What happens when you click the info button
     def info_click(self):
         self.send_to_FSM_server("INFO")
+        
+
 
 app = QApplication(sys.argv)
 app.setStyle("Fusion")
@@ -319,33 +336,76 @@ main.resize(1200, 750)
 
 #Add logo
 logo_wig = QWidget()
-hbox = QHBoxLayout(logo_wig)
+header = QHBoxLayout(logo_wig)
 logo = QLabel()
 qpix = QPixmap('assets/Pyxis_logo.png')
 qpix = qpix.scaledToWidth(250)
 logo.setPixmap(qpix)
+header.addWidget(logo)
 
-hbox.addWidget(logo)
-IP = pyxis_config["IP"]["External"]
-ip_connect = QLabel('Connecting to External IP: %s'%(IP))
-ip_connect.setStyleSheet("font-weight: bold; color: #ffd740; font-size:14px")
-hbox.addWidget(ip_connect)
-
-vbox = QVBoxLayout()
-
+# MAKE IP DICT
 IPs = pyxis_config["IP"]
+IP_dict = {}
+IP_internal = collections.OrderedDict({k: IPs[k] for k in ["FSM","Navis","Dextra","Sinistra"]})
+IP_external = collections.OrderedDict({k: IPs["External"] for k in ["FSM","Navis","Dextra","Sinistra"]})
+IP_dict["Internal"] = IP_internal
+IP_dict["External"] = IP_external
+IP_dict["FSM_port"] = IPs["FSM_port"]
+
+ip_frame_ext = QFrame()
+vbox = QVBoxLayout()
+ip_frame_ext.setLayout(vbox)
+ext_IP = pyxis_config["IP"]["External"]
+ip_connect = QLabel('External IP: %s'%(ext_IP))
+ip_connect.setStyleSheet("font-weight: bold; color: #ffd740; font-size:14px")
+vbox.addWidget(ip_connect)
+
+
+ip_frame_int = QFrame()
+vbox = QVBoxLayout()
+ip_frame_int.setLayout(vbox)
 IPs = collections.OrderedDict({k: IPs[k] for k in ["FSM","Navis","Dextra","Sinistra"]})
 for IP_name in IPs:
 	IP = IPs[IP_name]
-	ip_connect = QLabel('Connecting to %s LAN IP: %s'%(IP_name,IP))
+	ip_connect = QLabel('%s LAN IP: %s'%(IP_name,IP))
 	ip_connect.setStyleSheet("font-weight: bold; color: #ffd740; font-size:14px")
 	vbox.addWidget(ip_connect)
 
 
-hbox.addLayout(vbox)
+IP_button = QPushButton("Connect to External IP")
+IP_button.setFixedWidth(220)
+IP_button.setCheckable(True)
+IP_button.setStyleSheet("QPushButton {background-color: #000000; border-color: #550000; color: #ffd740}")
 
-pyxis_app = PyxisGui(pyx_IPs=pyxis_config["IP"])
+header.addWidget(ip_frame_int)
+header.addWidget(ip_frame_ext)
+header.addSpacing(70)
+header.addWidget(IP_button)
 
+ip_frame_ext.hide()
+
+pyxis_app = PyxisGui(pyx_IPs=IP_dict)
+
+def change_IP():
+    
+    if IP_button.isChecked():
+        print("Connecting to External IP")
+        IP_button.setStyleSheet("QPushButton {background-color: #550000; border-color: #550000; color: #ffd740}")
+        IP_button.setText("Connect to Internal IP")
+        ip_frame_int.hide()
+        ip_frame_ext.show()
+        pyxis_app.change_IPs(IP_dict["External"])
+        
+        
+    else:
+        print("Connecting to Internal IP")
+        IP_button.setStyleSheet("QPushButton {background-color: #550000; border-color: #550000; color: #ffd740}")
+        IP_button.setText("Connect to External IP")
+        ip_frame_ext.hide()
+        ip_frame_int.show()
+        pyxis_app.change_IPs(IP_dict["Internal"])
+        
+IP_button.clicked.connect(change_IP)
 vbox = QVBoxLayout(main)
 
 vbox.addWidget(logo_wig)

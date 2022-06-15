@@ -70,8 +70,6 @@ class FLIRCamera {
 
 		/* Function to setup and start the camera. MUST CALL BEFORE USING!!! */
         void InitCamera();
-
-        void Reconfigure(std::string parameter, int value);
         
         void ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, int new_offsetY, int new_blacklevel, int new_buffersize, std::string new_savedir);
 
@@ -96,7 +94,11 @@ class FLIRCamera {
         */
         int SaveFITS(unsigned long num_images, unsigned long start_index);
 
-
+	private:
+	
+        void ReconfigureInt(std::string parameter, int value);
+        
+        void ReconfigureFloat(std::string parameter, float value);
 };
 
 #endif // _FLIRCAMERA_

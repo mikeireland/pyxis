@@ -271,23 +271,34 @@ string getlatestimage(){
 				memcpy(ret_image_array,GLOB_IMG_ARRAY+GLOB_IMSIZE*img_index,GLOB_IMSIZE*2);
 				pthread_mutex_unlock(&GLOB_IMG_MUTEX_ARRAY[img_index]);
 
+                int height = GLOB_IMSIZE/GLOB_WIDTH;
 
 
-				cv::Mat mat (1,GLOB_IMSIZE,CV_16U,ret_image_array);
+				cv::Mat mat (height,GLOB_WIDTH,CV_16U,ret_image_array);
 
+                //cv::Mat compressed_mat = mat / 256;
+                
+                std::vector<unsigned short> array;
+                if (mat.isContinuous()) {
+                  // array.assign((float*)mat.datastart, (float*)mat.dataend); // <- has problems for sub-matrix like mat = big_mat.row(i)
+                  array.assign((unsigned short*)mat.data, (unsigned short*)mat.data + mat.total()*mat.channels());
+                } else {
+                  for (int i = 0; i < mat.rows; ++i) {
+                    array.insert(array.end(), mat.ptr<unsigned short>(i), mat.ptr<unsigned short>(i)+mat.cols*mat.channels());
+                  }
+                }
+                /*
                 std::vector<uchar> array;
-                if (mat.isContinuous())
-                  {
-                    array.assign(mat.datastart, mat.dataend);
+                if (compressed_mat.isContinuous()) {
+                  // array.assign(mat.datastart, mat.dataend); // <- has problems for sub-matrix like mat = big_mat.row(i)
+                  array.assign(compressed_mat.data, compressed_mat.data + compressed_mat.total()*compressed_mat.channels());
+                } else {
+                  for (int i = 0; i < mat.rows; ++i) {
+                    array.insert(array.end(), compressed_mat.ptr<uchar>(i), compressed_mat.ptr<uchar>(i)+compressed_mat.cols*compressed_mat.channels());
                   }
-
-                else
-                  {
-                    for (int i = 0; i < mat.rows; ++i)
-                      {
-                          array.insert(array.end(), mat.ptr<uchar>(i), mat.ptr<uchar>(i)+mat.cols);
-                       }
-                  }
+                }*/
+                  
+                cout << array[0] << endl;
 
 
                 json j;
@@ -298,9 +309,10 @@ string getlatestimage(){
 
                 std::string s = j.dump();
 
-				printf( "%hu\n", s );
 
-				ret_msg = "Retrieved Image Successfully"+s;
+				ret_msg = s;
+				
+				free(ret_image_array);
 			}else{
 				ret_msg = "Camera Busy!";
 			}
