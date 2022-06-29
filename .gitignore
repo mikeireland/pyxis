@@ -8,13 +8,11 @@ __pycache__/
 *.o
 
 #Jonah gitignore folders
-Camera_SDKs/FLIR_SDK/data
-Camera_SDKs/FLIR_SDK/bin
-Camera_SDKs/JH_QHYCCD_SDK/data
-Camera_SDKs/JH_QHYCCD_SDK/bin
-
+data/
+archive/Camera_SDK/*/bin
 plate_solver/output
-tetra-astrometry-solver/output
+camera/bin
+
 
 # Distribution / packaging
 .Python

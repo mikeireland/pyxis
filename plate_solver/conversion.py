@@ -133,3 +133,30 @@ def RaDec2Quat(RA,DEC,POS_ANG):
     angles = (2*np.pi-AZ,ALT,np.radians(POS_ANG))
 
     return np.array(euler_to_quaternion(angles))
+
+"""
+Converts celestial coordinates (Ra, Dec, Pos angle) into an AltAzPos
+attitude quaternion
+
+INPUTS
+RA = Right ascension in degrees
+DEC = Declination in degrees
+POS_ANG = Rotation of image from North Celestial Pole (invariant between
+          celestial and horizontal coordinates)
+
+OUTPUTS
+AltAzPos quaternion of the form [a,b,c,d] = ai + bj + ck + d
+"""
+def RaDec2AltAz(RA,DEC,POS_ANG):
+
+    #Convert Ra/Dec to Altitude/Azimuth coordinates
+    ALT, AZ = toAltAz_rad(RA,DEC)
+
+    #Euler angles from the Alt/Az/Pos angle coordinates
+    #Azimuth made to be anticlockwise in convention of Euler angles (Yaw).
+    #Altitude equivalent to pitch
+
+    #Pos angle equivalent to roll
+    angles = (2*np.pi-AZ,ALT,np.radians(POS_ANG))
+
+    return np.array(angles)
