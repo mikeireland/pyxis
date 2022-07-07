@@ -140,7 +140,7 @@ void FLIRCamera::InitCamera(){
     cout << Label("Offset Y") << ptr_offset_y->GetValue() << endl;
     cout << endl;
     
-    
+    // Set global configuration struct
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     GLOB_IMSIZE = imsize;
     GLOB_WIDTH = width;
@@ -157,6 +157,7 @@ void FLIRCamera::InitCamera(){
 
 }
 
+/* Reconfigure a float parameter for a FLIR Camera*/
 void FLIRCamera::ReconfigureFloat(std::string parameter, float value){
 
     INodeMap& node_map = pCam->GetNodeMap();
@@ -172,6 +173,7 @@ void FLIRCamera::ReconfigureFloat(std::string parameter, float value){
     cout << "Setting " << parameter << " to: " << ptr_parameter->GetValue() << endl ;
 }
 
+/* Reconfigure a int parameter for a FLIR Camera*/
 void FLIRCamera::ReconfigureInt(std::string parameter, int value){
 
     INodeMap& node_map = pCam->GetNodeMap();
@@ -187,8 +189,9 @@ void FLIRCamera::ReconfigureInt(std::string parameter, int value){
     cout << "Setting " << parameter << " to: " << ptr_parameter->GetValue() << endl ;
 }
 
-
-void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, int new_offsetY, int new_blacklevel, int new_buffersize, string new_savedir){
+/* Function to reconfigure all parameters, both in the camera and in the class parameters. Inputs are explanatory */
+void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, 
+                                int new_offsetY, int new_blacklevel, int new_buffersize, string new_savedir){
 
     ReconfigureFloat("Gain",new_gain);
     gain = new_gain;
@@ -210,8 +213,6 @@ void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, in
     
     GLOB_IMSIZE = imsize;
     GLOB_WIDTH = new_width;
-
-
 }
 
 
@@ -226,9 +227,13 @@ void FLIRCamera::DeinitCamera(){
 /* Function to take a number of images with a camera and optionally work on them.
    INPUTS:
       num_frames - number of images to take
-      fits_array - allocated array to store image data in
+      start_index - frame number index of where in the circular buffer to start taking images
       f - a callback function that will be applied to each image in real time.
+          If f returns 1, it will end acquisition regardless of how long it has to go.
           Give NULL for no callback function.
+   OUTPUTS:
+        0 on regular exit
+        1 on callback exit
 */
 int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, int (*f)(unsigned short*)) {
     int main_result = 0;
@@ -264,14 +269,14 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
 			pthread_mutex_unlock(&GLOB_IMG_MUTEX_ARRAY[current_index]);
 
             // Do something with the data in real time if required
-            // If 0 is returned by the callback function, end acquisition (regardless of
+            // If 1 is returned by the callback function, end acquisition (regardless of
             // number of frames to go).
             if (*f != NULL){
                 int result;
 
                 result = (*f)(data);
 
-                if (result == 0){
+                if (result == 1){
 
                 	main_result = 1;
                     ptr_result_image->Release();
@@ -321,18 +326,20 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
 
 /* Write a given array of image data as a FITS file
    INPUTS:
-      image_array - array of image data to write
-      num_images - number of images in the array to writes
+      num_images - number of images in the array to write
+      start_index - frame number index of where in the circular buffer to start saving images
 */
 int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
 {
     // Pointer to the FITS file; defined in fitsio.h
     fitsfile *fptr;
 
+    // Take the circular buffer and put the relevant frames in a single, linear array
 	unsigned short *linear_image_array;
 	cout << imsize <<endl;
 	linear_image_array = (unsigned short*)malloc(sizeof(unsigned short)*imsize*num_images);
 	
+	// Fill "saving" array with images
 	unsigned long current_index;
 	for(unsigned long i=0;i<num_images;i++){
 		current_index = (start_index + i)%buffer_size;

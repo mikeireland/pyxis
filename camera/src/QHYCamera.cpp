@@ -16,6 +16,7 @@
 
 using namespace std;
 
+// Get QHY SDK version
 void SDKVersion(){
     unsigned int  YMDS[4];
     unsigned char sVersion[80];
@@ -36,7 +37,7 @@ void SDKVersion(){
     fprintf(stderr,"QHYCCD SDK Version: %s\n", sVersion);
 }
 
-
+// Get firmware version. Takes the QHY camera handle.
 void FirmWareVersion(qhyccd_handle *h){
     unsigned char fwv[32],FWInfo[256];
     unsigned int ret;
@@ -83,7 +84,7 @@ QHYCamera::QHYCamera(qhyccd_handle *pCam_init, toml::table config_init){
 
     pixel_format = 16;
     acquisition_mode = 1;
-    readout_mode = config["camera"]["readout_mode"].value_or(0);
+    readout_mode = config["camera"]["readout_mode"].value_or(2);
 
     imsize = width*height;
     buffer_size = config["camera"]["buffer_size"].value_or(0);
@@ -100,7 +101,7 @@ int QHYCamera::InitCamera(){
     cout << "Camera device information" << endl
          << "=========================" << endl;
 
-    FirmWareVersion(pCamHandle);
+    FirmWareVersion(pCamHandle); //Get firmware version
 
 	unsigned int retVal;
 
@@ -175,8 +176,6 @@ int QHYCamera::InitCamera(){
         }
     }
 
-	//retVal = SetQHYCCDDebayerOnOff(pCamHandle, false);
-	//retVal = SetQHYCCDBinMode(pCamHandle, 1, 1);
 
     // set image resolution
     retVal = SetQHYCCDResolution(pCamHandle, offset_x, offset_y, width, height);
@@ -246,6 +245,7 @@ int QHYCamera::InitCamera(){
     retVal = SetQHYCCDParam(pCamHandle, CONTROL_USBTRAFFIC, 255);
     retVal = SetQHYCCDParam(pCamHandle, CONTROL_DDR, 1.0);
     
+    // Set global configuration struct
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     GLOB_IMSIZE = imsize;
     GLOB_WIDTH = width;
@@ -275,7 +275,9 @@ void QHYCamera::DeinitCamera(){
     }
 }
 
-int QHYCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, int new_offsetY, int new_blacklevel, int new_buffersize, string new_savedir){
+/* Function to reconfigure all parameters, both in the camera and in the class parameters. Inputs are explanatory. Outputs 0 on success */
+int QHYCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, 
+                              int new_offsetY, int new_blacklevel, int new_buffersize, string new_savedir){
 
     unsigned int retVal;
     // Set exposure time
@@ -308,7 +310,7 @@ int QHYCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int 
     
     gain = new_gain;
 
-    
+    // Set new CCD resolution (offsets, size)
     retVal = SetQHYCCDResolution(pCamHandle, new_offsetX, new_offsetY, new_width, new_height);
         
     if (QHYCCD_SUCCESS == retVal){
@@ -324,7 +326,7 @@ int QHYCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int 
     offset_x = new_offsetX;
     offset_y = new_offsetY;
     
-    
+    // Set black level
     retVal = IsQHYCCDControlAvailable(pCamHandle, CONTROL_OFFSET);
     if (QHYCCD_SUCCESS == retVal){
         retVal = SetQHYCCDParam(pCamHandle, CONTROL_OFFSET, new_blacklevel);
@@ -349,12 +351,17 @@ int QHYCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int 
     return 0;
 }
 
-/* Function to take a number of images with a camera and optionally work on them. Uses the live frame API. USE THIS ONE!!!
+/* Function to take a number of images with a camera and optionally work on them.
    INPUTS:
       num_frames - number of images to take
-      fits_array - allocated array to store image data in
+      start_index - frame number index of where in the circular buffer to start taking images
       f - a callback function that will be applied to each image in real time.
+          If f returns 1, it will end acquisition regardless of how long it has to go.
           Give NULL for no callback function.
+   OUTPUTS:
+      0 on regular exit
+      1 on error
+      2 on callback exit
 */
 int QHYCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, int (*f)(unsigned short*)) {
 
@@ -367,7 +374,7 @@ int QHYCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, i
 
     cout << "Start Acquisition" << endl;
 
-
+    // Begin Camera Acquisition
     int retVal = BeginQHYCCDLive(pCamHandle);
     if(retVal == QHYCCD_SUCCESS){
         printf("BeginQHYCCDLive success!\n");
@@ -376,10 +383,10 @@ int QHYCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, i
         return 1;
     }
 
-    // get requested memory length
-    //unsigned long length = GetQHYCCDMemLength(pCamHandle);
+    // Get requested memory length for one image
     unsigned long length = imsize*sizeof(unsigned char)*2;
 
+    // Memory for one image
     unsigned char *ImgData = (unsigned char *)malloc(length);
     memset(ImgData,0,length);
     
@@ -396,7 +403,7 @@ int QHYCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, i
     int current_index = 0;
     for (unsigned int image_cnt = 0; image_cnt < num_frames;){
 		
-        // Retrive image
+        // Retrieve image
         retVal = GetQHYCCDLiveFrame(pCamHandle,&width,&height,&bpp,&channels,ImgData);
         if(retVal == QHYCCD_SUCCESS){
          	image_cnt++;
@@ -408,30 +415,26 @@ int QHYCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, i
             unsigned short *converted_data;
 	        converted_data = (unsigned short *) ImgData;
             
-            // Append data to an allocated memory array
+            // Append data to an circular buffer array
             pthread_mutex_lock(&GLOB_IMG_MUTEX_ARRAY[current_index]);
 			memcpy(GLOB_IMG_ARRAY+imsize*current_index, converted_data, imsize*2);
 			pthread_mutex_unlock(&GLOB_IMG_MUTEX_ARRAY[current_index]);
 			
           
             // Do something with the data in real time if required
-            // If 0 is returned by the callback function, end acquisition (regardless of
+            // If 1 is returned by the callback function, end acquisition (regardless of
             // number of frames to go).
             if (*f != NULL){
                 int result;
 
                 result = (*f)(converted_data);
 
-                if (result == 0){
+                if (result == 1){
 
                 	main_result = 2;
-
                 	delete(converted_data);
-                	
                     break;
-
                 }
-                
             }
             
             // Release image
@@ -477,24 +480,25 @@ int QHYCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, i
     total_exposure = duration;
     
     return main_result;
-
 }
 
 
-/* Write a given array of image data as a FITS file
+/* Write a given array of image data as a FITS file. Outputs 0 on success.
    INPUTS:
-      image_array - array of image data to write
-      num_images - number of images in the array to writes
+      num_images - number of images in the array to write
+      start_index - frame number index of where in the circular buffer to start saving images
 */
 int QHYCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
 {
     // Pointer to the FITS file; defined in fitsio.h
     fitsfile *fptr;
-
+    
+    // Take the circular buffer and put the relevant frames in a single, linear array
 	unsigned short *linear_image_array;
 	cout << imsize <<endl;
 	linear_image_array = (unsigned short*)malloc(sizeof(unsigned short)*imsize*num_images);
 	
+    // Fill "saving" array with images
 	unsigned long current_index;
 	for(unsigned long i=0;i<num_images;i++){
 		current_index = (start_index + i)%buffer_size;

@@ -12,6 +12,7 @@
 using namespace std;
 using json = nlohmann::json;
 
+// QHY Camera Server
 struct QHYCameraServer {
 
     QHYCameraServer()
@@ -25,6 +26,7 @@ struct QHYCameraServer {
     }
 
 
+//Get status of camera
 string status(){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 0){
@@ -45,6 +47,7 @@ string status(){
 
 }
 
+// Get parameters from the global variable
 configuration getparams(){
 	configuration ret_c;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
@@ -53,17 +56,20 @@ configuration getparams(){
     return ret_c;
 	}
 
-
+// Reconfigure parameters from an input configuration struct
 string reconfigure_all(configuration c){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    GLOB_CONFIG_PARAMS = c;
+    GLOB_CONFIG_PARAMS = c; // Set global variable from the input configuration (JSON) struct
     GLOB_RECONFIGURE = 1;
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 	ret_msg = "Camera Reconfiguring";
     return ret_msg;
 }
 
+/* ##################################################### */
+
+/* Set each parameter separately: */
 string reconfigure_gain(float gain){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
@@ -154,6 +160,9 @@ string reconfigure_savedir(float savedir){
     return ret_msg;
 }
 
+/* ##################################################### */
+
+// Connect to a camera, by starting up the runCam pThread
 string connectcam(){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 0){
@@ -167,6 +176,7 @@ string connectcam(){
 	return ret_msg;
 }
 
+// Disconnect to a camera, by signalling and joining the runCam pThread
 string disconnectcam(){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
@@ -184,6 +194,8 @@ string disconnectcam(){
 	return ret_msg;
 }
 
+// Start acquisition of the camera. Takes in the number of frames to save
+// per FITS file (or 0 for continuous, no saving)
 string startcam(int num_frames){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
@@ -208,6 +220,7 @@ string startcam(int num_frames){
 
 }
 
+// Stop acquisition of the camera
 string stopcam(){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
@@ -230,6 +243,7 @@ string stopcam(){
 	return ret_msg;
 }
 
+// Get the filename of the latest saved FITS image
 string getlatestfilename(){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
@@ -251,33 +265,34 @@ string getlatestfilename(){
 	return ret_msg;
 }
 
-//struct image_return{}
-
+// Get the latest image data from the camera thread
 string getlatestimage(){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
 		if(GLOB_RUNNING == 1){
 			if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
+			    // Get latest index
 				pthread_mutex_lock(&GLOB_LATEST_IMG_INDEX_LOCK);
 				int img_index = GLOB_LATEST_IMG_INDEX;
 				pthread_mutex_unlock(&GLOB_LATEST_IMG_INDEX_LOCK);
 
+                // Make space for the image to send
 				unsigned short *ret_image_array;
 				ret_image_array = (unsigned short*)malloc(sizeof(unsigned short)*GLOB_IMSIZE);
 
-
-
+                // Retrieve image
 				pthread_mutex_lock(&GLOB_IMG_MUTEX_ARRAY[img_index]);
 				memcpy(ret_image_array,GLOB_IMG_ARRAY+GLOB_IMSIZE*img_index,GLOB_IMSIZE*2);
 				pthread_mutex_unlock(&GLOB_IMG_MUTEX_ARRAY[img_index]);
 
                 int height = GLOB_IMSIZE/GLOB_WIDTH;
 
-
+                // Make OpenCV matrix from image array
 				cv::Mat mat (height,GLOB_WIDTH,CV_16U,ret_image_array);
 
                 //cv::Mat compressed_mat = mat / 256;
                 
+                // Convert data to vector
                 std::vector<unsigned short> array;
                 if (mat.isContinuous()) {
                   // array.assign((float*)mat.datastart, (float*)mat.dataend); // <- has problems for sub-matrix like mat = big_mat.row(i)
@@ -300,7 +315,7 @@ string getlatestimage(){
                   
                 cout << array[0] << endl;
 
-
+                //Turn into a JSON array for sending
                 json j;
                 j["Image"]["rows"] = mat.rows;
                 j["Image"]["cols"] = mat.cols;
@@ -309,9 +324,10 @@ string getlatestimage(){
 
                 std::string s = j.dump();
 
-
+                //Attach to message
 				ret_msg = s;
 				
+			    //Free image
 				free(ret_image_array);
 			}else{
 				ret_msg = "Camera Busy!";
@@ -328,6 +344,7 @@ string getlatestimage(){
 
 };
 
+// Serialiser to convert configuration struct to/from JSON
 namespace nlohmann {
     template <>
     struct adl_serializer<configuration> {
@@ -353,13 +370,11 @@ namespace nlohmann {
     };
 }
 
-
+// Register as commander server
 COMMANDER_REGISTER(m)
 {
 
-    // You can register a class or a struct using the instance method.
-    // Using `instance<Gyro>` will instantiate a new instance of Gyro
-    // only when a gyro command is called.
+
     m.instance<QHYCameraServer>("QHYCam")
         // To insterface a class method, you can use the `def` method.
         .def("status", &QHYCameraServer::status, "Camera Status")

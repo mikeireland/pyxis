@@ -12,9 +12,9 @@ IP = "192.168.1.4"
     gamma = 1.0
     black_level = 10 # Black level offset in ADU
     exposure_time = 2000 # in microseconds
-    num_frames = 500 #Number to take
-    buffer_size = 10 #Set equal to numFrames unless concerned about memory. Will only save the last n images in the buffer. 
+    num_frames = 500 #Default number of frames to save per FITS file; 0 is continuous with no saving
+    buffer_size = 10 #Size of circular buffer
 
     [QHYcamera.fits]
     bitpix = 32
-	filename_prefix = "data/test"
+	filename_prefix = "data/test" #Default "where to save" file prefix

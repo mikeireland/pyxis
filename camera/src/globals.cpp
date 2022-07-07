@@ -19,7 +19,7 @@ int GLOB_WIDTH = 0;
 //config_file
 char* GLOB_CONFIGFILE = (char*)"./";
 
-//Thread!!!!! POSSIBLY VERY WRONG!!!!!!
+//Thread!!!!! POSSIBLY WRONG!!!!!! (Seems to work though?)
 pthread_t GLOB_CAMTHREAD = 0;
 
 //Locks
@@ -28,17 +28,19 @@ pthread_mutex_t GLOB_LATEST_FILE_LOCK = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t GLOB_LATEST_IMG_INDEX_LOCK = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t *GLOB_IMG_MUTEX_ARRAY;
 
-//Image Array
+// Array of images (i.e Image buffer)
 unsigned short *GLOB_IMG_ARRAY;
 
 // Latest file/image
 string GLOB_LATEST_FILE = "NOFILESAVED";
 int GLOB_LATEST_IMG_INDEX = 0;
 
+//Global configuration struct instance
 configuration GLOB_CONFIG_PARAMS;
 
-extern const double kPi = 3.141592654;
+extern const double kPi = 3.141592654; //Pi
 
+//Sinc function
 double sinc(double x){
     if (x == 0){
         return 1.0;
@@ -47,8 +49,6 @@ double sinc(double x){
     return result;
 }
 }
-
-
 
 /* Function to pad out strings to print them nicely.
    INPUTS:

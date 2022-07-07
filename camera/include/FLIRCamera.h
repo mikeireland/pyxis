@@ -18,11 +18,11 @@ class FLIRCamera {
         // TOML configuration table
         toml::table config;
 
-		    // Dimensions of image
+        // Dimensions of image
         int width;
         int height;
 
-		    // Offset of ROI from top left corner
+		// Offset of ROI from top left corner
         int offset_x;
         int offset_y;
 
@@ -32,7 +32,7 @@ class FLIRCamera {
         // Software gain
         int gain;
 
-        // Pixel format of images (Mono16 is good default)
+        // Pixel format of images (Mono16)
         std::string pixel_format;
 
         // Acquisition mode of camera (continuous)
@@ -56,7 +56,7 @@ class FLIRCamera {
         // Timestamp of first image
         char* timestamp;
         
-        //Saving directory
+        //Saving directory; prefix is without frame number and extension
         std::string savefilename_prefix;
         std::string savefilename;
 
@@ -71,7 +71,9 @@ class FLIRCamera {
 		/* Function to setup and start the camera. MUST CALL BEFORE USING!!! */
         void InitCamera();
         
-        void ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, int new_offsetY, int new_blacklevel, int new_buffersize, std::string new_savedir);
+        /* Function to reconfigure all parameters. Inputs are explanatory */
+        void ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, 
+                            int new_offsetY, int new_blacklevel, int new_buffersize, std::string new_savedir);
 
 
 		/* Function to De-initialise camera. MUST CALL AFTER USING!!! */
@@ -80,22 +82,25 @@ class FLIRCamera {
         /* Function to take a number of images with a camera and optionally work on them.
            INPUTS:
               num_frames - number of images to take
-              fits_array - allocated array to store image data in
+              start_index - frame number index of where in the circular buffer to start taking images
               f - a callback function that will be applied to each image in real time.
-                  If f returns 0, it will end acquisition regardless of how long it has to go.
+                  If f returns 1, it will end acquisition regardless of how long it has to go.
                   Give NULL for no callback function.
+           OUTPUTS:
+                0 on regular exit
+                1 on callback exit
         */
         int GrabFrames(unsigned long num_frames, unsigned long start_index, int (*f)(unsigned short*));
 
         /* Write a given array of image data as a FITS file
            INPUTS:
-              image_array - array of image data to write
               num_images - number of images in the array to write
+              start_index - frame number index of where in the circular buffer to start saving images
         */
         int SaveFITS(unsigned long num_images, unsigned long start_index);
 
 	private:
-	
+	    /* Helper functions for "ReconfigureAll" */
         void ReconfigureInt(std::string parameter, int value);
         
         void ReconfigureFloat(std::string parameter, float value);

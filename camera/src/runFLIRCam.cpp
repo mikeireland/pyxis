@@ -12,23 +12,19 @@
 using namespace Spinnaker;
 using namespace std;
 
-
-
-
 /* Program to run the camera based on a configuration file
    given to it in "toml" format. It will take a certain number
    of frames, during which it will apply a function "CallbackFunc"
    on each image as they are acquired. It then saves all of the image
    data into a FITS file (the specifications of which are in the
    configuration file.
-
-   ARGUMENT: name of config file (in config/) to apply
 */
 
 
 /* A function that can be used to perform real time data analysis on a frame (eg Fringe Tracking)
    INPUTS:
       data - raw image data of a single frame
+   Returns 0 on regular exit, 1 if the stopping flag is set
 */
 int CallbackFunc (unsigned short* data){
 
@@ -38,31 +34,33 @@ int CallbackFunc (unsigned short* data){
     	GLOB_STOPPING = 0;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 		
-		return 0;
+		return 1;
 	
 	}
 
     cout << "I could be doing something with the data here..." << endl;
 
-    return 1;
+    return 0;
 }
 
 
-
-int reconfigure(configuration c, FLIRCamera& Fcam){
-
-	int ret_val = 0;
+/* Function to reconfigure all parameters
+    INPUTS:
+       c - configuration (json) structure with all the values
+       Fcam - FLIRCamera class 
+*/
+void reconfigure(configuration c, FLIRCamera& Fcam){
 
 	Fcam.ReconfigureAll(c.gain, c.exptime, c.width, c.height, c.offsetX, c.offsetY, c.blacklevel, c.buffersize, c.savedir);
 	
-	return ret_val;
+	return;
 }
 
 
-
+/* Main pThread function to run the camera with a separate thread */ 
 void *runCam(void*) {
-//int main(int argc, char **argv) {
 	
+	// Cam status of 1 indicates camera is starting up
 	pthread_mutex_lock(&GLOB_FLAG_LOCK);
     GLOB_CAM_STATUS = 1;
     string config_file = GLOB_CONFIGFILE;
@@ -101,6 +99,7 @@ void *runCam(void*) {
     // Retrieve list of cameras from the system
     CameraList cam_list = system->GetCameras();
 
+    // Are cameras connected?
     if(cam_list.GetSize() == 0) {
         cerr << "No camera connected" << endl;
         pthread_mutex_lock(&GLOB_FLAG_LOCK);
@@ -112,19 +111,22 @@ void *runCam(void*) {
         toml::table cam_config = *config.get("FLIRcamera")->as_table();
         string serialNum = cam_config["cam_ID"].value_or("00000000");
 
-	// Initialise FLIRCamera instance from the first available camera
+	    // Initialise FLIRCamera instance from the serial number
         FLIRCamera Fcam (cam_list.GetBySerial(serialNum), cam_config);
 
-	 // Setup and start the camera
+	    // Setup and start the camera
         Fcam.InitCamera();
         
+        // Cam status of 2 indicates camera is waiting   
         pthread_mutex_lock(&GLOB_FLAG_LOCK);
         GLOB_CAM_STATUS = 2;
         pthread_mutex_unlock(&GLOB_FLAG_LOCK);
+        
 
-		
-
+        // Run a waiting loop as long as the camera remains "waiting"
         while (GLOB_CAM_STATUS==2){
+        
+            // Check if camera needs reconfiguring
         	if(GLOB_RECONFIGURE==1){
         		reconfigure(GLOB_CONFIG_PARAMS,Fcam);
         		
@@ -133,17 +135,19 @@ void *runCam(void*) {
         		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
         	}
         
+            // Check if camera needs to start acquisition
         	if(GLOB_RUNNING==1){
 
 				int finish = 0;
-				// How many frames to take?
 				
+				// How many frames to take?
 				pthread_mutex_lock(&GLOB_FLAG_LOCK);
 				unsigned long num_frames = GLOB_NUMFRAMES;
 				pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 				
 				int SAVE_FLAG = 1;
 				
+				// No saving if num_frames = 0; continuous acquisition
 				if(num_frames == 0){
 					SAVE_FLAG = 0;
 					num_frames = 100000;
@@ -161,8 +165,8 @@ void *runCam(void*) {
 				
 				while (finish == 0){
 				
-					// Acquire the images, saving them to "image_array", and call "CallbackFunc"
-					// after each image is retrieved. CallbackFunc to return 1 when exiting!
+			        // Acquire the images, saving them to GLOB_IMG_ARRAY, and call "CallbackFunc"
+			        // after each image is retrieved. CallbackFunc to return 1 when exiting!
 					finish = Fcam.GrabFrames(num_frames, buffer_no, CallbackFunc);
 
 					if (SAVE_FLAG == 1){
@@ -176,6 +180,8 @@ void *runCam(void*) {
 						
 						save_no++;
 					}
+					
+					// Index of the next available spot in the circular buffer
 					buffer_no = (buffer_no+num_frames)%Fcam.buffer_size;
 				}
 								
@@ -188,15 +194,13 @@ void *runCam(void*) {
 				free(GLOB_IMG_MUTEX_ARRAY);
 			}
 			
-			sleep(2);
+			sleep(2); // Sleep to save resources
 
 		}
 		
-    Fcam.DeinitCamera();
+    Fcam.DeinitCamera(); // Deinit camera
 	}
 	
-	
-   
     // Clear camera list before releasing system
     cam_list.Clear();
 

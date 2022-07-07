@@ -89,8 +89,8 @@ class PyxisGui(QTabWidget):
         #We'll have tabs for different servers
         self.resize(900, 550)
 
-        self.tab_widgets = {}
-        self.sub_tab_widgets = {}
+        self.tab_widgets = {} #Main tabs
+        self.sub_tab_widgets = {} #Sub tabs
         self.status_lights = {}
         self.status_texts = {}
 

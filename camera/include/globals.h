@@ -4,52 +4,55 @@
 #include <string>
 #include <pthread.h>
 #include <vector>
-extern const double kPi;
+extern const double kPi; //Pi constant
 
-//Flags
-extern int GLOB_CAM_STATUS;
-extern int GLOB_RECONFIGURE;
-extern int GLOB_RUNNING;
-extern int GLOB_STOPPING;
+//Flags for server to communicate status.
+extern int GLOB_CAM_STATUS; // Overall camera status
+extern int GLOB_RECONFIGURE; // Do I need to reconfigure?
+extern int GLOB_RUNNING; // Am I running?
+extern int GLOB_STOPPING; // Do I need to stop?
 
 //Global Params
-extern int GLOB_NUMFRAMES;
-extern int GLOB_IMSIZE;
-extern int GLOB_WIDTH;
+extern int GLOB_NUMFRAMES; // Number of frames per FITS file
+extern int GLOB_IMSIZE; // Size of one image in pixels
+extern int GLOB_WIDTH; // Width of image in pixels
 
-//config_file
+//Main configuration file (TOML)
 extern char * GLOB_CONFIGFILE ;
 
-//Thread
+//Thread for running the camera
 extern pthread_t GLOB_CAMTHREAD;
 
-//Locks
+//pThread Locks
 extern pthread_mutex_t GLOB_FLAG_LOCK;
 extern pthread_mutex_t GLOB_LATEST_FILE_LOCK;
 extern pthread_mutex_t GLOB_LATEST_IMG_INDEX_LOCK;
 extern pthread_mutex_t *GLOB_IMG_MUTEX_ARRAY;
 
-// Image Array
+// Array of images (i.e Image buffer)
 extern unsigned short *GLOB_IMG_ARRAY;
 
-// Latest file/image
+// Latest filename/image
 extern std::string GLOB_LATEST_FILE ;
 extern int GLOB_LATEST_IMG_INDEX;
 
+//configuration struct of various camera parameters. Can be serialised to/from JSON
 struct configuration{
-    float gain; 
-    float exptime; 
-    int width; 
-    int height; 
-    int offsetX; 
-    int offsetY; 
-    float blacklevel;
-    int buffersize;
-    std::string savedir;
+    float gain; //Gain
+    float exptime; //Exposure time
+    int width;  //Width
+    int height;  //Height
+    int offsetX;  //X offset
+    int offsetY;  //Y offset
+    float blacklevel; //Black level
+    int buffersize; //Size of the circular buffer in units of frames
+    std::string savedir; //Save directory filename prefix
 };
 
+//Global configuration struct instance
 extern configuration GLOB_CONFIG_PARAMS;
 
+//Sinc function
 double sinc(double x);
 
 // Template function to replicate the np.arange function in Python

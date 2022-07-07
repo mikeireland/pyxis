@@ -14,17 +14,16 @@ using namespace std;
 /* Program to run the camera based on a configuration file
    given to it in "toml" format. It will take a certain number
    of frames, during which it will apply a function "CallbackFunc"
-   on each image as they are acquired. It then saves all of the image
-   data into a FITS file (the specifications of which are in the
-   configuration file.
-
-   ARGUMENT: name of config file (in config/) to apply
+   on each image as they are acquired. It then saves periodically a number 
+   of the image data into a FITS file (the specifications of which are 
+   in the configuration file.
 */
 
 
 /* A function that can be used to perform real time data analysis on a frame (eg Fringe Tracking)
    INPUTS:
       data - raw image data of a single frame
+   Returns 0 on regular exit, 1 if the stopping flag is set
 */
 int CallbackFunc (unsigned short* data){
 
@@ -34,28 +33,34 @@ int CallbackFunc (unsigned short* data){
     	GLOB_STOPPING = 0;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 		
-		return 0;
+		return 1;
 	
 	}
-
     cout << "I could be doing something with the data here..." << endl;
 
-    return 1;
+    return 0;
 }
 
+
+/* Function to reconfigure all parameters
+    INPUTS:
+       c - configuration (json) structure with all the values
+       Qcam - QHYCamera class 
+    Returns 0 on success, 1 on error
+*/
 int reconfigure(configuration c, QHYCamera& Qcam){
 
 	int ret_val = 0;
 
-	Qcam.ReconfigureAll(c.gain, c.exptime, c.width, c.height, c.offsetX, c.offsetY, c.blacklevel, c.buffersize, c.savedir);
+	ret_val = Qcam.ReconfigureAll(c.gain, c.exptime, c.width, c.height, c.offsetX, c.offsetY, c.blacklevel, c.buffersize, c.savedir);
 	
 	return ret_val;
 }
 
-
+/* Main pThread function to run the camera with a separate thread */ 
 void *runCam(void*) {
-//int main(int argc, char **argv) {
 	
+	// Cam status of 1 indicates camera is starting up
 	pthread_mutex_lock(&GLOB_FLAG_LOCK);
     GLOB_CAM_STATUS = 1;
     string config_file = GLOB_CONFIGFILE;
@@ -80,7 +85,6 @@ void *runCam(void*) {
     
 	//toml::table config;
     toml::table config = toml::parse_file(config_file);
-
 
 	SDKVersion();
 
@@ -114,6 +118,7 @@ void *runCam(void*) {
     	camFound = true;
     }
 
+    // Return if no camera is found
   	if (!camFound){
     	printf("The detected camera is not QHYCCD or other error.\n");
     	// release sdk resources
@@ -147,14 +152,15 @@ void *runCam(void*) {
     	pthread_exit(NULL);
     }
 
-        
+  	// Cam status of 2 indicates camera is waiting     
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     GLOB_CAM_STATUS = 2;
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 
-    
-
+    // Run a waiting loop as long as the camera remains "waiting"
     while (GLOB_CAM_STATUS==2){
+        
+        // Check if camera needs reconfiguring
     	if(GLOB_RECONFIGURE==1){
 
     		if (reconfigure(GLOB_CONFIG_PARAMS,Qcam)){
@@ -166,17 +172,19 @@ void *runCam(void*) {
     		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
     	}
     
+        // Check if camera needs to start acquisition
     	if(GLOB_RUNNING==1){
 
 		    int finish = 0;
-		    // How many frames to take?
 		    
+		    // How many frames to take?
 		    pthread_mutex_lock(&GLOB_FLAG_LOCK);
 		    unsigned long num_frames = GLOB_NUMFRAMES;
 		    pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 		    
 		    int SAVE_FLAG = 1;
 		    
+		    // No saving if num_frames = 0; continuous acquisition
 		    if(num_frames == 0){
 			    SAVE_FLAG = 0;
 			    num_frames = 100000;
@@ -194,10 +202,11 @@ void *runCam(void*) {
 		    
 		    while (finish == 0){
 		    
-			    // Acquire the images, saving them to "image_array", and call "CallbackFunc"
+			    // Acquire the images, saving them to GLOB_IMG_ARRAY, and call "CallbackFunc"
 			    // after each image is retrieved. CallbackFunc to return 1 when exiting!
 			    finish = Qcam.GrabFrames(num_frames, buffer_no, CallbackFunc);
 			    
+			    // Check if grabFrames returned an error
 			    if (finish == 2){
 			        printf("Error in Grab Frames");
     	            break;
@@ -214,6 +223,8 @@ void *runCam(void*) {
 				    
 				    save_no++;
 			    }
+			    
+			    // Index of the next available spot in the circular buffer
 			    buffer_no = (buffer_no+num_frames)%Qcam.buffer_size;
 		    }
 						    
@@ -226,13 +237,13 @@ void *runCam(void*) {
 		    free(GLOB_IMG_MUTEX_ARRAY);
 	    }
 	    
-	    sleep(2);
+	    sleep(2); // Sleep to save resources
 
 	}
 
-    Qcam.DeinitCamera();
+    Qcam.DeinitCamera(); // Deinit camera
 
-    // release sdk resources
+    // release SDK resources
     retVal = ReleaseQHYCCDResource();
     if (QHYCCD_SUCCESS == retVal){
       printf("SDK resources released.\n");

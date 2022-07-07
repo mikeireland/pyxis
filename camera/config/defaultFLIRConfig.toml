@@ -13,10 +13,10 @@ cam_ID = "20031596"
     gain = 0
     black_level = 0 #in percent
     exposure_time = 50000 # in microseconds
-    num_frames = 10
-    buffer_size = 10 #Set equal to numFrames unless concerned about memory
+    num_frames = 0 #Default number of frames to save per FITS file; 0 is continuous with no saving
+    buffer_size = 100 #Size of circular buffer
 
     [FLIRcamera.fits]
     bitpix = 32
-	filename_prefix = "data/test"
+	filename_prefix = "data/test" #Default "where to save" file prefix
 
