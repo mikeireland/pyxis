@@ -283,7 +283,6 @@ class PyxisGui(QTabWidget):
     def auto_updater(self):
         #self.refresh_status()
         self.refresh_camera_feeds()
-        print("hello")
         self.stimer.singleShot(refresh_time, self.auto_updater)
         return
 

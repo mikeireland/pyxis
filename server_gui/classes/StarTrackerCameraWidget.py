@@ -51,7 +51,7 @@ class StarTrackerCameraWidget(QWidget):
         self.line_edit.returnPressed.connect(self.command_enter)
 
         #Next, the info button
-        self.info_button = QPushButton("INFO", self)
+        self.info_button = QPushButton("Refresh", self)
         self.info_button.clicked.connect(self.info_click)
 
         hbox2 = QHBoxLayout()
@@ -152,7 +152,7 @@ class StarTrackerCameraWidget(QWidget):
         config_grid.addLayout(hbox3,2,2)
 
         hbox3 = QHBoxLayout()
-        lbl1 = QLabel('Buffer Size: ', self)
+        lbl1 = QLabel('Buffer Size (in frames): ', self)
         self.buffersize_edit = QLineEdit("")
         self.buffersize_edit.setFixedWidth(120)
         hbox3.addWidget(lbl1)
@@ -172,19 +172,19 @@ class StarTrackerCameraWidget(QWidget):
         hbox4.addSpacing(80)
 
         vbox3 = QVBoxLayout()
-
-        self.RefreshParams_button = QPushButton("Refresh Parameters", self)
+        """
+        self.RefreshParams_button = QPushButton("Refresh", self)
         self.RefreshParams_button.setFixedWidth(220)
         self.RefreshParams_button.clicked.connect(self.get_params)
         vbox3.addWidget(self.RefreshParams_button)
-
+        """
         self.Reconfigure_button = QPushButton("Reconfigure", self)
         self.Reconfigure_button.setFixedWidth(220)
         self.Reconfigure_button.clicked.connect(self.reconfigure_camera)
         vbox3.addWidget(self.Reconfigure_button)
 
         hbox3 = QHBoxLayout()
-        lbl1 = QLabel('Number of Frames: ', self)
+        lbl1 = QLabel('Number of frames per save: ', self)
         self.numframes_edit = QLineEdit("0")
         self.numframes_edit.setFixedWidth(100)
         hbox3.addWidget(lbl1)
@@ -254,11 +254,33 @@ class StarTrackerCameraWidget(QWidget):
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
-            self.send_to_server("FLIRCam.status")
+            response = self.socket.send_command("FLIRCam.status")
+            if response == '"Camera Not Connected!"':
+                self.Connect_button.setChecked(False)
+                self.run_button.setChecked(False)
+            elif response == '"Camera Connecting"':
+                self.Connect_button.setChecked(True)
+                self.run_button.setChecked(False)
+            elif response == '"Camera Reconfiguring"':
+                self.Connect_button.setChecked(True)
+                self.run_button.setChecked(False)
+            elif response == '"Camera Stopping"':
+                self.Connect_button.setChecked(True)
+                self.run_button.setChecked(False)
+            elif response == '"Camera Waiting"':
+                self.Connect_button.setChecked(True)
+                self.run_button.setChecked(False)  
+            else:
+                self.Connect_button.setChecked(True)
+                self.run_button.setChecked(True)    
+           
+            self.response_label.append(response)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
             self.get_params()
             
+ 
+                     
         else:
             self.status_light = "assets/red.svg"
             self.status_text = "Socket Not Connected"
@@ -367,10 +389,10 @@ class StarTrackerCameraWidget(QWidget):
                     self.Camera_button.setText("Start Feed")
             else:
                 self.Camera_button.setChecked(False)
-                print("CAMERA NOT RUNNING")
+                #print("CAMERA NOT RUNNING")
         else:
             self.Camera_button.setChecked(False)
-            print("CAMERA NOT CONNECTED")
+            #print("CAMERA NOT CONNECTED")
 
 
     def get_new_frame(self):
