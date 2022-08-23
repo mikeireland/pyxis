@@ -432,7 +432,6 @@ int QHYCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, i
                 if (result == 1){
 
                 	main_result = 2;
-                	delete(converted_data);
                     break;
                 }
             }
@@ -442,7 +441,6 @@ int QHYCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, i
             GLOB_LATEST_IMG_INDEX = current_index;
             pthread_mutex_unlock(&GLOB_LATEST_IMG_INDEX_LOCK);
             
-            delete(converted_data);
 
     	} else if(retVal != -1){
             printf("GetQHYCCDLiveFrame failure, error: %d\n", retVal);
