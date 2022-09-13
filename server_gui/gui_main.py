@@ -236,7 +236,7 @@ class PyxisGui(QTabWidget):
         self.stimer = QTimer()
 
         self.auto_updater()
-        
+
     def change_IPs(self, new_IPs):
         self.fsm_socket = ClientSocket(new_IPs["FSM"], self.FSM_port)
         for tab in config:
@@ -282,7 +282,6 @@ class PyxisGui(QTabWidget):
     #Function to auto update at a given rate
     def auto_updater(self):
         #self.refresh_status()
-        self.refresh_camera_feeds()
         self.stimer.singleShot(refresh_time, self.auto_updater)
         return
 
@@ -323,7 +322,7 @@ class PyxisGui(QTabWidget):
     #What happens when you click the info button
     def info_click(self):
         self.send_to_FSM_server("INFO")
-        
+
 
 
 app = QApplication(sys.argv)
@@ -386,7 +385,7 @@ ip_frame_ext.hide()
 pyxis_app = PyxisGui(pyx_IPs=IP_dict)
 
 def change_IP():
-    
+
     if IP_button.isChecked():
         print("Connecting to External IP")
         IP_button.setStyleSheet("QPushButton {background-color: #550000; border-color: #550000; color: #ffd740}")
@@ -394,8 +393,8 @@ def change_IP():
         ip_frame_int.hide()
         ip_frame_ext.show()
         pyxis_app.change_IPs(IP_dict["External"])
-        
-        
+
+
     else:
         print("Connecting to Internal IP")
         IP_button.setStyleSheet("QPushButton {background-color: #550000; border-color: #550000; color: #ffd740}")
@@ -403,7 +402,7 @@ def change_IP():
         ip_frame_ext.hide()
         ip_frame_int.show()
         pyxis_app.change_IPs(IP_dict["Internal"])
-        
+
 IP_button.clicked.connect(change_IP)
 vbox = QVBoxLayout(main)
 

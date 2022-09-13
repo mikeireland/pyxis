@@ -24,7 +24,8 @@ refresh_time = 0.5 #In seconds
     name = "DextraStarTracker"
     port = "4001"
     description = "Camera controls for the Dextra star tracker"
-    module_type = "StarTrackerCameraWidget"
+    module_type = "BaseCameraWidget"
+    feed_refresh_time = 2
 
     [Dextra.PowerSystem]
     tab_name = "Power System"
@@ -32,5 +33,6 @@ refresh_time = 0.5 #In seconds
     port = "4002"
     description = "Dextra power system + LED controls"
     module_type = "PowerControlWidget"
+
 
 [Sinistra]
