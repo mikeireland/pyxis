@@ -60,12 +60,30 @@ configuration getparams(){
 string reconfigure_all(configuration c){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    GLOB_CONFIG_PARAMS = c; // Set global variable from the input configuration (JSON) struct
-    GLOB_RECONFIGURE = 1;
+    if ((unsigned)(c.gain-GLOB_GAIN_MIN) > (GLOB_GAIN_MAX-GLOB_GAIN_MIN)){
+        ret_msg = "Gain out of bounds! Gain should be between "+ std::to_string(GLOB_GAIN_MIN) + " and " + std::to_string(GLOB_GAIN_MAX);
+    } else if ((unsigned)(c.exptime-GLOB_EXPTIME_MIN) > (GLOB_EXPTIME_MAX-GLOB_EXPTIME_MIN)){
+        ret_msg = "Exposure Time out of bounds! Exposure Time should be between "+ std::to_string(GLOB_EXPTIME_MIN) + " and " + std::to_string(GLOB_EXPTIME_MAX);
+    } else if ((unsigned)(c.width-GLOB_WIDTH_MIN) > (GLOB_WIDTH_MAX-GLOB_WIDTH_MIN)){
+        ret_msg = "Width out of bounds! Width should be between "+ std::to_string(GLOB_WIDTH_MIN) + " and " + std::to_string(GLOB_WIDTH_MAX);
+    } else if ((unsigned)(c.height-GLOB_HEIGHT_MIN) > (GLOB_HEIGHT_MAX-GLOB_HEIGHT_MIN)){
+        ret_msg = "Height out of bounds! Height should be between "+ std::to_string(GLOB_HEIGHT_MIN) + " and " + std::to_string(GLOB_HEIGHT_MAX);
+    } else if ((unsigned)(c.offsetX) > (GLOB_WIDTH_MAX-c.width)){
+        ret_msg = "X offset out of bounds! Offset X should be between 0 and " + std::to_string(GLOB_WIDTH_MAX-GLOB_CONFIG_PARAMS.width);
+    } else if ((unsigned)(c.offsetY) > (GLOB_HEIGHT_MAX-c.height)){
+        ret_msg = "Y offset out of bounds! Offset Y should be between 0 and " + std::to_string(GLOB_HEIGHT_MAX-GLOB_CONFIG_PARAMS.height);
+    } else if ((unsigned)(static_cast<double>(c.blacklevel)-GLOB_BLACKLEVEL_MIN) > (GLOB_BLACKLEVEL_MAX-GLOB_BLACKLEVEL_MIN)){
+        ret_msg = "Black Level out of bounds! Black level should be between "+ std::to_string(GLOB_BLACKLEVEL_MIN) + " and " + std::to_string(GLOB_BLACKLEVEL_MAX);
+    } else {
+        GLOB_CONFIG_PARAMS = c; // Set global variable from the input configuration (JSON) struct
+        GLOB_RECONFIGURE = 1;
+        ret_msg = "Camera Reconfigured";
+    }
+
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-	ret_msg = "Camera Reconfiguring";
     return ret_msg;
 }
+
 
 /* ##################################################### */
 
@@ -73,70 +91,99 @@ string reconfigure_all(configuration c){
 string reconfigure_gain(float gain){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    GLOB_CONFIG_PARAMS.gain = gain;
-    GLOB_RECONFIGURE = 1;
+    if ((unsigned)(gain-GLOB_GAIN_MIN) <= (GLOB_GAIN_MAX-GLOB_GAIN_MIN)){
+        GLOB_CONFIG_PARAMS.gain = gain;
+        GLOB_RECONFIGURE = 1;
+        ret_msg = "Camera Reconfigured Gain";
+    } else{
+        ret_msg = "Gain out of bounds! Gain should be between "+ std::to_string(GLOB_GAIN_MIN) + " and " + std::to_string(GLOB_GAIN_MAX);
+    }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-	ret_msg = "Camera Reconfiguring Gain";
+	
     return ret_msg;
 }
 
 string reconfigure_exptime(float exptime){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    GLOB_CONFIG_PARAMS.exptime = exptime;
-    GLOB_RECONFIGURE = 1;
+    if ((unsigned)(exptime-GLOB_EXPTIME_MIN) <= (GLOB_EXPTIME_MAX-GLOB_EXPTIME_MIN)){
+        GLOB_CONFIG_PARAMS.exptime = exptime;
+        GLOB_RECONFIGURE = 1;
+        ret_msg = "Camera Reconfigured Exposure Time";
+    } else{
+        ret_msg = "Exposure Time out of bounds! Exposure Time should be between "+ std::to_string(GLOB_EXPTIME_MIN) + " and " + std::to_string(GLOB_EXPTIME_MAX);
+    }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-	ret_msg = "Camera Reconfiguring Exposure Time";
     return ret_msg;
 }
 
 string reconfigure_width(int width){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    GLOB_CONFIG_PARAMS.width = width;
-    GLOB_RECONFIGURE = 1;
+    if ((unsigned)(width-GLOB_WIDTH_MIN) <= (GLOB_WIDTH_MAX-GLOB_WIDTH_MIN)){
+        GLOB_CONFIG_PARAMS.width = width;
+        GLOB_RECONFIGURE = 1;
+        ret_msg = "Camera Reconfigured Width";
+    } else{
+        ret_msg = "Width out of bounds! Width should be between "+ std::to_string(GLOB_WIDTH_MIN) + " and " + std::to_string(GLOB_WIDTH_MAX);
+    }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-	ret_msg = "Camera Reconfiguring Width";
     return ret_msg;
 }
 
 string reconfigure_height(int height){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    GLOB_CONFIG_PARAMS.height = height;
-    GLOB_RECONFIGURE = 1;
+    if ((unsigned)(height-GLOB_HEIGHT_MIN) <= (GLOB_HEIGHT_MAX-GLOB_HEIGHT_MIN)){
+        GLOB_CONFIG_PARAMS.height = height;
+        GLOB_RECONFIGURE = 1;
+        ret_msg = "Camera Reconfigured Height";
+    } else{
+        ret_msg = "Height out of bounds! Height should be between "+ std::to_string(GLOB_HEIGHT_MIN) + " and " + std::to_string(GLOB_HEIGHT_MAX);
+    }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-	ret_msg = "Camera Reconfiguring Height";
     return ret_msg;
 }
 
 string reconfigure_offsetX(int offsetX){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    GLOB_CONFIG_PARAMS.offsetX = offsetX;
-    GLOB_RECONFIGURE = 1;
+    if ((unsigned)(offsetX) <= (GLOB_WIDTH_MAX-GLOB_CONFIG_PARAMS.width)){
+        GLOB_CONFIG_PARAMS.offsetX = offsetX;
+        GLOB_RECONFIGURE = 1;
+        ret_msg = "Camera Reconfigured X offset";
+    } else{
+        ret_msg = "X offset out of bounds! Offset X should be between 0 and " + std::to_string(GLOB_WIDTH_MAX-GLOB_CONFIG_PARAMS.width);
+    }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-	ret_msg = "Camera Reconfiguring X offset";
     return ret_msg;
 }
 
 string reconfigure_offsetY(int offsetY){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    GLOB_CONFIG_PARAMS.offsetY = offsetY;
-    GLOB_RECONFIGURE = 1;
+    if ((unsigned)(offsetY) <= (GLOB_HEIGHT_MAX-GLOB_CONFIG_PARAMS.height)){
+        GLOB_CONFIG_PARAMS.offsetY = offsetY;
+        GLOB_RECONFIGURE = 1;
+        ret_msg = "Camera Reconfigured Y offset";
+    } else{
+        ret_msg = "Y offset out of bounds! Offset Y should be between 0 and " + std::to_string(GLOB_HEIGHT_MAX-GLOB_CONFIG_PARAMS.height);
+    }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-	ret_msg = "Camera Reconfiguring Y offset";
     return ret_msg;
 }
 
-string reconfigure_blacklevel(float blacklevel){
+string reconfigure_blacklevel(int blacklevel){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    GLOB_CONFIG_PARAMS.blacklevel = blacklevel;
-    GLOB_RECONFIGURE = 1;
+    if ((unsigned)(static_cast<double>(blacklevel)-GLOB_BLACKLEVEL_MIN) <= (GLOB_BLACKLEVEL_MAX-GLOB_BLACKLEVEL_MIN)){
+        GLOB_CONFIG_PARAMS.blacklevel = static_cast<float>(blacklevel);
+        GLOB_RECONFIGURE = 1;
+        ret_msg = "Camera Reconfigured Black Level";
+    } else{
+        ret_msg = "Black Level out of bounds! Black level should be between "+ std::to_string(GLOB_BLACKLEVEL_MIN) + " and " + std::to_string(GLOB_BLACKLEVEL_MAX);
+    }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-	ret_msg = "Camera Reconfiguring Black Level";
     return ret_msg;
 }
 
@@ -146,7 +193,7 @@ string reconfigure_buffersize(float buffersize){
     GLOB_CONFIG_PARAMS.buffersize = buffersize;
     GLOB_RECONFIGURE = 1;
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-	ret_msg = "Camera Reconfiguring Buffer Size";
+	ret_msg = "Camera Reconfigured Buffer Size";
     return ret_msg;
 }
 
@@ -156,10 +203,9 @@ string reconfigure_savedir(float savedir){
     GLOB_CONFIG_PARAMS.savedir = savedir;
     GLOB_RECONFIGURE = 1;
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-	ret_msg = "Camera Reconfiguring Save Directory";
+	ret_msg = "Camera Reconfigured Save Directory";
     return ret_msg;
 }
-
 /* ##################################################### */
 
 // Connect to a camera, by starting up the runCam pThread

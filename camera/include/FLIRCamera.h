@@ -22,16 +22,28 @@ class FLIRCamera {
         int width;
         int height;
 
+        int width_min;
+        int width_max;
+        
+        int height_min;
+        int height_max;
+
 		// Offset of ROI from top left corner
         int offset_x;
         int offset_y;
 
         // Exposure time of images
         int exposure_time;
+        
+        int exposure_time_min;
+        int exposure_time_max;
 
         // Software gain
         int gain;
-
+        
+        int gain_min;
+        int gain_max;
+        
         // Pixel format of images (Mono16)
         std::string pixel_format;
 
@@ -43,6 +55,9 @@ class FLIRCamera {
 
         // Set black level in percent
         double black_level;
+        double black_level_min;
+        double black_level_max;
+
 
         // Buffer size for image data
         unsigned int buffer_size;
@@ -73,7 +88,7 @@ class FLIRCamera {
         
         /* Function to reconfigure all parameters. Inputs are explanatory */
         void ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, 
-                            int new_offsetY, int new_blacklevel, int new_buffersize, std::string new_savedir);
+                            int new_offsetY, float new_blacklevel, int new_buffersize, std::string new_savedir);
 
 
 		/* Function to De-initialise camera. MUST CALL AFTER USING!!! */

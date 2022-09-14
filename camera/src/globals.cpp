@@ -16,6 +16,18 @@ int GLOB_NUMFRAMES = 0;
 int GLOB_IMSIZE = 0;
 int GLOB_WIDTH = 0;
 
+int GLOB_WIDTH_MAX = 0;
+int GLOB_WIDTH_MIN = 0;
+int GLOB_HEIGHT_MAX = 0;
+int GLOB_HEIGHT_MIN = 0;
+int GLOB_GAIN_MAX = 0;
+int GLOB_GAIN_MIN = 0;
+int GLOB_EXPTIME_MAX = 0;
+int GLOB_EXPTIME_MIN = 0;
+double GLOB_BLACKLEVEL_MAX = 0;
+double GLOB_BLACKLEVEL_MIN = 0;
+
+
 //config_file
 char* GLOB_CONFIGFILE = (char*)"./";
 

@@ -35,12 +35,27 @@ FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
     offset_y = config["camera"]["offset_y"].value_or(0);
     exposure_time = config["camera"]["exposure_time"].value_or(0);
     gain = config["camera"]["gain"].value_or(0);
+    
+    width_min = config["bounds"]["width"][0].value_or(0);    
+    width_max = config["bounds"]["width"][1].value_or(0);
+    
+    height_min = config["bounds"]["height"][0].value_or(0); 
+    height_max = config["bounds"]["height"][1].value_or(0); 
+    
+    exposure_time_min = config["bounds"]["exposure_time"][0].value_or(0);     
+    exposure_time_max = config["bounds"]["exposure_time"][1].value_or(0); 
+    
+    gain_min = config["bounds"]["gain"][0].value_or(0); 
+    gain_max = config["bounds"]["gain"][1].value_or(0); 
 
     pixel_format = "Mono16";
     acquisition_mode = "Continuous";
     adc_bit_depth = config["camera"]["adc_bit_depth"].value_or("");
 
-    black_level = config["camera"]["black_level"].value_or(0);
+    black_level = config["camera"]["black_level"].value_or(0.0);
+    black_level_min = config["bounds"]["black_level"][0].value_or(0.0);
+    black_level_max = config["bounds"]["black_level"][1].value_or(0.0);
+    
     buffer_size = config["camera"]["buffer_size"].value_or(0);
     imsize = width*height;
 
@@ -57,6 +72,7 @@ void FLIRCamera::InitCamera(){
     INodeMap& node_map = pCam->GetNodeMap();
 
     //Configure Camera
+    
     // Set width
     CIntegerPtr ptr_width = node_map.GetNode("Width");
     ptr_width->SetValue(width);
@@ -64,7 +80,7 @@ void FLIRCamera::InitCamera(){
     // Set height
     CIntegerPtr ptr_height = node_map.GetNode("Height");
     ptr_height->SetValue(height);
-
+    
     // Set x offset
     CIntegerPtr ptr_offset_x = node_map.GetNode("OffsetX");
     ptr_offset_x->SetValue(offset_x);
@@ -153,6 +169,18 @@ void FLIRCamera::InitCamera(){
     GLOB_CONFIG_PARAMS.blacklevel = black_level;
     GLOB_CONFIG_PARAMS.buffersize = buffer_size;
     GLOB_CONFIG_PARAMS.savedir = savefilename;
+    
+    GLOB_WIDTH_MAX = width_max;
+    GLOB_WIDTH_MIN = width_min;
+    GLOB_HEIGHT_MAX = height_max;
+    GLOB_HEIGHT_MIN = height_min;
+    GLOB_GAIN_MAX = gain_max;
+    GLOB_GAIN_MIN = gain_min;
+    GLOB_EXPTIME_MAX = exposure_time_max;
+    GLOB_EXPTIME_MIN = exposure_time_min;
+    GLOB_BLACKLEVEL_MAX = black_level_max;
+    GLOB_BLACKLEVEL_MIN = black_level_min;
+    
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 
 }
@@ -191,20 +219,20 @@ void FLIRCamera::ReconfigureInt(std::string parameter, int value){
 
 /* Function to reconfigure all parameters, both in the camera and in the class parameters. Inputs are explanatory */
 void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, 
-                                int new_offsetY, int new_blacklevel, int new_buffersize, string new_savedir){
+                                int new_offsetY, float new_blacklevel, int new_buffersize, string new_savedir){
 
     ReconfigureFloat("Gain",new_gain);
     gain = new_gain;
     ReconfigureFloat("ExposureTime",new_exptime);
     exposure_time = new_exptime;
-    ReconfigureInt("Width",new_width);
-    width = new_width;
-    ReconfigureInt("Height",new_height);
-    height = new_height;
     ReconfigureInt("OffsetX",new_offsetX);
     offset_x = new_offsetX;
     ReconfigureInt("OffsetY",new_offsetY);
     offset_y = new_offsetY;
+    ReconfigureInt("Width",new_width);
+    width = new_width;
+    ReconfigureInt("Height",new_height);
+    height = new_height;
     ReconfigureFloat("BlackLevel",new_blacklevel);
     black_level = new_blacklevel;
     buffer_size = new_buffersize;
@@ -344,9 +372,11 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
 	for(unsigned long i=0;i<num_images;i++){
 		current_index = (start_index + i)%buffer_size;
 		pthread_mutex_lock(&GLOB_IMG_MUTEX_ARRAY[current_index]);
-		memcpy(linear_image_array,GLOB_IMG_ARRAY+imsize*current_index,imsize*2);
+		memcpy(linear_image_array+imsize*i,GLOB_IMG_ARRAY+imsize*current_index,imsize*2);
 		pthread_mutex_unlock(&GLOB_IMG_MUTEX_ARRAY[current_index]);
 	}
+
+    
 
     // Define filepath and name for the FITS file
     string file_path = "!" + savefilename + ".fits";
@@ -411,6 +441,11 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
     // Write gain
     if ( fits_write_key(fptr, TINT, "GAIN", &gain,
          "Software Gain (dB)", &status) )
+         return( status );
+         
+    // Write black level
+    if ( fits_write_key(fptr, TDOUBLE, "BLACK LEVEL", &black_level,
+         "Black Level (ADU?)", &status) )
          return( status );
 
     // Write height

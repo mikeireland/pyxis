@@ -296,17 +296,21 @@ class StarTrackerCameraWidget(QWidget):
         if (self.socket.connected):
 
             response = self.socket.send_command("FLIRCam.getparams")
-            response_dict = json.loads(response)
-            self.width_edit.setText(str(response_dict["width"]))
-            self.height_edit.setText(str(response_dict["height"]))
-            self.xoffset_edit.setText(str(response_dict["offsetX"]))
-            self.yoffset_edit.setText(str(response_dict["offsetY"]))
-            self.expT_edit.setText(str(response_dict["exptime"]))
-            self.gain_edit.setText(str(response_dict["gain"]))
-            self.BL_edit.setText(str(response_dict["blacklevel"]))
-            self.buffersize_edit.setText(str(response_dict["buffersize"]))
-            self.save_dir_line_edit.setText(str(response_dict["savedir"]))
             
+            if response.startswith("Error receiving response, connection lost"):
+            	print(response)
+            else:
+	            response_dict = json.loads(response)
+	            self.width_edit.setText(str(response_dict["width"]))
+	            self.height_edit.setText(str(response_dict["height"]))
+	            self.xoffset_edit.setText(str(response_dict["offsetX"]))
+	            self.yoffset_edit.setText(str(response_dict["offsetY"]))
+	            self.expT_edit.setText(str(response_dict["exptime"]))
+	            self.gain_edit.setText(str(response_dict["gain"]))
+	            self.BL_edit.setText(str(response_dict["blacklevel"]))
+	            self.buffersize_edit.setText(str(response_dict["buffersize"]))
+	            self.save_dir_line_edit.setText(str(response_dict["savedir"]))
+                    
             
     def connect_camera(self):
 
@@ -334,6 +338,7 @@ class StarTrackerCameraWidget(QWidget):
                 print("Camera currently running!")
             else:
                 response_dict = {}
+                
                 response_dict["width"] = int(self.width_edit.text())
                 response_dict["height"] = int(self.height_edit.text())
                 response_dict["offsetX"] = int(self.xoffset_edit.text())

@@ -52,7 +52,7 @@ int reconfigure(configuration c, QHYCamera& Qcam){
 
 	int ret_val = 0;
 
-	ret_val = Qcam.ReconfigureAll(c.gain, c.exptime, c.width, c.height, c.offsetX, c.offsetY, c.blacklevel, c.buffersize, c.savedir);
+	ret_val = Qcam.ReconfigureAll(c.gain, c.exptime, c.width, c.height, c.offsetX, c.offsetY, static_cast<int>(c.blacklevel), c.buffersize, c.savedir);
 	
 	return ret_val;
 }

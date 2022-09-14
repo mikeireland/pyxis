@@ -8,12 +8,19 @@ IP = "192.168.1.4"
     height = 50
     offset_x = 50
     offset_y = 50
-    gain = 5
+    gain = 5 
     gamma = 1.0
     black_level = 5 # Black level offset in ADU
     exposure_time = 200000 # in microseconds
     num_frames = 500 #Default number of frames to save per FITS file; 0 is continuous with no saving
-    buffer_size = 10 #Size of circular buffer
+    buffer_size = 200 #Size of circular buffer
+
+    [QHYcamera.bounds]
+    width = [32,2048]
+    height = [32,2048]
+    gain = [0,200]
+    black_level = [0,20]
+    exposure_time = [30,299000000]
 
     [QHYcamera.fits]
     bitpix = 32

@@ -25,6 +25,12 @@ class QHYCamera {
         // Dimensions of image
         unsigned int width;
         unsigned int height;
+        
+        int width_min;
+        int width_max;
+        
+        int height_min;
+        int height_max;
 
         // Offset of ROI from top left corner
         unsigned int offset_x;
@@ -32,15 +38,24 @@ class QHYCamera {
 
         // Exposure time of images
         int exposure_time;
+        
+        int exposure_time_min;
+        int exposure_time_max;
 
         // Software gain
         int gain;
+   
+        int gain_min;
+        int gain_max;   
         
         // Software gain
         double gamma;
 
-        // Set black level in percent
+        // Set black level in ADU
         int black_level;
+        
+        int black_level_min;
+        int black_level_max;
 
         // Pixel format of images (8 or 16) [16]
         int pixel_format;

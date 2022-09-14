@@ -76,12 +76,26 @@ QHYCamera::QHYCamera(qhyccd_handle *pCam_init, toml::table config_init){
     height = config["camera"]["height"].value_or(0);
     offset_x = config["camera"]["offset_x"].value_or(0);
     offset_y = config["camera"]["offset_y"].value_or(0);
-    
     exposure_time = config["camera"]["exposure_time"].value_or(0);
-    gain = config["camera"]["gain"].value_or(0);
+    gain = config["camera"]["gain"].value_or(0);   
+    
+    width_min = config["bounds"]["width"][0].value_or(0);    
+    width_max = config["bounds"]["width"][1].value_or(0);
+    
+    height_min = config["bounds"]["height"][0].value_or(0); 
+    height_max = config["bounds"]["height"][1].value_or(0); 
+    
+    exposure_time_min = config["bounds"]["exposure_time"][0].value_or(0);     
+    exposure_time_max = config["bounds"]["exposure_time"][1].value_or(0); 
+    
+    gain_min = config["bounds"]["gain"][0].value_or(0); 
+    gain_max = config["bounds"]["gain"][1].value_or(0);     
+
     gamma = config["camera"]["gamma"].value_or(1.0);
     black_level = config["camera"]["black_level"].value_or(0);
-
+    black_level_max = config["bounds"]["black_level"][0].value_or(0);
+    black_level_min = config["bounds"]["black_level"][1].value_or(0);
+    
     pixel_format = 16;
     acquisition_mode = 1;
     readout_mode = config["camera"]["readout_mode"].value_or(2);
@@ -255,9 +269,21 @@ int QHYCamera::InitCamera(){
     GLOB_CONFIG_PARAMS.height = height;
     GLOB_CONFIG_PARAMS.offsetX = offset_x;
     GLOB_CONFIG_PARAMS.offsetY = offset_y;
-    GLOB_CONFIG_PARAMS.blacklevel = black_level;
+    GLOB_CONFIG_PARAMS.blacklevel = static_cast<float>(black_level);
     GLOB_CONFIG_PARAMS.buffersize = buffer_size;
     GLOB_CONFIG_PARAMS.savedir = savefilename;
+    
+    GLOB_WIDTH_MAX = width_max;
+    GLOB_WIDTH_MIN = width_min;
+    GLOB_HEIGHT_MAX = height_max;
+    GLOB_HEIGHT_MIN = height_min;
+    GLOB_GAIN_MAX = gain_max;
+    GLOB_GAIN_MIN = gain_min;
+    GLOB_EXPTIME_MAX = exposure_time_max;
+    GLOB_EXPTIME_MIN = exposure_time_min;
+    GLOB_BLACKLEVEL_MAX = static_cast<double>(black_level_max);
+    GLOB_BLACKLEVEL_MIN = static_cast<double>(black_level_min);    
+    
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
     
     return 0;
@@ -501,7 +527,7 @@ int QHYCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
 	for(unsigned long i=0;i<num_images;i++){
 		current_index = (start_index + i)%buffer_size;
 		pthread_mutex_lock(&GLOB_IMG_MUTEX_ARRAY[current_index]);
-		memcpy(linear_image_array,GLOB_IMG_ARRAY+imsize*current_index,imsize*2);
+		memcpy(linear_image_array+imsize*i,GLOB_IMG_ARRAY+imsize*current_index,imsize*2);
 		pthread_mutex_unlock(&GLOB_IMG_MUTEX_ARRAY[current_index]);
 	}
 
@@ -564,7 +590,12 @@ int QHYCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
 
     // Write gain
     if ( fits_write_key(fptr, TINT, "GAIN", &gain,
-         "Software Gain (dB)", &status) )
+         "Software Gain (-)", &status) )
+         return( status );
+         
+    // Write black level
+    if ( fits_write_key(fptr, TINT, "BLACK LEVEL", &black_level,
+         "Black Level (ADU)", &status) )
          return( status );
 
     // Write height

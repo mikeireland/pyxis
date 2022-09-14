@@ -17,6 +17,17 @@ extern int GLOB_NUMFRAMES; // Number of frames per FITS file
 extern int GLOB_IMSIZE; // Size of one image in pixels
 extern int GLOB_WIDTH; // Width of image in pixels
 
+extern int GLOB_WIDTH_MAX;
+extern int GLOB_WIDTH_MIN;
+extern int GLOB_HEIGHT_MAX;
+extern int GLOB_HEIGHT_MIN;
+extern int GLOB_GAIN_MAX;
+extern int GLOB_GAIN_MIN;
+extern int GLOB_EXPTIME_MAX;
+extern int GLOB_EXPTIME_MIN;
+extern double GLOB_BLACKLEVEL_MAX;
+extern double GLOB_BLACKLEVEL_MIN;
+
 //Main configuration file (TOML)
 extern char * GLOB_CONFIGFILE ;
 

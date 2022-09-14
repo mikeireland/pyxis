@@ -22,26 +22,42 @@ except:
 try:
     from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, \
         QVBoxLayout, QGridLayout, QLabel, QLineEdit, QTextEdit, QProgressBar
-    from PyQt5.QtCore import QTimer
-    from PyQt5.QtGui import QPixmap, QFont, QImage
+    from PyQt5.QtCore import QTimer, QPoint, Qt
+    from PyQt5.QtGui import QPixmap, QFont, QImage, QPainter
     from PyQt5.QtSvg import QSvgWidget
 except:
     print("Please install PyQt5.")
     raise UserWarning
 
+class FeedLabel(QLabel):
+    def __init__(self, img):
+        super(FeedLabel, self).__init__()
+        self.pixmap = QPixmap(img)
+
+    def paintEvent(self, event):
+        size = self.size()
+        painter = QPainter(self)
+        point = QPoint(0,0)
+        scaledPix = self.pixmap.scaled(size, Qt.KeepAspectRatio, transformMode = Qt.SmoothTransformation)
+        # start painting the label from left upper corner
+        point.setX((size.width() - scaledPix.width())/2)
+        point.setY((size.height() - scaledPix.height())/2)
+        painter.drawPixmap(point, scaledPix)
+        
+    def changePixmap(self, img):
+        self.pixmap = QPixmap(img)
+        self.repaint()
+
 class FeedWindow(QWidget):
-    def __init__(self):
+    def __init__(self, name):
         super(FeedWindow, self).__init__()
 
         # Label
+        self.resize(900, 500)
+        self.setWindowTitle("%s Camera Feed"%name)
         hbox = QHBoxLayout()
-        self.cam_feed = QLabel(self)
-        self.cam_feed.setText('Sub Window')
+        self.cam_feed = FeedLabel("assets/camtest1.png")
 
-        self.cam_feed.setStyleSheet("padding: 30")
-        self.cam_qpix = QPixmap()
-        self.cam_qpix.load("assets/camtest1.png")
-        self.cam_feed.setPixmap(self.cam_qpix.scaledToWidth(300))
         hbox.addWidget(self.cam_feed)
         hbox.addSpacing(50)
 
@@ -77,7 +93,12 @@ class FeedWindow(QWidget):
         self.image_func = self.asinh_func
 
     def asinh_func(self,image):
-        return
+        A = 16
+        B = 16
+        bias = 0
+        noise = 1
+        mike = np.arcsinh( A* (image - bias)/noise) + B
+        return mike
 
     def linear_func(self,image):
         return image
@@ -85,10 +106,10 @@ class FeedWindow(QWidget):
 
 
 
-class StarTrackerCameraWidget(QWidget):
+class BaseCameraWidget(QWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
 
-        super(StarTrackerCameraWidget,self).__init__(parent)
+        super(BaseCameraWidget,self).__init__(parent)
 
         self.name = config["name"]
         self.port = config["port"]
@@ -223,12 +244,12 @@ class StarTrackerCameraWidget(QWidget):
         config_grid.addLayout(hbox3,2,2)
 
         hbox3 = QHBoxLayout()
-        lbl1 = QLabel('Save Skip Frames: ', self)
-        self.skipframes_edit = QLineEdit("")
-        self.skipframes_edit.setFixedWidth(120)
+        lbl1 = QLabel('Buffer size: ', self)
+        self.buffersize_edit = QLineEdit("")
+        self.buffersize_edit.setFixedWidth(120)
         hbox3.addWidget(lbl1)
         hbox3.addSpacing(10)
-        hbox3.addWidget(self.skipframes_edit)
+        hbox3.addWidget(self.buffersize_edit)
         hbox3.addSpacing(20)
         config_grid.addLayout(hbox3,0,2)
 
@@ -284,7 +305,7 @@ class StarTrackerCameraWidget(QWidget):
         hbox3.addWidget(self.Reconfigure_button)
         vbox2.addLayout(hbox3)
 
-        self.feed_window = FeedWindow()
+        self.feed_window = FeedWindow(self.name)
 
         hbox3 = QHBoxLayout()
         self.Camera_button = QPushButton("Start Feed", self)
@@ -332,19 +353,25 @@ class StarTrackerCameraWidget(QWidget):
                 self.run_button.setChecked(False)
             elif response == '"Camera Connecting"':
                 self.Connect_button.setChecked(True)
+                self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
             elif response == '"Camera Reconfiguring"':
                 self.Connect_button.setChecked(True)
+                self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
             elif response == '"Camera Stopping"':
                 self.Connect_button.setChecked(True)
+                self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
             elif response == '"Camera Waiting"':
                 self.Connect_button.setChecked(True)
+                self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
             else:
                 self.Connect_button.setChecked(True)
+                self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(True)
+                self.run_button.setText("Stop Camera")
 
             self.response_label.append(response)
             self.status_text = "Socket Connected"
@@ -366,16 +393,20 @@ class StarTrackerCameraWidget(QWidget):
         if (self.socket.connected):
 
             response = self.socket.send_command("FLIRCam.getparams")
-            response_dict = json.loads(response)
-            self.width_edit.setText(str(response_dict["width"]))
-            self.height_edit.setText(str(response_dict["height"]))
-            self.xoffset_edit.setText(str(response_dict["offsetX"]))
-            self.yoffset_edit.setText(str(response_dict["offsetY"]))
-            self.expT_edit.setText(str(response_dict["exptime"]))
-            self.gain_edit.setText(str(response_dict["gain"]))
-            self.BL_edit.setText(str(response_dict["blacklevel"]))
-            self.buffersize_edit.setText(str(response_dict["buffersize"]))
-            self.save_dir_line_edit.setText(str(response_dict["savedir"]))
+            
+            if response.startswith("Error receiving response, connection lost"):
+            	print(response)
+            else:
+	            response_dict = json.loads(response)
+	            self.width_edit.setText(str(response_dict["width"]))
+	            self.height_edit.setText(str(response_dict["height"]))
+	            self.xoffset_edit.setText(str(response_dict["offsetX"]))
+	            self.yoffset_edit.setText(str(response_dict["offsetY"]))
+	            self.expT_edit.setText(str(response_dict["exptime"]))
+	            self.gain_edit.setText(str(response_dict["gain"]))
+	            self.BL_edit.setText(str(response_dict["blacklevel"]))
+	            self.buffersize_edit.setText(str(response_dict["buffersize"]))
+	            self.save_dir_line_edit.setText(str(response_dict["savedir"]))
 
     #Function to auto update at a given rate
     def auto_updater(self):
@@ -475,17 +506,17 @@ class StarTrackerCameraWidget(QWidget):
 
     def get_new_frame(self):
         j = random.randint(1, 6)
-        #response = self.socket.send_command("FLIRCam.getlatestimage")
-        #data = json.loads(json.loads(response))
-        #img_data = np.array(data["Image"]["data"])
-        #img_data = (img_data/256).astype(np.uint8)
-        #img_data = self.feed_window.image_func(img_data)
-        #qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Indexed8)
+        #self.feed_window.cam_feed.changePixmap("assets/camtest%s.png"%j)
+        response = self.socket.send_command("FLIRCam.getlatestimage")
+        data = json.loads(json.loads(response))
+        img_data = np.array(data["Image"]["data"])
+        img_data = img_data/256
+        img_data = self.feed_window.image_func(img_data)
+        img_data = img_data.astype(np.uint8)
+        qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Indexed8)
         ##########
-
-        #self.cam_qpix = QPixmap.fromImage(qimg)
-        self.feed_window.cam_qpix.load("assets/camtest%s.png"%j)
-        self.feed_window.cam_feed.setPixmap(self.feed_window.cam_qpix.scaledToWidth(300))
+        self.feed_window.cam_feed.changePixmap(qimg)
+        
 
 
     def info_click(self):
