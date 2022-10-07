@@ -225,14 +225,16 @@ void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, in
     gain = new_gain;
     ReconfigureFloat("ExposureTime",new_exptime);
     exposure_time = new_exptime;
-    ReconfigureInt("OffsetX",new_offsetX);
-    offset_x = new_offsetX;
-    ReconfigureInt("OffsetY",new_offsetY);
-    offset_y = new_offsetY;
+    ReconfigureInt("OffsetX",0); //Prevent Crashing
+    ReconfigureInt("OffsetY",0); // Prevent Crashing
     ReconfigureInt("Width",new_width);
     width = new_width;
     ReconfigureInt("Height",new_height);
     height = new_height;
+    ReconfigureInt("OffsetX",new_offsetX);
+    offset_x = new_offsetX;
+    ReconfigureInt("OffsetY",new_offsetY);
+    offset_y = new_offsetY;
     ReconfigureFloat("BlackLevel",new_blacklevel);
     black_level = new_blacklevel;
     buffer_size = new_buffersize;
@@ -367,6 +369,7 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
 	cout << imsize <<endl;
 	linear_image_array = (unsigned short*)malloc(sizeof(unsigned short)*imsize*num_images);
 	
+
 	// Fill "saving" array with images
 	unsigned long current_index;
 	for(unsigned long i=0;i<num_images;i++){
@@ -382,9 +385,21 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
     string file_path = "!" + savefilename + ".fits";
 
     // Configure FITS file
-    int bitpix = config["fits"]["bitpix"].value_or(16);
+    int bitpix = config["fits"]["bitpix"].value_or(20);
     long naxis = 3; // 2D image over time
     long naxes[3] = {width, height, num_images};
+    
+    
+    //Coadd frames?
+    if(GLOB_COADD){
+        cout << "Start Coadd" << endl;
+	    for(unsigned long i=0;i<imsize;i++){
+	        for(unsigned long j=1;j<num_images;j++){
+	            linear_image_array[i] += linear_image_array[i+j*imsize];
+	        }
+	    }
+        naxes[2] = 1;
+    }
 
     // Initialize status before calling fitsio routines
     int status = 0;
@@ -418,15 +433,27 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
          "Timestamp of beginning of exposure UTC", &status) )
          return( status );
 
-    // Write starting time in UTC
+    // Write pixel format
     if ( fits_write_key(fptr, TSTRING, "PIXEL FORMAT", pix_format,
          "Pixel Format", &status) )
          return( status );
 
-    // Write starting time in UTC
+    // Write ADC Bit Depth
     if ( fits_write_key(fptr, TSTRING, "ADC BIT DEPTH", adc,
          "ADC Bit Depth", &status) )
          return( status );
+         
+    // Write Coadd Flag
+    if ( fits_write_key(fptr, TINT, "COADD_FLAG", &GLOB_COADD,
+         "Coadded Image Flag", &status) )
+         return( status );
+    
+    if(GLOB_COADD){     
+        // Number of frames coadded
+        if ( fits_write_key(fptr, TINT, "COADD_NUM", &num_images,
+             "Number of coadded images", &status) )
+             return( status );
+    }
 
     // Write individual exposure time
     if ( fits_write_key(fptr, TINT, "FRAMEEXPOSURE", &exposure_time,

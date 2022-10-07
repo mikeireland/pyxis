@@ -23,5 +23,5 @@ IP = "192.168.1.4"
     exposure_time = [30,299000000]
 
     [QHYcamera.fits]
-    bitpix = 32
+    bitpix = 20 #USHORT_IMG = 20, not 16!
 	filename_prefix = "data/test" #Default "where to save" file prefix

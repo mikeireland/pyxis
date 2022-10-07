@@ -64,15 +64,15 @@ string reconfigure_all(configuration c){
         ret_msg = "Gain out of bounds! Gain should be between "+ std::to_string(GLOB_GAIN_MIN) + " and " + std::to_string(GLOB_GAIN_MAX);
     } else if ((unsigned)(c.exptime-GLOB_EXPTIME_MIN) > (GLOB_EXPTIME_MAX-GLOB_EXPTIME_MIN)){
         ret_msg = "Exposure Time out of bounds! Exposure Time should be between "+ std::to_string(GLOB_EXPTIME_MIN) + " and " + std::to_string(GLOB_EXPTIME_MAX);
-    } else if ((unsigned)(c.width-GLOB_WIDTH_MIN) > (GLOB_WIDTH_MAX-GLOB_WIDTH_MIN)){
-        ret_msg = "Width out of bounds! Width should be between "+ std::to_string(GLOB_WIDTH_MIN) + " and " + std::to_string(GLOB_WIDTH_MAX);
-    } else if ((unsigned)(c.height-GLOB_HEIGHT_MIN) > (GLOB_HEIGHT_MAX-GLOB_HEIGHT_MIN)){
-        ret_msg = "Height out of bounds! Height should be between "+ std::to_string(GLOB_HEIGHT_MIN) + " and " + std::to_string(GLOB_HEIGHT_MAX);
-    } else if ((unsigned)(c.offsetX) > (GLOB_WIDTH_MAX-c.width)){
-        ret_msg = "X offset out of bounds! Offset X should be between 0 and " + std::to_string(GLOB_WIDTH_MAX-GLOB_CONFIG_PARAMS.width);
-    } else if ((unsigned)(c.offsetY) > (GLOB_HEIGHT_MAX-c.height)){
-        ret_msg = "Y offset out of bounds! Offset Y should be between 0 and " + std::to_string(GLOB_HEIGHT_MAX-GLOB_CONFIG_PARAMS.height);
-    } else if ((unsigned)(static_cast<double>(c.blacklevel)-GLOB_BLACKLEVEL_MIN) > (GLOB_BLACKLEVEL_MAX-GLOB_BLACKLEVEL_MIN)){
+    } else if (((unsigned)(c.width-GLOB_WIDTH_MIN) > (GLOB_WIDTH_MAX-GLOB_WIDTH_MIN)) || (c.width % 4 > 0)){
+        ret_msg = "Width out of bounds! Width should be a multiple of 4 and between "+ std::to_string(GLOB_WIDTH_MIN) + " and " + std::to_string(GLOB_WIDTH_MAX);
+    } else if (((unsigned)(c.height-GLOB_HEIGHT_MIN) > (GLOB_HEIGHT_MAX-GLOB_HEIGHT_MIN)) || (c.height % 4 > 0)){
+        ret_msg = "Height out of bounds! Height should be a multiple of 4 and between "+ std::to_string(GLOB_HEIGHT_MIN) + " and " + std::to_string(GLOB_HEIGHT_MAX);
+    } else if (((unsigned)(c.offsetX) > (GLOB_WIDTH_MAX-c.width)) || (c.offsetX % 4 > 0)){
+        ret_msg = "X offset out of bounds! Offset X should be a multiple of 4 and between 0 and " + std::to_string(GLOB_WIDTH_MAX-c.width);
+    } else if (((unsigned)(c.offsetY) > (GLOB_HEIGHT_MAX-c.height)) || (c.offsetY % 4 > 0)){
+        ret_msg = "Y offset out of bounds! Offset Y should be a multiple of 4 and between 0 and " + std::to_string(GLOB_HEIGHT_MAX-c.height);
+    } else if ((unsigned)(c.blacklevel-GLOB_BLACKLEVEL_MIN) > (GLOB_BLACKLEVEL_MAX-GLOB_BLACKLEVEL_MIN)){
         ret_msg = "Black Level out of bounds! Black level should be between "+ std::to_string(GLOB_BLACKLEVEL_MIN) + " and " + std::to_string(GLOB_BLACKLEVEL_MAX);
     } else {
         GLOB_CONFIG_PARAMS = c; // Set global variable from the input configuration (JSON) struct
@@ -148,12 +148,12 @@ string reconfigure_height(int height){
 string reconfigure_offsetX(int offsetX){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    if ((unsigned)(offsetX) <= (GLOB_WIDTH_MAX-GLOB_CONFIG_PARAMS.width)){
+    if (((unsigned)(offsetX) <= (GLOB_WIDTH_MAX-GLOB_CONFIG_PARAMS.width)) || (offsetX % 4 > 0)){
         GLOB_CONFIG_PARAMS.offsetX = offsetX;
         GLOB_RECONFIGURE = 1;
         ret_msg = "Camera Reconfigured X offset";
     } else{
-        ret_msg = "X offset out of bounds! Offset X should be between 0 and " + std::to_string(GLOB_WIDTH_MAX-GLOB_CONFIG_PARAMS.width);
+        ret_msg = "X offset out of bounds! Offset X should be a multiple of 4 and between 0 and " + std::to_string(GLOB_WIDTH_MAX-GLOB_CONFIG_PARAMS.width);
     }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
     return ret_msg;
@@ -162,12 +162,12 @@ string reconfigure_offsetX(int offsetX){
 string reconfigure_offsetY(int offsetY){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    if ((unsigned)(offsetY) <= (GLOB_HEIGHT_MAX-GLOB_CONFIG_PARAMS.height)){
+    if (((unsigned)(offsetY) <= (GLOB_HEIGHT_MAX-GLOB_CONFIG_PARAMS.height)) || (offsetY % 4 > 0)){
         GLOB_CONFIG_PARAMS.offsetY = offsetY;
         GLOB_RECONFIGURE = 1;
         ret_msg = "Camera Reconfigured Y offset";
     } else{
-        ret_msg = "Y offset out of bounds! Offset Y should be between 0 and " + std::to_string(GLOB_HEIGHT_MAX-GLOB_CONFIG_PARAMS.height);
+        ret_msg = "Y offset out of bounds! Offset Y should be a multiple of 4 and between 0 and " + std::to_string(GLOB_HEIGHT_MAX-GLOB_CONFIG_PARAMS.height);
     }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
     return ret_msg;
@@ -312,7 +312,7 @@ string getlatestfilename(){
 }
 
 // Get the latest image data from the camera thread
-string getlatestimage(){
+string getlatestimage(int compression, int binning){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
 		if(GLOB_RUNNING == 1){
@@ -336,10 +336,17 @@ string getlatestimage(){
                 // Make OpenCV matrix from image array
 				cv::Mat mat (height,GLOB_WIDTH,CV_16U,ret_image_array);
 
-                //cv::Mat compressed_mat = mat / 256;
+                mat.convertTo(mat, CV_8U, 1/256.0); // CONVERT TO 8 BIT
                 
-                // Convert data to vector
-                std::vector<unsigned short> array;
+                // Compress and Convert data to vector
+                std::vector<uchar> array;
+                std::vector<int> param(2);
+                param[0] = cv::IMWRITE_PNG_COMPRESSION;
+                param[1] = compression;// COMPRESSION 0-9
+                cv::imencode(".png", mat, array, param);
+                
+                
+                /* USE IF NO COMPRESSION!
                 if (mat.isContinuous()) {
                   // array.assign((float*)mat.datastart, (float*)mat.dataend); // <- has problems for sub-matrix like mat = big_mat.row(i)
                   array.assign((unsigned short*)mat.data, (unsigned short*)mat.data + mat.total()*mat.channels());
@@ -348,19 +355,7 @@ string getlatestimage(){
                     array.insert(array.end(), mat.ptr<unsigned short>(i), mat.ptr<unsigned short>(i)+mat.cols*mat.channels());
                   }
                 }
-                /*
-                std::vector<uchar> array;
-                if (compressed_mat.isContinuous()) {
-                  // array.assign(mat.datastart, mat.dataend); // <- has problems for sub-matrix like mat = big_mat.row(i)
-                  array.assign(compressed_mat.data, compressed_mat.data + compressed_mat.total()*compressed_mat.channels());
-                } else {
-                  for (int i = 0; i < mat.rows; ++i) {
-                    array.insert(array.end(), compressed_mat.ptr<uchar>(i), compressed_mat.ptr<uchar>(i)+compressed_mat.cols*compressed_mat.channels());
-                  }
-                }*/
-                  
-                cout << array[0] << endl;
-
+                */
                 //Turn into a JSON array for sending
                 json j;
                 j["Image"]["rows"] = mat.rows;

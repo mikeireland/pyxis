@@ -535,7 +535,7 @@ int QHYCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
     string file_path = "!" + savefilename + ".fits";
 
     // Configure FITS file
-    int bitpix = config["fits"]["bitpix"].value_or(16);
+    int bitpix = config["fits"]["bitpix"].value_or(20);
     long naxis = 3; // 2D image over time
     long naxes[3] = {width, height, num_images};
 

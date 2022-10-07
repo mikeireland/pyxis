@@ -5,6 +5,7 @@ import time
 import random
 import json
 import numpy as np
+import cv2 
 
 try:
     try:
@@ -57,11 +58,22 @@ class FeedWindow(QWidget):
         self.setWindowTitle("%s Camera Feed"%name)
         hbox = QHBoxLayout()
         self.cam_feed = FeedLabel("assets/camtest1.png")
+        self.binning_flag = 0
+
 
         hbox.addWidget(self.cam_feed)
         hbox.addSpacing(50)
 
         vbox = QVBoxLayout()
+        hbox2 = QHBoxLayout()
+        self.binning_button = QPushButton("Binning", self)
+        self.binning_button.setCheckable(True)
+        self.binning_button.setFixedWidth(200)
+        self.binning_button.clicked.connect(self.set_binning)
+        hbox2.addWidget(self.binning_button)
+        vbox.addLayout(hbox2)
+        
+        
         hbox2 = QHBoxLayout()
         self.linear_button = QPushButton("Linear Scaling", self)
         self.linear_button.setCheckable(True)
@@ -82,6 +94,12 @@ class FeedWindow(QWidget):
         self.setLayout(hbox)
         self.image_func = self.linear_func
 
+    def set_binning(self):
+        if self.binning_button.isChecked():
+            self.binning_flag = 1
+        else:
+            self.binning_flag = 0
+
     def set_linear_func(self):
         self.linear_button.setChecked(True)
         self.asinh_button.setChecked(False)
@@ -95,10 +113,10 @@ class FeedWindow(QWidget):
     def asinh_func(self,image):
         A = 16
         B = 16
-        bias = 0
-        noise = 1
-        mike = np.arcsinh( A* (image - bias)/noise) + B
-        return mike
+        bias = np.percentile(image[0:3],30)
+        noise = 1.48*np.median(image[0:3]-bias)
+        scaled = np.arcsinh( A* (image - bias)/noise) + B
+        return scaled
 
     def linear_func(self,image):
         return image
@@ -115,6 +133,9 @@ class BaseCameraWidget(QWidget):
         self.port = config["port"]
         self.socket = ClientSocket(IP=IP, Port=self.port)
         self.feed_refresh_time = config["feed_refresh_time"]*1000
+        self.compression_param = config["compression_param"]
+
+        print(self.feed_refresh_time)
 
         #Layout the common elements
         vBoxlayout = QVBoxLayout()
@@ -266,6 +287,7 @@ class BaseCameraWidget(QWidget):
 
         vbox4.addLayout(config_grid)
 
+        vbox4.addSpacing(20)
         hbox1 = QHBoxLayout()
         lbl1 = QLabel('Save Directory: ', self)
         self.save_dir_line_edit = QLineEdit("./")
@@ -273,6 +295,11 @@ class BaseCameraWidget(QWidget):
         hbox1.addSpacing(10)
         hbox1.addWidget(self.save_dir_line_edit)
         hbox1.addSpacing(20)
+        self.coadd_flag = 0
+        self.coadd_button = QPushButton("Coadd Frames", self)
+        self.coadd_button.setCheckable(True)
+        self.coadd_button.clicked.connect(self.set_coadd)
+        hbox1.addWidget(self.coadd_button)
         vbox4.addLayout(hbox1)
 
         hbox4.addLayout(vbox4)
@@ -311,7 +338,7 @@ class BaseCameraWidget(QWidget):
         self.Camera_button = QPushButton("Start Feed", self)
         self.Camera_button.setCheckable(True)
         self.Camera_button.setFixedWidth(200)
-        self.Camera_button.clicked.connect(self.refresh_camera_feed)
+        self.Camera_button.clicked.connect(self.camera_feed)
         hbox3.addWidget(self.Camera_button)
         vbox2.addLayout(hbox3)
 
@@ -471,7 +498,7 @@ class BaseCameraWidget(QWidget):
                 self.run_button.setText("Stop Camera")
                 print("Starting Camera")
                 num_frames = str(self.numframes_edit.text())
-                self.send_to_server("FLIRCam.start [%s]"%num_frames)
+                self.send_to_server("FLIRCam.start [%s,%s]"%(num_frames,self.coadd_flag))
             else:
                 self.run_button.setText("Start Camera")
                 print("Stopping Camera")
@@ -481,7 +508,10 @@ class BaseCameraWidget(QWidget):
             self.run_button.setChecked(False)
             print("CAMERA NOT CONNECTED")
 
-
+    def camera_feed(self):
+        time.sleep(1)
+        self.refresh_camera_feed()
+        return
 
     def refresh_camera_feed(self):
 
@@ -505,19 +535,23 @@ class BaseCameraWidget(QWidget):
 
 
     def get_new_frame(self):
-        j = random.randint(1, 6)
+        #j = random.randint(1, 6)
         #self.feed_window.cam_feed.changePixmap("assets/camtest%s.png"%j)
-        response = self.socket.send_command("FLIRCam.getlatestimage")
+        response = self.socket.send_command("FLIRCam.getlatestimage [%s,%s]"%(self.compression_param,self.feed_window.binning_flag))
         data = json.loads(json.loads(response))
-        img_data = np.array(data["Image"]["data"])
-        img_data = img_data/256
+        compressed_data = np.array(data["Image"]["data"], dtype=np.uint8)
+        print(len(compressed_data))
+        img_data = cv2.imdecode(compressed_data, cv2.IMREAD_UNCHANGED)
         img_data = self.feed_window.image_func(img_data)
-        img_data = img_data.astype(np.uint8)
-        qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Indexed8)
+        qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Grayscale8)
         ##########
         self.feed_window.cam_feed.changePixmap(qimg)
         
-
+    def set_coadd(self):
+        if self.coadd_button.isChecked():
+            self.coadd_flag = 1
+        else:
+            self.coadd_flag = 0
 
     def info_click(self):
         print(self.name)

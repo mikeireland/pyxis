@@ -13,6 +13,7 @@ int GLOB_STOPPING = 0;
 
 //Global Params
 int GLOB_NUMFRAMES = 0;
+int GLOB_COADD = 0;
 int GLOB_IMSIZE = 0;
 int GLOB_WIDTH = 0;
 

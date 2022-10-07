@@ -14,6 +14,7 @@ extern int GLOB_STOPPING; // Do I need to stop?
 
 //Global Params
 extern int GLOB_NUMFRAMES; // Number of frames per FITS file
+extern int GLOB_COADD; // Flag as to whether to coadd frames on save
 extern int GLOB_IMSIZE; // Size of one image in pixels
 extern int GLOB_WIDTH; // Width of image in pixels
 

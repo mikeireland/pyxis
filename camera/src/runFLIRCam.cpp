@@ -194,7 +194,7 @@ void *runCam(void*) {
 				free(GLOB_IMG_MUTEX_ARRAY);
 			}
 			
-			sleep(2); // Sleep to save resources
+			sleep(1); // Sleep to save resources
 
 		}
 		
