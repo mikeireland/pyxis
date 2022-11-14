@@ -12,7 +12,7 @@ using namespace std;
 
 // Main server function. Accepts one parameter: link to the camera config file.
 int main(int argc, char* argv[]) {
-    
+
     // Print application build information
     cout << "Application build date: " << __DATE__ << " " << __TIME__ << endl << endl;
 
@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
         // Load default config if nothing is passed
         cout << "No CONFIG file loaded" << endl;
         cout << "Will attempt to load default CONFIG" << endl;
-        config_file = string("config/defaultFLIRConfig.toml");
+        config_file = string("config/defaultQHYLocalConfig.toml");
     } else {
         // Assign config file value as string
         config_file = string(argv[1]);
@@ -40,19 +40,19 @@ int main(int argc, char* argv[]) {
 
     // Parse the configuration file
     toml::table config = toml::parse_file(config_file);
-    
+
     // Set config file path as a global variable
-    GLOB_CONFIGFILE = (char*)config_file.c_str(); 
-    
+    GLOB_CONFIGFILE = (char*)config_file.c_str();
+
     // Retrieve port and IP
     string port = config["port"].value_or("4000");
     string IP = config["IP"].value_or("192.168.1.4");
-    
+
     // Turn into a TCPString
     string TCPString = "tcp://" + IP + ":" + port;
     char TCPCharArr[TCPString.length() + 1];
     strcpy(TCPCharArr, TCPString.c_str());
-    
+
     // Argc/Argv to turn into the required server input
     argc = 3;
     char* argv_new[3];
@@ -61,6 +61,6 @@ int main(int argc, char* argv[]) {
 
     // Start server!
     co::Server s(argc, argv_new);
-    
+
     s.run();
 }
