@@ -93,8 +93,8 @@ QHYCamera::QHYCamera(qhyccd_handle *pCam_init, toml::table config_init){
 
     gamma = config["camera"]["gamma"].value_or(1.0);
     black_level = config["camera"]["black_level"].value_or(0);
-    black_level_max = config["bounds"]["black_level"][0].value_or(0);
-    black_level_min = config["bounds"]["black_level"][1].value_or(0);
+    black_level_min = config["bounds"]["black_level"][0].value_or(0);
+    black_level_max = config["bounds"]["black_level"][1].value_or(0);
     
     pixel_format = 16;
     acquisition_mode = 1;
