@@ -116,7 +116,7 @@ class FeedWindow(QWidget):
         bias = np.percentile(image[0:3],30)
         noise = 1.48*np.median(image[0:3]-bias)
         scaled = np.arcsinh( A* (image - bias)/noise) + B
-        return scaled
+        return scaled.astype("uint8")
 
     def linear_func(self,image):
         return image
@@ -540,6 +540,7 @@ class BaseFLIRCameraWidget(QWidget):
         compressed_data = np.array(data["Image"]["data"], dtype=np.uint8)
         print(len(compressed_data))
         img_data = cv2.imdecode(compressed_data, cv2.IMREAD_UNCHANGED)
+        print(img_data.dtype)
         img_data = self.feed_window.image_func(img_data)
         qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Grayscale8)
         ##########
