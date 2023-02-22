@@ -1,0 +1,14 @@
+output_folder = "./output" #Folder for output
+IP = 
+camera_port = "tcp://*:5555"
+robot_control_port = "tcp://*:5555"
+
+[Tetra3]
+bg_sub_mode = "local_mean" #"Continuous" is default
+sigma_mode = "global_root_square" #"Mono16" is default
+filt_size = 15 #Size of filter
+
+[Astrometry]
+depth = 10 #How many stars to match?
+FOV_min = 5 #minimum estimate of FOV in degrees
+FOV_max = 6 #maximum estimate of FOV in degrees

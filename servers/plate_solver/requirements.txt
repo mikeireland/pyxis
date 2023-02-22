@@ -1,0 +1,17 @@
+Requirements
+
+--------------
+Astrometry.net (C++)
+
+- CFITSIO (https://heasarc.gsfc.nasa.gov/fitsio/)
+--------------
+Tetra3
+
+- Numpy (pip install numpy)
+- Scipy (pip install scipy)
+--------------
+Plate Solver
+
+- Astropy (pip install astropy)
+- Tomli (pip install tomli)
+- ZMQ (pip install pyzmq)
