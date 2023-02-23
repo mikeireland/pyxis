@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
         cout << "No CONFIG file loaded" << endl;
         cout << "Will attempt to load default CONFIG" << endl;
         //config_file = string("config/defaultQHYLocalConfig.toml");
-        config_file = string("config/defaultFLIRLocalConfig.toml");
+        config_file = string("config/defaultLocalConfig.toml");
     } else {
         // Assign config file value as string
         config_file = string(argv[1]);

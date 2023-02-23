@@ -1,0 +1,30 @@
+port = "4001"
+IP = "127.0.0.1"
+
+[FLIRcamera]
+cam_ID = "20031596"
+#cam_ID = "20031616"
+
+    [FLIRcamera.camera]
+    adc_bit_depth = "Bit10" #"Bit10" is a good default
+    width = 1440
+    height = 1080
+    offset_x = 0
+    offset_y = 0
+    gain = 10 #in dB
+    black_level = 2 #in percent? ADU?
+    exposure_time = 50000 # in microseconds
+    num_frames = 0 #Default number of frames to save per FITS file; 0 is continuous with no saving
+    buffer_size = 200 #Size of circular buffer
+
+    [FLIRcamera.bounds]
+    width = [32,1440]
+    height = [32,1080]
+    gain = [0,48]
+    black_level = [0.0,9.9]
+    exposure_time = [30,29000000]
+
+    [FLIRcamera.fits]
+    bitpix = 20 #USHORT_IMG = 20, not 16!
+	filename_prefix = "data/test" #Default "where to save" file prefix
+

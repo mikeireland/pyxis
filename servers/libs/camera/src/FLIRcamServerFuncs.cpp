@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include "globals.h"
+#include "FLIRCameraServer.h"
 #include "runFLIRCam.h"
 #include <fmt/core.h>
 #include <opencv2/opencv.hpp>
@@ -421,31 +422,4 @@ namespace nlohmann {
             j.at("savedir").get_to(p.savedir);
         }
     };
-}
-
-
-// Register as commander server
-COMMANDER_REGISTER(m)
-{
-    m.instance<FLIRCameraServer>("FLIRCam")
-        // To insterface a class method, you can use the `def` method.
-        .def("status", &FLIRCameraServer::status, "Camera Status")
-        .def("connect", &FLIRCameraServer::connectcam, "Connect the camera")
-        .def("disconnect", &FLIRCameraServer::disconnectcam, "Disconnect the camera")
-        .def("start", &FLIRCameraServer::startcam, "Start exposures")
-        .def("stop", &FLIRCameraServer::stopcam, "Stop exposures")
-        .def("getlatestfilename", &FLIRCameraServer::getlatestfilename, "Get the latest image filename")
-        .def("getlatestimage", &FLIRCameraServer::getlatestimage, "Get the latest image data")
-        .def("reconfigure_all", &FLIRCameraServer::reconfigure_all, "Reconfigure all parameters")
-        .def("reconfigure_gain", &FLIRCameraServer::reconfigure_gain, "Reconfigure the gain")
-        .def("reconfigure_exptime", &FLIRCameraServer::reconfigure_exptime, "Reconfigure the exposure time")
-        .def("reconfigure_width", &FLIRCameraServer::reconfigure_width, "Reconfigure the width")
-        .def("reconfigure_height", &FLIRCameraServer::reconfigure_height, "Reconfigure the height")
-        .def("reconfigure_offsetX", &FLIRCameraServer::reconfigure_offsetX, "Reconfigure the X offset")
-        .def("reconfigure_offsetY", &FLIRCameraServer::reconfigure_offsetY, "Reconfigure the Y offset")
-        .def("reconfigure_blacklevel", &FLIRCameraServer::reconfigure_blacklevel, "Reconfigure the black level")
-        .def("reconfigure_buffersize", &FLIRCameraServer::reconfigure_buffersize, "Reconfigure the buffer size")
-        .def("reconfigure_savedir", &FLIRCameraServer::reconfigure_savedir, "Reconfigure the save directory")
-        .def("getparams", &FLIRCameraServer::getparams, "Get all parameters");
-
 }
