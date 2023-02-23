@@ -2,6 +2,7 @@
 #include <string>
 #include <pthread.h>
 #include "globals.h"
+#include <functional>
 
 using namespace std;
 
@@ -43,6 +44,8 @@ pthread_mutex_t *GLOB_IMG_MUTEX_ARRAY;
 
 // Array of images (i.e Image buffer)
 unsigned short *GLOB_IMG_ARRAY;
+
+std::function<int(unsigned short*)> GLOB_CALLBACK;
 
 // Latest file/image
 string GLOB_LATEST_FILE = "NOFILESAVED";

@@ -38,7 +38,13 @@ int CallbackFunc (unsigned short* data){
 	
 	}
 
-    cout << "I could be doing something with the data here..." << endl;
+    if (GLOB_CALLBACK(data)){
+        cerr << "Callback function error. Stopping Camera" << endl;
+        pthread_mutex_lock(&GLOB_FLAG_LOCK);
+    	GLOB_STOPPING = 0;
+		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
+		return 1;
+        }
 
     return 0;
 }

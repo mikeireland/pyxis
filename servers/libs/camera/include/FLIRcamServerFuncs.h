@@ -3,13 +3,20 @@
 
 #include <string>
 #include "globals.h"
+#include <commander/commander.h>
+#include <functional>
 
 using namespace std;
+using json = nlohmann::json;
+
+int SimpleCallback (unsigned short* data);
 
 // FLIR Camera Server
 struct FLIRCameraServer {
 
     FLIRCameraServer();
+    
+    FLIRCameraServer(std::function<int(unsigned short*)> AnalysisFunc);
     
     ~FLIRCameraServer();
 
@@ -68,5 +75,30 @@ string getlatestimage(int compression, int binning);
 
 };
 
+// Serialiser to convert configuration struct to/from JSON
+namespace nlohmann {
+    template <>
+    struct adl_serializer<configuration> {
+        static void to_json(json& j, const configuration& p) {
+            j = json{{"gain", p.gain}, {"exptime", p.exptime},
+                     {"width", p.width}, {"height", p.height},
+                     {"offsetX", p.offsetX}, {"offsetY", p.offsetY},
+                     {"blacklevel", p.blacklevel}, {"buffersize", p.buffersize},
+                     {"savedir", p.savedir}};
+        }
+
+        static void from_json(const json& j, configuration& p) {
+            j.at("gain").get_to(p.gain);
+            j.at("exptime").get_to(p.exptime);
+            j.at("width").get_to(p.width);
+            j.at("height").get_to(p.height);
+            j.at("offsetX").get_to(p.offsetX);
+            j.at("offsetY").get_to(p.offsetY);
+            j.at("blacklevel").get_to(p.blacklevel);
+            j.at("buffersize").get_to(p.buffersize);
+            j.at("savedir").get_to(p.savedir);
+        }
+    };
+}
 #endif
 

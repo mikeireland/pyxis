@@ -4,6 +4,7 @@
 #include <string>
 #include <pthread.h>
 #include <vector>
+#include <functional>
 extern const double kPi; //Pi constant
 
 //Flags for server to communicate status.
@@ -43,6 +44,8 @@ extern pthread_mutex_t *GLOB_IMG_MUTEX_ARRAY;
 
 // Array of images (i.e Image buffer)
 extern unsigned short *GLOB_IMG_ARRAY;
+
+extern std::function<int(unsigned short*)> GLOB_CALLBACK;
 
 // Latest filename/image
 extern std::string GLOB_LATEST_FILE ;

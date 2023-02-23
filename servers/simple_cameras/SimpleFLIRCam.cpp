@@ -5,20 +5,30 @@
 #include "FLIRcamServerFuncs.h"
 
 
+// Return 1 if error!
+int AnotherCallback (unsigned short* data){
+    cout << "I'm not working here!" << endl;
+    return 0;
+}
+
+
 // FLIR Camera Server
 struct SimpleFLIRCam: FLIRCameraServer{
+
+    SimpleFLIRCam() : FLIRCameraServer(AnotherCallback){
+    }
 
     void newFunc()
     {
         cout << "New Func Here" << endl;
     }
 
-}
+};
 
 // Register as commander server
 COMMANDER_REGISTER(m)
 {
-    m.instance<SimpleFLIRCam>("SimpleFLIRCam")
+    m.instance<SimpleFLIRCam>("FLIR")
         // To insterface a class method, you can use the `def` method.
         .def("status", &SimpleFLIRCam::status, "Camera Status")
         .def("connect", &SimpleFLIRCam::connectcam, "Connect the camera")
@@ -37,7 +47,7 @@ COMMANDER_REGISTER(m)
         .def("reconfigure_blacklevel", &SimpleFLIRCam::reconfigure_blacklevel, "Reconfigure the black level")
         .def("reconfigure_buffersize", &SimpleFLIRCam::reconfigure_buffersize, "Reconfigure the buffer size")
         .def("reconfigure_savedir", &SimpleFLIRCam::reconfigure_savedir, "Reconfigure the save directory")
-        .def("getparams", &SimpleFLIRCam::getparams, "Get all parameters");
+        .def("getparams", &SimpleFLIRCam::getparams, "Get all parameters")
         .def("newFunc", &SimpleFLIRCam::newFunc, "TEST");
 
 }

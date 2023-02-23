@@ -4,30 +4,40 @@
 #include <unistd.h>
 #include <pthread.h>
 #include "globals.h"
+#include "QHYcamServerFuncs.h"
 #include "runQHYCam.h"
 #include <fmt/core.h>
 #include <opencv2/opencv.hpp>
 #include <commander/commander.h>
+#include <functional>
 
 using namespace std;
 using json = nlohmann::json;
 
-// QHY Camera Server
-struct QHYCameraServer {
+// Return 1 if error!
+int SimpleCallback (unsigned short* data){
+    cout << "I could be working here!" << endl;
+    return 0;
+}
 
-    QHYCameraServer()
-    {
+
+QHYCameraServer::QHYCameraServer(){
         fmt::print("QHYCameraServer\n");
+        GLOB_CALLBACK = SimpleCallback;
+    }
+    
+QHYCameraServer::QHYCameraServer(std::function<int(unsigned short*)> AnalysisFunc){
+        fmt::print("FLIRCameraServer\n");
+        GLOB_CALLBACK = AnalysisFunc;
     }
 
-    ~QHYCameraServer()
-    {
+QHYCameraServer::~QHYCameraServer(){
         fmt::print("~QHYCameraServer\n");
     }
 
 
 //Get status of camera
-string status(){
+string QHYCameraServer::status(){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 0){
 		ret_msg = "Camera Not Connected!";
@@ -48,7 +58,7 @@ string status(){
 }
 
 // Get parameters from the global variable
-configuration getparams(){
+configuration QHYCameraServer::getparams(){
 	configuration ret_c;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     ret_c = GLOB_CONFIG_PARAMS;
@@ -57,7 +67,7 @@ configuration getparams(){
 	}
 
 // Reconfigure parameters from an input configuration struct
-string reconfigure_all(configuration c){
+string QHYCameraServer::reconfigure_all(configuration c){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     if ((unsigned)(c.gain-GLOB_GAIN_MIN) > (GLOB_GAIN_MAX-GLOB_GAIN_MIN)){
@@ -88,7 +98,7 @@ string reconfigure_all(configuration c){
 /* ##################################################### */
 
 /* Set each parameter separately: */
-string reconfigure_gain(float gain){
+string QHYCameraServer::reconfigure_gain(float gain){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     if ((unsigned)(gain-GLOB_GAIN_MIN) <= (GLOB_GAIN_MAX-GLOB_GAIN_MIN)){
@@ -103,7 +113,7 @@ string reconfigure_gain(float gain){
     return ret_msg;
 }
 
-string reconfigure_exptime(float exptime){
+string QHYCameraServer::reconfigure_exptime(float exptime){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     if ((unsigned)(exptime-GLOB_EXPTIME_MIN) <= (GLOB_EXPTIME_MAX-GLOB_EXPTIME_MIN)){
@@ -117,7 +127,7 @@ string reconfigure_exptime(float exptime){
     return ret_msg;
 }
 
-string reconfigure_width(int width){
+string QHYCameraServer::reconfigure_width(int width){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     if ((unsigned)(width-GLOB_WIDTH_MIN) <= (GLOB_WIDTH_MAX-GLOB_WIDTH_MIN)){
@@ -131,7 +141,7 @@ string reconfigure_width(int width){
     return ret_msg;
 }
 
-string reconfigure_height(int height){
+string QHYCameraServer::reconfigure_height(int height){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     if ((unsigned)(height-GLOB_HEIGHT_MIN) <= (GLOB_HEIGHT_MAX-GLOB_HEIGHT_MIN)){
@@ -145,7 +155,7 @@ string reconfigure_height(int height){
     return ret_msg;
 }
 
-string reconfigure_offsetX(int offsetX){
+string QHYCameraServer::reconfigure_offsetX(int offsetX){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     if (((unsigned)(offsetX) <= (GLOB_WIDTH_MAX-GLOB_CONFIG_PARAMS.width)) || (offsetX % 4 > 0)){
@@ -159,7 +169,7 @@ string reconfigure_offsetX(int offsetX){
     return ret_msg;
 }
 
-string reconfigure_offsetY(int offsetY){
+string QHYCameraServer::reconfigure_offsetY(int offsetY){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     if (((unsigned)(offsetY) <= (GLOB_HEIGHT_MAX-GLOB_CONFIG_PARAMS.height)) || (offsetY % 4 > 0)){
@@ -173,7 +183,7 @@ string reconfigure_offsetY(int offsetY){
     return ret_msg;
 }
 
-string reconfigure_blacklevel(int blacklevel){
+string QHYCameraServer::reconfigure_blacklevel(int blacklevel){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     if ((unsigned)(static_cast<double>(blacklevel)-GLOB_BLACKLEVEL_MIN) <= (GLOB_BLACKLEVEL_MAX-GLOB_BLACKLEVEL_MIN)){
@@ -187,7 +197,7 @@ string reconfigure_blacklevel(int blacklevel){
     return ret_msg;
 }
 
-string reconfigure_buffersize(float buffersize){
+string QHYCameraServer::reconfigure_buffersize(float buffersize){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     GLOB_CONFIG_PARAMS.buffersize = buffersize;
@@ -197,7 +207,7 @@ string reconfigure_buffersize(float buffersize){
     return ret_msg;
 }
 
-string reconfigure_savedir(float savedir){
+string QHYCameraServer::reconfigure_savedir(float savedir){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     GLOB_CONFIG_PARAMS.savedir = savedir;
@@ -209,7 +219,7 @@ string reconfigure_savedir(float savedir){
 /* ##################################################### */
 
 // Connect to a camera, by starting up the runCam pThread
-string connectcam(){
+string QHYCameraServer::connectcam(){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 0){
 		pthread_create(&GLOB_CAMTHREAD, NULL, runCam, NULL);
@@ -223,7 +233,7 @@ string connectcam(){
 }
 
 // Disconnect to a camera, by signalling and joining the runCam pThread
-string disconnectcam(){
+string QHYCameraServer::disconnectcam(){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
 		pthread_mutex_lock(&GLOB_FLAG_LOCK);
@@ -242,7 +252,7 @@ string disconnectcam(){
 
 // Start acquisition of the camera. Takes in the number of frames to save
 // per FITS file (or 0 for continuous, no saving)
-string startcam(int num_frames){
+string QHYCameraServer::startcam(int num_frames){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
 		if(GLOB_RUNNING == 0){
@@ -267,7 +277,7 @@ string startcam(int num_frames){
 }
 
 // Stop acquisition of the camera
-string stopcam(){
+string QHYCameraServer::stopcam(){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
 		if(GLOB_RUNNING == 1){
@@ -290,7 +300,7 @@ string stopcam(){
 }
 
 // Get the filename of the latest saved FITS image
-string getlatestfilename(){
+string QHYCameraServer::getlatestfilename(){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
 		if(GLOB_RUNNING == 1){
@@ -312,7 +322,7 @@ string getlatestfilename(){
 }
 
 // Get the latest image data from the camera thread
-string getlatestimage(int compression, int binning){
+string QHYCameraServer::getlatestimage(int compression, int binning){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
 		if(GLOB_RUNNING == 1){
@@ -383,58 +393,5 @@ string getlatestimage(int compression, int binning){
 	return ret_msg;
 }
 
-};
-
-// Serialiser to convert configuration struct to/from JSON
-namespace nlohmann {
-    template <>
-    struct adl_serializer<configuration> {
-        static void to_json(json& j, const configuration& p) {
-            j = json{{"gain", p.gain}, {"exptime", p.exptime},
-                     {"width", p.width}, {"height", p.height},
-                     {"offsetX", p.offsetX}, {"offsetY", p.offsetY},
-                     {"blacklevel", p.blacklevel}, {"buffersize", p.buffersize},
-                     {"savedir", p.savedir}};
-        }
-
-        static void from_json(const json& j, configuration& p) {
-            j.at("gain").get_to(p.gain);
-            j.at("exptime").get_to(p.exptime);
-            j.at("width").get_to(p.width);
-            j.at("height").get_to(p.height);
-            j.at("offsetX").get_to(p.offsetX);
-            j.at("offsetY").get_to(p.offsetY);
-            j.at("blacklevel").get_to(p.blacklevel);
-            j.at("buffersize").get_to(p.buffersize);
-            j.at("savedir").get_to(p.savedir);
-        }
-    };
-}
-
-// Register as commander server
-COMMANDER_REGISTER(m)
-{
 
 
-    m.instance<QHYCameraServer>("QHYCam")
-        // To insterface a class method, you can use the `def` method.
-        .def("status", &QHYCameraServer::status, "Camera Status")
-        .def("connect", &QHYCameraServer::connectcam, "Connect the camera")
-        .def("disconnect", &QHYCameraServer::disconnectcam, "Disconnect the camera")
-        .def("start", &QHYCameraServer::startcam, "Start exposures")
-        .def("stop", &QHYCameraServer::stopcam, "Stop exposures")
-        .def("getlatestfilename", &QHYCameraServer::getlatestfilename, "Get the latest image filename")
-        .def("getlatestimage", &QHYCameraServer::getlatestimage, "Get the latest image data")
-        .def("reconfigure_all", &QHYCameraServer::reconfigure_all, "Reconfigure all parameters")
-        .def("reconfigure_gain", &QHYCameraServer::reconfigure_gain, "Reconfigure the gain")
-        .def("reconfigure_exptime", &QHYCameraServer::reconfigure_exptime, "Reconfigure the exposure time")
-        .def("reconfigure_width", &QHYCameraServer::reconfigure_width, "Reconfigure the width")
-        .def("reconfigure_height", &QHYCameraServer::reconfigure_height, "Reconfigure the height")
-        .def("reconfigure_offsetX", &QHYCameraServer::reconfigure_offsetX, "Reconfigure the X offset")
-        .def("reconfigure_offsetY", &QHYCameraServer::reconfigure_offsetY, "Reconfigure the Y offset")
-        .def("reconfigure_blacklevel", &QHYCameraServer::reconfigure_blacklevel, "Reconfigure the black level")
-        .def("reconfigure_buffersize", &QHYCameraServer::reconfigure_buffersize, "Reconfigure the buffer size")
-        .def("reconfigure_savedir", &QHYCameraServer::reconfigure_savedir, "Reconfigure the save directory")
-        .def("getparams", &QHYCameraServer::getparams, "Get all parameters");
-
-}
