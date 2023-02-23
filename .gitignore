@@ -10,8 +10,9 @@ __pycache__/
 #Jonah gitignore folders
 data/
 archive/Camera_SDK/*/bin
+archive/old_camera_servers/*/bin
 plate_solver/output
-camera/bin
+servers/*/bin
 
 
 # Distribution / packaging
