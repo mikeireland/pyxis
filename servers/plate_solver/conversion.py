@@ -136,7 +136,7 @@ def RaDec2Quat(RA,DEC,POS_ANG):
 
 """
 Converts celestial coordinates (Ra, Dec, Pos angle) into an AltAzPos
-attitude quaternion
+angles
 
 INPUTS
 RA = Right ascension in degrees
@@ -145,7 +145,7 @@ POS_ANG = Rotation of image from North Celestial Pole (invariant between
           celestial and horizontal coordinates)
 
 OUTPUTS
-AltAzPos quaternion of the form [a,b,c,d] = ai + bj + ck + d
+AltAzPos angles
 """
 def RaDec2AltAz(RA,DEC,POS_ANG):
 

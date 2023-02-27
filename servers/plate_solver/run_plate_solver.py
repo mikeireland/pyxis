@@ -164,27 +164,28 @@ if __name__ == "__main__":
 
 
     while(1):
-    
-    	camera_socket.send_string("GET_IMAGE")
+
+    	camera_socket.send_string("CM.getlatestfilename")
     
         #Ask camera for next image
         message = camera_socket.recv()
         print("Received camera message: %s" % message)
 
         # WORK ON MESSAGE -> FILENAME
-        filename = #message
+        filename = message
 
         #run image
         angles = run_image(filename,config)
 
         # WORK ON ANGLES -> return_message
-        return_message = b"" #angles
+        return_message = b"DR.receive_CST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
 
         #Send reply to robot
         robot_control_socket.send_string(return_message)
         
         message = robot_control_socket.recv()
         print("Robot response: %s" % message)
+
 
 #-------------
 """

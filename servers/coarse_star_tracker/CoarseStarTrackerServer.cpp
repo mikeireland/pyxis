@@ -4,10 +4,18 @@
 #include <commander/commander.h>
 #include "FLIRcamServerFuncs.h"
 
+//PLATE SOLVER SENDS ZMQ REQUEST OF GET LATEST FILENAME TO PLATESOLVE. THAT'S ABOUT ALL THE INTERACTIONS!
 
+// Return 1 if error!
+int NoCallback (unsigned short* data){
+    return 0;
+}
 
 // FLIR Camera Server
 struct CoarseStarTracker: FLIRCameraServer{
+
+    CoarseStarTracker() : FLIRCameraServer(NoCallback){
+    }
 
 };
 

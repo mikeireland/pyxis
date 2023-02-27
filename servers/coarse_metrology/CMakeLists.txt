@@ -11,6 +11,8 @@ add_executable(CoarseMetServer
 target_include_directories(CoarseMetServer PUBLIC ../libs/camera/include /opt/spinnaker/include ~/Downloads/build/include)
 target_compile_features(CoarseMetServer PUBLIC cxx_std_17)
 
+add_subdirectory(../libs/imageproc)
+
 find_package(commander REQUIRED)
 find_package( OpenCV REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
@@ -20,6 +22,7 @@ target_link_libraries(CoarseMetServer PUBLIC
     commander::commander
     ${SPINNAKER_LIBRARY}
     cfitsio
+    image
     pthread
    ${OpenCV_LIBS}
 )
