@@ -15,6 +15,7 @@
 #define SetRaw3 0x13 //Actuator 0
 #define SetRaw4 0x14 //Actuator 1
 #define SetRaw5 0x15 //Actuator 2
+#define SetRaw6 0x16 //Goniometer
 
 //report motor_vels values
 #define Raw0Wr 0x20

@@ -9,6 +9,7 @@
 // C library headers
 #include <stdio.h>
 #include <string.h>
+#include <string>
 #include <math.h>
 #include <iostream>
 #include <fstream>
@@ -40,6 +41,7 @@ namespace Control
             void LinearLateralRamp(Servo::Doubles velocity_target,double time);
             void LinearYawRamp(double yaw_rate_target,double time);
             void UpdateBFFVelocity(Servo::Doubles velocity);
+            void UpdateBFFVelocityAngle(double x, double y, double z, double r, double p, double s);
             void RequestNewVelocity(Servo::Doubles velocity);
 
             //Actuator control
@@ -89,6 +91,7 @@ namespace Control
             void LinearSweepTest();
             void RaiseAndLowerTest();
             void WriteLevellerStateToFile();
+            void LogSteps(int t_step, int t_pack, std::string filename);
             void WriteStabiliserStateToFile();
             void MeasureOrientationMeasurementNoise();
 

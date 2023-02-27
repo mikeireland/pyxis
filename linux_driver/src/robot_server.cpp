@@ -1,0 +1,354 @@
+#include <iostream>
+#include <thread>
+#include <string>
+#include <pthread.h>
+#include <commander/commander.h>
+#include "RobotDriver.h"
+#include <time.h>
+
+namespace co = commander;
+using namespace std;
+
+using namespace Control;
+
+using std::chrono::steady_clock;
+using std::chrono::duration_cast;
+using std::chrono::duration;
+using std::chrono::microseconds;
+using std::chrono::seconds;
+
+sched_param sch_params;
+
+auto time_point_start = steady_clock::now();
+auto time_point_current = steady_clock::now();
+auto last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+auto last_leveller_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+auto last_leveller_subtimepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+auto last_navigator_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+auto global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+auto packet_time = duration_cast<microseconds>(time_point_current-time_point_start).count();
+auto resonance_time = duration_cast<seconds>(time_point_current-time_point_start).count();
+auto last_resonance_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+
+int GLOBAL_SERVER_STATUS = 1;
+
+bool GLOBAL_STATUS_CHANGED = false;
+
+bool closed_loop_enable_flag = true;
+
+string filename = "state_file.csv";
+
+std::thread robot_controller_thread;
+
+double velocity = 0.0;
+double x = 0.0;
+double y = 0.0;
+double z = 0.0;
+double roll = 0.0;
+double yaw = 0.0;
+double pitch = 0.0;
+
+double f = .2;
+
+void resonance(RobotDriver *driver) {
+	Servo::Doubles velocity_target;
+	Servo::Doubles angle_target;
+	velocity_target.x = 0.001*velocity*x*sin(2*3.14159265*f*global_timepoint*0.000001);
+	velocity_target.y = 0.001*velocity*y*sin(2*3.14159265*f*global_timepoint*0.000001);
+	velocity_target.z = 0.001*velocity*z*sin(2*3.14159265*f*global_timepoint*0.000001);
+	angle_target.x = 0.001*velocity*roll*sin(2*3.14159265*f*global_timepoint*0.000001);
+	angle_target.y = 0.001*velocity*yaw*sin(2*3.14159265*f*global_timepoint*0.000001);
+	angle_target.z = 0.001*velocity*pitch*sin(2*3.14159265*f*global_timepoint*0.000001);
+	driver->SetNewStabiliserTarget(velocity_target,angle_target);
+	driver->stabiliser.enable_flag_ = true;
+	if (f > 5) {
+		driver->RequestAllStop(); 
+		driver->stabiliser.enable_flag_ = false;
+	}
+	if(global_timepoint-last_stabiliser_timepoint > 1000) {	
+		if(driver->stabiliser.enable_flag_) {
+			printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
+			cout << global_timepoint*0.000001 << '\n';
+			driver->StabiliserLoop();
+
+			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
+			//driver->UpdateBFFVelocity(velocity_target);
+			driver->UpdateActuatorVelocity(angle_target);
+			//driver->WriteLevellerStateToFileAlt(f, velocity_target);
+		}
+		last_stabiliser_timepoint = global_timepoint;
+		if (global_timepoint-last_resonance_timepoint > 5000000 && sin(2*3.14159265*f*global_timepoint*0.000001)<0.1) {
+			driver->RequestAllStop();
+			sleep(2);
+			f = f + 1;
+			cout << f << '\n';
+			time_point_start = steady_clock::now();
+			time_point_current = steady_clock::now();
+			last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+			global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+			last_resonance_timepoint = global_timepoint;
+		}
+
+	}
+}
+
+void unambig(RobotDriver *driver) {
+	Servo::Doubles velocity_target;
+	Servo::Doubles angle_target;
+	velocity_target.x = 0.001*velocity*x*sin(2*3.14159265*f*global_timepoint*0.000001);
+	velocity_target.y = 0.001*velocity*y*sin(2*3.14159265*f*global_timepoint*0.000001);
+	velocity_target.z = 0.001*velocity*z*sin(2*3.14159265*f*global_timepoint*0.000001);
+	angle_target.x = velocity*roll*sin(2*3.14159265*f*global_timepoint*0.000001);
+	angle_target.y = velocity*pitch*sin(2*3.14159265*f*global_timepoint*0.000001);
+	angle_target.z = 0.001*velocity*yaw*sin(2*3.14159265*f*global_timepoint*0.000001);
+	driver->SetNewStabiliserTarget(velocity_target,angle_target);
+	driver->stabiliser.enable_flag_ = true;
+	if (global_timepoint*0.000001>100) {
+		driver->RequestAllStop(); 
+		driver->stabiliser.enable_flag_ = false;
+		cout << global_timepoint*0.000001 << '\n';
+	}
+	if(global_timepoint-last_stabiliser_timepoint > 1000) {	
+		if(driver->stabiliser.enable_flag_) {
+                       //cout << global_timepoint*0.000001 << '\n';
+			driver->StabiliserLoop();
+
+			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
+			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z);
+			//driver->UpdateActuatorVelocity(angle_target);
+			driver->LogSteps(global_timepoint, packet_time, filename);
+			//driver->WriteStabiliserStateToFile();
+		}
+		if (global_timepoint-last_stabiliser_timepoint > 1500) {
+		    last_stabiliser_timepoint = global_timepoint;
+		} else {
+		    last_stabiliser_timepoint += 1000;
+		}
+
+	}
+}
+
+void translate(RobotDriver *driver) {
+	Servo::Doubles velocity_target;
+	Servo::Doubles angle_target;
+	velocity_target.x = 0.001*velocity*x;
+	velocity_target.y = 0.001*velocity*y;
+	velocity_target.z = 0.001*velocity*z;
+	angle_target.x = 0;
+	angle_target.y = 0;
+	angle_target.z = 0;
+	driver->SetNewStabiliserTarget(velocity_target,angle_target);
+	driver->stabiliser.enable_flag_ = true;
+	if(global_timepoint-last_stabiliser_timepoint > 1000) {	
+		if(driver->stabiliser.enable_flag_) {
+			printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
+			if  (global_timepoint < 10000000) {
+				velocity_target.x = 0;
+				velocity_target.y = 0;
+				velocity_target.z = 0;
+			}
+			driver->StabiliserLoop();
+
+			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
+			driver->UpdateBFFVelocity(velocity_target);
+			//driver->WriteLevellerStateToFileAlt(f, velocity_target);
+		}
+		last_stabiliser_timepoint += 1000;
+	}
+}
+
+void ramp(RobotDriver *driver) {
+	Servo::Doubles velocity_target;
+	Servo::Doubles angle_target;
+	velocity_target.x = 0.001*velocity*x;
+	velocity_target.y = 0.001*velocity*y;
+	velocity_target.z = 0.001*velocity*z;
+	angle_target.x = velocity*roll;
+	angle_target.y = velocity*pitch;
+	angle_target.z = 0.001*velocity*yaw;
+	driver->SetNewStabiliserTarget(velocity_target,angle_target);
+	driver->stabiliser.enable_flag_ = true;
+	
+	if(global_timepoint-last_stabiliser_timepoint > 1000) {	
+		if(driver->stabiliser.enable_flag_) {
+		    if (global_timepoint*0.000001<2) {
+			    double scaler = (double) global_timepoint / 2000000.0;
+			    velocity_target.x = 0.001*velocity*x*scaler;
+			    velocity_target.y = 0.001*velocity*y*scaler;
+			    velocity_target.z = 0.001*velocity*z*scaler;
+			    angle_target.x = velocity*roll*scaler;
+			    angle_target.y = velocity*pitch*scaler;
+			    angle_target.z = 0.001*velocity*yaw*scaler;
+			    //cout << scaler << '\n';
+			}
+			driver->StabiliserLoop();
+
+			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
+			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z);
+			//driver->UpdateActuatorVelocity(angle_target);
+			driver->LogSteps(global_timepoint, packet_time, filename);
+			//driver->WriteStabiliserStateToFile();
+		}
+		last_stabiliser_timepoint += 1000;
+
+	}
+}
+
+void level(RobotDriver *driver) {
+
+    if (driver->leveller.enable_flag_) {
+        if (global_timepoint-last_leveller_subtimepoint > 1000) {
+            if (global_timepoint-last_leveller_timepoint > 10000) {
+                driver->LevellerLoop();
+                last_leveller_timepoint = global_timepoint;
+            }
+            driver->LevellerSubLoop();
+            last_leveller_subtimepoint = global_timepoint;
+        }
+    }
+    else {
+        driver->SetNewTargetAngle(0.0, 0.0);
+        driver->EngageLeveller();
+    }
+
+}
+
+void stop(RobotDriver *driver) {
+	for(int i = 0; i < 100; i++) {
+		driver->RequestAllStop();
+		driver->teensy_port.PacketManager();
+		usleep(1000);
+	}
+}
+
+int robot_loop() {
+	//Necessary global timing measures
+    time_point_start = steady_clock::now();
+    time_point_current = steady_clock::now();
+    last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+    last_leveller_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+    last_leveller_subtimepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+    last_navigator_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+    global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+    resonance_time = duration_cast<seconds>(time_point_current-time_point_start).count();
+    last_resonance_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+
+	RobotDriver* driver = new RobotDriver();
+	closed_loop_enable_flag = true;
+	driver->EngageStabiliser();
+	time_point_start = steady_clock::now();
+	while(closed_loop_enable_flag) {
+		//Boolean to store if we have done anything on this loop and wait a little bit if we haven't
+		
+		if (GLOBAL_STATUS_CHANGED) {
+			time_point_start = steady_clock::now();
+			time_point_current = steady_clock::now();
+                       last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+                       last_leveller_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+                       last_leveller_subtimepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+			//last_resonance_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+			GLOBAL_STATUS_CHANGED = false;
+		}
+		time_point_current = steady_clock::now();
+		global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+
+		switch(GLOBAL_SERVER_STATUS) {
+			case 1:
+				usleep(10);
+				break;
+			case 2:
+				ramp(driver);
+				break;
+			case 3:
+				//resonance(driver);
+				unambig(driver);
+				break;
+			case 4:
+				stop(driver);
+				closed_loop_enable_flag = false;
+				break;
+			case 5:
+				level(driver);
+				break;
+			default:
+				stop(driver);
+				closed_loop_enable_flag = false;
+				break;
+		}
+		time_point_current = steady_clock::now();
+
+		driver->teensy_port.PacketManager();
+		packet_time = duration_cast<microseconds>(steady_clock::now() - time_point_current).count();
+		
+	}
+
+	driver->teensy_port.ClosePort();
+	delete driver;
+    return 0;
+}
+
+int start_robot_loop() {
+    GLOBAL_SERVER_STATUS = 1;
+    GLOBAL_STATUS_CHANGED = true;
+    cout << "fine";
+    robot_controller_thread = std::thread(robot_loop);
+    sch_params.sched_priority = 98;
+    pthread_setschedparam(robot_controller_thread.native_handle(), SCHED_RR, &sch_params);
+    return 0;
+}
+
+
+int stop_robot_loop() {
+    GLOBAL_SERVER_STATUS = 4;
+    GLOBAL_STATUS_CHANGED = true;
+    robot_controller_thread.join();
+    return 0;
+}
+
+
+void translate_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val) {
+    velocity = vel;
+    x = x_val;
+    y = y_val;
+    z = z_val;
+    roll = roll_val;
+    yaw = yaw_val;
+    pitch = pitch_val;
+    GLOBAL_STATUS_CHANGED = true;
+    GLOBAL_SERVER_STATUS = 2;
+}
+
+void resonance_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val) {
+    velocity = vel;
+    x = x_val;
+    y = y_val;
+    z = z_val;
+    roll = roll_val;
+    yaw = yaw_val;
+    pitch = pitch_val;
+    GLOBAL_STATUS_CHANGED = true;
+    GLOBAL_SERVER_STATUS = 3;
+}
+
+void level_robot() {
+    GLOBAL_STATUS_CHANGED = true;
+    GLOBAL_SERVER_STATUS = 5;
+}
+
+void change_file(string file) {
+    filename = file;
+}
+
+
+COMMANDER_REGISTER(m)
+{
+    // You can register a function or any other callable object as
+    // long as the signature is deductible from the type.
+
+    m.def("stop", stop_robot_loop, "A function that stops all motors and stops the robot loop");
+    m.def("start", start_robot_loop, "A function that starts the robot control loop (in idle)");
+    m.def("translate", translate_robot, "A function that translates robot");
+    m.def("resonance", resonance_robot, "A function that translates robot");
+    m.def("level", level_robot, "placeholder");
+    m.def("file", change_file, "placeholder");
+}

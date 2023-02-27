@@ -2,15 +2,15 @@ class MotorDriver {
   private:
     // [(wheels), (linear actuators), goniometer]
     const int step_pins_[7] = {
-      30, 32, 34,   // Wheels
-      28, 26, 24,   // Linear actuators 0,1,2
-      -1            // Goniometer
+      34, 32, 36,   // Wheels
+      24, 26, 28,   // Linear actuators 0,1,2
+      30            // Goniometer
     };
 
     const int dir_pins_[7] = {
-      31, 33, 35,   // Wheels
-      29, 27, 25,   // Linear actuators 0,1,2
-      -1            // Goniometer
+      35, 33, 37,   //Wheels
+      25, 27, 29,   // Linear actuators 0,1,2
+      31            // Goniometer
     };
 
     const int lim_pins_[3] = {

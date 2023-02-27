@@ -21,8 +21,8 @@ class Controller {
     int sched_state_ = 0;
     int sched_[sched_length_] = {0x00}; //Since variable length arrays are not allowed in C++ we just define an array which is too big
   
-    MotorDriver motor_driver;
-    short int v_int_ [6] = {0}; 
+    
+    short int v_int_ [7] = {0}; 
     
     AccelerometerReader accelerometer_reader;
     struct Triple accel_buffer_[6];
@@ -96,7 +96,11 @@ class Controller {
             v_int_[5] = (port.read_buffer_[i+1] << 8) | (port.read_buffer_[i+2] << 0);
             motor_driver.SetRawVelocity(5,v_int_[5]);
             break;
-            
+          case SetRaw6:
+            //Read the input velocity and write it into the motor driver
+            v_int_[6] = (port.read_buffer_[i+1] << 8) | (port.read_buffer_[i+2] << 0);
+            motor_driver.SetRawVelocity(6,v_int_[6]);
+            break;
           case Acc0Wr:
             if(ScheduleToNextFree(Acc0Wr) == 0){ //We check if the task was scheduled and if it was then we move on
               break;
@@ -431,9 +435,12 @@ class Controller {
     }
     
   public:
+    MotorDriver motor_driver;
     Controller() {
       SetDefaultSchedule();
     }
+
+    
   
     //This is the main operation. 
     //Each call of the scheduler will pulse the motors and perform one of a sequence of other actions which it reads in sequence from the schedule
@@ -624,6 +631,9 @@ void SchedulerWrapper() {
 }
 
 void setup() {
+  //controller.motor_driver.SetRawVelocity(0,2000);
+  //controller.motor_driver.SetRawVelocity(1,2000);
+  //controller.motor_driver.SetRawVelocity(2,2000);
   timer.begin(SchedulerWrapper, 20);
 }
 

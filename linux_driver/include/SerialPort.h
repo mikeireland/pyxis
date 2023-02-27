@@ -5,6 +5,8 @@
 // C library headers
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
+#include <thread>
 
 // Linux headers
 #include <fcntl.h> // Contains file controls like O_RDWR
@@ -16,6 +18,8 @@
 //Macro headers
 #include "Commands.h"
 #include "ErrorCodes.h"
+
+#include "Decode.h"
 
 namespace Comms
 {   
@@ -38,6 +42,7 @@ namespace Comms
             int packet_size_;
             void OpenPort();
             void ClosePort();
+            void ReadMessageAsync();
             void ReadMessage();
             void WriteMessage();
             void AddToPacket(unsigned char command);
@@ -52,6 +57,8 @@ namespace Comms
 
             VelBytes translational_velocities_in_;//Byte arrays to store the incoming velocities
             VelBytes actuator_velocities_in_; //For these take x,y,z == 0,1,2
+            
+            unsigned char goniometer_velocity_out_ [2];
 
             AccelBytes accelerometer0_in_;//Byte arrays to store the incoming accelerations
             AccelBytes accelerometer1_in_;
@@ -77,9 +84,13 @@ namespace Comms
         private:
             unsigned char write_buffer_ [64];
             unsigned char read_buffer_ [64];
+            unsigned char last_pack_ [64];
             unsigned char request_buffer_ [1024];
             int request_buffer_first_empty_ = 0;
-
+            int max_req_buf = 0;
+            bool init = false;
+            sched_param sch_params;
+            std::thread serial_read_thread;
 
             void ClearReadBuff();
             void ClearWriteBuff();

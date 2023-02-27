@@ -42,6 +42,41 @@ void RobotDriver::LinearYawRamp(double yaw_rate_target, double time) {
     }
 }
 
+void RobotDriver::UpdateBFFVelocityAngle(double x, double y, double z, double r, double p, double s) {
+    Servo::Doubles motor_velocity_target_;
+    Servo::Doubles actuator_velocity_target_;
+    motor_velocity_target_.x = -y - s;                                                     //Motor 0
+    motor_velocity_target_.y = ( -x * sin(PI / 3) + y * cos(PI / 3)) - s;   //Motor 1
+    motor_velocity_target_.z = (x * sin(PI / 3) + y * cos(PI / 3)) - s;   //Motor 2
+    actuator_velocity_target_.x = z + (0.00027778)*((1.0/388.0)*r - (1.0/672.0)*p); //Actuator 0
+    actuator_velocity_target_.y = z + (1.0/336.0)*(0.00027778)*p;                                  //Actuator 1
+    actuator_velocity_target_.z = z + (0.00027778)*(- (1.0/388.0)*r - (1.0/672.0)*p);
+    PhysicalDoubleToVelocityBytes(motor_velocity_target_.x,
+                                  &teensy_port.motor_velocities_out_.x[0],
+                                  &teensy_port.motor_velocities_out_.x[1]);
+    PhysicalDoubleToVelocityBytes(motor_velocity_target_.y,
+                                  &teensy_port.motor_velocities_out_.y[0],
+                                  &teensy_port.motor_velocities_out_.y[1]);
+    PhysicalDoubleToVelocityBytes(motor_velocity_target_.z,
+                                  &teensy_port.motor_velocities_out_.z[0],
+                                  &teensy_port.motor_velocities_out_.z[1]);
+    PhysicalDoubleToVelocityBytes(-actuator_velocity_target_.x,
+								  &teensy_port.actuator_velocities_out_.x[0],
+								  &teensy_port.actuator_velocities_out_.x[1]);
+	PhysicalDoubleToVelocityBytes(-actuator_velocity_target_.y,
+								  &teensy_port.actuator_velocities_out_.y[0],
+								  &teensy_port.actuator_velocities_out_.y[1]);
+	PhysicalDoubleToVelocityBytes(-actuator_velocity_target_.z,
+								  &teensy_port.actuator_velocities_out_.z[0],
+								  &teensy_port.actuator_velocities_out_.z[1]);
+	teensy_port.Request(SetRaw0);
+    teensy_port.Request(SetRaw1);
+    teensy_port.Request(SetRaw2);
+    teensy_port.Request(SetRaw3);	
+	teensy_port.Request(SetRaw4);
+	teensy_port.Request(SetRaw5);	
+}
+
 //Requests an update of the Body Fixed Frame velocity of the robot
 //Note that the message still needs to be sent after this routine is run, it will not send it on its own
 void RobotDriver::UpdateBFFVelocity(Servo::Doubles velocities) {
@@ -69,6 +104,7 @@ void RobotDriver::UpdateBFFVelocity(Servo::Doubles velocities) {
     teensy_port.Request(SetRaw0);
     teensy_port.Request(SetRaw1);
     teensy_port.Request(SetRaw2);
+    
 }
 
 void RobotDriver::RequestNewVelocity(Servo::Doubles velocities) {
@@ -299,22 +335,22 @@ void RobotDriver::PassAccelBytesToStabiliser() {
 	//Note that we flip the z components so that the gravity vector points down
 	stabiliser.acc0_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]);
 	stabiliser.acc0_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]);
-	stabiliser.acc0_latest_measurements_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
+	stabiliser.acc0_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
 	stabiliser.acc1_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.x[0],teensy_port.accelerometer1_in_.x[1]);
 	stabiliser.acc1_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.y[0],teensy_port.accelerometer1_in_.y[1]);
-	stabiliser.acc1_latest_measurements_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]);
+	stabiliser.acc1_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]);
 	stabiliser.acc2_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.x[0],teensy_port.accelerometer2_in_.x[1]);
 	stabiliser.acc2_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.y[0],teensy_port.accelerometer2_in_.y[1]);
-	stabiliser.acc2_latest_measurements_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]);
+	stabiliser.acc2_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]);
 	stabiliser.acc3_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.x[0],teensy_port.accelerometer3_in_.x[1]);
 	stabiliser.acc3_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.y[0],teensy_port.accelerometer3_in_.y[1]);
-	stabiliser.acc3_latest_measurements_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.z[0],teensy_port.accelerometer3_in_.z[1]);
+	stabiliser.acc3_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.z[0],teensy_port.accelerometer3_in_.z[1]);
 	stabiliser.acc4_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.x[0],teensy_port.accelerometer4_in_.x[1]);
 	stabiliser.acc4_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.y[0],teensy_port.accelerometer4_in_.y[1]);
-	stabiliser.acc4_latest_measurements_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.z[0],teensy_port.accelerometer4_in_.z[1]);
+	stabiliser.acc4_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.z[0],teensy_port.accelerometer4_in_.z[1]);
 	stabiliser.acc5_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.x[0],teensy_port.accelerometer5_in_.x[1]);
 	stabiliser.acc5_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.y[0],teensy_port.accelerometer5_in_.y[1]);
-	stabiliser.acc5_latest_measurements_.z = -AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]);
+	stabiliser.acc5_latest_measurements_.z = AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]);
 }
 
 void RobotDriver::PassStepsToStabiliser() {
@@ -330,13 +366,12 @@ void RobotDriver::StabiliserLoop() {
 	PassAccelBytesToStabiliser();
 	PassStepsToStabiliser();
 	stabiliser.UpdateTarget();
-	WriteStabiliserStateToFile();
-
+	//WriteStabiliserStateToFile();
 	RequestAccelerations();
 	RequestStepCounts();
 
-	RequestNewVelocity(stabiliser.motor_velocity_target_);
-	UpdateActuatorVelocity(stabiliser.actuator_velocity_target_);	
+	//RequestNewVelocity(stabiliser.motor_velocity_target_);
+	//UpdateActuatorVelocity(stabiliser.actuator_velocity_target_);	
 	}
 
 void RobotDriver::StabiliserSetup() {
@@ -357,29 +392,29 @@ void RobotDriver::EngageStabiliser() {
 	RequestAllStop();
 	sleep(1);
 
-	for(int i = 0; i < 1000; i++) {
+	for(int i = 0; i < 10000; i++) {
 		RequestAccelerations();
 		RequestStepCounts();
 		teensy_port.PacketManager();
 
-		stabiliser.acc0_ground_state_measurement_.x += 0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]);
-		stabiliser.acc0_ground_state_measurement_.y += 0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]);
-		stabiliser.acc0_ground_state_measurement_.z += -0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
-		stabiliser.acc1_ground_state_measurement_.x += 0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.x[0],teensy_port.accelerometer1_in_.x[1]);
-		stabiliser.acc1_ground_state_measurement_.y += 0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.y[0],teensy_port.accelerometer1_in_.y[1]);
-		stabiliser.acc1_ground_state_measurement_.z += -0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]);
-		stabiliser.acc2_ground_state_measurement_.x += 0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.x[0],teensy_port.accelerometer2_in_.x[1]);
-		stabiliser.acc2_ground_state_measurement_.y += 0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.y[0],teensy_port.accelerometer2_in_.y[1]);
-		stabiliser.acc2_ground_state_measurement_.z += -0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]);
-		stabiliser.acc3_ground_state_measurement_.x += 0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.x[0],teensy_port.accelerometer3_in_.x[1]);
-		stabiliser.acc3_ground_state_measurement_.y += 0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.y[0],teensy_port.accelerometer3_in_.y[1]);
-		stabiliser.acc3_ground_state_measurement_.z += -0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.z[0],teensy_port.accelerometer3_in_.z[1]);
-		stabiliser.acc4_ground_state_measurement_.x += 0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.x[0],teensy_port.accelerometer4_in_.x[1]);
-		stabiliser.acc4_ground_state_measurement_.y += 0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.y[0],teensy_port.accelerometer4_in_.y[1]);
-		stabiliser.acc4_ground_state_measurement_.z += -0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.z[0],teensy_port.accelerometer4_in_.z[1]);
-		stabiliser.acc5_ground_state_measurement_.x += 0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.x[0],teensy_port.accelerometer5_in_.x[1]);
-		stabiliser.acc5_ground_state_measurement_.y += 0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.y[0],teensy_port.accelerometer5_in_.y[1]);
-		stabiliser.acc5_ground_state_measurement_.z += -0.001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]);
+		stabiliser.acc0_ground_state_measurement_.x += 0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]);
+		stabiliser.acc0_ground_state_measurement_.y += 0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]);
+		stabiliser.acc0_ground_state_measurement_.z += -0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.z[0],teensy_port.accelerometer0_in_.z[1]);
+		stabiliser.acc1_ground_state_measurement_.x += 0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.x[0],teensy_port.accelerometer1_in_.x[1]);
+		stabiliser.acc1_ground_state_measurement_.y += 0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.y[0],teensy_port.accelerometer1_in_.y[1]);
+		stabiliser.acc1_ground_state_measurement_.z += -0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer1_in_.z[0],teensy_port.accelerometer1_in_.z[1]);
+		stabiliser.acc2_ground_state_measurement_.x += 0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.x[0],teensy_port.accelerometer2_in_.x[1]);
+		stabiliser.acc2_ground_state_measurement_.y += 0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.y[0],teensy_port.accelerometer2_in_.y[1]);
+		stabiliser.acc2_ground_state_measurement_.z += -0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer2_in_.z[0],teensy_port.accelerometer2_in_.z[1]);
+		stabiliser.acc3_ground_state_measurement_.x += 0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.x[0],teensy_port.accelerometer3_in_.x[1]);
+		stabiliser.acc3_ground_state_measurement_.y += 0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.y[0],teensy_port.accelerometer3_in_.y[1]);
+		stabiliser.acc3_ground_state_measurement_.z += -0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer3_in_.z[0],teensy_port.accelerometer3_in_.z[1]);
+		stabiliser.acc4_ground_state_measurement_.x += 0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.x[0],teensy_port.accelerometer4_in_.x[1]);
+		stabiliser.acc4_ground_state_measurement_.y += 0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.y[0],teensy_port.accelerometer4_in_.y[1]);
+		stabiliser.acc4_ground_state_measurement_.z += -0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer4_in_.z[0],teensy_port.accelerometer4_in_.z[1]);
+		stabiliser.acc5_ground_state_measurement_.x += 0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.x[0],teensy_port.accelerometer5_in_.x[1]);
+		stabiliser.acc5_ground_state_measurement_.y += 0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.y[0],teensy_port.accelerometer5_in_.y[1]);
+		stabiliser.acc5_ground_state_measurement_.z += -0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer5_in_.z[0],teensy_port.accelerometer5_in_.z[1]);
 		usleep(500);
 	}
 
@@ -635,6 +670,75 @@ void RobotDriver::MeasureOrientationMeasurementNoise() {
 	}
 }
 
+void RobotDriver::LogSteps(int t_step, int t_pack, std::string filename) {
+	if(!stabiliser_file_open_flag_){
+		//Create a new file and write the state to it
+
+		std::ofstream output; 
+		output.open(filename ,std::ios::out);
+		output << "time" << ',' << "comms_time" << ',' << "M0_steps" << ',' << "M1_steps" << ',' << "M2_steps" << ',' 
+			<< "LA0_steps" << ',' << "LA1_steps" << ',' << "LA2_steps" << ',' 
+			<< "pos_meas_x" << ',' << "pos_meas_y" << ',' << "pos_meas_z" << ','
+			<< "M0_vel_target" << ',' << "M1_vel_target" << ',' << "M2_vel_target" << ','
+			<< "accelerometer0_x" << ',' << "accelerometer0_y" << ',' << "accelerometer0_z" << ','
+			   << "accelerometer1_x" << ',' << "accelerometer1_y" << ',' << "accelerometer1_z" << ','
+			   << "accelerometer2_x" << ',' << "accelerometer2_y" << ',' << "accelerometer2_z" << ','
+			   << "accelerometer3_x" << ',' << "accelerometer3_y" << ',' << "accelerometer3_z" << ','
+			   << "accelerometer4_x" << ',' << "accelerometer4_y" << ',' << "accelerometer4_z" << ','
+			   << "accelerometer5_x" << ',' << "accelerometer5_y" << ',' << "accelerometer5_z" << ','
+			   << "accelerometer0_ground_state_x" << ',' << "accelerometer0_ground_state_y" << ',' << "accelerometer0_ground_state_z" << ','
+			   << "accelerometer1_ground_state_x" << ',' << "accelerometer1_ground_state_y" << ',' << "accelerometer1_ground_state_z" << ','
+			   << "accelerometer2_ground_state_x" << ',' << "accelerometer2_ground_state_y" << ',' << "accelerometer2_ground_state_z" << ','
+			   << "accelerometer3_ground_state_x" << ',' << "accelerometer3_ground_state_y" << ',' << "accelerometer3_ground_state_z" << ','
+			   << "accelerometer4_ground_state_x" << ',' << "accelerometer4_ground_state_y" << ',' << "accelerometer4_ground_state_z" << ','
+			   << "accelerometer5_ground_state_x" << ',' << "accelerometer5_ground_state_y" << ',' << "accelerometer5_ground_state_z"
+			   << '\n'
+			   << t_step << ',' << t_pack << ',' << stabiliser.motor_steps_measurement_.motor_0 << ',' << stabiliser.motor_steps_measurement_.motor_1 << ','  << stabiliser.motor_steps_measurement_.motor_2 << ',' 
+			   << stabiliser.actuator_steps_measurement_.motor_0 << ',' << stabiliser.actuator_steps_measurement_.motor_1 << ',' << stabiliser.actuator_steps_measurement_.motor_2 << ',' 
+			   << stabiliser.platform_position_measurement_.x << ',' << stabiliser.platform_position_measurement_.y << ',' << stabiliser.platform_position_measurement_.z << ','
+			   << motor_velocities_target_.x << ',' << motor_velocities_target_.y << ',' << motor_velocities_target_.z << ','
+			   << stabiliser.acc0_latest_measurements_.x << ',' << stabiliser.acc0_latest_measurements_.y << ',' << stabiliser.acc0_latest_measurements_.z << ','
+			   << stabiliser.acc1_latest_measurements_.x << ',' << stabiliser.acc1_latest_measurements_.y << ',' << stabiliser.acc1_latest_measurements_.z << ','
+		 	   << stabiliser.acc2_latest_measurements_.x << ',' << stabiliser.acc2_latest_measurements_.y << ',' << stabiliser.acc2_latest_measurements_.z << ','
+			   << stabiliser.acc3_latest_measurements_.x << ',' << stabiliser.acc3_latest_measurements_.y << ',' << stabiliser.acc3_latest_measurements_.z << ','
+			   << stabiliser.acc4_latest_measurements_.x << ',' << stabiliser.acc4_latest_measurements_.y << ',' << stabiliser.acc4_latest_measurements_.z << ','
+			   << stabiliser.acc5_latest_measurements_.x << ',' << stabiliser.acc5_latest_measurements_.y << ',' << stabiliser.acc5_latest_measurements_.z << ','
+			   << stabiliser.acc0_ground_state_measurement_.x << ',' << stabiliser.acc0_ground_state_measurement_.y << ',' << stabiliser.acc0_ground_state_measurement_.z << ','
+			   << stabiliser.acc1_ground_state_measurement_.x << ',' << stabiliser.acc1_ground_state_measurement_.y << ',' << stabiliser.acc1_ground_state_measurement_.z << ','
+		 	   << stabiliser.acc2_ground_state_measurement_.x << ',' << stabiliser.acc2_ground_state_measurement_.y << ',' << stabiliser.acc2_ground_state_measurement_.z << ','
+			   << stabiliser.acc3_ground_state_measurement_.x << ',' << stabiliser.acc3_ground_state_measurement_.y << ',' << stabiliser.acc3_ground_state_measurement_.z << ','
+			   << stabiliser.acc4_ground_state_measurement_.x << ',' << stabiliser.acc4_ground_state_measurement_.y << ',' << stabiliser.acc4_ground_state_measurement_.z << ','
+			   << stabiliser.acc5_ground_state_measurement_.x << ',' << stabiliser.acc5_ground_state_measurement_.y << ',' << stabiliser.acc5_ground_state_measurement_.z 
+			   <<'\n';
+		output.close();
+
+		//Set the flag to say that the leveller state file is already open for this run
+		stabiliser_file_open_flag_ = true;
+	}
+	else {
+		std::ofstream output; 
+		output.open(filename,std::ios::app);
+		output << t_step << ',' << t_pack << ',' << stabiliser.motor_steps_measurement_.motor_0 << ',' << stabiliser.motor_steps_measurement_.motor_1 << ','  << stabiliser.motor_steps_measurement_.motor_2 << ',' 
+			   << stabiliser.actuator_steps_measurement_.motor_0 << ',' << stabiliser.actuator_steps_measurement_.motor_1 << ',' << stabiliser.actuator_steps_measurement_.motor_2 << ',' 
+			   << stabiliser.platform_position_measurement_.x << ',' << stabiliser.platform_position_measurement_.y << ',' << stabiliser.platform_position_measurement_.z << ','
+			   << motor_velocities_target_.x << ',' << motor_velocities_target_.y << ',' << motor_velocities_target_.z << ',' 
+			   << stabiliser.acc0_latest_measurements_.x << ',' << stabiliser.acc0_latest_measurements_.y << ',' << stabiliser.acc0_latest_measurements_.z << ','
+			   << stabiliser.acc1_latest_measurements_.x << ',' << stabiliser.acc1_latest_measurements_.y << ',' << stabiliser.acc1_latest_measurements_.z << ','
+		 	   << stabiliser.acc2_latest_measurements_.x << ',' << stabiliser.acc2_latest_measurements_.y << ',' << stabiliser.acc2_latest_measurements_.z << ','
+			   << stabiliser.acc3_latest_measurements_.x << ',' << stabiliser.acc3_latest_measurements_.y << ',' << stabiliser.acc3_latest_measurements_.z << ','
+			   << stabiliser.acc4_latest_measurements_.x << ',' << stabiliser.acc4_latest_measurements_.y << ',' << stabiliser.acc4_latest_measurements_.z << ','
+			   << stabiliser.acc5_latest_measurements_.x << ',' << stabiliser.acc5_latest_measurements_.y << ',' << stabiliser.acc5_latest_measurements_.z << ','
+			   << stabiliser.acc0_ground_state_measurement_.x << ',' << stabiliser.acc0_ground_state_measurement_.y << ',' << stabiliser.acc0_ground_state_measurement_.z << ','
+			   << stabiliser.acc1_ground_state_measurement_.x << ',' << stabiliser.acc1_ground_state_measurement_.y << ',' << stabiliser.acc1_ground_state_measurement_.z << ','
+		 	   << stabiliser.acc2_ground_state_measurement_.x << ',' << stabiliser.acc2_ground_state_measurement_.y << ',' << stabiliser.acc2_ground_state_measurement_.z << ','
+			   << stabiliser.acc3_ground_state_measurement_.x << ',' << stabiliser.acc3_ground_state_measurement_.y << ',' << stabiliser.acc3_ground_state_measurement_.z << ','
+			   << stabiliser.acc4_ground_state_measurement_.x << ',' << stabiliser.acc4_ground_state_measurement_.y << ',' << stabiliser.acc4_ground_state_measurement_.z << ','
+			   << stabiliser.acc5_ground_state_measurement_.x << ',' << stabiliser.acc5_ground_state_measurement_.y << ',' << stabiliser.acc5_ground_state_measurement_.z
+			   <<'\n';
+		output.close();
+	}
+}
+
 void RobotDriver::WriteLevellerStateToFile() {
 	if(!leveller_file_open_flag_){
 		//Create a new file and write the state to it
@@ -667,6 +771,7 @@ void RobotDriver::WriteLevellerStateToFile() {
 		output.close();
 	}
 }
+
 
 void RobotDriver::WriteStabiliserStateToFile() {
 	if(!stabiliser_file_open_flag_){

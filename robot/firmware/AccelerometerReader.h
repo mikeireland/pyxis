@@ -47,7 +47,7 @@ class AccelerometerReader {
 
     // Add entries here to add more accelerometers
     // Bottom 3 accelerometers: 8,9,10; Top 3 accelerometers: 5,6,7;
-    const int chip_select_pins_[num_accelerometers_] = {8, 9, 10, 5, 6, 7};
+    const int chip_select_pins_[num_accelerometers_] = {5,6,7,8,9,10};
 
     unsigned int ReadRegister(int index, byte this_register) {
       digitalWrite(chip_select_pins_[index], LOW);

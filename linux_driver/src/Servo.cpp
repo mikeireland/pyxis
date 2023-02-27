@@ -158,7 +158,7 @@ void Navigator::ApplyPropGain() {
     motor_velocity_target_.x = -BFF_velocity_target_.y - BFF_velocity_target_.z;
     motor_velocity_target_.y = (-BFF_velocity_target_.x * sin(PI / 3) + BFF_velocity_target_.y * cos(PI / 3)) - BFF_velocity_target_.z;
     motor_velocity_target_.z = (BFF_velocity_target_.x * sin(PI / 3) + BFF_velocity_target_.y * cos(PI / 3)) - BFF_velocity_target_.z;
-    printf("%f,%f,%f\n",motor_velocity_target_.x,motor_velocity_target_.y,motor_velocity_target_.z);
+    //printf("%f,%f,%f\n",motor_velocity_target_.x,motor_velocity_target_.y,motor_velocity_target_.z);
 
 }
 
@@ -248,7 +248,7 @@ void Stabiliser::RunLogicalDistanceSensor() {
 //Compute the Kalman filter predicted state for the system
 void Stabiliser::EstimateStateAndApplyGain() {
 
-    printf("\n\n\n\n\n"); 
+    //printf("\n\n\n\n\n"); 
 
     //We update the arrays to store state variables
     ConstructStateEstimateArray();
@@ -298,10 +298,11 @@ void Stabiliser::EstimateStateAndApplyGain() {
 
     //To ensure we cache the whole state for the next loop we Deconstruct before removing the reference
     DeconstructStateEstimateArray();
-
+    /*
     for(int i = 0; i < 30; i++){
         printf("%f,%f,%f\n",x_hat_[i],r_[i],x_hat_[i]-r_[i]);
     }
+    */
 
     //For tracking purposes we remove the reference from the 
     //state and store the new error state in a new state vector
@@ -359,13 +360,14 @@ void Stabiliser::ConvertToMotorVelocity() {
     else if(input_velocity_.s < -motor_saturation_velocity_) {input_velocity_.s = -motor_saturation_velocity_; printf("Saturated s\n");}    
     */
 
-
+    /*
     printf("Input Velocity x = %f,Perturbation = %f\n",input_velocity_.x,plat_vel_perturbation_.x);
     printf("Input Velocity y = %f, Perturbation = %f\n",input_velocity_.y,plat_vel_perturbation_.y);
     printf("Input Velocity z = %f, Perturbation = %f\n",input_velocity_.z,plat_vel_perturbation_.z);
     printf("Input Velocity r = %f, Perturbation = %f\n",input_velocity_.r,plat_vel_perturbation_.r);
     printf("Input Velocity p = %f, Perturbation = %f\n",input_velocity_.p,plat_vel_perturbation_.p);
     printf("Input Velocity s = %f, Perturbation = %f\n",input_velocity_.s,plat_vel_perturbation_.s);
+    */
 
     //For details on these transformations see the Stabiliser Transformations Mathematica notebook or the full Stabiliser documentation 
     //Note that the transformations to degrees adjust for the fact that the Stabiliser Transformations notebooks works with pith and roll in degrees

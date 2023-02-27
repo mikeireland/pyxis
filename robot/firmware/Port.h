@@ -27,6 +27,7 @@ class Port {
       for(int j = 0; j < packet_size_; j++){
         Serial.write(write_buffer_[j]);
       }
+      Serial.send_now();
       EmptyWriteBuffer();
       first_empty_ = 0;
       unsigned int timer_end = micros();
