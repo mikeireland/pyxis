@@ -1,0 +1,1 @@
+           const char *kHelpString="exit\thelp\tget_config\nget_led\tget_orientation\t";

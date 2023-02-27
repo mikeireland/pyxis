@@ -1,0 +1,5 @@
+exit = " Exit cleanly from the server.\n"
+help = " List the commands if no argument.\n If called with an argument, the argument is a command\n for which help is too be given.\n"
+get_config = " Get the current chief configuration.\n"
+get_led = " Get led positions captured by chief.camera\n"
+get_orientation = " get from star tracker and plate solver\n need coordinate transformation between non standard\n coordinates in real server\n just return a quaternion for mockup\n"

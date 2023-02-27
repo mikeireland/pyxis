@@ -1,0 +1,10 @@
+    if (strcmp(argv[0], "exit") == 0){
+        return this->Cmd_exit(argc, argv);
+    } else if (strcmp(argv[0], "help") == 0){
+        return this->Cmd_help(argc, argv);
+    } else if (strcmp(argv[0], "get_config") == 0){
+        return this->Cmd_get_config(argc, argv);
+    } else if (strcmp(argv[0], "get_led") == 0){
+        return this->Cmd_get_led(argc, argv);
+    } else if (strcmp(argv[0], "get_orientation") == 0){
+        return this->Cmd_get_orientation(argc, argv);

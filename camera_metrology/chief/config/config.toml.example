@@ -1,0 +1,5 @@
+[camera]
+fov = 30
+size_pixel = [400, 300]
+base_folder = "../../data"
+file = {on="mid_on.tiff", off="mid_off.tiff"}
