@@ -18,8 +18,8 @@ cv::Point2d LinearGradientInterp::operator()(const cv::Mat &image,
            "LinearGradientInterp only defined for grey scale image");
     const auto &img = image(sub_rect);
     cv::Mat sumx, sumy;
-    cv::reduce(img, sumx, 0, cv::REDUCE_SUM, cv::DataType<int>::type);
-    cv::reduce(img, sumy, 1, cv::REDUCE_SUM, cv::DataType<int>::type);
+    cv::reduce(img, sumx, 0, cv::REDUCE_SUM, CV_32S);
+    cv::reduce(img, sumy, 1, cv::REDUCE_SUM, CV_32S);
     auto interp = [this](const cv::Mat &v) {
         double diff[2];
         double ret;
@@ -140,6 +140,8 @@ ImageProcessSubMatInterp::get_location(const cv::Mat &image_off,
         cv::GaussianBlur(diff_image, diff_image,
                          cv::Size(gauss_radius, gauss_radius), 0, 0,
                          cv::BORDER_DEFAULT);
+
+    //diff_image.convertTo(diff_image, CV_32F);
 
     Point2D<int> p;
     Point2D<double> p_ret;

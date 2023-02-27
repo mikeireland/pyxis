@@ -18,13 +18,13 @@ struct LEDs {
     double LED2_y;
 };
 
-extern LEDs GLOB_CM_LEDs;
-extern int GLOB_CM_ONFLAG;
+LEDs GLOB_CM_LEDs;
+int GLOB_CM_ONFLAG;
 
-extern cv::Mat GLOB_CM_IMG_DARK;
+cv::Mat GLOB_CM_IMG_DARK;
 
-extern pthread_mutex_t GLOB_CM_FLAG_LOCK;
-extern pthread_mutex_t GLOB_CM_IMG_LOCK;
+pthread_mutex_t GLOB_CM_FLAG_LOCK;
+pthread_mutex_t GLOB_CM_IMG_LOCK;
 
 namespace nlohmann {
     template <>
@@ -69,6 +69,8 @@ int CM_Callback (unsigned short* data){
 
     //If LED is ON
     if (GLOB_CM_ONFLAG){
+        
+        cout << "LED On" << endl;
         pthread_mutex_lock(&GLOB_CM_IMG_LOCK);
         LEDs positions = CalcLEDPosition(img,GLOB_CM_IMG_DARK);
         pthread_mutex_unlock(&GLOB_CM_IMG_LOCK);
@@ -87,6 +89,8 @@ int CM_Callback (unsigned short* data){
     }
 
     else {
+    
+        cout << "LED Off" << endl;
         pthread_mutex_lock(&GLOB_CM_IMG_LOCK);
         img.copyTo(GLOB_CM_IMG_DARK);
         pthread_mutex_unlock(&GLOB_CM_IMG_LOCK);
