@@ -3,11 +3,20 @@
 #include <iostream>
 #include <commander/commander.h>
 #include "FLIRcamServerFuncs.h"
-
+#include "globals.h"
+#include <opencv2/opencv.hpp>
 
 // Return 1 if error!
 int AnotherCallback (unsigned short* data){
-    cout << "I'm not working here!" << endl;
+    
+    int height = GLOB_IMSIZE/GLOB_WIDTH;
+
+    cv::Mat img (height,GLOB_WIDTH,CV_16U,data);
+
+    //Function to do *SOMETHING* with the Fiber injection camera data; use imageproc?
+
+    //ZMQ CLIENT SEND TO CHIEF ROBOT
+
     return 0;
 }
 

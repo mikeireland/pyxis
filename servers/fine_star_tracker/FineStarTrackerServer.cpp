@@ -3,11 +3,68 @@
 #include <iostream>
 #include <commander/commander.h>
 #include "FLIRcamServerFuncs.h"
+#include <pthread.h>
+#include "globals.h"
+#include "image.hpp"
+#include <opencv2/opencv.hpp>
+
+
+using json = nlohmann::json;
+
+struct centroid {
+    double x;
+    double y;
+};
+
+centroid GLOB_FST_CENTROID;
+
+pthread_mutex_t GLOB_FST_FLAG_LOCK;
+
+namespace nlohmann {
+    template <>
+    struct adl_serializer<centroid> {
+        static void to_json(json& j, const centroid& c) {
+            j = json{{"x", c.x},{"y", c.y}};
+        }
+
+        static void from_json(const json& j, centroid& c) {
+            j.at("x").get_to(c.x);
+            j.at("y").get_to(c.y);
+        }
+    };
+}
+
+centroid CalcStarPosition(cv::Mat img){
+
+    // Function to take image array and find the star position
+    //static image::ImageProcessSubMatInterp ipb;
+    //auto p = ipb(img, dark);
+    
+    centroid result;
+    result.x = x;
+    result.y = y;
+
+    return result;
+
+}
 
 
 // Return 1 if error!
-int AnotherCallback (unsigned short* data){
-    cout << "I'm not working here!" << endl;
+int FST_Callback (unsigned short* data){
+
+    int height = GLOB_IMSIZE/GLOB_WIDTH;
+
+    cv::Mat img (height,GLOB_WIDTH,CV_16U,data);
+
+    centroid position = CalcStarPosition(img);
+
+    pthread_mutex_lock(&GLOB_FST_FLAG_LOCK);
+    GLOB_FST_CENTROID = position;
+    pthread_mutex_unlock(&GLOB_FST_FLAG_LOCK);
+
+    //ZMQ CLIENT SEND TO CHIEF ROBOT position
+
+
     return 0;
 }
 
@@ -15,7 +72,15 @@ int AnotherCallback (unsigned short* data){
 // FLIR Camera Server
 struct FineStarTracker: FLIRCameraServer{
 
-    FineStarTracker() : FLIRCameraServer(AnotherCallback){
+    FineStarTracker() : FLIRCameraServer(FSTCallback){
+    }
+
+    centroid getstarposition(){
+    centroid ret_position;
+    pthread_mutex_lock(&GLOB_FST_FLAG_LOCK);
+    ret_position = GLOB_FST_CENTROID;
+    pthread_mutex_unlock(&GLOB_FST_FLAG_LOCK);
+    return ret_position;
     }
 
 };
@@ -42,6 +107,7 @@ COMMANDER_REGISTER(m)
         .def("reconfigure_blacklevel", &FineStarTracker::reconfigure_blacklevel, "Reconfigure the black level")
         .def("reconfigure_buffersize", &FineStarTracker::reconfigure_buffersize, "Reconfigure the buffer size")
         .def("reconfigure_savedir", &FineStarTracker::reconfigure_savedir, "Reconfigure the save directory")
-        .def("getparams", &FineStarTracker::getparams, "Get all parameters");
+        .def("getparams", &FineStarTracker::getparams, "Get all parameters")
+        .def("getstar", &FineStarTracker::getstarposition, "Get position of the star");
 
 }
