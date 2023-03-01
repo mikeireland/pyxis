@@ -45,6 +45,7 @@ namespace Comms
             void ReadMessageAsync();
             void ReadMessage();
             void WriteMessage();
+            void SendAllRequests();
             void AddToPacket(unsigned char command);
             int Request(unsigned char command);
 
@@ -82,9 +83,9 @@ namespace Comms
 
 
         private:
-            unsigned char write_buffer_ [64];
-            unsigned char read_buffer_ [64];
-            unsigned char last_pack_ [64];
+            unsigned char write_buffer_ [128];
+            unsigned char read_buffer_ [128];
+            unsigned char last_pack_ [128];
             unsigned char request_buffer_ [1024];
             int request_buffer_first_empty_ = 0;
             int max_req_buf = 0;

@@ -5,7 +5,7 @@
 
 using namespace Comms;
 
-int SerialPort::max_packet_size_ = 64; 
+int SerialPort::max_packet_size_ = 128; 
 
 //Class constructor to sets up the serial connection to the teensy correctly
 //We also zero all of the input registers
@@ -480,6 +480,14 @@ int SerialPort::Request(unsigned char command) {
         request_buffer_first_empty_ += 1;
         return 0;
     }
+}
+
+void SerialPort::SendAllRequests() {
+    for(int i = 0; i < request_buffer_first_empty_; ++i) {
+        AddToPacket(request_buffer_[i]);
+    }
+    WriteMessage();
+    ClearRequestBuff();
 }
 
 void SerialPort::PacketManager() {
