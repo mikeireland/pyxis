@@ -1,7 +1,7 @@
 //Object to control the I/O functions of the robot
 class Port {
   private:
-    static const int packet_size_ = 64;
+    static const int packet_size_ = 128;
   
     void EmptyReadBuffer() {
       for(int i = 0; i < packet_size_; ++i){

@@ -103,20 +103,22 @@ void unambig(RobotDriver *driver) {
 	angle_target.z = 0.001*velocity*yaw*sin(2*3.14159265*f*global_timepoint*0.000001);
 	driver->SetNewStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
-	if (global_timepoint*0.000001>100) {
-		driver->RequestAllStop(); 
-		driver->stabiliser.enable_flag_ = false;
-		cout << global_timepoint*0.000001 << '\n';
-	}
-	if(global_timepoint-last_stabiliser_timepoint > 1000) {	
+	
+	if(global_timepoint-last_stabiliser_timepoint > 1000) {
+		if (global_timepoint*0.000001>100) {
+			driver->RequestAllStop(); 
+			driver->stabiliser.enable_flag_ = false;
+			cout << global_timepoint*0.000001 << '\n';
+		}	
 		if(driver->stabiliser.enable_flag_) {
                        //cout << global_timepoint*0.000001 << '\n';
+                       driver->teensy_port.ReadMessage();
 			driver->StabiliserLoop();
 
 			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
 			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z);
 			//driver->UpdateActuatorVelocity(angle_target);
-			driver->LogSteps(global_timepoint, packet_time, filename);
+			driver->LogSteps(global_timepoint, filename);
 			//driver->WriteStabiliserStateToFile();
 		}
 		if (global_timepoint-last_stabiliser_timepoint > 1500) {
@@ -124,6 +126,7 @@ void unambig(RobotDriver *driver) {
 		} else {
 		    last_stabiliser_timepoint += 1000;
 		}
+		driver->teensy_port.SendAllRequests();
 
 	}
 }
@@ -186,7 +189,7 @@ void ramp(RobotDriver *driver) {
 			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
 			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z);
 			//driver->UpdateActuatorVelocity(angle_target);
-			driver->LogSteps(global_timepoint, packet_time, filename);
+			driver->LogSteps(global_timepoint, filename);
 			//driver->WriteStabiliserStateToFile();
 		}
 		last_stabiliser_timepoint += 1000;
@@ -277,8 +280,6 @@ int robot_loop() {
 		}
 		time_point_current = steady_clock::now();
 
-		driver->teensy_port.PacketManager();
-		packet_time = duration_cast<microseconds>(steady_clock::now() - time_point_current).count();
 		
 	}
 

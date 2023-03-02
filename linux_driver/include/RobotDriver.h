@@ -91,7 +91,7 @@ namespace Control
             void LinearSweepTest();
             void RaiseAndLowerTest();
             void WriteLevellerStateToFile();
-            void LogSteps(int t_step, int t_pack, std::string filename);
+            void LogSteps(int t_step, std::string filename);
             void WriteStabiliserStateToFile();
             void MeasureOrientationMeasurementNoise();
 

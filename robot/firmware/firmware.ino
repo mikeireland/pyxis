@@ -64,7 +64,7 @@ class Controller {
     void DecodePacket(){
       if(port.read_buffer_[0] == 0xFF){
       //We loop over the message portion of the packet
-        for(int i = 1; i < 61; i = i+3){
+        for(int i = 1; i < 125; i = i+3){
         switch(port.read_buffer_[i]){
           case SetRaw0:
             //Read the input velocity and write it into the motor driver
@@ -295,7 +295,7 @@ class Controller {
       //Check if the write buffer is full, and if so send the message (recall that we want our packets to end in three 0x00s hence we 
        //only fill up to index 61)
       temp_ = port.first_empty_;
-      if(port.first_empty_ + 7 > 61){
+      if(port.first_empty_ + 7 > 125){
         port.WriteMessage();
       }
       
@@ -336,7 +336,7 @@ class Controller {
        //Check if the write buffer is full, and if so send the message (recall that we want our packets to end in three 0x00s hence we 
        //only fill up to index 61)
       temp_ = port.first_empty_;
-      if(temp_ + 3 > 61){
+      if(temp_ + 3 > 125){
         port.WriteMessage();
       }
 
@@ -372,7 +372,7 @@ class Controller {
         //Check if the write buffer is full, and if so send the message (recall that we want our packets to end in three 0x00s hence we 
         //only fill up to index 61)
         temp_ = port.first_empty_;
-        if(temp_ + 5 > 61){
+        if(temp_ + 5 > 125){
           port.WriteMessage();
         }
       
@@ -387,7 +387,7 @@ class Controller {
         //Check if the write buffer is full, and if so send the message (recall that we want our packets to end in three 0x00s hence we 
         //only fill up to index 61)
         temp_ = port.first_empty_;
-        if(temp_ + 5 > 61){
+        if(temp_ + 5 > 125){
           port.WriteMessage();
         }
       
