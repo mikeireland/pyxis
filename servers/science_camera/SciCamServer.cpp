@@ -6,8 +6,10 @@
 
 
 // Return 1 if error!
-int AnotherCallback (unsigned short* data){
-    cout << "I'm not working here!" << endl;
+int GroupDelayCallback (unsigned short* data){
+    
+    retVal = calcGroupDelay(data);
+
     return 0;
 }
 
@@ -15,7 +17,7 @@ int AnotherCallback (unsigned short* data){
 // FLIR Camera Server
 struct SciCam: QHYCameraServer{
 
-    SciCam() : QHYCameraServer(AnotherCallback){
+    SciCam() : QHYCameraServer(GroupDelayCallback){
     }
 
 };
@@ -43,6 +45,14 @@ COMMANDER_REGISTER(m)
         .def("reconfigure_blacklevel", &SciCam::reconfigure_blacklevel, "Reconfigure the black level")
         .def("reconfigure_buffersize", &SciCam::reconfigure_buffersize, "Reconfigure the buffer size")
         .def("reconfigure_savedir", &SciCam::reconfigure_savedir, "Reconfigure the save directory")
-        .def("getparams", &SciCam::getparams, "Get all parameters");
+        .def("getparams", &SciCam::getparams, "Get all parameters")
+        .def("getgroupdelay", &SciCam::getGroupDelay, "Get current group delay estimate")
+        .def("getgroupdelayarr", &SciCam::getGroupDelayArr, "Get group delay array amplitudes")
+        .def("calibrateP2VM", &SciCam::calibrateP2VM, "Get current group delay estimate")
+        .def("setwavescale", &SciCam::setWaveScale, "Get current group delay estimate")
+        .def("calctrialdelays", &SciCam::calcTrialDelays, "Get current group delay estimate")
+        .def("setpixelpos", &SciCam::setPixelPos, "Get current group delay estimate")
+        .def("savecalibration", &SciCam::saveCal, "Save calibration data to file")
+        .def("readcalibration", &SciCam::readCal, "Read calibration data from file");
 
 }

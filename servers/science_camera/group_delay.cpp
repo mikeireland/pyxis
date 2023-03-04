@@ -22,7 +22,7 @@ Eigen::Matrix<Cd, 20, 1> g;
 Eigen::ArrayXcd delays;
 
 
-int calcTrialDelayMat(int numDelays, double delaySize, double* wavelengths){
+int calcTrialDelayMat(int numDelays, double delaySize){
 
     Eigen::MatrixXcd phasors = Eigen::MatrixXcd::Zero(numDelays,20);
 
@@ -32,7 +32,7 @@ int calcTrialDelayMat(int numDelays, double delaySize, double* wavelengths){
 
     for(int k=0;k<numDelays;k++){
         for(int l=0;l<10;l++){
-            Cd num = 2*PI*If*delays(k)/wavelengths[l];
+            Cd num = 2*PI*If*delays(k)/GLOB_SC_WAVELENGTHS[l];
             phasors(k,l) = num;
             phasors(k,l+10) = num;
         }
@@ -45,14 +45,17 @@ int calcTrialDelayMat(int numDelays, double delaySize, double* wavelengths){
 }
 
 
-int calcGroupDelay() {
-    // An example of Einstein summation
+int calcGroupDelay(unsigned short* data) {
 
-     for(int k=0;k<20;k++){
-        O.row(k) << 1.*(k+1),2.*(1+k),3.*(1+2*k);
+
+     for(int k=0;k<10;k++){
+        O.row(k) << data[GLOB_SC_CAL.pos_p1_A,GLOB_SC_CAL.pos_wave+k],
+                    data[GLOB_SC_CAL.pos_p1_B,GLOB_SC_CAL.pos_wave+k],
+                    data[GLOB_SC_CAL.pos_p1_C,GLOB_SC_CAL.pos_wave+k];
+        O.row(k+10) << data[GLOB_SC_CAL.pos_p2_A,GLOB_SC_CAL.pos_wave+k],
+                    data[GLOB_SC_CAL.pos_p2_B,GLOB_SC_CAL.pos_wave+k],
+                    data[GLOB_SC_CAL.pos_p2_C,GLOB_SC_CAL.pos_wave+k];
     }   
-    
-    //O.transposeInPlace();
 
     for(int k=0;k<20;k++){
         Eigen::Matrix<Cd, 3, 1> O_i = O.row(k);

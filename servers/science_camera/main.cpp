@@ -12,11 +12,11 @@ int main() {
     int numDelays = 1000;
     double delaySize = 5; //in nm
     
-    double wavelengths[10] = {610.,625.,640.,655.,670.,685.,700.,715.,730.,745.};
-    
     int retVal;
 
-    retVal = calcTrialDelayMat(numDelays, delaySize, wavelengths);
+    retVal = wavelengthCal();
+
+    retVal = calcTrialDelayMat(numDelays, delaySize);
 
     retVal = calcP2VMMat();
 
