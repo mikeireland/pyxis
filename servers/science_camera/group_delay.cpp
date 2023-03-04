@@ -12,6 +12,14 @@ const double PI = 3.14159265;
 const Cd If(0.,1.);
 
 Eigen::MatrixXcd GLOB_SC_DELAYMAT;
+Eigen::MatrixXd GLOB_SC_DELAY_AMP;
+double GLOB_SC_GD;
+
+Eigen::Matrix<Cd, 20, 3> O;
+Eigen::Matrix<Cd, 20, 3> R;
+Eigen::Matrix<Cd, 20, 1> g;
+
+Eigen::ArrayXcd delays;
 
 
 int calcTrialDelayMat(int numDelays, double delaySize, double* wavelengths){
@@ -20,9 +28,7 @@ int calcTrialDelayMat(int numDelays, double delaySize, double* wavelengths){
 
     double edge = static_cast<double>(numDelays)*delaySize*0.5;
 
-    Eigen::ArrayXf delays = Eigen::ArrayXf::LinSpaced(numDelays, -edge, edge);
-
-    std::cout << d<< std::endl;
+    delays = Eigen::ArrayXcd::LinSpaced(numDelays, -edge, edge);
 
     for(int k=0;k<numDelays;k++){
         for(int l=0;l<10;l++){
@@ -34,8 +40,6 @@ int calcTrialDelayMat(int numDelays, double delaySize, double* wavelengths){
 
     GLOB_SC_DELAYMAT = phasors.array().exp();
 
-    std::cout << d<< std::endl;
-
     return 0;
 
 }
@@ -44,27 +48,25 @@ int calcTrialDelayMat(int numDelays, double delaySize, double* wavelengths){
 int calcGroupDelay() {
     // An example of Einstein summation
 
-    Eigen::Matrix<T, 20, 3> O;
      for(int k=0;k<20;k++){
         O.row(k) << 1.*(k+1),2.*(1+k),3.*(1+2*k);
     }   
-
+    
     //O.transposeInPlace();
 
-    Eigen::Matrix<T, 20, 3> R;
     for(int k=0;k<20;k++){
-        Eigen::Matrix<T, 3, 1> O_i = O.row(k);
+        Eigen::Matrix<Cd, 3, 1> O_i = O.row(k);
         R.row(k) = *GLOB_SC_P2VM_l[k]*O_i;
     }
 
     g = (R.col(0) + If*R.col(1));
     g = g.array()*((R.col(2)).array().inverse());
 
-    Eigen::Matrix<T,1000,1> d = (GLOB_SC_DELAYMAT*g).cwiseAbs2();
+    GLOB_SC_DELAY_AMP = (GLOB_SC_DELAYMAT*g).cwiseAbs2().real();
 
-    std::cout << d<< std::endl;
-    // Output the results
-
+    Eigen::Index maxRow, maxCol;
+    double maxAmp = GLOB_SC_DELAY_AMP.maxCoeff(&maxRow,&maxCol);
+    GLOB_SC_GD = delays(maxRow,maxCol).real();
 
     return 0;
 }
