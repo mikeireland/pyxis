@@ -27,7 +27,7 @@ depth = number of stars to match to
 scale_bounds = min/max of FOV of camera in degrees
 """
 
-def writeANxy(filename, x, y, dim=(0,0), depth=10, scale_bounds = (0.,0.)):
+def writeANxy(filename, x, y, dim=(0,0), depth=10, scale_bounds = (0.,0.), est_pos = (0,0,10)):
 
     #Create FITS BINTABLE columns
     colX = fits.Column(name='X', format='1D', array=x)
@@ -56,6 +56,9 @@ def writeANxy(filename, x, y, dim=(0,0), depth=10, scale_bounds = (0.,0.)):
     prihdr['ANCORR']   = ('./%s.corr'%filename, 'Correspondences output filename')
     prihdr['ANDPL1']   = (1, 'no comment')
     prihdr['ANDPU1']   = (depth, 'no comment')
+    prihdr['ANERA']   = (est_pos[0], 'RA center estimate (deg)')
+    prihdr['ANEDEC']   = (est_pos[1], 'Dec center estimate (deg)')
+    prihdr['ANERAD']   = (est_pos[2], 'Search radius from estimated posn (deg)')
     extension = '.axy'
     prihdu = fits.PrimaryHDU(header=prihdr)
 
@@ -97,7 +100,10 @@ def run_image(img_filename,config):
     writeANxy(folder_prefix, lst.T[1], lst.T[0], dim=img.T.shape,
               depth=config["Astrometry"]["depth"],
               scale_bounds=(config["Astrometry"]["FOV_min"],
-                            config["Astrometry"]["FOV_max"]))
+                            config["Astrometry"]["FOV_max"]),
+              est_pos=(config["Astrometry"]["est_pos_ra"],
+                       config["Astrometry"]["est_pos_dec"],
+                       config["Astrometry"]["est_pos_rad"]))
 
     #Run astrometry.net
     os.system("./astrometry/solver/astrometry-engine %s.axy -c astrometry.cfg"%folder_prefix)
@@ -145,7 +151,7 @@ if __name__ == "__main__":
     with open(config_file, "rb") as f:
         config = tomli.load(f)
 
-	IP = config["IP"]
+    IP = config["IP"]
 
     try:
         context = zmq.Context()
@@ -155,7 +161,7 @@ if __name__ == "__main__":
     except:
         print('ERROR: Could not connect to camera server. Please check that the server is running and IP is correct.')
  
-     try:
+    try:
         robot_control_socket = context.socket(zmq.REQ)
         tcpstring = "tcp://"+IP+":"+config["robot_control_port"]
         robot_control_socket.connect(tcpstring)
@@ -165,7 +171,7 @@ if __name__ == "__main__":
 
     while(1):
 
-    	camera_socket.send_string("CM.getlatestfilename")
+        camera_socket.send_string("CM.getlatestfilename")
     
         #Ask camera for next image
         message = camera_socket.recv()
