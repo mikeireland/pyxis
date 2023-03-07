@@ -10,8 +10,8 @@ filt_size = 15 #Size of filter
 
 [Astrometry]
 depth = 10 #How many stars to match?
-FOV_min = 5 #minimum estimate of FOV in degrees
-FOV_max = 6 #maximum estimate of FOV in degrees
+FOV_min = 0.5 #minimum estimate of FOV in degrees
+FOV_max = 1 #maximum estimate of FOV in degrees
 
     [Astrometry.estimate_position]
     flag = 0

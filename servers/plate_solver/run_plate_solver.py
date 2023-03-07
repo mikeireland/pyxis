@@ -27,7 +27,7 @@ depth = number of stars to match to
 scale_bounds = min/max of FOV of camera in degrees
 """
 
-def writeANxy(filename, x, y, dim=(0,0), depth=10, scale_bounds = (0.,0.), est_pos = (0,0,10)):
+def writeANxy(filename, x, y, dim=(0,0), depth=10, scale_bounds = (0.,0.), est_pos_flag = 0, est_pos = (0,0,10)):
 
     #Create FITS BINTABLE columns
     colX = fits.Column(name='X', format='1D', array=x)
@@ -56,9 +56,10 @@ def writeANxy(filename, x, y, dim=(0,0), depth=10, scale_bounds = (0.,0.), est_p
     prihdr['ANCORR']   = ('./%s.corr'%filename, 'Correspondences output filename')
     prihdr['ANDPL1']   = (1, 'no comment')
     prihdr['ANDPU1']   = (depth, 'no comment')
-    prihdr['ANERA']   = (est_pos[0], 'RA center estimate (deg)')
-    prihdr['ANEDEC']   = (est_pos[1], 'Dec center estimate (deg)')
-    prihdr['ANERAD']   = (est_pos[2], 'Search radius from estimated posn (deg)')
+    if est_pos_flag:
+        prihdr['ANERA']   = (est_pos[0], 'RA center estimate (deg)')
+        prihdr['ANEDEC']   = (est_pos[1], 'Dec center estimate (deg)')
+        prihdr['ANERAD']   = (est_pos[2], 'Search radius from estimated posn (deg)')
     extension = '.axy'
     prihdu = fits.PrimaryHDU(header=prihdr)
 
@@ -101,9 +102,10 @@ def run_image(img_filename,config):
               depth=config["Astrometry"]["depth"],
               scale_bounds=(config["Astrometry"]["FOV_min"],
                             config["Astrometry"]["FOV_max"]),
-              est_pos=(config["Astrometry"]["est_pos_ra"],
-                       config["Astrometry"]["est_pos_dec"],
-                       config["Astrometry"]["est_pos_rad"]))
+              est_pos_flag=config["Astrometry"]["estimate_position"]["flag"],
+              est_pos=(config["Astrometry"]["estimate_position"]["ra"],
+                       config["Astrometry"]["estimate_position"]["dec"],
+                       config["Astrometry"]["estimate_position"]["rad"]))
 
     #Run astrometry.net
     os.system("./astrometry/solver/astrometry-engine %s.axy -c astrometry.cfg"%folder_prefix)
