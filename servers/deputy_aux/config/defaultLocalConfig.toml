@@ -1,0 +1,9 @@
+port = "4001"
+IP = "127.0.0.1"
+
+[actuators]
+
+
+[aux]
+power_req_time = 1000
+
