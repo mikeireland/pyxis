@@ -525,8 +525,8 @@ void RobotDriver::RequestAllStop() {
 	actuator_velocity_target_.x = 0;
     actuator_velocity_target_.y = 0;
     actuator_velocity_target_.z = 0;
-    teensy_port.PacketManager();
-    usleep(1000);
+    //teensy_port.PacketManager();
+    //usleep(1000);
 }
 
 //Command to robot to reset its step count
@@ -670,13 +670,13 @@ void RobotDriver::MeasureOrientationMeasurementNoise() {
 	}
 }
 
-void RobotDriver::LogSteps(int t_step, int t_pack, std::string filename) {
+void RobotDriver::LogSteps(int t_step, std::string filename) {
 	if(!stabiliser_file_open_flag_){
 		//Create a new file and write the state to it
 
 		std::ofstream output; 
 		output.open(filename ,std::ios::out);
-		output << "time" << ',' << "comms_time" << ',' << "M0_steps" << ',' << "M1_steps" << ',' << "M2_steps" << ',' 
+		output << "time" << ',' << "M0_steps" << ',' << "M1_steps" << ',' << "M2_steps" << ',' 
 			<< "LA0_steps" << ',' << "LA1_steps" << ',' << "LA2_steps" << ',' 
 			<< "pos_meas_x" << ',' << "pos_meas_y" << ',' << "pos_meas_z" << ','
 			<< "M0_vel_target" << ',' << "M1_vel_target" << ',' << "M2_vel_target" << ','
@@ -693,7 +693,7 @@ void RobotDriver::LogSteps(int t_step, int t_pack, std::string filename) {
 			   << "accelerometer4_ground_state_x" << ',' << "accelerometer4_ground_state_y" << ',' << "accelerometer4_ground_state_z" << ','
 			   << "accelerometer5_ground_state_x" << ',' << "accelerometer5_ground_state_y" << ',' << "accelerometer5_ground_state_z"
 			   << '\n'
-			   << t_step << ',' << t_pack << ',' << stabiliser.motor_steps_measurement_.motor_0 << ',' << stabiliser.motor_steps_measurement_.motor_1 << ','  << stabiliser.motor_steps_measurement_.motor_2 << ',' 
+			   << t_step << ',' << stabiliser.motor_steps_measurement_.motor_0 << ',' << stabiliser.motor_steps_measurement_.motor_1 << ','  << stabiliser.motor_steps_measurement_.motor_2 << ',' 
 			   << stabiliser.actuator_steps_measurement_.motor_0 << ',' << stabiliser.actuator_steps_measurement_.motor_1 << ',' << stabiliser.actuator_steps_measurement_.motor_2 << ',' 
 			   << stabiliser.platform_position_measurement_.x << ',' << stabiliser.platform_position_measurement_.y << ',' << stabiliser.platform_position_measurement_.z << ','
 			   << motor_velocities_target_.x << ',' << motor_velocities_target_.y << ',' << motor_velocities_target_.z << ','
@@ -718,7 +718,7 @@ void RobotDriver::LogSteps(int t_step, int t_pack, std::string filename) {
 	else {
 		std::ofstream output; 
 		output.open(filename,std::ios::app);
-		output << t_step << ',' << t_pack << ',' << stabiliser.motor_steps_measurement_.motor_0 << ',' << stabiliser.motor_steps_measurement_.motor_1 << ','  << stabiliser.motor_steps_measurement_.motor_2 << ',' 
+		output << t_step << ',' << stabiliser.motor_steps_measurement_.motor_0 << ',' << stabiliser.motor_steps_measurement_.motor_1 << ','  << stabiliser.motor_steps_measurement_.motor_2 << ',' 
 			   << stabiliser.actuator_steps_measurement_.motor_0 << ',' << stabiliser.actuator_steps_measurement_.motor_1 << ',' << stabiliser.actuator_steps_measurement_.motor_2 << ',' 
 			   << stabiliser.platform_position_measurement_.x << ',' << stabiliser.platform_position_measurement_.y << ',' << stabiliser.platform_position_measurement_.z << ','
 			   << motor_velocities_target_.x << ',' << motor_velocities_target_.y << ',' << motor_velocities_target_.z << ',' 

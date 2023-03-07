@@ -78,7 +78,7 @@ int CM_Callback (unsigned short* data){
         GLOB_CM_LEDs = positions;
         pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
 
-        //ZMQ CLIENT SEND TO ROBOT positions
+        //ZMQ CLIENT SEND TO DEPUTY ROBOT positions
 
         //ZMQ CLIENT SEND TO AUX TURN OFF LED
 
@@ -115,9 +115,9 @@ struct CoarseMet: FLIRCameraServer{
 
     LEDs getLEDpositions(){
         LEDs ret_LEDs;
-        pthread_mutex_lock(&GLOB_FLAG_LOCK);
+        pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
         ret_LEDs = GLOB_CM_LEDs;
-        pthread_mutex_unlock(&GLOB_FLAG_LOCK);
+        pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
         return ret_LEDs;
     }
 
