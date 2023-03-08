@@ -89,13 +89,17 @@ def run_image(img_filename,config):
     folder_prefix = config["output_folder"]+"/"+prefix
 
     #Open FITS
-    hdul = fits.open(str(img_filename))
-    img = hdul[0].data
+    hdul = fits.open(str(config["path_to_data"]+"/"+img_filename))
+    img = (hdul[0].data)[0]
 
     #Get list of positions (extract centroids) via Tetra3
     lst = t3.get_centroids_from_image(img,bg_sub_mode=config["Tetra3"]["bg_sub_mode"],
                                           sigma_mode=config["Tetra3"]["sigma_mode"],
                                           filtsize=config["Tetra3"]["filt_size"])
+
+    if not lst:
+        print("COULD NOT EXTRACT STARS")
+        return (0,np.array([0,0,0]))
 
     #Write .axy file for astrometry.net
     writeANxy(folder_prefix, lst.T[1], lst.T[0], dim=img.T.shape,
@@ -109,6 +113,10 @@ def run_image(img_filename,config):
 
     #Run astrometry.net
     os.system("./astrometry/solver/astrometry-engine %s.axy -c astrometry.cfg"%folder_prefix)
+
+    if not(os.path.exists("%s.wcs"%folder_prefix)):
+        print("DID NOT SOLVE")
+        return (0,np.array([0,0,0]))
 
     #Extract astrometry.net WCS info and print to terminal
     print("\nRESULTS:")
@@ -125,7 +133,7 @@ def run_image(img_filename,config):
 
     print(f"Angles: Alt={angles[1]}, Az={angles[0]}, PosAng={angles[2]}")
 
-    return angles
+    return (1,angles)
 
 def get_image(input_folder):
     list_of_files = glob.glob(input_folder+'/*.fits') # * means all if need specific format then *.csv
@@ -160,40 +168,47 @@ if __name__ == "__main__":
         camera_socket = context.socket(zmq.REQ)
         tcpstring = "tcp://"+IP+":"+config["camera_port"]
         camera_socket.connect(tcpstring)
+        print("Connected")
     except:
         print('ERROR: Could not connect to camera server. Please check that the server is running and IP is correct.')
- 
+    """
     try:
         robot_control_socket = context.socket(zmq.REQ)
         tcpstring = "tcp://"+IP+":"+config["robot_control_port"]
         robot_control_socket.connect(tcpstring)
     except:
-        print('ERROR: Could not connect to camera server. Please check that the server is running and IP is correct.')       
-
-
+        print('ERROR: Could not connect to robot server. Please check that the server is running and IP is correct.')       
+    """
+    print("Beginning loop")
     while(1):
+    
+        print("Sending request")
 
-        camera_socket.send_string("CM.getlatestfilename")
+        camera_socket.send_string("CST.getlatestfilename")
     
         #Ask camera for next image
         message = camera_socket.recv()
-        print("Received camera message: %s" % message)
+        print("Received camera message: %s" % message.decode("utf-8").strip('\"') )
 
         # WORK ON MESSAGE -> FILENAME
-        filename = message
+        filename = message.decode("utf-8").strip('\"') 
 
         #run image
-        angles = run_image(filename,config)
+        flag,angles = run_image(filename,config)
 
-        # WORK ON ANGLES -> return_message
-        return_message = b"DR.receive_CST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
+        if flag>0:
 
-        #Send reply to robot
-        robot_control_socket.send_string(return_message)
-        
-        message = robot_control_socket.recv()
-        print("Robot response: %s" % message)
+            # WORK ON ANGLES -> return_message
+            return_message = b"DR.receive_CST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
 
+            #Send reply to robot
+            print(return_message)
+            #robot_control_socket.send_string(return_message)
+            
+            #message = robot_control_socket.recv()
+            #print("Robot response: %s" % message)
+        else:
+            print("ERROR")
 
 #-------------
 """
