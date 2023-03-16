@@ -1,7 +1,8 @@
 output_folder = "output" #Folder for output
-IP = "121.01.12.13"
-camera_port = "5555"
+IP = "127.0.0.1"
+camera_port = "4001"
 robot_control_port = "5555"
+path_to_data = "/home/jhansen/GitRepos/pyxis/servers/coarse_star_tracker"
 
 [Tetra3]
 bg_sub_mode = "local_mean" #"Continuous" is default
@@ -10,11 +11,11 @@ filt_size = 15 #Size of filter
 
 [Astrometry]
 depth = 10 #How many stars to match?
-FOV_min = 0.5 #minimum estimate of FOV in degrees
-FOV_max = 1 #maximum estimate of FOV in degrees
+FOV_min = 1 #minimum estimate of FOV in degrees
+FOV_max = 2 #maximum estimate of FOV in degrees
 
     [Astrometry.estimate_position]
     flag = 0
     ra = 0
     dec = 0
-    rad = 900
+    rad = 5

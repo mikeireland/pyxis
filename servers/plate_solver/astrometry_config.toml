@@ -18,4 +18,4 @@ FOV_max = 6 #maximum estimate of FOV in degrees
     flag = 0
     ra = 0
     dec = 0
-    rad = 900
+    rad = 5

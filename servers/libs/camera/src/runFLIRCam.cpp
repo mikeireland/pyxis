@@ -117,9 +117,12 @@ void *runCam(void*) {
         toml::table cam_config = *config.get("FLIRcamera")->as_table();
         string serialNum = cam_config["cam_ID"].value_or("00000000");
 
+
 	    // Initialise FLIRCamera instance from the serial number
         FLIRCamera Fcam (cam_list.GetBySerial(serialNum), cam_config);
-
+        
+        
+        
 	    // Setup and start the camera
         Fcam.InitCamera();
         

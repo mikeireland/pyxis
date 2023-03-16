@@ -368,7 +368,7 @@ class BaseFLIRCameraWidget(QWidget):
         only see one server at a time)"""
         #As this is on a continuous timer, only do anything if we are
         #connected
-        response = self.socket.send_command("FLIRCam.status")
+        response = self.socket.send_command("CST.status")
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
@@ -413,11 +413,11 @@ class BaseFLIRCameraWidget(QWidget):
     def get_params(self):
         """Ask for status for the server that applies to the current tab (as we can
         only see one server at a time)"""
-        command = "FLIRCam.getparams"
+        command = "CST.getparams"
 
         if (self.socket.connected):
 
-            response = self.socket.send_command("FLIRCam.getparams")
+            response = self.socket.send_command("CST.getparams")
 
             if response.startswith("Error receiving response, connection lost"):
             	print(response)
@@ -445,7 +445,7 @@ class BaseFLIRCameraWidget(QWidget):
             # Refresh camera
             self.Connect_button.setText("Disconnect")
             print("Camera is now Connected")
-            self.send_to_server("FLIRCam.connect")
+            self.send_to_server("CST.connect")
             time.sleep(2)
             self.get_params()
 
@@ -456,7 +456,7 @@ class BaseFLIRCameraWidget(QWidget):
         else:
             self.Connect_button.setText("Connect")
             print("Disconnecting Camera")
-            self.send_to_server("FLIRCam.disconnect")
+            self.send_to_server("CST.disconnect")
 
 
     def reconfigure_camera(self):
@@ -477,7 +477,7 @@ class BaseFLIRCameraWidget(QWidget):
                 print("Reconfiguring Camera")
 
                 response_str = json.dumps(response_dict)
-                self.send_to_server("FLIRCam.reconfigure_all [%s]"%response_str)
+                self.send_to_server("CST.reconfigure_all [%s]"%response_str)
 
         else:
             print("CAMERA NOT CONNECTED")
@@ -496,11 +496,11 @@ class BaseFLIRCameraWidget(QWidget):
                 self.run_button.setText("Stop Camera")
                 print("Starting Camera")
                 num_frames = str(self.numframes_edit.text())
-                self.send_to_server("FLIRCam.start [%s,%s]"%(num_frames,self.coadd_flag))
+                self.send_to_server("CST.start [%s,%s]"%(num_frames,self.coadd_flag))
             else:
                 self.run_button.setText("Start Camera")
                 print("Stopping Camera")
-                self.send_to_server("FLIRCam.stop")
+                self.send_to_server("CST.stop")
 
         else:
             self.run_button.setChecked(False)
@@ -535,7 +535,7 @@ class BaseFLIRCameraWidget(QWidget):
     def get_new_frame(self):
         #j = random.randint(1, 6)
         #self.feed_window.cam_feed.changePixmap("assets/camtest%s.png"%j)
-        response = self.socket.send_command("FLIRCam.getlatestimage [%s,%s]"%(self.compression_param,self.feed_window.binning_flag))
+        response = self.socket.send_command("CST.getlatestimage [%s,%s]"%(self.compression_param,self.feed_window.binning_flag))
         data = json.loads(json.loads(response))
         compressed_data = np.array(data["Image"]["data"], dtype=np.uint8)
         print(len(compressed_data))

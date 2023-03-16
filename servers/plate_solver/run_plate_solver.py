@@ -97,7 +97,7 @@ def run_image(img_filename,config):
                                           sigma_mode=config["Tetra3"]["sigma_mode"],
                                           filtsize=config["Tetra3"]["filt_size"])
 
-    if not lst:
+    if len(lst) == 0:
         print("COULD NOT EXTRACT STARS")
         return (0,np.array([0,0,0]))
 
@@ -116,6 +116,7 @@ def run_image(img_filename,config):
 
     if not(os.path.exists("%s.wcs"%folder_prefix)):
         print("DID NOT SOLVE")
+        config["Astrometry"]["estimate_position"]["flag"] = 0
         return (0,np.array([0,0,0]))
 
     #Extract astrometry.net WCS info and print to terminal
@@ -125,6 +126,10 @@ def run_image(img_filename,config):
     #Extract RA, DEC and POSANGLE from astrometry.net output
     output = sp.getoutput("./astrometry/util/wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation'"%folder_prefix)
     [POS,RA,DEC] = [float(s.split(" ")[1]) for s in output.splitlines()]
+    
+    config["Astrometry"]["estimate_position"]["ra"] = RA
+    config["Astrometry"]["estimate_position"]["dec"] = DEC
+    config["Astrometry"]["estimate_position"]["flag"] = 1
 
     #Convert to quaternion
     angles = conversion.RaDec2AltAz(RA,DEC,POS)
@@ -148,7 +153,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         config_file = sys.argv[1]
     elif len(sys.argv) == 1:
-        config_file = "astrometry_config.toml"
+        config_file = "astrometry_fine.toml"
         if os.path.exists(config_file):
             print("Using config "+config_file)
         else:
@@ -181,7 +186,7 @@ if __name__ == "__main__":
     """
     print("Beginning loop")
     while(1):
-    
+        time.sleep(1)
         print("Sending request")
 
         camera_socket.send_string("CST.getlatestfilename")
