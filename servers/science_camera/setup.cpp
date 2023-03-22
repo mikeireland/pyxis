@@ -10,6 +10,8 @@ Eigen::Matrix<Cd,3,3> *GLOB_SC_P2VM_l[20];
 
 SC_calibration GLOB_SC_CAL;
 
+
+// Temp function to create P2VM matrix. In reality, need a proper calibration function to do this.
 int calcP2VMMat() {
 
     for(int k=0;k<20;k++){
@@ -24,6 +26,7 @@ int calcP2VMMat() {
 
 }
 
+// Function to get the wavelength scale
 int wavelengthCal() {
 
     for(int k=0;k<10;k++){
@@ -33,6 +36,7 @@ int wavelengthCal() {
     return 0;
 }
 
+// Function to get the reference pixel positions.
 int findPixelPositions() {
 
     GLOB_SC_CAL.pos_wave = 1.;
@@ -47,6 +51,7 @@ int findPixelPositions() {
     return 0;
 }
 
+// Function to save calibration data (pixel positions and wavescale) to file
 int saveCalData() {
 
     return 0;

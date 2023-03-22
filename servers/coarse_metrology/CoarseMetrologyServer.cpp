@@ -2,6 +2,8 @@
 #include <fmt/core.h>
 #include <iostream>
 #include <commander/commander.h>
+#include <commander/client/socket.h>
+#include "toml.hpp"
 #include "FLIRcamServerFuncs.h"
 #include <pthread.h>
 #include "globals.h"
@@ -25,6 +27,12 @@ cv::Mat GLOB_CM_IMG_DARK;
 
 pthread_mutex_t GLOB_CM_FLAG_LOCK;
 pthread_mutex_t GLOB_CM_IMG_LOCK;
+
+std::string GLOB_RB_TCP = "NOFILESAVED";
+std::string GLOB_DA_TCP = "NOFILESAVED";
+
+commander::client::Socket* RB_SOCKET;
+commander::client::Socket* DA_SOCKET;
 
 namespace nlohmann {
     template <>
@@ -77,11 +85,14 @@ int CM_Callback (unsigned short* data){
         pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
         GLOB_CM_LEDs = positions;
         pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
-
+        
         //ZMQ CLIENT SEND TO DEPUTY ROBOT positions
-
+        std::string result = RB_SOCKET->send<std::string>("receive_LED_positions", positions);
+        
         //ZMQ CLIENT SEND TO AUX TURN OFF LED
+        std::string result = DA_SOCKET->send<std::string>("turnLEDOff");
 
+       
         pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
         GLOB_CM_ONFLAG = 0;
         pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
@@ -96,6 +107,7 @@ int CM_Callback (unsigned short* data){
         pthread_mutex_unlock(&GLOB_CM_IMG_LOCK);
 
         //ZMQ CLIENT SEND TO AUX TURN ON LED
+        std::string result = DA_SOCKET->send<std::string>("turnLEDOn");
 
         pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
         GLOB_CM_ONFLAG = 1;
@@ -111,6 +123,26 @@ int CM_Callback (unsigned short* data){
 struct CoarseMet: FLIRCameraServer{
 
     CoarseMet() : FLIRCameraServer(CM_Callback){
+    
+        // Set up client parameters
+        toml::table config = toml::parse_file(GLOB_CONFIGFILE);
+        // Retrieve port and IP
+        std::string RB_port = config["CoarseMet"]["RB_port"].value_or("4000");
+        std::string DA_port = config["CoarseMet"]["DA_port"].value_or("4000");
+        std::string IP = config["IP"].value_or("192.168.1.4");
+
+        // Turn into a TCPString
+        GLOB_RB_TCP = "tcp://" + IP + ":" + RB_port;
+        GLOB_DA_TCP = "tcp://" + IP + ":" + DA_port;
+        
+        RB_SOCKET = new commander::client::Socket(GLOB_RB_TCP);
+        DA_SOCKET = new commander::client::Socket(GLOB_DA_TCP);
+    
+    }
+    
+    ~CoarseMet(){
+        delete RB_SOCKET;
+        delete DA_SOCKET;
     }
 
     LEDs getLEDpositions(){

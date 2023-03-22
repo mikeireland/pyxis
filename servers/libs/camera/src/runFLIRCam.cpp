@@ -116,6 +116,7 @@ void *runCam(void*) {
         // Get the settings for the particular camera
         toml::table cam_config = *config.get("FLIRcamera")->as_table();
         string serialNum = cam_config["cam_ID"].value_or("00000000");
+        int sleeptime = cam_config["sleep_time"].value_or(1000000);
 
 
 	    // Initialise FLIRCamera instance from the serial number
@@ -203,7 +204,7 @@ void *runCam(void*) {
 				free(GLOB_IMG_MUTEX_ARRAY);
 			}
 			
-			sleep(1); // Sleep to save resources
+			usleep(sleeptime); // Sleep to save resources
 
 		}
 		

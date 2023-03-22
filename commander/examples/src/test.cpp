@@ -1,7 +1,8 @@
 #include <commander/commander.h>
-
+#include <iostream>
 #include <fmt/core.h>
 #include <fmt/ranges.h>
+#include <fstream>
 
 #include <string>
 
@@ -44,6 +45,40 @@ namespace nlohmann {
         }
     };
 }
+
+struct centroid {
+    double x;
+    double y;
+};
+
+namespace nlohmann {
+    template <>
+    struct adl_serializer<centroid> {
+        static void to_json(json& j, const centroid& c) {
+            j = json{{"x", c.x},{"y", c.y}};
+        }
+
+        static void from_json(const json& j, centroid& c) {
+            j.at("x").get_to(c.x);
+            j.at("y").get_to(c.y);
+        }
+    };
+}
+
+
+
+std::string test(centroid pos){
+
+    std::string retval = "received centroid";
+
+    std::cout << pos.x << std::endl;
+    std::cout << pos.y << std::endl;
+    
+    return retval;
+}
+
+
+
 
 void set_configuration(configuration c, int d) {
     fmt::print("a: {}, b: {}, c: {}, d: {}\n", c.a, c.b, c.c, d);
@@ -89,10 +124,23 @@ COMMANDER_REGISTER(m)
 
 
     m.def("set_configuration", set_configuration, "Set the configuration");
+    
+    m.def("test", test, "test");
 }
 
 int main(int argc, char* argv[]) {
-    co::Server s(argc, argv);
+    std::string TCPString = "tcp://127.0.0.1:5555";
+    char TCPCharArr[TCPString.length() + 1];
+    std::strcpy(TCPCharArr, TCPString.c_str());
+
+    // Argc/Argv to turn into the required server input
+    argc = 3;
+    char* argv_new[3];
+    argv_new[1] = (char*)"--socket";
+    argv_new[2] = TCPCharArr;
+
+    // Start server!
+    co::Server s(argc, argv_new);
 
     s.run();
 }
