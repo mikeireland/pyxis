@@ -15,6 +15,7 @@ refresh_time = 0.5 #In seconds
     [Dextra.RobotControl]
     tab_name = "Robot Control"
     name = "DextraRobotControl"
+    prefix = "RC"
     port = "4000"
     description = "Motor/Actuator control for the deputy Dextra"
     module_type = "RobotControlWidget"
@@ -22,6 +23,7 @@ refresh_time = 0.5 #In seconds
     [Dextra.StarTracker]
     tab_name = "Star Tracker Camera"
     name = "DextraStarTracker"
+    prefix = "ST"
     port = "4001"
     description = "Camera controls for the Dextra star tracker"
     module_type = "BaseFLIRCameraWidget"
@@ -31,15 +33,17 @@ refresh_time = 0.5 #In seconds
 		[Dextra.ScienceCamera]
     tab_name = "Science Camera"
     name = "DextraScienceCam"
+    prefix = "SC"
     port = "4002"
     description = "Science Camera controls"
     module_type = "BaseQHYCameraWidget"
     feed_refresh_time = 0.05
     compression_param = 1
 
-    [Dextra.PowerSystem]
-    tab_name = "Power System"
-    name = "DextraPowerSystem"
+    [Dextra.DeputyAux]
+    tab_name = "Deputy Auxilliary"
+    name = "DextraDeputyAux"
+    prefix = "DA"
     port = "4003"
     description = "Dextra power system + LED controls"
     module_type = "PowerControlWidget"

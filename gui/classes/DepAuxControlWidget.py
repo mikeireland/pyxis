@@ -15,10 +15,10 @@ except:
     raise UserWarning
 
 
-class RobotControlWidget(QWidget):
+class DepAuxControlWidget(QWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
 
-        super(RobotControlWidget,self).__init__(parent)
+        super(DepAuxControlWidget,self).__init__(parent)
 
         self.name = config["name"]
         self.port = config["port"]
@@ -38,7 +38,7 @@ class RobotControlWidget(QWidget):
 
         #First, the command entry box
         lbl1 = QLabel('Command: ', self)
-        self.line_edit = QLineEdit("RC.")
+        self.line_edit = QLineEdit("DA.")
         self.line_edit.returnPressed.connect(self.command_enter)
 
         #Next, the info button
@@ -60,33 +60,47 @@ class RobotControlWidget(QWidget):
 
         vBoxlayout.addSpacing(30)
 
-        button_layout = QHBoxLayout()
-        self.zero_button = QPushButton("Zero", self)
-        self.zero_button.setFixedWidth(200)
-        self.zero_button.clicked.connect(self.zero_button_func)
-        button_layout.addWidget(self.zero_button)
-        self.level_button = QPushButton("Level", self)
-        self.level_button.setFixedWidth(200)
-        self.level_button.clicked.connect(self.level_button_func)
-        button_layout.addWidget(self.level_button)
-        self.stop_button = QPushButton("Stop", self)
-        self.stop_button.setFixedWidth(200)
-        self.stop_button.clicked.connect(self.stop_button_func)
-        button_layout.addWidget(self.stop_button)
-        vBoxlayout.addLayout(button_layout)
+        LED_layout = QHBoxLayout()
+        lbl = QLabel("LED Controls:",self)
+        LED_layout.addWidget(lbl)
+        LED_layout.addStretch()
+        self.startBlink_button = QPushButton("Start Blink", self)
+        self.startBlink_button.setFixedWidth(200)
+        self.startBlink_button.clicked.connect(self.startBlink_button_func)
+        LED_layout.addWidget(self.startBlink_button)
+        LED_layout.addSpacing(50)
+        self.stopBlink_button = QPushButton("Stop Blink", self)
+        self.stopBlink_button.setFixedWidth(200)
+        self.stopBlink_button.clicked.connect(self.stopBlink_button_func)
+        LED_layout.addWidget(self.stopBlink_button)
+        LED_layout.addStretch()
+        vBoxlayout.addLayout(LED_layout)
 
-        vBoxlayout.addSpacing(30)
+        vBoxlayout.addSpacing(20)
 
-        hbox1 = QHBoxLayout()
-        lbl1 = QLabel('Velocity (mm/s): ', self)
-        self.translate_line_edit = QLineEdit("0")
-        self.translate_button = QPushButton("Translate", self)
-        self.translate_button.clicked.connect(self.translate)
-        hbox1.addWidget(lbl1)
-        hbox1.addWidget(self.translate_line_edit)
-        hbox1.addSpacing(20)
-        hbox1.addWidget(self.translate_button)
-        vBoxlayout.addLayout(hbox1)
+        LED_layout = QHBoxLayout()
+        lbl = QLabel("Power System Controls:",self)
+        LED_layout.addWidget(lbl)
+        LED_layout.addStretch()
+        self.getVoltage_button = QPushButton("Get Voltage", self)
+        self.getVoltage_button.setFixedWidth(200)
+        self.getVoltage_button.clicked.connect(self.getVoltage_func)
+        LED_layout.addWidget(self.getVoltage_button)
+        LED_layout.addSpacing(50)
+        self.voltage = QLabel("0.00 V")
+        self.voltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ff7e40}")
+        LED_layout.addWidget(self.voltage)
+        LED_layout.addSpacing(50)
+        self.getCurrent_button = QPushButton("Get Current", self)
+        self.getCurrent_button.setFixedWidth(200)
+        self.getCurrent_button.clicked.connect(self.getCurrent_func)
+        LED_layout.addWidget(self.getCurrent_button)
+        LED_layout.addSpacing(50)
+        self.current = QLabel("0.00 A")
+        self.current.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ff7e40}")
+        LED_layout.addWidget(self.current)
+        LED_layout.addStretch()
+        vBoxlayout.addLayout(LED_layout)
 
         # Complete setup, add status labels and indicators
         status_layout = QHBoxLayout()
@@ -151,30 +165,52 @@ class RobotControlWidget(QWidget):
         """
         self.send_to_server(str(self.line_edit.text()))
 
-    def zero_button_func(self):
-        self.send_to_server("zero")
-        print("Sending 'Zero' command")
+    def startBlink_button_func(self):
+        self.send_to_server("DA.startBlink")
+        print("Sending 'startBlink' command")
 
-    def level_button_func(self):
-        self.send_to_server("level")
-        print("Sending 'Level' command")
+    def stopBlink_button_func(self):
+        self.send_to_server("DA.stopBlink")
+        print("Sending 'stopBlink' command")
 
-    def stop_button_func(self):
-        self.send_to_server("stop")
-        print("Sending 'Stop' command")
-
-    def translate(self):
+    def getVoltage_func(self):
+        voltage_str = self.send_to_server_with_response("DA.getVoltage")
+        print("Sending 'getVoltage' command")
         try:
-            velocity = float(self.translate_line_edit.text())
+            float(voltage_str)
         except:
-            self.response_label.append("Gui ERROR: translation speed must be a float")
             return
-
-        self.send_to_server("translate, %f"%velocity)
-
-        print("Sending 'Translate' command with speed {:#.4g} mm/s".format(velocity))
+        self.voltage.setText(voltage_str+" V")
 
 
+    def getCurrent_func(self):
+        current_str = self.send_to_server_with_response("DA.getCurrent")
+        print("Sending 'getCurrent' command")
+        try:
+            float(current_str)
+        except:
+            return
+        self.current.setText(current_str+" A")
+
+
+
+    def send_to_server_with_response(self, text):
+        """Send a command to the server, dependent on the current tab.
+        """
+        try:
+            response = self.socket.send_command(text)
+        except:
+            response = "*** Connection Error ***"
+        if type(response)==str or type(response)==unicode:
+            self.response_label.append(response)
+        elif type(response)==bool:
+            if response:
+                self.response_label.setText("Success!")
+            else:
+                self.response_label.setText("Failure!")
+        self.line_edit.setText("")
+
+        return response
 
     def send_to_server(self, text):
         """Send a command to the server, dependent on the current tab.
@@ -190,4 +226,4 @@ class RobotControlWidget(QWidget):
                 self.response_label.setText("Success!")
             else:
                 self.response_label.setText("Failure!")
-        self.line_edit.setText("RC.")
+        self.line_edit.setText("DA.")

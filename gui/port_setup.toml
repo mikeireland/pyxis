@@ -1,0 +1,127 @@
+[Pyxis]
+refresh_time = 0.5 #In seconds
+
+	[Pyxis.IP]
+    FSM = "192.168.1.2"
+    FSM_port = "4000"
+		Navis = "192.168.1.3"
+		Dextra = "127.0.0.1"#"192.168.1.4"
+		Sinistra = "192.168.1.5"
+		External = "150.203.91.206"
+
+[Navis]
+
+    [Navis.RobotControl]
+    tab_name = "Robot Control"
+    name = "NavisRobotControl"
+    port = "4100"
+    description = "Motor/Actuator control for the chief Navis"
+    module_type = "RobotControlWidget"
+
+    [Navis.ChiefAux]
+    tab_name = "Navis Auxilliary"
+    name = "NavisDeputyAux"
+    port = "4101"
+    description = "Navis power system + LED controls"
+    module_type = "ChiefAuxControlWidget"
+
+    [Navis.StarTracker]
+    tab_name = "Star Tracker Camera"
+    name = "NavisStarTracker"
+    prefix = "FST"
+    port = "4102"
+    description = "Camera controls for the Navis star tracker"
+    module_type = "BaseFLIRCameraWidget"
+    feed_refresh_time = 0.05
+    compression_param = 1
+
+    [Navis.DextraCoarseMet]
+    tab_name = "Dextra Coarse Met Camera"
+    name = "DextraCoarseMet"
+    prefix = "CM"
+    port = "4103"
+    description = "Camera controls for the Dextra coarse metrology"
+    module_type = "BaseFLIRCameraWidget"
+    feed_refresh_time = 0.05
+    compression_param = 1
+
+    [Navis.SinistraCoarseMet]
+    tab_name = "Sinistra Coarse Met Camera"
+    name = "SinistraCoarseMet"
+    prefix = "CM"
+    port = "4104"
+    description = "Camera controls for the Sinistra coarse metrology"
+    module_type = "BaseFLIRCameraWidget"
+    feed_refresh_time = 0.05
+    compression_param = 1
+
+    [Navis.FiberInjection]
+    tab_name = "Fiber Injection Camera"
+    name = "NavisFiberInjection"
+    prefix = "FI"
+    port = "4105"
+    description = "Camera controls for the Navis fiber injection
+    feed_refresh_time = 0.05
+    compression_param = 1
+
+		[Navis.ScienceCamera]
+    tab_name = "Science Camera"
+    name = "NavisScienceCam"
+    port = "4106"
+    description = "Science Camera controls"
+    module_type = "ScienceCameraWidget"
+    feed_refresh_time = 0.05
+    compression_param = 1
+
+[Dextra]
+
+    [Dextra.RobotControl]
+    tab_name = "Robot Control"
+    name = "DextraRobotControl"
+    port = "4200"
+    description = "Motor/Actuator control for the deputy Dextra"
+    module_type = "RobotControlWidget"
+
+    [Dextra.DeputyAux]
+    tab_name = "Deputy Auxilliary"
+    name = "DextraDeputyAux"
+    port = "4201"
+    description = "Dextra power system + LED controls"
+    module_type = "DepAuxControlWidget"
+
+    [Dextra.StarTracker]
+    tab_name = "Star Tracker Camera"
+    name = "DextraStarTracker"
+    prefix = "ST"
+    port = "4202"
+    description = "Camera controls for the Dextra star tracker"
+    module_type = "BaseFLIRCameraWidget"
+    feed_refresh_time = 0.05
+    compression_param = 1
+
+
+[Sinistra]
+
+    [Sinistra.RobotControl]
+    tab_name = "Robot Control"
+    name = "SinistraRobotControl"
+    port = "4300"
+    description = "Motor/Actuator control for the deputy Sinistra"
+    module_type = "RobotControlWidget"
+
+    [Sinistra.DeputyAux]
+    tab_name = "Deputy Auxilliary"
+    name = "SinistraDeputyAux"
+    port = "4301"
+    description = "Sinistra power system + LED controls"
+    module_type = "DepAuxControlWidget"
+    
+    [Sinistra.StarTracker]
+    tab_name = "Star Tracker Camera"
+    name = "SinistraStarTracker"
+    prefix = "ST"
+    port = "4302"
+    description = "Camera controls for the Sinistra star tracker"
+    module_type = "BaseFLIRCameraWidget"
+    feed_refresh_time = 0.05
+    compression_param = 1

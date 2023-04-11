@@ -15,10 +15,10 @@ except:
     raise UserWarning
 
 
-class PowerControlWidget(QWidget):
+class ChiefAuxControlWidget(QWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
 
-        super(PowerControlWidget,self).__init__(parent)
+        super(ChiefAuxControlWidget,self).__init__(parent)
 
         self.name = config["name"]
         self.port = config["port"]
