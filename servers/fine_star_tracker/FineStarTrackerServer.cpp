@@ -7,7 +7,7 @@
 #include "FLIRcamServerFuncs.h"
 #include <pthread.h>
 #include "globals.h"
-//#include "image.hpp"
+#include "image.hpp"
 #include <opencv2/opencv.hpp>
 #include <unistd.h>
 
@@ -54,8 +54,8 @@ namespace nlohmann {
 centroid CalcStarPosition(cv::Mat img){
 
     // Function to take image array and find the star position
-    //static image::ImageProcessSubMatInterp ipb;
-    //auto p = ipb(img, dark);
+    static image::ImageProcessSubMatInterpSingle ipb;
+    auto p = ipb(img);
     
     centroid result;
     result.x = rand();

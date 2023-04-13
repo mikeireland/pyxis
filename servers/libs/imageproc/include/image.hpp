@@ -79,4 +79,26 @@ private:
     InterpFunc interp;
 };
 
+// too lazy to do inheritance
+struct ImageProcessSubMatInterpSingle {
+    bool do_gauss = false;
+    int gauss_radius = 21;
+    std::size_t margin = 20;
+    int threshold = 10;
+
+    cv::Rect_<int> sub_rect{cv::Point_<int>{0, 0}, cv::Point_<int>{1440, 1080}};
+
+    using InterpFunc =
+        std::function<cv::Point2d(const cv::Mat &, const cv::Point &)>;
+
+    explicit ImageProcessSubMatInterpSingle(InterpFunc func = LinearGradientInterp())
+        : interp(func){};
+
+    cv::Point2d operator()(const cv::Mat &image);
+    cv::Point2d get_location(const cv::Mat &image);
+
+private:
+    InterpFunc interp;
+};
+
 } // namespace image

@@ -188,4 +188,54 @@ Point2D<double> ImageProcessSubMatInterp::operator()(const cv::Mat &image_off,
     return p;
 }
 
+cv::Point2d ImageProcessSubMatInterpSingle::get_location(const cv::Mat &image) {
+
+
+    if (do_gauss)
+        cv::GaussianBlur(image, image,
+                         cv::Size(gauss_radius, gauss_radius), 0, 0,
+                         cv::BORDER_DEFAULT);
+
+    //diff_image.convertTo(diff_image, CV_32F);
+
+    cv::Point2i p;
+    cv::Point2d p_ret;
+
+    cv::minMaxLoc(image, nullptr, nullptr, nullptr, &p);
+    p_ret = interp(image, p);
+
+    return p_ret;
+}
+
+cv::Point2d ImageProcessSubMatInterpSingle::operator()(const cv::Mat &image) {
+    auto p = get_location(image(sub_rect));
+
+    p.x += sub_rect.x;
+    p.y += sub_rect.y;
+
+    // if (image_on.at<int>(p.p1) < threshold || image_on.at<int>(p.p2) <
+    // threshold)
+    // {
+    //     // if the location is too dark, try the whole image
+    //     p = get_location(image_off, image_on);
+    // }
+    // fmt::print("sub_rect: ({}, {}), ({}, {})\n", sub_rect.x, sub_rect.y,
+    // sub_rect.width, sub_rect.height);
+
+    auto x_min = p.x;
+    auto x_max = p.x;
+    auto y_min = p.y;
+    auto y_max = p.y;
+
+    x_min = x_min < 20 ? 0 : x_min - margin;
+    x_max = x_max > image_on.cols - 20 ? image_on.cols : x_max + margin;
+    y_min = y_min < 20 ? 0 : y_min - margin;
+    y_max = y_max > image_on.rows - 20 ? image_on.rows : y_max + margin;
+
+    sub_rect = cv::Rect(x_min, y_min, x_max - x_min, y_max - y_min);
+
+    return p;
+}
+
+
 } // namespace image
