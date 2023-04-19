@@ -12,14 +12,17 @@ double LinearGradientInterp::inverse_linear_interp(cv::Point2d p1,
 
 cv::Point2d LinearGradientInterp::operator()(const cv::Mat &image,
                                              const cv::Rect &sub_rect) {
+                                             
     assert(sub_rect.width == 3 && sub_rect.height == 3 &&
            "LinearGradientInterp only defined for 3x3 subrect of image");
     assert(image.channels() == 1 &&
            "LinearGradientInterp only defined for grey scale image");
+    std::cout << sub_rect << std::endl;
     const auto &img = image(sub_rect);
     cv::Mat sumx, sumy;
-    cv::reduce(img, sumx, 0, cv::REDUCE_SUM, CV_32S);
-    cv::reduce(img, sumy, 1, cv::REDUCE_SUM, CV_32S);
+    cv::reduce(img, sumx, 0, cv::REDUCE_SUM, CV_16U);
+    cv::reduce(img, sumy, 1, cv::REDUCE_SUM, CV_16U);
+    std::cout << "c" << std::endl;
     auto interp = [this](const cv::Mat &v) {
         double diff[2];
         double ret;
@@ -213,14 +216,14 @@ cv::Point2d ImageProcessSubMatInterpSingle::operator()(const cv::Mat &image) {
     p.x += sub_rect.x;
     p.y += sub_rect.y;
 
-    // if (image_on.at<int>(p.p1) < threshold || image_on.at<int>(p.p2) <
-    // threshold)
-    // {
-    //     // if the location is too dark, try the whole image
-    //     p = get_location(image_off, image_on);
-    // }
-    // fmt::print("sub_rect: ({}, {}), ({}, {})\n", sub_rect.x, sub_rect.y,
-    // sub_rect.width, sub_rect.height);
+     //if (image_on.at<int>(p.p1) < threshold || image_on.at<int>(p.p2) <
+     //threshold)
+     //{
+         // if the location is too dark, try the whole image
+         //p = get_location(image_off, image_on);
+     //}
+     fmt::print("sub_rect: ({}, {}), ({}, {})\n", sub_rect.x, sub_rect.y,
+     sub_rect.width, sub_rect.height);
 
     auto x_min = p.x;
     auto x_max = p.x;
@@ -228,9 +231,9 @@ cv::Point2d ImageProcessSubMatInterpSingle::operator()(const cv::Mat &image) {
     auto y_max = p.y;
 
     x_min = x_min < 20 ? 0 : x_min - margin;
-    x_max = x_max > image_on.cols - 20 ? image_on.cols : x_max + margin;
+    x_max = x_max > image.cols - 20 ? image.cols : x_max + margin;
     y_min = y_min < 20 ? 0 : y_min - margin;
-    y_max = y_max > image_on.rows - 20 ? image_on.rows : y_max + margin;
+    y_max = y_max > image.rows - 20 ? image.rows : y_max + margin;
 
     sub_rect = cv::Rect(x_min, y_min, x_max - x_min, y_max - y_min);
 
