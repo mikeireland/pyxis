@@ -24,6 +24,7 @@ int serverLoop(){
 
     auto time_start = steady_clock::now();
     auto time_current = steady_clock::now();
+
     //START UP TEENSY COMMS
 
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
@@ -92,7 +93,7 @@ string stopServer(){
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 
 		pthread_join(GLOB_DA_THREAD, NULL);
-		ret_msg = "Disconnected Camera";
+		ret_msg = "Stopped server";
 
 	}else{
 		ret_msg = "DA server not currently running (or is connecting)";
