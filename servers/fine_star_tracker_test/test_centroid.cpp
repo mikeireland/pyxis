@@ -1,39 +1,29 @@
 
 #include <fmt/core.h>
 #include <iostream>
-#include "FLIRcamServerFuncs.h"
-#include <pthread.h>
-#include "globals.h"
 #include "image.hpp"
 #include <opencv2/opencv.hpp>
 #include <unistd.h>
 #include <cstdlib>
-#include "centroiders.hpp"
+
+using namespace std;
 
 struct centroid {
     double x;
     double y;
 };
 
-centroid CalcStarPosition(cv::Mat img){
+centroid CalcStarPosition(cv::Mat img, int height, int width){
 
     // Function to take image array and find the star position
-    static image::ImageProcessSubMatInterpSingle ipb;
+    static image::ImageProcessSubMatInterpSingle ipb(height,width);
 
     auto p = ipb(img);
-    
-    cv::Mat thr;
-    
-    // convert grayscale to binary image
-    cv::threshold( img, thr, 100,65535,cv::THRESH_BINARY );
- 
-    // find moments of the image
-    cv::Moments m = cv::moments(thr,true);
-    cv::Point pt(m.m10/m.m00, m.m01/m.m00);
-    
-    cout << cv::Mat(pt) << endl;
-    
+
     centroid result;
+    
+    result.x = p.x;
+    result.y = p.y;
     //result.x = rand();
     //result.y = rand();
 
@@ -41,27 +31,18 @@ centroid CalcStarPosition(cv::Mat img){
 
 }
 
+
 // Return 1 if error!
 int FST_Callback (unsigned short* data){
 
-    int height = ;
-    int width = ;
-
+    
+    int height = 1080;
+    int width = 1440;
+    
     cv::Mat img (height,width,CV_16U,data);
-    img.convertTo(img, CV_8U, 0.00390625);
-    uchar * img2 = img.isContinuous()? img.data: img.clone().data;
+    centroid position = CalcStarPosition(img,height,width);
 
-    lost::CenterOfGravityAlgorithm CA;
-
-    lost::Stars s = CA.Go(img2,3072, 2048);
-
-    centroid position;
-    position.x = s[0].position.x;
-    position.y = s[0].position.y;
-
-    //centroid position = CalcStarPosition(img);
-
-    cout << "Sending position" << endl;
+    //cout << "Sending position" << endl;
     
     cout << position.x << ", " << position.y << endl;
 
@@ -71,9 +52,15 @@ int FST_Callback (unsigned short* data){
 
 int main(int argc, char* argv[]) {
 
+    cv::Mat img;
+    img = cv::imread("mystery2_2.png",cv::IMREAD_UNCHANGED);
+    
+    std::vector<uint16_t>array;
+    array.assign((uint16_t*)img.datastart, (uint16_t*)img.dataend);
 
-    img = cv::imread("test.png",cv::IMREAD_GRAYSCALE )
-    uint_16 * img2 = img.isContinuous()? img.data: img.clone().data;
-    cout << img2 << endl;
 
+    uint16_t* img2 = &array[0];
+    
+    FST_Callback(img2);
+    
 }

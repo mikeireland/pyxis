@@ -13,7 +13,6 @@
 #include <unistd.h>
 
 #include <cstdlib>
-#include "centroiders.hpp"
 
 using json = nlohmann::json;
 
@@ -53,25 +52,17 @@ namespace nlohmann {
     };
 }
 
-centroid CalcStarPosition(cv::Mat img){
+centroid CalcStarPosition(cv::Mat img, int height, int width){
 
     // Function to take image array and find the star position
-    static image::ImageProcessSubMatInterpSingle ipb;
+    static image::ImageProcessSubMatInterpSingle ipb(height,width);
 
     auto p = ipb(img);
     
-    cv::Mat thr;
-    
-    // convert grayscale to binary image
-    cv::threshold( img, thr, 100,65535,cv::THRESH_BINARY );
- 
-    // find moments of the image
-    cv::Moments m = cv::moments(thr,true);
-    cv::Point pt(m.m10/m.m00, m.m01/m.m00);
-    
-    cout << cv::Mat(pt) << endl;
-    
     centroid result;
+    
+    result.x = p.x;
+    result.y = p.y;
     //result.x = rand();
     //result.y = rand();
 
@@ -84,23 +75,10 @@ int FST_Callback (unsigned short* data){
 
     int height = GLOB_IMSIZE/GLOB_WIDTH;
 
-    
-
-    
-    
     cv::Mat img (height,GLOB_WIDTH,CV_16U,data);
-    img.convertTo(img, CV_8U, 0.00390625);
-    uchar * img2 = img.isContinuous()? img.data: img.clone().data;
+    //img.convertTo(img, CV_32F);
 
-    lost::CenterOfGravityAlgorithm CA;
-
-    lost::Stars s = CA.Go(img2,3072, 2048);
-
-    //centroid position = CalcStarPosition(img);
-
-    centroid position;
-    position.x = s[0].position.x;
-    position.y = s[0].position.y;
+    centroid position = CalcStarPosition(img,height,GLOB_WIDTH);
 
     pthread_mutex_lock(&GLOB_FST_FLAG_LOCK);
     GLOB_FST_CENTROID = position;

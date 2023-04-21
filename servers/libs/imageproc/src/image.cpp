@@ -17,12 +17,12 @@ cv::Point2d LinearGradientInterp::operator()(const cv::Mat &image,
            "LinearGradientInterp only defined for 3x3 subrect of image");
     assert(image.channels() == 1 &&
            "LinearGradientInterp only defined for grey scale image");
-    std::cout << sub_rect << std::endl;
+
     const auto &img = image(sub_rect);
+
     cv::Mat sumx, sumy;
-    cv::reduce(img, sumx, 0, cv::REDUCE_SUM, CV_16U);
-    cv::reduce(img, sumy, 1, cv::REDUCE_SUM, CV_16U);
-    std::cout << "c" << std::endl;
+    cv::reduce(img, sumx, 0, cv::REDUCE_SUM, CV_32FC1);
+    cv::reduce(img, sumy, 1, cv::REDUCE_SUM, CV_32FC1);
     auto interp = [this](const cv::Mat &v) {
         double diff[2];
         double ret;
@@ -38,6 +38,7 @@ cv::Point2d LinearGradientInterp::operator()(const cv::Mat &image,
 
 cv::Point2d CentroidInterp::operator()(const cv::Mat &image,
                                        const cv::Rect &sub_rect) {
+
     assert(image.channels() == 1 &&
            "CentroidInterp only defined for grey scale image");
     cv::Mat img = image(sub_rect);
@@ -198,6 +199,7 @@ cv::Point2d ImageProcessSubMatInterpSingle::get_location(const cv::Mat &image) {
         cv::GaussianBlur(image, image,
                          cv::Size(gauss_radius, gauss_radius), 0, 0,
                          cv::BORDER_DEFAULT);
+                                            
 
     //diff_image.convertTo(diff_image, CV_32F);
 
@@ -205,12 +207,20 @@ cv::Point2d ImageProcessSubMatInterpSingle::get_location(const cv::Mat &image) {
     cv::Point2d p_ret;
 
     cv::minMaxLoc(image, nullptr, nullptr, nullptr, &p);
-    p_ret = interp(image, p);
+    int a = (centroid_interp_size - 1)/2;
+    
+    if ((p.x > a) && (p.x < (sub_rect.width - a)) && (p.y > a) && (p.y < (sub_rect.height - a))){
+        p_ret = interp(image, p);
+    } else {
+        std::cout << "I'm in danger" << std::endl;
+        p_ret = p;
+    }
 
     return p_ret;
 }
 
 cv::Point2d ImageProcessSubMatInterpSingle::operator()(const cv::Mat &image) {
+
     auto p = get_location(image(sub_rect));
 
     p.x += sub_rect.x;
@@ -222,18 +232,18 @@ cv::Point2d ImageProcessSubMatInterpSingle::operator()(const cv::Mat &image) {
          // if the location is too dark, try the whole image
          //p = get_location(image_off, image_on);
      //}
-     fmt::print("sub_rect: ({}, {}), ({}, {})\n", sub_rect.x, sub_rect.y,
-     sub_rect.width, sub_rect.height);
+     //fmt::print("sub_rect: ({}, {}), ({}, {})\n", sub_rect.x, sub_rect.y,
+     //sub_rect.width, sub_rect.height);
 
     auto x_min = p.x;
     auto x_max = p.x;
     auto y_min = p.y;
     auto y_max = p.y;
 
-    x_min = x_min < 20 ? 0 : x_min - margin;
-    x_max = x_max > image.cols - 20 ? image.cols : x_max + margin;
-    y_min = y_min < 20 ? 0 : y_min - margin;
-    y_max = y_max > image.rows - 20 ? image.rows : y_max + margin;
+    x_min = x_min < margin ? 0 : x_min - margin;
+    x_max = x_max > image.cols - margin ? image.cols : x_max + margin;
+    y_min = y_min < margin ? 0 : y_min - margin;
+    y_max = y_max > image.rows - margin ? image.rows : y_max + margin;
 
     sub_rect = cv::Rect(x_min, y_min, x_max - x_min, y_max - y_min);
 
