@@ -40,7 +40,7 @@ else:
 
 pyxis_config = config["Pyxis"]
 config.pop("Pyxis")
-temp_config = collections.OrderedDict({k: config[k])  for k in ["Navis","Dextra","Sinistra"]})
+temp_config = collections.OrderedDict({k: config[k]  for k in ["Navis","Dextra","Sinistra"]})
 print(temp_config)
 #Time to automatically update the gui
 refresh_time = pyxis_config["refresh_time"]*1000 #now in ms

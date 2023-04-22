@@ -168,7 +168,7 @@ void FLIRCamera::InitCamera(){
     GLOB_CONFIG_PARAMS.offsetY = offset_y;
     GLOB_CONFIG_PARAMS.blacklevel = black_level;
     GLOB_CONFIG_PARAMS.buffersize = buffer_size;
-    GLOB_CONFIG_PARAMS.savedir = savefilename;
+    GLOB_CONFIG_PARAMS.savedir = savefilename_prefix;
     
     GLOB_WIDTH_MAX = width_max;
     GLOB_WIDTH_MIN = width_min;
@@ -496,6 +496,7 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
          return( status );
 
     // Close file
+    free(linear_image_array);
     fits_close_file(fptr, &status);
 	pthread_mutex_lock(&GLOB_LATEST_FILE_LOCK);
     GLOB_LATEST_FILE = savefilename + ".fits";

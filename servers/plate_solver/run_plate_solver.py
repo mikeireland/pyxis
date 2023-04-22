@@ -189,7 +189,7 @@ if __name__ == "__main__":
         time.sleep(1)
         print("Sending request")
 
-        camera_socket.send_string("CST.getlatestfilename")
+        camera_socket.send_string(config["camera_port_name"]+".getlatestfilename")
     
         #Ask camera for next image
         message = camera_socket.recv()
@@ -198,22 +198,25 @@ if __name__ == "__main__":
         # WORK ON MESSAGE -> FILENAME
         filename = message.decode("utf-8").strip('\"') 
 
-        #run image
-        flag,angles = run_image(filename,config)
+        if os.path.exists(filename):
+            print("Filename Exists. Running solver")
 
-        if flag>0:
+            #run image
+            flag,angles = run_image(filename,config)
 
-            # WORK ON ANGLES -> return_message
-            return_message = b"DR.receive_CST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
+            if flag>0:
 
-            #Send reply to robot
-            print(return_message)
-            #robot_control_socket.send_string(return_message)
-            
-            #message = robot_control_socket.recv()
-            #print("Robot response: %s" % message)
-        else:
-            print("ERROR")
+                # WORK ON ANGLES -> return_message
+                return_message = b"DR.receive_CST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
+
+                #Send reply to robot
+                print(return_message)
+                #robot_control_socket.send_string(return_message)
+                
+                #message = robot_control_socket.recv()
+                #print("Robot response: %s" % message)
+            else:
+                print("ERROR")
 
 #-------------
 """

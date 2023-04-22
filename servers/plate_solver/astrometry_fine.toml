@@ -1,6 +1,7 @@
 output_folder = "output" #Folder for output
 IP = "127.0.0.1"
 camera_port = "4001"
+camera_port_name = "FST"
 robot_control_port = "5555"
 path_to_data = "/home/jhansen/GitRepos/pyxis/servers/fine_star_tracker"
 
