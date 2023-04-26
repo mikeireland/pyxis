@@ -1,16 +1,16 @@
 #include <pthread.h>
-#include "chiefAccGlobals.hpp"
+#include "chiefAuxGlobals.hpp"
 
-int GLOB_CA_STATUS; //0 = Off, 1 = On, 2 = waiting
-int GLOB_CA_REQUEST; //1 = no command, 2 = turn LED on, 3 = turn LED off, 4 = request power
+int GLOB_CA_STATUS = 0; //0 = Off, 1 = On, 2 = waiting
+int GLOB_CA_REQUEST = 0; //1 = no command, 2 = turn LED on, 3 = turn LED off, 4 = request power
 
 //Global power struct instance
 powerStruct GLOB_CA_POWER_VALUES;
 
-extern int GLOB_CA_FINESTAGE_STEPS;
-extern double GLOB_CA_SCIPIEZO_VOLTAGE;
-extern double GLOB_CA_TIPTILT_PIEZO_DEXTRA;
-extern double GLOB_CA_TIPTILT_PIEZO_SINISTRA;
+int GLOB_CA_FINESTAGE_STEPS = 0;
+double GLOB_CA_SCIPIEZO_VOLTAGE = 0;
+double GLOB_CA_TIPTILT_PIEZO_DEXTRA = 0;
+double GLOB_CA_TIPTILT_PIEZO_SINISTRA = 0;
 
 int GLOB_CA_POWER_REQUEST_TIME;
 

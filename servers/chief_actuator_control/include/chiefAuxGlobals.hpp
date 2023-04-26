@@ -1,5 +1,5 @@
-#ifndef _CHIEFACCGLOBALS_
-#define _CHIEFACCGLOBALS_
+#ifndef _CHIEFAUXGLOBALS_
+#define _CHIEFAUXGLOBALS_
 
 #include <pthread.h>
 
@@ -14,7 +14,7 @@ struct powerStruct{
 };
 
 //Global power struct instance
-extern configuration GLOB_CA_POWER_VALUES;
+extern powerStruct GLOB_CA_POWER_VALUES;
 
 extern int GLOB_CA_FINESTAGE_STEPS;
 extern double GLOB_CA_SCIPIEZO_VOLTAGE;
@@ -33,4 +33,4 @@ extern pthread_t GLOB_CA_THREAD;
 extern pthread_mutex_t GLOB_FLAG_LOCK;
 extern pthread_mutex_t GLOB_DATA_LOCK;
 
-#endif // _CHIEFACCGLOBALS_
+#endif // _CHIEFAUXGLOBALS_

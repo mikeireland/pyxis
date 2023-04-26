@@ -116,6 +116,7 @@ refresh_time = 0.5 #In seconds
     port = "4301"
     description = "Sinistra power system + LED controls"
     module_type = "DepAuxControlWidget"
+    voltage_limit = 10
     
     [Sinistra.StarTracker]
     tab_name = "Star Tracker Camera"

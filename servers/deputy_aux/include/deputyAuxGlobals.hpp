@@ -14,7 +14,7 @@ struct powerStruct{
 };
 
 //Global power struct instance
-extern configuration GLOB_DA_POWER_VALUES;
+extern powerStruct GLOB_DA_POWER_VALUES;
 
 extern int GLOB_DA_POWER_REQUEST_TIME;
 

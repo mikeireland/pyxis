@@ -4,8 +4,8 @@
 #include <commander/commander.h>
 #include <time.h>
 #include <pthread.h>
-#include <functional.h>
-#include "chiefAccGlobals"
+#include "chiefAuxGlobals.hpp"
+#include <cstdlib>
 
 using json = nlohmann::json;
 
@@ -16,7 +16,7 @@ using std::chrono::milliseconds;
 
 using namespace std;
 
-int serverLoop(){
+void* serverLoop(void*){
 
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     GLOB_CA_STATUS = 1; // Connecting
@@ -34,37 +34,36 @@ int serverLoop(){
     while(GLOB_CA_STATUS>0){
 
         switch(GLOB_CA_REQUEST) {
-            case 1:
-				usleep(10);
-				break;
-			case 2:
+			case 1:
 				// Move fringe tracking stage
 				pthread_mutex_lock(&GLOB_DATA_LOCK);
-				GLOB_CA_FINESTAGE_STEPS
+				cout << "MOVING FINE STAGE BY " << GLOB_CA_FINESTAGE_STEPS << " STEPS" << endl;
 				pthread_mutex_unlock(&GLOB_DATA_LOCK);
+		        GLOB_CA_REQUEST = 0;
                 break;
-			case 3:
+			case 2:
 				// Move tip/tilt actuator Dextra
 				pthread_mutex_lock(&GLOB_DATA_LOCK);
-				GLOB_CA_TIPTILT_PIEZO_DEXTRA
+				cout << "MOVING DEXTRA PIEZO BY " << GLOB_CA_TIPTILT_PIEZO_DEXTRA << " V" << endl;
 				pthread_mutex_unlock(&GLOB_DATA_LOCK);
+		        GLOB_CA_REQUEST = 0;
 				break;
-			case 4:
+			case 3:
 				// Move tip/tilt actuator Sinistra
 				pthread_mutex_lock(&GLOB_DATA_LOCK);
-				GLOB_CA_TIPTILT_PIEZO_SINISTRA
+				cout << "MOVING SINISTRA PIEZO BY " << GLOB_CA_TIPTILT_PIEZO_SINISTRA << " V" << endl;
 				pthread_mutex_unlock(&GLOB_DATA_LOCK);
+		        GLOB_CA_REQUEST = 0;
                 break;
-			case 5:
+			case 4:
 				// Move science stage piezo
 				pthread_mutex_lock(&GLOB_DATA_LOCK);
-				GLOB_CA_SCIPIEZO_VOLTAGE
+				cout << "MOVING SCIENCE PIEZO BY " << GLOB_CA_SCIPIEZO_VOLTAGE << " V" << endl;
 				pthread_mutex_unlock(&GLOB_DATA_LOCK);
+		        GLOB_CA_REQUEST = 0;
 				break;
-			default: //if no correct flag, turn off
-				pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    	        GLOB_CA_STATUS = 0;
-		        pthread_mutex_unlock(&GLOB_FLAG_LOCK);
+			default: //if no correct flag, sleep
+                usleep(1000);
 				break;
 		}
 
@@ -75,20 +74,36 @@ int serverLoop(){
         if(delta_time>GLOB_CA_POWER_REQUEST_TIME){
 
             // Request power info
+            powerStruct result;
+            result.current = rand() % 100;
+            result.voltage = rand() % 100;
+            
+            pthread_mutex_lock(&GLOB_FLAG_LOCK);
+            GLOB_CA_POWER_VALUES = result;
+            pthread_mutex_unlock(&GLOB_FLAG_LOCK);
+            
             time_start = steady_clock::now();
         }
     }
 
+    pthread_exit(NULL);
     // Shut down Teensy comms
 }
 
 
 // FLIR Camera Server
-struct ChiefAccServer {
+struct ChiefAuxServer {
 
-    ChiefAccServer();
-    
-    ~ChiefAccServer();
+
+    ChiefAuxServer()
+    {
+        fmt::print("ChiefAuxServer\n");
+    }
+
+    ~ChiefAuxServer()
+    {
+        fmt::print("~ChiefAuxServer\n");
+    }
 
 
 string startServer(){
@@ -102,19 +117,32 @@ string startServer(){
 	return ret_msg;
 }
 
+//Get status
+string status(){
+	string ret_msg;
+	if(GLOB_CA_STATUS == 0){
+		ret_msg = "Server Not Connected!";
+	}else if(GLOB_CA_STATUS == 1){
+		ret_msg = "Server Connecting";
+	}else{
+		ret_msg = "Server Running";
+	}
+
+	return ret_msg;
+}
 
 string stopServer(){
 	string ret_msg;
-	if(GLOB_DA_STATUS==2){
+	if(GLOB_CA_STATUS==2){
 		pthread_mutex_lock(&GLOB_FLAG_LOCK);
-		GLOB_DA_STATUS = 0;
+		GLOB_CA_STATUS = 0;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 
-		pthread_join(GLOB_DA_THREAD, NULL);
-		ret_msg = "Disconnected Camera";
+		pthread_join(GLOB_CA_THREAD, NULL);
+		ret_msg = "Stopped Server";
 
 	}else{
-		ret_msg = "DA server not currently running (or is connecting)";
+		ret_msg = "CA server not currently running (or is connecting)";
 	}
 
 	return ret_msg;
@@ -129,11 +157,11 @@ string moveFineStage(int numSteps){
 		GLOB_CA_FINESTAGE_STEPS = numSteps;
 		pthread_mutex_unlock(&GLOB_DATA_LOCK);
 
-		GLOB_CA_REQUEST = 2;
+		GLOB_CA_REQUEST = 1;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-		ret_msg = "Moving fine stage";
+		ret_msg = "Moving fine stage " + to_string(numSteps) + " steps";
 	}else{
-		ret_msg = "DA server not currently running (or is connecting)";
+		ret_msg = "CA server not currently running (or is connecting)";
 	}
 	return ret_msg;
 }
@@ -148,11 +176,11 @@ string moveTipTiltDextra(double voltage){
 		GLOB_CA_TIPTILT_PIEZO_DEXTRA = voltage;
 		pthread_mutex_unlock(&GLOB_DATA_LOCK);
 
-		GLOB_CA_REQUEST = 3;
+		GLOB_CA_REQUEST = 2;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-		ret_msg = "Moving tip/tilt piezo Dextra";
+		ret_msg = "Moving tip/tilt piezo Dextra by " + to_string(voltage) + " V";;
 	}else{
-		ret_msg = "DA server not currently running (or is connecting)";
+		ret_msg = "CA server not currently running (or is connecting)";
 	}
 	return ret_msg;
 }
@@ -166,11 +194,11 @@ string moveTipTiltSinistra(double voltage){
 		GLOB_CA_TIPTILT_PIEZO_SINISTRA = voltage;
 		pthread_mutex_unlock(&GLOB_DATA_LOCK);
 
-		GLOB_CA_REQUEST = 4;
+		GLOB_CA_REQUEST = 3;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-		ret_msg = "Moving tip/tilt piezo Sinistra";
+		ret_msg = "Moving tip/tilt piezo Sinistra by " + to_string(voltage) + " V";
 	}else{
-		ret_msg = "DA server not currently running (or is connecting)";
+		ret_msg = "CA server not currently running (or is connecting)";
 	}
 	return ret_msg;
 }
@@ -185,12 +213,13 @@ string moveSciPiezo(double voltage){
 		pthread_mutex_lock(&GLOB_DATA_LOCK);
 		GLOB_CA_SCIPIEZO_VOLTAGE = voltage;
 		pthread_mutex_unlock(&GLOB_DATA_LOCK);
+		
 
-		GLOB_CA_REQUEST = 1;
+		GLOB_CA_REQUEST = 4;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-		ret_msg = "Moving science piezo";
+		ret_msg = "Moving science piezo by " + to_string(voltage) + " V";
 	}else{
-		ret_msg = "DA server not currently running (or is connecting)";
+		ret_msg = "CA server not currently running (or is connecting)";
 	}
 	return ret_msg;
 }
@@ -203,7 +232,7 @@ powerStruct requestPower(){
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
     return ret_p;
 	}
-}
+};
 
 // Serialiser to convert configuration struct to/from JSON
 namespace nlohmann {
@@ -223,14 +252,15 @@ namespace nlohmann {
 // Register as commander server
 COMMANDER_REGISTER(m)
 {
-    m.instance<ChiefAccServer>("CA")
+    m.instance<ChiefAuxServer>("CA")
         // To insterface a class method, you can use the `def` method.
-        .def("connect", &ChiefAccServer::startServer, "Start the server")
-        .def("disconnect", &ChiefAccServer::stopServer, "Stop the server")
-        .def("reqpower", &ChiefAccServer::requestPower, "Request power values")
-		.def("finestage", &ChiefAccServer::moveFineStage, "Move fine stage")
-		.def("tiptiltD", &ChiefAccServer::moveTipTiltDextra, "Move tip tilt piezo for Dextra beam")
-		.def("tiptiltS", &ChiefAccServer::moveTipTiltSinistra, "Move tip tilt piezo for Sinistra beam")
-		.def("scipiezo", &ChiefAccServer::moveSciPiezo, "Move science piezo")
+        .def("connect", &ChiefAuxServer::startServer, "Start the server")
+        .def("disconnect", &ChiefAuxServer::stopServer, "Stop the server")
+        .def("reqpower", &ChiefAuxServer::requestPower, "Request power values")
+        .def("status", &ChiefAuxServer::status, "Server status")
+		.def("finestage", &ChiefAuxServer::moveFineStage, "Move fine stage")
+		.def("tiptiltD", &ChiefAuxServer::moveTipTiltDextra, "Move tip tilt piezo for Dextra beam")
+		.def("tiptiltS", &ChiefAuxServer::moveTipTiltSinistra, "Move tip tilt piezo for Sinistra beam")
+		.def("scipiezo", &ChiefAuxServer::moveSciPiezo, "Move science piezo");
 
 }

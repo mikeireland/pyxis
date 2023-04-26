@@ -1,8 +1,8 @@
 #include <pthread.h>
 #include "deputyAuxGlobals.hpp"
 
-int GLOB_DA_STATUS; //0 = Off, 1 = On, 2 = waiting
-int GLOB_DA_REQUEST; //1 = no command, 2 = turn LED on, 3 = turn LED off, 4 = request power
+int GLOB_DA_STATUS = 0; //0 = Off, 1 = On, 2 = waiting
+int GLOB_DA_REQUEST = 0; //0 = no command, 1 = turn LED on, 2 = turn LED off
 
 //Global power struct instance
 powerStruct GLOB_DA_POWER_VALUES;

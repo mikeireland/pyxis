@@ -1,5 +1,5 @@
-port = "4105"
-IP = "127.0.0.1"
+port = "4104"
+IP = "192.168.1.3"
 
 [FLIRcamera]
 #cam_ID = "20031596"
@@ -13,7 +13,7 @@ cam_ID = "20031616"
     offset_y = 0
     gain = 10 #in dB
     black_level = 2 #in percent? ADU?
-    exposure_time = 50000 # in microseconds
+    exposure_time = 300000 # in microseconds
     num_frames = 0 #Default number of frames to save per FITS file; 0 is continuous with no saving
     buffer_size = 200 #Size of circular buffer
 
@@ -28,3 +28,6 @@ cam_ID = "20031616"
     bitpix = 20 #USHORT_IMG = 20, not 16!
 	filename_prefix = "data/test" #Default "where to save" file prefix
 
+[CoarseMet]
+RB_port = "4002"
+DA_port = "4003"

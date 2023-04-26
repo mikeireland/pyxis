@@ -7,7 +7,7 @@ add_executable(DeputyAuxServer
     src/main.cpp src/deputyAuxGlobals.cpp src/deputyAuxServerFuncs.cpp
 )
 
-target_include_directories(DeputyAuxServer PUBLIC include)
+target_include_directories(DeputyAuxServer PUBLIC include ../libs/camera/include)
 target_compile_features(DeputyAuxServer PUBLIC cxx_std_17)
 
 find_package(commander REQUIRED)
