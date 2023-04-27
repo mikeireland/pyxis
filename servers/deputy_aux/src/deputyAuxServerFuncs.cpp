@@ -163,12 +163,25 @@ string turnLEDOff(){
 }
 
 
-powerStruct requestPower(){
-	powerStruct ret_p;
+powerStatus requestPower(){
+    powerStatus ret_p;
+	powerStruct p;
+    string ret_msg;
+    
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    ret_p = GLOB_DA_POWER_VALUES;
+    p = GLOB_DA_POWER_VALUES;
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
+    
+    ret_p.current = p.current;
+    ret_p.voltage = p.voltage;
+    
+    ret_msg = "Voltage = " + to_string(p.voltage) + ", Current = " + to_string(p.current);
+    
+    ret_p.msg = ret_msg;
+    
     return ret_p;
+}
+
 };
 
 // Serialiser to convert configuration struct to/from JSON
@@ -184,7 +197,22 @@ namespace nlohmann {
             j.at("voltage").get_to(p.voltage);
         }
     };
-} 
+}
+
+namespace nlohmann {
+    template <>
+    struct adl_serializer<powerStatus> {
+        static void to_json(json& j, const powerStatus& p) {
+            j = json{{"current", p.current}, {"voltage", p.voltage}, {"message", p.msg}};
+        }
+
+        static void from_json(const json& j, powerStatus& p) {
+            j.at("current").get_to(p.current);
+            j.at("voltage").get_to(p.voltage);
+            j.at("message").get_to(p.msg);
+        }
+    };
+}
 
 // Register as commander server
 COMMANDER_REGISTER(m)

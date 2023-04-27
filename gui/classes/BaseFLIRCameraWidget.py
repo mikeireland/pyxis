@@ -181,7 +181,7 @@ class BaseFLIRCameraWidget(QWidget):
 
         bigfont = QFont("Times", 20, QFont.Bold)
 
-
+        vbox1.addSpacing(20)
 
         hbox4 = QHBoxLayout()
         vbox4 = QVBoxLayout()
@@ -191,6 +191,7 @@ class BaseFLIRCameraWidget(QWidget):
         #First row...
         config_grid = QGridLayout()
         config_grid.setColumnMinimumWidth(1,30)
+        config_grid.setVerticalSpacing(10)
 
         hbox3 = QHBoxLayout()
         lbl1 = QLabel('Width: ', self)

@@ -69,6 +69,7 @@ class DepAuxControlWidget(QWidget):
 
         LED_layout = QHBoxLayout()
         lbl = QLabel("LED Controls:",self)
+        lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
         LED_layout.addWidget(lbl)
         LED_layout.addStretch()
         self.LEDOn_button = QPushButton("LED On", self)
@@ -87,6 +88,7 @@ class DepAuxControlWidget(QWidget):
 
         LED_layout = QHBoxLayout()
         lbl = QLabel("Power System Controls:",self)
+        lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
         LED_layout.addWidget(lbl)
         LED_layout.addStretch()
         self.getPower_button = QPushButton("Get Power", self)
@@ -95,11 +97,11 @@ class DepAuxControlWidget(QWidget):
         LED_layout.addWidget(self.getPower_button)
         LED_layout.addSpacing(50)
         self.voltage = QLabel("0.00 V")
-        self.voltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ff7e40}")
+        self.voltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         LED_layout.addWidget(self.voltage)
         LED_layout.addSpacing(50)
         self.current = QLabel("0.00 A")
-        self.current.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ff7e40}")
+        self.current.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         LED_layout.addWidget(self.current)
         LED_layout.addSpacing(50)
         # Complete setup, add status labels and indicators
@@ -221,7 +223,14 @@ class DepAuxControlWidget(QWidget):
         except:
             response = "*** Connection Error ***"
         if type(response)==str or type(response)==unicode:
-            self.response_label.append(response)
+            try:
+                response_dict = json.loads(response)
+                if "message" in response_dict.keys():
+                    self.response_label.append(response_dict["message"])
+                else:
+                    self.response_label.append(response)
+            except:
+                self.response_label.append(response)
         elif type(response)==bool:
             if response:
                 self.response_label.setText("Success!")

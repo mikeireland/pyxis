@@ -2,6 +2,7 @@
 #define _DEPAUXGLOBALS_
 
 #include <pthread.h>
+#include <string>
 
 //Flags for server to communicate status.
 extern int GLOB_DA_STATUS; //0 = Off, 1 = On, 2 = waiting
@@ -11,6 +12,12 @@ extern int GLOB_DA_REQUEST; //1 = no command, 2 = turn LED on, 3 = turn LED off,
 struct powerStruct{
     float current; //current
     float voltage; //voltage
+};
+
+struct powerStatus{
+    float current; //current
+    float voltage; //voltage
+    std::string msg; //ret message
 };
 
 //Global power struct instance

@@ -16,6 +16,8 @@ using std::chrono::milliseconds;
 
 using namespace std;
 
+
+
 void* serverLoop(void*){
 
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
@@ -37,21 +39,23 @@ void* serverLoop(void*){
 			case 1:
 				// Move fringe tracking stage
 				pthread_mutex_lock(&GLOB_DATA_LOCK);
-				cout << "MOVING FINE STAGE BY " << GLOB_CA_FINESTAGE_STEPS << " STEPS" << endl;
+				cout << "MOVING FINE STAGE BY " << GLOB_CA_FINESTAGE_STEPS << " STEPS AT " << GLOB_CA_FINESTAGE_FREQUENCY << " Hz, DIRECTION = " << GLOB_CA_FINESTAGE_DIRECTION << endl;
 				pthread_mutex_unlock(&GLOB_DATA_LOCK);
 		        GLOB_CA_REQUEST = 0;
                 break;
 			case 2:
 				// Move tip/tilt actuator Dextra
 				pthread_mutex_lock(&GLOB_DATA_LOCK);
-				cout << "MOVING DEXTRA PIEZO BY " << GLOB_CA_TIPTILT_PIEZO_DEXTRA << " V" << endl;
+				cout << "MOVING DEXTRA X PIEZO TO " << GLOB_CA_TIPTILT_PIEZO_DEXTRA_X << " V" << endl;
+				cout << "MOVING DEXTRA Y PIEZO TO " << GLOB_CA_TIPTILT_PIEZO_DEXTRA_Y << " V" << endl;
 				pthread_mutex_unlock(&GLOB_DATA_LOCK);
 		        GLOB_CA_REQUEST = 0;
 				break;
 			case 3:
 				// Move tip/tilt actuator Sinistra
 				pthread_mutex_lock(&GLOB_DATA_LOCK);
-				cout << "MOVING SINISTRA PIEZO BY " << GLOB_CA_TIPTILT_PIEZO_SINISTRA << " V" << endl;
+				cout << "MOVING SINISTRA X PIEZO TO " << GLOB_CA_TIPTILT_PIEZO_SINISTRA_X << " V" << endl;
+				cout << "MOVING SINISTRA Y PIEZO TO " << GLOB_CA_TIPTILT_PIEZO_SINISTRA_Y << " V" << endl;
 				pthread_mutex_unlock(&GLOB_DATA_LOCK);
 		        GLOB_CA_REQUEST = 0;
                 break;
@@ -148,18 +152,21 @@ string stopServer(){
 	return ret_msg;
 }
 
-string moveFineStage(int numSteps){
+
+string moveFineStage(int numSteps, int direction, int freq){
     string ret_msg;
 	if(GLOB_CA_STATUS==2){
 		pthread_mutex_lock(&GLOB_FLAG_LOCK);
 
 		pthread_mutex_lock(&GLOB_DATA_LOCK);
 		GLOB_CA_FINESTAGE_STEPS = numSteps;
+        GLOB_CA_FINESTAGE_DIRECTION = direction;
+        GLOB_CA_FINESTAGE_FREQUENCY = freq;
 		pthread_mutex_unlock(&GLOB_DATA_LOCK);
 
 		GLOB_CA_REQUEST = 1;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-		ret_msg = "Moving fine stage " + to_string(numSteps) + " steps";
+		ret_msg = "Moving fine stage by " + to_string(numSteps) + " steps, at " + to_string(freq) + " Hz, direction = "+ to_string(direction);
 	}else{
 		ret_msg = "CA server not currently running (or is connecting)";
 	}
@@ -167,71 +174,98 @@ string moveFineStage(int numSteps){
 }
 
 
-string moveTipTiltDextra(double voltage){
+piezoXYStatus moveTipTiltDextra(double x_voltage, double y_voltage){
+    piezoXYStatus ret_val;
     string ret_msg;
 	if(GLOB_CA_STATUS==2){
 		pthread_mutex_lock(&GLOB_FLAG_LOCK);
 
 		pthread_mutex_lock(&GLOB_DATA_LOCK);
-		GLOB_CA_TIPTILT_PIEZO_DEXTRA = voltage;
+		GLOB_CA_TIPTILT_PIEZO_DEXTRA_X = x_voltage;
+		GLOB_CA_TIPTILT_PIEZO_DEXTRA_Y = y_voltage;
+		ret_val.X = GLOB_CA_TIPTILT_PIEZO_DEXTRA_X;
+		ret_val.Y = GLOB_CA_TIPTILT_PIEZO_DEXTRA_Y;
 		pthread_mutex_unlock(&GLOB_DATA_LOCK);
 
 		GLOB_CA_REQUEST = 2;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-		ret_msg = "Moving tip/tilt piezo Dextra by " + to_string(voltage) + " V";;
+		ret_msg = "Moving tip/tilt piezo Dextra to X = " + to_string(x_voltage) + " V, Y = " + to_string(y_voltage) + " V";
 	}else{
+	    ret_val.X = 0;
+		ret_val.Y = 0;
 		ret_msg = "CA server not currently running (or is connecting)";
 	}
-	return ret_msg;
+    ret_val.msg = ret_msg;
+	return ret_val;
 }
 
-string moveTipTiltSinistra(double voltage){
+piezoXYStatus moveTipTiltSinistra(double x_voltage, double y_voltage){
+    piezoXYStatus ret_val;
     string ret_msg;
 	if(GLOB_CA_STATUS==2){
 		pthread_mutex_lock(&GLOB_FLAG_LOCK);
 
 		pthread_mutex_lock(&GLOB_DATA_LOCK);
-		GLOB_CA_TIPTILT_PIEZO_SINISTRA = voltage;
+		GLOB_CA_TIPTILT_PIEZO_SINISTRA_X = x_voltage;
+		GLOB_CA_TIPTILT_PIEZO_SINISTRA_Y = y_voltage;
+		ret_val.X = GLOB_CA_TIPTILT_PIEZO_SINISTRA_X;
+		ret_val.Y = GLOB_CA_TIPTILT_PIEZO_SINISTRA_Y;
 		pthread_mutex_unlock(&GLOB_DATA_LOCK);
 
 		GLOB_CA_REQUEST = 3;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-		ret_msg = "Moving tip/tilt piezo Sinistra by " + to_string(voltage) + " V";
+		ret_msg = "Moving tip/tilt piezo Sinistra to X = " + to_string(x_voltage) + " V, Y = " + to_string(y_voltage) + " V";
 	}else{
+	    ret_val.X = 0;
+		ret_val.Y = 0;
 		ret_msg = "CA server not currently running (or is connecting)";
 	}
-	return ret_msg;
+    ret_val.msg = ret_msg;
+	return ret_val;
 }
 
-
-
-string moveSciPiezo(double voltage){
+piezoStatus moveSciPiezo(double voltage){
+    piezoStatus ret_val;
     string ret_msg;
 	if(GLOB_CA_STATUS==2){
 		pthread_mutex_lock(&GLOB_FLAG_LOCK);
 
 		pthread_mutex_lock(&GLOB_DATA_LOCK);
 		GLOB_CA_SCIPIEZO_VOLTAGE = voltage;
+		ret_val.voltage = GLOB_CA_SCIPIEZO_VOLTAGE;
 		pthread_mutex_unlock(&GLOB_DATA_LOCK);
-		
 
 		GLOB_CA_REQUEST = 4;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-		ret_msg = "Moving science piezo by " + to_string(voltage) + " V";
+		ret_msg = "Moving science piezo to " + to_string(voltage) + " V";
 	}else{
+	    ret_val.voltage = 0;
 		ret_msg = "CA server not currently running (or is connecting)";
 	}
-	return ret_msg;
+	ret_val.msg = ret_msg;
+	return ret_val;
 }
 
 
-powerStruct requestPower(){
-	powerStruct ret_p;
+powerStatus requestPower(){
+    powerStatus ret_p;
+	powerStruct p;
+    string ret_msg;
+    
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    ret_p = GLOB_CA_POWER_VALUES;
+    p = GLOB_CA_POWER_VALUES;
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
+    
+    ret_p.current = p.current;
+    ret_p.voltage = p.voltage;
+    
+    ret_msg = "Voltage = " + to_string(p.voltage) + ", Current = " + to_string(p.current);
+    
+    ret_p.msg = ret_msg;
+    
     return ret_p;
-	}
+}
+
 };
 
 // Serialiser to convert configuration struct to/from JSON
@@ -247,7 +281,45 @@ namespace nlohmann {
             j.at("voltage").get_to(p.voltage);
         }
     };
-} 
+
+    template <>
+    struct adl_serializer<powerStatus> {
+        static void to_json(json& j, const powerStatus& p) {
+            j = json{{"current", p.current}, {"voltage", p.voltage}, {"message", p.msg}};
+        }
+
+        static void from_json(const json& j, powerStatus& p) {
+            j.at("current").get_to(p.current);
+            j.at("voltage").get_to(p.voltage);
+            j.at("message").get_to(p.msg);
+        }
+    };
+
+    template <>
+    struct adl_serializer<piezoXYStatus> {
+        static void to_json(json& j, const piezoXYStatus& p) {
+            j = json{{"X_voltage", p.X}, {"Y_voltage", p.Y}, {"message", p.msg}};
+        }
+
+        static void from_json(const json& j, piezoXYStatus& p) {
+            j.at("X_voltage").get_to(p.X);
+            j.at("Y_voltage").get_to(p.Y);
+            j.at("message").get_to(p.msg);
+        }
+    };
+    
+    template <>
+    struct adl_serializer<piezoStatus> {
+        static void to_json(json& j, const piezoStatus& p) {
+            j = json{{"voltage", p.voltage}, {"message", p.msg}};
+        }
+
+        static void from_json(const json& j, piezoStatus& p) {
+            j.at("voltage").get_to(p.voltage);
+            j.at("message").get_to(p.msg);
+        }
+    };
+}
 
 // Register as commander server
 COMMANDER_REGISTER(m)

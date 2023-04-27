@@ -173,6 +173,7 @@ class PyxisGui(QTabWidget):
         self.dashboard_refresh_button.clicked.connect(self.refresh_status)
         vbox3.addWidget(self.dashboard_refresh_button)
 
+        vbox3.addStretch()
 
         hbox4.addLayout(vbox3)
 
