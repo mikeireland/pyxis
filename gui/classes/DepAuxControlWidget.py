@@ -236,7 +236,7 @@ class DepAuxControlWidget(QWidget):
                 self.response_label.setText("Success!")
             else:
                 self.response_label.setText("Failure!")
-        self.line_edit.setText("")
+        self.line_edit.setText("DA.")
 
         return response
 

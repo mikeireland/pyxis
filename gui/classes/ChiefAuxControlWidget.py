@@ -83,18 +83,17 @@ class ChiefAuxControlWidget(QWidget):
         config_grid.setColumnMinimumWidth(4,100)
         config_grid.setVerticalSpacing(5)
 
-        self.Dextra_X_V = 0.00
-        self.Dextra_Y_V = 0.00
-        self.Sinistra_X_V = 0.00
-        self.Sinistra_Y_V = 0.00
-        self.SciPiezo_V = 0.00
-        self.FineStage_V = 0.00
+        self.Dextra_X_V = config["PiezoStart"]["dextra_X"]
+        self.Dextra_Y_V = config["PiezoStart"]["dextra_Y"]
+        self.Sinistra_X_V = config["PiezoStart"]["sinistra_X"]
+        self.Sinistra_Y_V = config["PiezoStart"]["sinistra_Y"]
+        self.SciPiezo_V = config["PiezoStart"]["science"]
         
-        self.Dextra_X_dV = 0.1
-        self.Dextra_Y_dV = 0.1
-        self.Sinistra_X_dV = 0.1
-        self.Sinistra_Y_dV = 0.1
-        self.SciPiezo_dV = 0.1
+        self.Dextra_X_dV = config["PiezoSteps"]["dextra_X"]
+        self.Dextra_Y_dV = config["PiezoSteps"]["dextra_Y"]
+        self.Sinistra_X_dV = config["PiezoSteps"]["sinistra_X"]
+        self.Sinistra_Y_dV = config["PiezoSteps"]["sinistra_Y"]
+        self.SciPiezo_dV = config["PiezoSteps"]["science"]
 
         hbox3 = QHBoxLayout()
         lbl1 = QLabel('Dextra XY Piezo X: ', self)
@@ -250,13 +249,13 @@ class ChiefAuxControlWidget(QWidget):
         lbl2 = QLabel('Number of Steps: ', self)
         lbl3 = QLabel('Direction: ', self)
         lbl4 = QLabel('Frequency (Hz): ', self)
-        self.FineStage_numSteps_edit = QLineEdit(str(self.FineStage_V))
+        self.FineStage_numSteps_edit = QLineEdit("0")
         self.FineStage_numSteps_edit.setFixedWidth(120)
         self.FineStage_numSteps_edit.setStyleSheet("color: #ff7f69; border-color: #ff7f69")
-        self.FineStage_direction_edit = QLineEdit(str(self.FineStage_V))
+        self.FineStage_direction_edit = QLineEdit("0")
         self.FineStage_direction_edit.setFixedWidth(120)
         self.FineStage_direction_edit.setStyleSheet("color: #ff7f69; border-color: #ff7f69")
-        self.FineStage_freq_edit = QLineEdit(str(self.FineStage_V))
+        self.FineStage_freq_edit = QLineEdit("0")
         self.FineStage_freq_edit.setFixedWidth(120)
         self.FineStage_freq_edit.setStyleSheet("color: #ff7f69; border-color: #ff7f69")
         self.FineStage_Set_button = QPushButton("GO", self)
@@ -501,7 +500,7 @@ class ChiefAuxControlWidget(QWidget):
                 self.response_label.setText("Success!")
             else:
                 self.response_label.setText("Failure!")
-        self.line_edit.setText("")
+        self.line_edit.setText("CA.")
 
         return response
 

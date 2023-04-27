@@ -22,8 +22,23 @@ refresh_time = 0.5 #In seconds
     tab_name = "Navis Auxilliary"
     name = "NavisDeputyAux"
     port = "4101"
-    description = "Navis power system + LED controls"
+    description = "Navis power system + actuator controls"
     module_type = "ChiefAuxControlWidget"
+    voltage_limit = 10
+    
+        [Navis.ChiefAux.PiezoSteps]
+        dextra_X = 0.1
+        dextra_Y = 0.1
+        sinistra_X = 1
+        sinistra_Y = 1
+        science = 2
+                       
+        [Navis.ChiefAux.PiezoStart]
+        dextra_X = 0.0
+        dextra_Y = 0.0
+        sinistra_X = 0.0
+        sinistra_Y = 0.0
+        science = 50
 
     [Navis.StarTracker]
     tab_name = "Star Tracker Camera"
@@ -89,6 +104,7 @@ refresh_time = 0.5 #In seconds
     port = "4201"
     description = "Dextra power system + LED controls"
     module_type = "DepAuxControlWidget"
+    voltage_limit = 10
 
     [Dextra.StarTracker]
     tab_name = "Star Tracker Camera"

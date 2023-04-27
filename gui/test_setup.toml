@@ -46,5 +46,19 @@ refresh_time = 0.5 #In seconds
     description = "Chief Aux"
     module_type = "ChiefAuxControlWidget"
     voltage_limit = 10
+    
+        [Dextra.ChiefAux.PiezoSteps]
+        dextra_X = 0.1
+        dextra_Y = 0.1
+        sinistra_X = 1
+        sinistra_Y = 1
+        science = 2
+                       
+        [Dextra.ChiefAux.PiezoStart]
+        dextra_X = 0.0
+        dextra_Y = 0.0
+        sinistra_X = 0.0
+        sinistra_Y = 0.0
+        science = 50
 
 [Sinistra]

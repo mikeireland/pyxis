@@ -36,13 +36,11 @@ if (sys.version_info > (3, 0)):
 if len(sys.argv) > 1:
     config = pytomlpp.load(sys.argv[1])
 else:
-    config = pytomlpp.load("test_setup.toml")
+    config = pytomlpp.load("port_setup.toml")
 
 pyxis_config = config["Pyxis"]
 config.pop("Pyxis")
 config = collections.OrderedDict({k: {key: value for key, value in sorted(config[k].items(), key=lambda x:x[1]["port"])}  for k in ["Navis","Dextra","Sinistra"]})
-
-print(config)
 
 #Time to automatically update the gui
 refresh_time = pyxis_config["refresh_time"]*1000 #now in ms
