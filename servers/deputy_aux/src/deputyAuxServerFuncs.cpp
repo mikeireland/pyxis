@@ -6,6 +6,8 @@
 #include <pthread.h>
 #include "deputyAuxGlobals.hpp"
 
+#include <cstdlib>
+
 using json = nlohmann::json;
 
 using std::chrono::steady_clock;
@@ -59,9 +61,9 @@ void * serverLoop(void *){
 
             // Request power info
             
-            powerStruct result;
-            result.current = 0.52;
-            result.voltage = 12.4;
+            powerStruct result; //test data
+            result.current = rand() % 100;
+            result.voltage = rand() % 100;
             
             pthread_mutex_lock(&GLOB_FLAG_LOCK);
             GLOB_DA_POWER_VALUES = result;

@@ -198,7 +198,7 @@ if __name__ == "__main__":
         # WORK ON MESSAGE -> FILENAME
         filename = message.decode("utf-8").strip('\"') 
 
-        if os.path.exists(filename):
+        if os.path.exists(str(config["path_to_data"]+"/"+filename)):
             print("Filename Exists. Running solver")
 
             #run image

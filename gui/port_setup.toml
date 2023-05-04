@@ -109,7 +109,7 @@ refresh_time = 0.5 #In seconds
     [Dextra.StarTracker]
     tab_name = "Star Tracker Camera"
     name = "DextraStarTracker"
-    prefix = "ST"
+    prefix = "CST"
     port = "4202"
     description = "Camera controls for the Dextra star tracker"
     module_type = "BaseFLIRCameraWidget"
@@ -137,7 +137,7 @@ refresh_time = 0.5 #In seconds
     [Sinistra.StarTracker]
     tab_name = "Star Tracker Camera"
     name = "SinistraStarTracker"
-    prefix = "ST"
+    prefix = "CST"
     port = "4302"
     description = "Camera controls for the Sinistra star tracker"
     module_type = "BaseFLIRCameraWidget"
