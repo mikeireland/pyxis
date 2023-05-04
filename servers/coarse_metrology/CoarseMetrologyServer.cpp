@@ -87,10 +87,10 @@ int CM_Callback (unsigned short* data){
         pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
         
         //ZMQ CLIENT SEND TO DEPUTY ROBOT positions
-        std::string result = RB_SOCKET->send<std::string>("RC.receive_LED_positions", positions);
+        //std::string result = RB_SOCKET->send<std::string>("RC.receive_LED_positions", positions);
         
         //ZMQ CLIENT SEND TO AUX TURN OFF LED
-        std::string result = DA_SOCKET->send<std::string>("DA.turnLEDOff");
+        std::string result = DA_SOCKET->send<std::string>("DA.LEDOff");
 
        
         pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
@@ -107,7 +107,7 @@ int CM_Callback (unsigned short* data){
         pthread_mutex_unlock(&GLOB_CM_IMG_LOCK);
 
         //ZMQ CLIENT SEND TO AUX TURN ON LED
-        std::string result = DA_SOCKET->send<std::string>("DA.turnLEDOn");
+        std::string result = DA_SOCKET->send<std::string>("DA.LEDOn");
 
         pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
         GLOB_CM_ONFLAG = 1;
@@ -177,9 +177,7 @@ COMMANDER_REGISTER(m)
         .def("reconfigure_blacklevel", &CoarseMet::reconfigure_blacklevel, "Reconfigure the black level")
         .def("reconfigure_buffersize", &CoarseMet::reconfigure_buffersize, "Reconfigure the buffer size")
         .def("reconfigure_savedir", &CoarseMet::reconfigure_savedir, "Reconfigure the save directory")
-        .def("getparams", &CoarseMet::getparams, "Get all parameters");
- }  
-      
+        .def("getparams", &CoarseMet::getparams, "Get all parameters")
         .def("getLEDs", &CoarseMet::getLEDpositions, "Get positions of two LEDs");
 
 }
