@@ -199,9 +199,6 @@ cv::Point2d ImageProcessSubMatInterpSingle::get_location(const cv::Mat &image) {
         cv::GaussianBlur(image, image,
                          cv::Size(gauss_radius, gauss_radius), 0, 0,
                          cv::BORDER_DEFAULT);
-                                            
-
-    //diff_image.convertTo(diff_image, CV_32F);
 
     cv::Point2i p;
     cv::Point2d p_ret;
@@ -226,14 +223,6 @@ cv::Point2d ImageProcessSubMatInterpSingle::operator()(const cv::Mat &image) {
     p.x += sub_rect.x;
     p.y += sub_rect.y;
 
-     //if (image_on.at<int>(p.p1) < threshold || image_on.at<int>(p.p2) <
-     //threshold)
-     //{
-         // if the location is too dark, try the whole image
-         //p = get_location(image_off, image_on);
-     //}
-     //fmt::print("sub_rect: ({}, {}), ({}, {})\n", sub_rect.x, sub_rect.y,
-     //sub_rect.width, sub_rect.height);
 
     auto x_min = p.x;
     auto x_max = p.x;
