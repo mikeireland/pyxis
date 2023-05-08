@@ -160,7 +160,7 @@ class RobotControlWidget(QWidget):
         config_grid.addLayout(hbox3,2,0)
 
         hbox3 = QHBoxLayout()
-        lbl1 = QLabel('Roll ', self)
+        lbl1 = QLabel('Pos Angle ', self)
         lbl1.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.Robot_roll_edit = QLineEdit("0.0")
         self.Robot_roll_edit.setFixedWidth(120)
@@ -185,7 +185,7 @@ class RobotControlWidget(QWidget):
 
 
         hbox3 = QHBoxLayout()
-        lbl1 = QLabel('Pitch', self)
+        lbl1 = QLabel('Alt', self)
         lbl1.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.Robot_pitch_edit = QLineEdit("0.0")
         self.Robot_pitch_edit.setFixedWidth(120)
@@ -210,7 +210,7 @@ class RobotControlWidget(QWidget):
 
 
         hbox3 = QHBoxLayout()
-        lbl1 = QLabel('Yaw ', self)
+        lbl1 = QLabel('Az ', self)
         lbl1.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.Robot_yaw_edit = QLineEdit("0.0")
         self.Robot_yaw_edit.setFixedWidth(120)

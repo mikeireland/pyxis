@@ -21,7 +21,8 @@ struct LEDs {
 };
 
 LEDs GLOB_CM_LEDs;
-int GLOB_CM_ONFLAG;
+int GLOB_CM_ONFLAG = 0;
+int GLOB_CM_ENABLEFLAG = 0;
 
 cv::Mat GLOB_CM_IMG_DARK;
 
@@ -71,50 +72,51 @@ LEDs CalcLEDPosition(cv::Mat img, cv::Mat dark){
 // Return 1 if error!
 int CM_Callback (unsigned short* data){
 
-    int height = GLOB_IMSIZE/GLOB_WIDTH;
+    if (GLOB_CM_ENABLEFLAG){
+        int height = GLOB_IMSIZE/GLOB_WIDTH;
 
-    cv::Mat img (height,GLOB_WIDTH,CV_16U,data);
+        cv::Mat img (height,GLOB_WIDTH,CV_16U,data);
 
-    //If LED is ON
-    if (GLOB_CM_ONFLAG){
+        //If LED is ON
+        if (GLOB_CM_ONFLAG){
+            
+            cout << "LED On" << endl;
+            pthread_mutex_lock(&GLOB_CM_IMG_LOCK);
+            LEDs positions = CalcLEDPosition(img,GLOB_CM_IMG_DARK);
+            pthread_mutex_unlock(&GLOB_CM_IMG_LOCK);
+            pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
+            GLOB_CM_LEDs = positions;
+            pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
+            
+            //ZMQ CLIENT SEND TO DEPUTY ROBOT positions
+            //std::string result = RB_SOCKET->send<std::string>("RC.receive_LED_positions", positions);
+            
+            //ZMQ CLIENT SEND TO AUX TURN OFF LED
+            std::string result = DA_SOCKET->send<std::string>("DA.LEDOff");
+
         
-        cout << "LED On" << endl;
-        pthread_mutex_lock(&GLOB_CM_IMG_LOCK);
-        LEDs positions = CalcLEDPosition(img,GLOB_CM_IMG_DARK);
-        pthread_mutex_unlock(&GLOB_CM_IMG_LOCK);
-        pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
-        GLOB_CM_LEDs = positions;
-        pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
-        
-        //ZMQ CLIENT SEND TO DEPUTY ROBOT positions
-        //std::string result = RB_SOCKET->send<std::string>("RC.receive_LED_positions", positions);
-        
-        //ZMQ CLIENT SEND TO AUX TURN OFF LED
-        std::string result = DA_SOCKET->send<std::string>("DA.LEDOff");
+            pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
+            GLOB_CM_ONFLAG = 0;
+            pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
 
-       
-        pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
-        GLOB_CM_ONFLAG = 0;
-        pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
+        }
 
+        else {
+        
+            cout << "LED Off" << endl;
+            pthread_mutex_lock(&GLOB_CM_IMG_LOCK);
+            img.copyTo(GLOB_CM_IMG_DARK);
+            pthread_mutex_unlock(&GLOB_CM_IMG_LOCK);
+
+            //ZMQ CLIENT SEND TO AUX TURN ON LED
+            std::string result = DA_SOCKET->send<std::string>("DA.LEDOn");
+
+            pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
+            GLOB_CM_ONFLAG = 1;
+            pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
+
+        }
     }
-
-    else {
-    
-        cout << "LED Off" << endl;
-        pthread_mutex_lock(&GLOB_CM_IMG_LOCK);
-        img.copyTo(GLOB_CM_IMG_DARK);
-        pthread_mutex_unlock(&GLOB_CM_IMG_LOCK);
-
-        //ZMQ CLIENT SEND TO AUX TURN ON LED
-        std::string result = DA_SOCKET->send<std::string>("DA.LEDOn");
-
-        pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
-        GLOB_CM_ONFLAG = 1;
-        pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
-
-    }
-
     return 0;
 }
 
@@ -153,6 +155,14 @@ struct CoarseMet: FLIRCameraServer{
         return ret_LEDs;
     }
 
+    string enableCoarseMetLEDs(int flag){
+        string ret_msg = "Changing enable flag to: " + to_string(flag);
+        pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
+        GLOB_CM_ENABLEFLAG = flag;
+        pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
+        return ret_msg;
+    }
+
 };
 
 // Register as commander server
@@ -178,6 +188,7 @@ COMMANDER_REGISTER(m)
         .def("reconfigure_buffersize", &CoarseMet::reconfigure_buffersize, "Reconfigure the buffer size")
         .def("reconfigure_savedir", &CoarseMet::reconfigure_savedir, "Reconfigure the save directory")
         .def("getparams", &CoarseMet::getparams, "Get all parameters")
-        .def("getLEDs", &CoarseMet::getLEDpositions, "Get positions of two LEDs");
+        .def("getLEDs", &CoarseMet::getLEDpositions, "Get positions of two LEDs")
+        .def("enableLEDs", &CoarseMet::enableCoarseMetLEDs, "Enable the blinking and measuring loop");
 
 }
