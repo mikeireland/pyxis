@@ -34,7 +34,7 @@ string setCoordinates(double new_ra, double new_dec){
     string ret_msg;
     GLOB_SM_COORD.RA = new_ra;
     GLOB_SM_COORD.DEC = new_dec;
-    ret_msg = "Set coordinates to ";
+    ret_msg = "Set coordinates to " + to_string(new_ra) + ", " + to_string(new_dec);
 	return ret_msg;
 }
 

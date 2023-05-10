@@ -3,6 +3,7 @@ IP = "127.0.0.1"
 camera_port = "4001"
 camera_port_name = "CST"
 robot_control_port = "5555"
+state_machine_port = "4000"
 path_to_data = "/home/jhansen/GitRepos/pyxis/servers/coarse_star_tracker"
 
 [Tetra3]

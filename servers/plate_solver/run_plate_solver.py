@@ -81,7 +81,7 @@ output_folder = folder to store auxillary and solution files
 OUTPUTS:
 An attitude quaternion in AltAz coordinate frame of the image
 """
-def run_image(img_filename,config):
+def run_image(img_filename,config,target):
     start_time = time.perf_counter()
 
     prefix = os.path.basename(img_filename).split('.', 1)[0]
@@ -132,7 +132,7 @@ def run_image(img_filename,config):
     config["Astrometry"]["estimate_position"]["flag"] = 1
 
     #Convert to quaternion
-    angles = conversion.RaDec2AltAz(RA,DEC,POS)
+    angles = conversion.diffRaDec2AltAz(RA,DEC,POS,target[0],target[1])
     end_time = time.perf_counter()
     print(f"\nCompleted in {end_time - start_time:0.4f} seconds")
 
@@ -170,6 +170,14 @@ if __name__ == "__main__":
 
     try:
         context = zmq.Context()
+        state_machine_socket = context.socket(zmq.REQ)
+        tcpstring = "tcp://"+IP+":"+config["state_machine_port"]
+        state_machine_socket.connect(tcpstring)
+        print("Connected")
+    except:
+        print('ERROR: Could not connect to state machine server. Please check that the server is running and IP is correct.')
+    try:
+        context = zmq.Context()
         camera_socket = context.socket(zmq.REQ)
         tcpstring = "tcp://"+IP+":"+config["camera_port"]
         camera_socket.connect(tcpstring)
@@ -189,6 +197,14 @@ if __name__ == "__main__":
         time.sleep(1)
         print("Sending request")
 
+
+        state_machine_socket.send_string("SM.getCoordinates")
+        message = state_machine_socket.recv()
+        print("Received state machine message: %s" % message.decode("utf-8").strip('\"') )
+
+        !!!
+        target = message
+        
         camera_socket.send_string(config["camera_port_name"]+".getlatestfilename")
     
         #Ask camera for next image
@@ -202,7 +218,7 @@ if __name__ == "__main__":
             print("Filename Exists. Running solver")
 
             #run image
-            flag,angles = run_image(filename,config)
+            flag,angles = run_image(filename,config,target)
 
             if flag>0:
 
