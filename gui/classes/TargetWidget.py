@@ -40,7 +40,7 @@ class TargetWidget(QWidget):
 
         #First, the command entry box
         lbl1 = QLabel('Command: ', self)
-        self.line_edit = QLineEdit("DA.")
+        self.line_edit = QLineEdit("SM.")
         self.line_edit.returnPressed.connect(self.command_enter)
 
         #Next, the info button
@@ -87,22 +87,22 @@ class TargetWidget(QWidget):
         Coord_layout.addWidget(lbl)
         Coord_layout.addStretch()
         self.new_Target_Name = QLabel("Target: ")
-        self.new_Target_Name.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        self.new_Target_Name.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffffff}")
         Coord_layout.addWidget(self.new_Target_Name)
         Coord_layout.addSpacing(50)
-        self.new_RA = QLabel("RA = ")
-        self.new_RA.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        self.new_RA = QLabel("RA = 0.0")
+        self.new_RA.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffffff}")
         Coord_layout.addWidget(self.new_RA)
         Coord_layout.addSpacing(50)
-        self.new_DEC = QLabel("DEC = ")
-        self.new_DEC.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        self.new_DEC = QLabel("DEC = 0.0")
+        self.new_DEC.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffffff}")
         Coord_layout.addWidget(self.new_DEC)
         Coord_layout.addSpacing(50)
         self.Set_Target_button = QPushButton("Set Target", self)
         self.Set_Target_button.setFixedWidth(200)
         self.Set_Target_button.clicked.connect(self.set_target_func)
         Coord_layout.addWidget(self.Set_Target_button)
-
+        Coord_layout.addStretch()
         vBoxlayout.addLayout(Coord_layout)
         vBoxlayout.addSpacing(30)
 
@@ -115,13 +115,14 @@ class TargetWidget(QWidget):
         self.current_Target_Name.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         Coord_layout.addWidget(self.current_Target_Name)
         Coord_layout.addSpacing(50)
-        self.current_RA = QLabel("RA = ")
+        self.current_RA = QLabel("RA = 0.0")
         self.current_RA.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         Coord_layout.addWidget(self.current_RA)
         Coord_layout.addSpacing(50)
-        self.current_DEC = QLabel("DEC = ")
+        self.current_DEC = QLabel("DEC = 0.0")
         self.current_DEC.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         Coord_layout.addWidget(self.current_DEC)
+        Coord_layout.addStretch()
 
         vBoxlayout.addLayout(Coord_layout)
 
@@ -149,18 +150,10 @@ class TargetWidget(QWidget):
         only see one server at a time)"""
         #As this is on a continuous timer, only do anything if we are
         #connected
-        response = self.socket.send_command("DA.status")
+        response = self.socket.send_command("SM.status")
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
-
-            if response == '"Server Not Connected!"':
-                self.Connect_button.setText("Connect")
-                self.Connect_button.setChecked(False)
-            else:
-                self.Connect_button.setChecked(True)
-                self.Connect_button.setText("Disconnect")
-
             self.response_label.append(response)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
@@ -178,16 +171,20 @@ class TargetWidget(QWidget):
 
     def send_to_SIMBAD(self):
         table = self.simbad.query_object(str(self.SIMBAD_line_edit.text()))
-        ra = table["RA_d_A"][0]
-        dec = table["DEC_d_D"][0]
-        name = table["MAIN_ID"][0]
+        if table is None:
+            self.response_label.append("Target not found")
+            return
+        ra = "RA = "+str(table["RA_d_A"][0])
+        dec = "DEC = "+str(table["DEC_d_D"][0])
+        name = "Target = "+str(table["MAIN_ID"][0])
         self.new_Target_Name.setText(name)
         self.new_RA.setText(ra)
         self.new_DEC.setText(dec)
+        return
 
 
     def set_target_func(self):
-        self.send_to_server("TS.setCoordinates [%s,%s]"%(self.current_RA,self.current_DEC))
+        self.send_to_server("SM.setCoordinates [%s,%s]"%(str(float(self.new_RA.text().split('=')[1])),str(float(self.new_DEC.text().split('=')[1]))))
         self.current_Target_Name.setText(str(self.new_Target_Name.text()))
         self.current_RA.setText(str(self.new_RA.text()))
         self.current_DEC.setText(str(self.new_DEC.text()))
@@ -216,10 +213,10 @@ class TargetWidget(QWidget):
                 self.response_label.append(response)
         elif type(response)==bool:
             if response:
-                self.response_label.setText("Success!")
+                self.response_label.append("Success!")
             else:
-                self.response_label.setText("Failure!")
-        self.line_edit.setText("DA.")
+                self.response_label.append("Failure!")
+        self.line_edit.setText("SM.")
 
         return response
 
@@ -234,7 +231,7 @@ class TargetWidget(QWidget):
             self.response_label.append(response)
         elif type(response)==bool:
             if response:
-                self.response_label.setText("Success!")
+                self.response_label.append("Success!")
             else:
-                self.response_label.setText("Failure!")
-        self.line_edit.setText("DA.")
+                self.response_label.append("Failure!")
+        self.line_edit.setText("SM.")

@@ -12,11 +12,20 @@ refresh_time = 0.5 #In seconds
 [Navis]
 
 [Dextra]
+
+    [Dextra.TargetControl]
+    tab_name = "Target"
+    name = "TargetControl"
+    prefix = "SM"
+    port = "4000"
+    description = "Dextra Target selector (move to FSM?)"
+    module_type = "TargetWidget"
+    
     [Dextra.RobotControl]
     tab_name = "Robot Control"
     name = "DextraRobotControl"
     prefix = "RC"
-    port = "4000"
+    port = "4200"
     description = "Motor/Actuator control for the deputy Dextra"
     module_type = "RobotControlWidget"
 
@@ -24,7 +33,7 @@ refresh_time = 0.5 #In seconds
     tab_name = "Star Tracker Camera"
     name = "DextraStarTracker"
     prefix = "ST"
-    port = "4001"
+    port = "4202"
     description = "Camera controls for the Dextra star tracker"
     module_type = "BaseFLIRCameraWidget"
     feed_refresh_time = 0.05

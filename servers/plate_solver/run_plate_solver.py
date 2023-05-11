@@ -15,6 +15,7 @@ import numpy as np
 import tomli
 import glob
 import zmq
+import json
 
 """
 Function that takes a list of star positions and creates a .axy file for Astrometry.net
@@ -173,7 +174,7 @@ if __name__ == "__main__":
         state_machine_socket = context.socket(zmq.REQ)
         tcpstring = "tcp://"+IP+":"+config["state_machine_port"]
         state_machine_socket.connect(tcpstring)
-        print("Connected")
+        print("Connected to state machine, port %s"%config["state_machine_port"])
     except:
         print('ERROR: Could not connect to state machine server. Please check that the server is running and IP is correct.')
     try:
@@ -181,17 +182,17 @@ if __name__ == "__main__":
         camera_socket = context.socket(zmq.REQ)
         tcpstring = "tcp://"+IP+":"+config["camera_port"]
         camera_socket.connect(tcpstring)
-        print("Connected")
+        print("Connected to camera, port %s"%config["camera_port"])
     except:
         print('ERROR: Could not connect to camera server. Please check that the server is running and IP is correct.')
-    """
+    
     try:
         robot_control_socket = context.socket(zmq.REQ)
         tcpstring = "tcp://"+IP+":"+config["robot_control_port"]
         robot_control_socket.connect(tcpstring)
     except:
         print('ERROR: Could not connect to robot server. Please check that the server is running and IP is correct.')       
-    """
+    
     print("Beginning loop")
     while(1):
         time.sleep(1)
@@ -200,10 +201,16 @@ if __name__ == "__main__":
 
         state_machine_socket.send_string("SM.getCoordinates")
         message = state_machine_socket.recv()
-        print("Received state machine message: %s" % message.decode("utf-8").strip('\"') )
+        message = message.decode("utf-8")
+        print("Received state machine message: %s" % message )
 
-        !!!
-        target = message
+        try:
+            result = json.loads(message)
+            target = (result["RA"],result["DEC"])
+        except:
+            print("Bad target format")
+        
+        print(target)
         
         camera_socket.send_string(config["camera_port_name"]+".getlatestfilename")
     
@@ -213,7 +220,7 @@ if __name__ == "__main__":
 
         # WORK ON MESSAGE -> FILENAME
         filename = message.decode("utf-8").strip('\"') 
-
+        
         if os.path.exists(str(config["path_to_data"]+"/"+filename)):
             print("Filename Exists. Running solver")
 
@@ -233,7 +240,7 @@ if __name__ == "__main__":
                 #print("Robot response: %s" % message)
             else:
                 print("ERROR")
-
+        
 #-------------
 """
 

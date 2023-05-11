@@ -44,6 +44,12 @@ coord getCoordinates(){
 	return ret_coord;
 }
 
+string status(){
+	string ret_msg;
+	ret_msg = "Server Running";
+	return ret_msg;
+}
+
 };
 
 
@@ -53,7 +59,8 @@ COMMANDER_REGISTER(m)
     m.instance<StateMachineServer>("SM")
         // To insterface a class method, you can use the `def` method.
         .def("getCoordinates", &StateMachineServer::getCoordinates, "Set Ra and Dec")
-        .def("setCoordinates", &StateMachineServer::setCoordinates, "Get Ra and Dec");
+        .def("setCoordinates", &StateMachineServer::setCoordinates, "Get Ra and Dec")
+        .def("status", &StateMachineServer::status, "Check status");
 }
 
 // Serialiser to convert coord struct to/from JSON
@@ -110,9 +117,9 @@ int main(int argc, char* argv[]) {
     string port = config["port"].value_or("4000");
     string IP = config["IP"].value_or("192.168.1.4");
     
-    GLOB_SM_COORD.RA = config["coords"]["RA"].value_or(0.0);
-    GLOB_SM_COORD.DEC = config["coords"]["DEC"].value_or(0.0);
-
+    GLOB_SM_COORD.RA = 0.0;
+    GLOB_SM_COORD.DEC = 0.0
+    
     // Turn into a TCPString
     string TCPString = "tcp://" + IP + ":" + port;
     char TCPCharArr[TCPString.length() + 1];
