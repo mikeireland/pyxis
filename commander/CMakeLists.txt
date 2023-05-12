@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(commander VERSION 0.1.0 LANGUAGES CXX)
+project(commander VERSION 0.2.0 LANGUAGES CXX)
 
 add_library(commander
     src/registry.cpp
@@ -8,7 +8,7 @@ add_library(commander
     src/server/interactive.cpp
     src/server/single_command.cpp
     src/server/socket.cpp
-    # include/commander/commander.h
+    src/client/socket.cpp
 )
 
 target_include_directories(commander PUBLIC include)

@@ -1,0 +1,27 @@
+
+default: configure build
+
+# Install deps and configure project in build folder.
+configure *args:
+	mkdir -p build
+	conan install . -if build --build=missing -pr:h=default -pr:b=default {{args}}
+	conan build -c . -bf build
+
+# Build project.
+build:
+	cmake --build build
+
+# Run client.
+run:
+	./build/example_client
+
+# Run server.
+run-server *args:
+	./build/example_server {{args}}
+
+# Run server with socket on port 9999.
+run-server-default: (run-server "--socket tcp://127.0.0.1:9999")
+
+# Clean
+clean:
+	rm -rf build/*

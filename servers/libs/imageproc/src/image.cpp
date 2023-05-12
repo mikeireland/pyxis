@@ -12,14 +12,17 @@ double LinearGradientInterp::inverse_linear_interp(cv::Point2d p1,
 
 cv::Point2d LinearGradientInterp::operator()(const cv::Mat &image,
                                              const cv::Rect &sub_rect) {
+                                             
     assert(sub_rect.width == 3 && sub_rect.height == 3 &&
            "LinearGradientInterp only defined for 3x3 subrect of image");
     assert(image.channels() == 1 &&
            "LinearGradientInterp only defined for grey scale image");
+
     const auto &img = image(sub_rect);
+
     cv::Mat sumx, sumy;
-    cv::reduce(img, sumx, 0, cv::REDUCE_SUM, CV_32S);
-    cv::reduce(img, sumy, 1, cv::REDUCE_SUM, CV_32S);
+    cv::reduce(img, sumx, 0, cv::REDUCE_SUM, CV_32FC1);
+    cv::reduce(img, sumy, 1, cv::REDUCE_SUM, CV_32FC1);
     auto interp = [this](const cv::Mat &v) {
         double diff[2];
         double ret;
@@ -35,6 +38,7 @@ cv::Point2d LinearGradientInterp::operator()(const cv::Mat &image,
 
 cv::Point2d CentroidInterp::operator()(const cv::Mat &image,
                                        const cv::Rect &sub_rect) {
+
     assert(image.channels() == 1 &&
            "CentroidInterp only defined for grey scale image");
     cv::Mat img = image(sub_rect);
@@ -187,5 +191,53 @@ Point2D<double> ImageProcessSubMatInterp::operator()(const cv::Mat &image_off,
 
     return p;
 }
+
+cv::Point2d ImageProcessSubMatInterpSingle::get_location(const cv::Mat &image) {
+
+
+    if (do_gauss)
+        cv::GaussianBlur(image, image,
+                         cv::Size(gauss_radius, gauss_radius), 0, 0,
+                         cv::BORDER_DEFAULT);
+
+    cv::Point2i p;
+    cv::Point2d p_ret;
+
+    cv::minMaxLoc(image, nullptr, nullptr, nullptr, &p);
+    int a = (centroid_interp_size - 1)/2;
+    
+    if ((p.x > a) && (p.x < (sub_rect.width - a)) && (p.y > a) && (p.y < (sub_rect.height - a))){
+        p_ret = interp(image, p);
+    } else {
+        std::cout << "I'm in danger" << std::endl;
+        p_ret = p;
+    }
+
+    return p_ret;
+}
+
+cv::Point2d ImageProcessSubMatInterpSingle::operator()(const cv::Mat &image) {
+
+    auto p = get_location(image(sub_rect));
+
+    p.x += sub_rect.x;
+    p.y += sub_rect.y;
+
+
+    auto x_min = p.x;
+    auto x_max = p.x;
+    auto y_min = p.y;
+    auto y_max = p.y;
+
+    x_min = x_min < margin ? 0 : x_min - margin;
+    x_max = x_max > image.cols - margin ? image.cols : x_max + margin;
+    y_min = y_min < margin ? 0 : y_min - margin;
+    y_max = y_max > image.rows - margin ? image.rows : y_max + margin;
+
+    sub_rect = cv::Rect(x_min, y_min, x_max - x_min, y_max - y_min);
+
+    return p;
+}
+
 
 } // namespace image

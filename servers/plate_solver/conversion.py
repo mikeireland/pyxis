@@ -160,3 +160,38 @@ def RaDec2AltAz(RA,DEC,POS_ANG):
     angles = (2*np.pi-AZ,ALT,np.radians(POS_ANG))
 
     return np.array(angles)
+
+"""
+Converts celestial coordinates (Ra, Dec, Pos angle) and a target coordinate (Ra2,Dec2)
+into AltAzPos differential angles
+
+INPUTS
+RA = Right ascension in degrees
+DEC = Declination in degrees
+POS_ANG = Rotation of image from North Celestial Pole (invariant between
+          celestial and horizontal coordinates)
+RA2 = Right ascension in degrees of target object
+DEC2 = Right ascension in degrees of target object
+
+OUTPUTS
+AltAzPos angles
+"""
+def diffRaDec2AltAz(RA,DEC,POS_ANG,RA2,DEC2):
+
+    #Convert Ra/Dec to Altitude/Azimuth coordinates
+    ALT, AZ = toAltAz_rad(RA,DEC)
+
+    #Convert Ra/Dec to Altitude/Azimuth coordinates for second object
+    ALT2, AZ2 = toAltAz_rad(RA2,DEC2)
+
+    dALT = ALT2-ALT
+    dAZ = AZ2 - AZ
+
+    #Euler angles from the Alt/Az/Pos angle coordinates
+    #Azimuth made to be anticlockwise in convention of Euler angles (Yaw).
+    #Altitude equivalent to pitch
+
+    #Pos angle equivalent to roll
+    angles = (2*np.pi-dAZ,dALT,np.radians(POS_ANG))
+
+    return np.array(angles)

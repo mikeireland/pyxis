@@ -1,0 +1,9 @@
+port = "4201"
+IP = "192.168.1.4"
+
+[actuators]
+
+
+[aux]
+power_req_time = 1000
+

@@ -5,7 +5,7 @@ class Pkg(ConanFile):
     settings = 'os', 'compiler', 'arch', 'build_type'
     generators = 'CMakeToolchain', 'CMakeDeps'
 
-    requires = 'commander/0.1.0'
+    requires = 'commander/0.2.0'
 
     def build(self):
         cmake = CMake(self)

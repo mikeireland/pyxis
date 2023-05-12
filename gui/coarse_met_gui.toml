@@ -1,0 +1,35 @@
+[Pyxis]
+refresh_time = 0.5 #In seconds
+
+	[Pyxis.IP]
+    FSM = "192.168.1.2"
+    FSM_port = "42000"
+		Navis = "127.0.0.1"
+		Dextra = "127.0.0.1"#"192.168.1.4"
+		Sinistra = "192.168.1.5"
+		External = "150.203.91.206"
+
+[Navis]
+    [Navis.DextraCoarseMet]
+    tab_name = "Dextra Coarse Met Camera"
+    name = "DextraCoarseMet"
+    prefix = "CM"
+    port = "4103"
+    description = "Camera controls for the Dextra coarse metrology"
+    module_type = "CoarseMetCameraWidget"
+    feed_refresh_time = 0.05
+    compression_param = 1
+
+
+[Dextra]
+
+    [Dextra.DeputyAux]
+    tab_name = "Deputy Auxilliary"
+    name = "DextraDeputyAux"
+    port = "4201"
+    description = "Dextra power system + LED controls"
+    module_type = "DepAuxControlWidget"
+    voltage_limit = 10
+
+
+[Sinistra]

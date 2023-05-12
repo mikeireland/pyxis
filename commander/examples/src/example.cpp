@@ -23,6 +23,32 @@ Status get_status() {
     return {42, "Nominal"};
 }
 
+struct configuration {
+    int a;
+    float b;
+    std::string c;
+};
+
+// convert configuration to and from json
+namespace nlohmann {
+    template <>
+    struct adl_serializer<configuration> {
+        static void to_json(json& j, const configuration& p) {
+            j = json{{"a", p.a}, {"b", p.b}, {"c", p.c}};
+        }
+
+        static void from_json(const json& j, configuration& p) {
+            j.at("a").get_to(p.a);
+            j.at("b").get_to(p.b);
+            j.at("c").get_to(p.c);
+        }
+    };
+}
+
+void set_configuration(configuration c, int d) {
+    fmt::print("a: {}, b: {}, c: {}, d: {}\n", c.a, c.b, c.c, d);
+}
+
 // This code allow json to be converted to a custom type and vice versa.
 // For more information, see: https://github.com/nlohmann/json#arbitrary-types-conversions
 namespace nlohmann {
@@ -60,6 +86,9 @@ COMMANDER_REGISTER(m)
     // You can register a function that takes or returns custom type as long as
     // the types are convertible to json.
     m.def("status", get_status, "Get the status");
+
+
+    m.def("set_configuration", set_configuration, "Set the configuration");
 }
 
 int main(int argc, char* argv[]) {

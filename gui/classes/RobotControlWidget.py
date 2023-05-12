@@ -8,8 +8,9 @@ import random
 
 try:
     from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, \
-        QVBoxLayout, QLabel, QLineEdit, QTextEdit
+        QVBoxLayout, QLabel, QLineEdit, QTextEdit, QGridLayout
     from PyQt5.QtSvg import QSvgWidget
+    from PyQt5.QtCore import Qt
 except:
     print("Please install PyQt5.")
     raise UserWarning
@@ -38,7 +39,7 @@ class RobotControlWidget(QWidget):
 
         #First, the command entry box
         lbl1 = QLabel('Command: ', self)
-        self.line_edit = QLineEdit("")
+        self.line_edit = QLineEdit("RC.")
         self.line_edit.returnPressed.connect(self.command_enter)
 
         #Next, the info button
@@ -77,16 +78,163 @@ class RobotControlWidget(QWidget):
 
         vBoxlayout.addSpacing(30)
 
-        hbox1 = QHBoxLayout()
-        lbl1 = QLabel('Velocity (mm/s): ', self)
-        self.translate_line_edit = QLineEdit("0")
-        self.translate_button = QPushButton("Translate", self)
-        self.translate_button.clicked.connect(self.translate)
-        hbox1.addWidget(lbl1)
-        hbox1.addWidget(self.translate_line_edit)
-        hbox1.addSpacing(20)
-        hbox1.addWidget(self.translate_button)
-        vBoxlayout.addLayout(hbox1)
+        content_layout = QVBoxLayout()
+        lbl = QLabel("Motor Controls (velocity in units of mm/s or rad/s):",self)
+        lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
+        content_layout.addWidget(lbl)
+        content_layout.addSpacing(30)
+        config_grid = QGridLayout()
+        config_grid.setColumnMinimumWidth(0,150)
+        config_grid.setColumnMinimumWidth(1,50)
+        config_grid.setColumnMinimumWidth(2,140)
+        config_grid.setVerticalSpacing(5)
+
+        hbox3 = QHBoxLayout()
+        lbl1 = QLabel('X Translation', self)
+        self.Robot_X_edit = QLineEdit("0.0")
+        self.Robot_X_edit.setFixedWidth(120)
+        self.Robot_X_L_button = QPushButton("<<", self)
+        self.Robot_X_L_button.pressed.connect(lambda: self.move_func(0,-float(self.Robot_X_edit.text())))
+        self.Robot_X_L_button.released.connect(self.stop_button_func)
+        self.Robot_X_L_button.setFixedWidth(50)
+        self.Robot_X_R_button = QPushButton(">>", self)
+        self.Robot_X_R_button.pressed.connect(lambda: self.move_func(0,float(self.Robot_X_edit.text())))
+        self.Robot_X_R_button.released.connect(self.stop_button_func)
+        self.Robot_X_R_button.setFixedWidth(50)
+        hbox3.addStretch()
+        hbox3.addWidget(lbl1)
+        hbox3.addSpacing(20)
+        hbox3.addWidget(self.Robot_X_L_button)
+        hbox3.addSpacing(10)
+        hbox3.addWidget(self.Robot_X_edit)
+        hbox3.addSpacing(10)
+        hbox3.addWidget(self.Robot_X_R_button)
+        hbox3.addStretch()
+        config_grid.addLayout(hbox3,0,0)
+
+        hbox3 = QHBoxLayout()
+        lbl1 = QLabel('Y Translation', self)
+        self.Robot_Y_edit = QLineEdit("0.0")
+        self.Robot_Y_edit.setFixedWidth(120)
+        self.Robot_Y_L_button = QPushButton("<<", self)
+        self.Robot_Y_L_button.pressed.connect(lambda: self.move_func(1,-float(self.Robot_Y_edit.text())))
+        self.Robot_Y_L_button.released.connect(self.stop_button_func)
+        self.Robot_Y_L_button.setFixedWidth(50)
+        self.Robot_Y_R_button = QPushButton(">>", self)
+        self.Robot_Y_R_button.pressed.connect(lambda: self.move_func(1,float(self.Robot_Y_edit.text())))
+        self.Robot_Y_R_button.released.connect(self.stop_button_func)
+        self.Robot_Y_R_button.setFixedWidth(50)
+        hbox3.addStretch()
+        hbox3.addWidget(lbl1)
+        hbox3.addSpacing(20)
+        hbox3.addWidget(self.Robot_Y_L_button)
+        hbox3.addSpacing(10)
+        hbox3.addWidget(self.Robot_Y_edit)
+        hbox3.addSpacing(10)
+        hbox3.addWidget(self.Robot_Y_R_button)
+        hbox3.addStretch()
+        config_grid.addLayout(hbox3,1,0)
+
+
+        hbox3 = QHBoxLayout()
+        lbl1 = QLabel('Z Translation', self)
+        self.Robot_Z_edit = QLineEdit("0.0")
+        self.Robot_Z_edit.setFixedWidth(120)
+        self.Robot_Z_L_button = QPushButton("<<", self)
+        self.Robot_Z_L_button.pressed.connect(lambda: self.move_func(2,-float(self.Robot_Z_edit.text())))
+        self.Robot_Z_L_button.released.connect(self.stop_button_func)
+        self.Robot_Z_L_button.setFixedWidth(50)
+        self.Robot_Z_R_button = QPushButton(">>", self)
+        self.Robot_Z_R_button.pressed.connect(lambda: self.move_func(2,float(self.Robot_Z_edit.text())))
+        self.Robot_Z_R_button.released.connect(self.stop_button_func)
+        self.Robot_Z_R_button.setFixedWidth(50)
+        hbox3.addStretch()
+        hbox3.addWidget(lbl1)
+        hbox3.addSpacing(20)
+        hbox3.addWidget(self.Robot_Z_L_button)
+        hbox3.addSpacing(10)
+        hbox3.addWidget(self.Robot_Z_edit)
+        hbox3.addSpacing(10)
+        hbox3.addWidget(self.Robot_Z_R_button)
+        hbox3.addStretch()
+        config_grid.addLayout(hbox3,2,0)
+
+        hbox3 = QHBoxLayout()
+        lbl1 = QLabel('Pos Angle ', self)
+        lbl1.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.Robot_roll_edit = QLineEdit("0.0")
+        self.Robot_roll_edit.setFixedWidth(120)
+        self.Robot_roll_L_button = QPushButton("<<", self)
+        self.Robot_roll_L_button.pressed.connect(lambda: self.move_func(3,-float(self.Robot_roll_edit.text())))
+        self.Robot_roll_L_button.released.connect(self.stop_button_func)
+        self.Robot_roll_L_button.setFixedWidth(50)
+        self.Robot_roll_R_button = QPushButton(">>", self)
+        self.Robot_roll_R_button.pressed.connect(lambda: self.move_func(3,float(self.Robot_roll_edit.text())))
+        self.Robot_roll_R_button.released.connect(self.stop_button_func)
+        self.Robot_roll_R_button.setFixedWidth(50)
+        hbox3.addStretch()
+        hbox3.addWidget(lbl1)
+        hbox3.addSpacing(20)
+        hbox3.addWidget(self.Robot_roll_L_button)
+        hbox3.addSpacing(10)
+        hbox3.addWidget(self.Robot_roll_edit)
+        hbox3.addSpacing(10)
+        hbox3.addWidget(self.Robot_roll_R_button)
+        hbox3.addStretch()
+        config_grid.addLayout(hbox3,0,1)
+
+
+        hbox3 = QHBoxLayout()
+        lbl1 = QLabel('Alt', self)
+        lbl1.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.Robot_pitch_edit = QLineEdit("0.0")
+        self.Robot_pitch_edit.setFixedWidth(120)
+        self.Robot_pitch_L_button = QPushButton("<<", self)
+        self.Robot_pitch_L_button.pressed.connect(lambda: self.move_func(4,-float(self.Robot_pitch_edit.text())))
+        self.Robot_pitch_L_button.released.connect(self.stop_button_func)
+        self.Robot_pitch_L_button.setFixedWidth(50)
+        self.Robot_pitch_R_button = QPushButton(">>", self)
+        self.Robot_pitch_R_button.pressed.connect(lambda: self.move_func(4,float(self.Robot_pitch_edit.text())))
+        self.Robot_pitch_R_button.released.connect(self.stop_button_func)
+        self.Robot_pitch_R_button.setFixedWidth(50)
+        hbox3.addStretch()
+        hbox3.addWidget(lbl1)
+        hbox3.addSpacing(20)
+        hbox3.addWidget(self.Robot_pitch_L_button)
+        hbox3.addSpacing(10)
+        hbox3.addWidget(self.Robot_pitch_edit)
+        hbox3.addSpacing(10)
+        hbox3.addWidget(self.Robot_pitch_R_button)
+        hbox3.addStretch()
+        config_grid.addLayout(hbox3,1,1)
+
+
+        hbox3 = QHBoxLayout()
+        lbl1 = QLabel('Az ', self)
+        lbl1.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.Robot_yaw_edit = QLineEdit("0.0")
+        self.Robot_yaw_edit.setFixedWidth(120)
+        self.Robot_yaw_L_button = QPushButton("<<", self)
+        self.Robot_yaw_L_button.pressed.connect(lambda: self.move_func(5,-float(self.Robot_yaw_edit.text())))
+        self.Robot_yaw_L_button.released.connect(self.stop_button_func)
+        self.Robot_yaw_L_button.setFixedWidth(50)
+        self.Robot_yaw_R_button = QPushButton(">>", self)
+        self.Robot_yaw_R_button.pressed.connect(lambda: self.move_func(5,float(self.Robot_yaw_edit.text())))
+        self.Robot_yaw_R_button.released.connect(self.stop_button_func)
+        self.Robot_yaw_R_button.setFixedWidth(50)
+        hbox3.addStretch()
+        hbox3.addWidget(lbl1)
+        hbox3.addSpacing(20)
+        hbox3.addWidget(self.Robot_yaw_L_button)
+        hbox3.addSpacing(10)
+        hbox3.addWidget(self.Robot_yaw_edit)
+        hbox3.addSpacing(10)
+        hbox3.addWidget(self.Robot_yaw_R_button)
+        hbox3.addStretch()
+        config_grid.addLayout(hbox3,2,1)
+
+        content_layout.addLayout(config_grid)
+        vBoxlayout.addLayout(content_layout)
 
         # Complete setup, add status labels and indicators
         status_layout = QHBoxLayout()
@@ -108,31 +256,24 @@ class RobotControlWidget(QWidget):
     def ask_for_status(self):
         """Ask for status for the server that applies to the current tab (as we can
         only see one server at a time)"""
-        command = "INFO"
         #As this is on a continuous timer, only do anything if we are
         #connected
-        k = random.randint(0, 1)
-        #if (self.socket.connected):
-        if k:
+        response = self.socket.send_command("RC.status")
+        if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
-            response = self.socket.send_command("INFO")
+
+            if response == '"Server Not Connected!"':
+                self.Connect_button.setText("Connect")
+                self.Connect_button.setChecked(False)
+            else:
+                self.Connect_button.setChecked(True)
+                self.Connect_button.setText("Disconnect")
+
+            self.response_label.append(response)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
-            if type(response)!=str and type(response)!=unicode:
-                raise UserWarning("Incorrect INFO response!")
-            if response[:5]=='Error':
-                print("Error in INFO response from {:s}...".format(self.name))
-            else:
-                status_list = response.split('\n')
-                if len(status_list)<3:
-                    status_list = response.split(' ')
-                status = {t.split("=")[0].lstrip():t.split("=")[1] for t in status_list if t.find("=")>0}
-                #Now deal with the response in a different way for each server.
-                self.status_label.setText("Text: {:6.3f} Tset: {:6.3f} Tmc: {:6.3f}".format(\
-                    float(status["externalenclosure"]),\
-                    float(status["externalenclosure.setpoint"]),\
-                    float(status["minichiller.internal"])))
+
         else:
             self.status_light = "assets/red.svg"
             self.status_text = "Socket Not Connected"
@@ -143,7 +284,6 @@ class RobotControlWidget(QWidget):
     def info_click(self):
         print(self.name)
         self.ask_for_status()
-        self.send_to_server("INFO")
 
 
     def command_enter(self):
@@ -152,28 +292,21 @@ class RobotControlWidget(QWidget):
         self.send_to_server(str(self.line_edit.text()))
 
     def zero_button_func(self):
-        self.send_to_server("zero")
+        self.send_to_server("RC.zero")
         print("Sending 'Zero' command")
 
     def level_button_func(self):
-        self.send_to_server("level")
+        self.send_to_server("RC.level")
         print("Sending 'Level' command")
 
     def stop_button_func(self):
-        self.send_to_server("stop")
+        #self.send_to_server("RC.stop")
         print("Sending 'Stop' command")
 
-    def translate(self):
-        try:
-            velocity = float(self.translate_line_edit.text())
-        except:
-            self.response_label.append("Gui ERROR: translation speed must be a float")
-            return
 
-        self.send_to_server("translate, %f"%velocity)
-
-        print("Sending 'Translate' command with speed {:#.4g} mm/s".format(velocity))
-
+    def move_func(self,axis,velocity):
+        print("moving %s at %s"%(axis,velocity))
+        return
 
 
     def send_to_server(self, text):
@@ -190,4 +323,4 @@ class RobotControlWidget(QWidget):
                 self.response_label.setText("Success!")
             else:
                 self.response_label.setText("Failure!")
-        self.line_edit.setText("")
+        self.line_edit.setText("RC.")

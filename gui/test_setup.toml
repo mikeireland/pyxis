@@ -12,37 +12,62 @@ refresh_time = 0.5 #In seconds
 [Navis]
 
 [Dextra]
+
+    [Dextra.TargetControl]
+    tab_name = "Target"
+    name = "TargetControl"
+    prefix = "SM"
+    port = "4000"
+    description = "Dextra Target selector (move to FSM?)"
+    module_type = "TargetWidget"
+    
     [Dextra.RobotControl]
     tab_name = "Robot Control"
     name = "DextraRobotControl"
-    port = "4000"
+    prefix = "RC"
+    port = "4200"
     description = "Motor/Actuator control for the deputy Dextra"
     module_type = "RobotControlWidget"
 
     [Dextra.StarTracker]
     tab_name = "Star Tracker Camera"
     name = "DextraStarTracker"
-    port = "4001"
+    prefix = "ST"
+    port = "4202"
     description = "Camera controls for the Dextra star tracker"
     module_type = "BaseFLIRCameraWidget"
     feed_refresh_time = 0.05
     compression_param = 1
 
-		[Dextra.ScienceCamera]
-    tab_name = "Science Camera"
-    name = "DextraScienceCam"
-    port = "4002"
-    description = "Science Camera controls"
-    module_type = "BaseQHYCameraWidget"
-    feed_refresh_time = 0.05
-    compression_param = 1
-
-    [Dextra.PowerSystem]
-    tab_name = "Power System"
-    name = "DextraPowerSystem"
-    port = "4003"
+    
+    [Dextra.DeputyAux]
+    tab_name = "Deputy Auxilliary"
+    name = "DextraDeputyAux"
+    port = "4201"
     description = "Dextra power system + LED controls"
-    module_type = "PowerControlWidget"
+    module_type = "DepAuxControlWidget"
+    voltage_limit = 10
 
+    [Dextra.ChiefAux]
+    tab_name = "Chief Auxilliary"
+    name = "DextraChiefAux"
+    port = "4101"
+    description = "Chief Aux"
+    module_type = "ChiefAuxControlWidget"
+    voltage_limit = 10
+    
+        [Dextra.ChiefAux.PiezoSteps]
+        dextra_X = 0.1
+        dextra_Y = 0.1
+        sinistra_X = 1
+        sinistra_Y = 1
+        science = 2
+                       
+        [Dextra.ChiefAux.PiezoStart]
+        dextra_X = 0.0
+        dextra_Y = 0.0
+        sinistra_X = 0.0
+        sinistra_Y = 0.0
+        science = 50
 
 [Sinistra]

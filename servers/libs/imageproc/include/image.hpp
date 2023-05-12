@@ -2,6 +2,7 @@
 
 #include <opencv2/opencv.hpp>
 
+
 namespace image {
 
 // don't confuse with cv::Point2d ~ cv::Point_<double>
@@ -20,9 +21,10 @@ struct LinearGradientInterp {
 };
 
 struct CentroidInterp {
+    int interp_size = 3;
     cv::Point2d operator()(const cv::Mat &image, const cv::Rect &sub_rect);
     cv::Point2d operator()(const cv::Mat &image, const cv::Point &center) {
-        return operator()(image, cv::Rect(center.x - 1, center.y - 1, 3, 3));
+        return operator()(image, cv::Rect(center.x - (interp_size-1)/2, center.y - (interp_size-1)/2, interp_size, interp_size));
     }
     void meshgrid(const cv::Mat &x, const cv::Mat &y, cv::Mat &X, cv::Mat &Y) {
         cv::repeat(x.reshape(1, 1), y.total(), 1, X);
@@ -77,6 +79,37 @@ struct ImageProcessSubMatInterp {
 
 private:
     InterpFunc interp;
+};
+
+// too lazy to do inheritance
+struct ImageProcessSubMatInterpSingle {
+    
+    bool do_gauss = true;
+    int gauss_radius = 21;
+    std::size_t margin = 500;
+    
+    int centroid_interp_size = 3;
+
+
+    using InterpFunc =
+        std::function<cv::Point2d(const cv::Mat &, const cv::Point &)>;
+
+    explicit ImageProcessSubMatInterpSingle(const int& height, const int& width, InterpFunc func = CentroidInterp())
+        : imheight(height), imwidth(width), interp(func){};
+        
+    int imheight;
+    int imwidth;
+
+    cv::Rect_<int> sub_rect{cv::Point_<int>{0, 0}, cv::Point_<int>{imwidth, imheight}};
+    
+    
+    
+    cv::Point2d operator()(const cv::Mat &image);
+    cv::Point2d get_location(const cv::Mat &image);
+
+private:
+    InterpFunc interp;
+
 };
 
 } // namespace image

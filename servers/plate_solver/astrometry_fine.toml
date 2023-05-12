@@ -1,0 +1,22 @@
+output_folder = "output" #Folder for output
+IP = "127.0.0.1"
+camera_port = "4001"
+camera_port_name = "FST"
+robot_control_port = "5555"
+path_to_data = "/home/jhansen/GitRepos/pyxis/servers/fine_star_tracker"
+
+[Tetra3]
+bg_sub_mode = "local_mean" #"Continuous" is default
+sigma_mode = "global_root_square" #"Mono16" is default
+filt_size = 15 #Size of filter
+
+[Astrometry]
+depth = 10 #How many stars to match?
+FOV_min = 0.7 #minimum estimate of FOV in degrees
+FOV_max = 1.5 #maximum estimate of FOV in degrees
+
+    [Astrometry.estimate_position]
+    flag = 0
+    ra = 0
+    dec = 0
+    rad = 5

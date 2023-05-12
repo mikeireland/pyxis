@@ -6,8 +6,7 @@
 
 
 // Return 1 if error!
-int AnotherCallback (unsigned short* data){
-    cout << "I'm not working here!" << endl;
+int NoCallback (unsigned short* data){
     return 0;
 }
 
@@ -15,7 +14,7 @@ int AnotherCallback (unsigned short* data){
 // FLIR Camera Server
 struct FineMetrology: FLIRCameraServer{
 
-    FineMetrology() : FLIRCameraServer(AnotherCallback){
+    FineMetrology() : FLIRCameraServer(NoCallback){
     }
 
 };

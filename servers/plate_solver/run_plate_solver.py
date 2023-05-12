@@ -15,6 +15,7 @@ import numpy as np
 import tomli
 import glob
 import zmq
+import json
 
 """
 Function that takes a list of star positions and creates a .axy file for Astrometry.net
@@ -27,7 +28,7 @@ depth = number of stars to match to
 scale_bounds = min/max of FOV of camera in degrees
 """
 
-def writeANxy(filename, x, y, dim=(0,0), depth=10, scale_bounds = (0.,0.)):
+def writeANxy(filename, x, y, dim=(0,0), depth=10, scale_bounds = (0.,0.), est_pos_flag = 0, est_pos = (0,0,10)):
 
     #Create FITS BINTABLE columns
     colX = fits.Column(name='X', format='1D', array=x)
@@ -56,6 +57,10 @@ def writeANxy(filename, x, y, dim=(0,0), depth=10, scale_bounds = (0.,0.)):
     prihdr['ANCORR']   = ('./%s.corr'%filename, 'Correspondences output filename')
     prihdr['ANDPL1']   = (1, 'no comment')
     prihdr['ANDPU1']   = (depth, 'no comment')
+    if est_pos_flag:
+        prihdr['ANERA']   = (est_pos[0], 'RA center estimate (deg)')
+        prihdr['ANEDEC']   = (est_pos[1], 'Dec center estimate (deg)')
+        prihdr['ANERAD']   = (est_pos[2], 'Search radius from estimated posn (deg)')
     extension = '.axy'
     prihdu = fits.PrimaryHDU(header=prihdr)
 
@@ -77,7 +82,7 @@ output_folder = folder to store auxillary and solution files
 OUTPUTS:
 An attitude quaternion in AltAz coordinate frame of the image
 """
-def run_image(img_filename,config):
+def run_image(img_filename,config,target):
     start_time = time.perf_counter()
 
     prefix = os.path.basename(img_filename).split('.', 1)[0]
@@ -85,22 +90,35 @@ def run_image(img_filename,config):
     folder_prefix = config["output_folder"]+"/"+prefix
 
     #Open FITS
-    hdul = fits.open(str(img_filename))
-    img = hdul[0].data
+    hdul = fits.open(str(config["path_to_data"]+"/"+img_filename))
+    img = (hdul[0].data)[0]
 
     #Get list of positions (extract centroids) via Tetra3
     lst = t3.get_centroids_from_image(img,bg_sub_mode=config["Tetra3"]["bg_sub_mode"],
                                           sigma_mode=config["Tetra3"]["sigma_mode"],
                                           filtsize=config["Tetra3"]["filt_size"])
 
+    if len(lst) == 0:
+        print("COULD NOT EXTRACT STARS")
+        return (0,np.array([0,0,0]))
+
     #Write .axy file for astrometry.net
     writeANxy(folder_prefix, lst.T[1], lst.T[0], dim=img.T.shape,
               depth=config["Astrometry"]["depth"],
               scale_bounds=(config["Astrometry"]["FOV_min"],
-                            config["Astrometry"]["FOV_max"]))
+                            config["Astrometry"]["FOV_max"]),
+              est_pos_flag=config["Astrometry"]["estimate_position"]["flag"],
+              est_pos=(config["Astrometry"]["estimate_position"]["ra"],
+                       config["Astrometry"]["estimate_position"]["dec"],
+                       config["Astrometry"]["estimate_position"]["rad"]))
 
     #Run astrometry.net
     os.system("./astrometry/solver/astrometry-engine %s.axy -c astrometry.cfg"%folder_prefix)
+
+    if not(os.path.exists("%s.wcs"%folder_prefix)):
+        print("DID NOT SOLVE")
+        config["Astrometry"]["estimate_position"]["flag"] = 0
+        return (0,np.array([0,0,0]))
 
     #Extract astrometry.net WCS info and print to terminal
     print("\nRESULTS:")
@@ -109,15 +127,19 @@ def run_image(img_filename,config):
     #Extract RA, DEC and POSANGLE from astrometry.net output
     output = sp.getoutput("./astrometry/util/wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation'"%folder_prefix)
     [POS,RA,DEC] = [float(s.split(" ")[1]) for s in output.splitlines()]
+    
+    config["Astrometry"]["estimate_position"]["ra"] = RA
+    config["Astrometry"]["estimate_position"]["dec"] = DEC
+    config["Astrometry"]["estimate_position"]["flag"] = 1
 
     #Convert to quaternion
-    angles = conversion.RaDec2AltAz(RA,DEC,POS)
+    angles = conversion.diffRaDec2AltAz(RA,DEC,POS,target[0],target[1])
     end_time = time.perf_counter()
     print(f"\nCompleted in {end_time - start_time:0.4f} seconds")
 
     print(f"Angles: Alt={angles[1]}, Az={angles[0]}, PosAng={angles[2]}")
 
-    return angles
+    return (1,angles)
 
 def get_image(input_folder):
     list_of_files = glob.glob(input_folder+'/*.fits') # * means all if need specific format then *.csv
@@ -132,7 +154,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         config_file = sys.argv[1]
     elif len(sys.argv) == 1:
-        config_file = "astrometry_config.toml"
+        config_file = "astrometry_fine.toml"
         if os.path.exists(config_file):
             print("Using config "+config_file)
         else:
@@ -145,48 +167,80 @@ if __name__ == "__main__":
     with open(config_file, "rb") as f:
         config = tomli.load(f)
 
-	IP = config["IP"]
+    IP = config["IP"]
 
+    try:
+        context = zmq.Context()
+        state_machine_socket = context.socket(zmq.REQ)
+        tcpstring = "tcp://"+IP+":"+config["state_machine_port"]
+        state_machine_socket.connect(tcpstring)
+        print("Connected to state machine, port %s"%config["state_machine_port"])
+    except:
+        print('ERROR: Could not connect to state machine server. Please check that the server is running and IP is correct.')
     try:
         context = zmq.Context()
         camera_socket = context.socket(zmq.REQ)
         tcpstring = "tcp://"+IP+":"+config["camera_port"]
         camera_socket.connect(tcpstring)
+        print("Connected to camera, port %s"%config["camera_port"])
     except:
         print('ERROR: Could not connect to camera server. Please check that the server is running and IP is correct.')
- 
-     try:
+    
+    try:
         robot_control_socket = context.socket(zmq.REQ)
         tcpstring = "tcp://"+IP+":"+config["robot_control_port"]
         robot_control_socket.connect(tcpstring)
     except:
-        print('ERROR: Could not connect to camera server. Please check that the server is running and IP is correct.')       
-
-
+        print('ERROR: Could not connect to robot server. Please check that the server is running and IP is correct.')       
+    
+    print("Beginning loop")
     while(1):
+        time.sleep(1)
+        print("Sending request")
 
-    	camera_socket.send_string("CM.getlatestfilename")
+
+        state_machine_socket.send_string("SM.getCoordinates")
+        message = state_machine_socket.recv()
+        message = message.decode("utf-8")
+        print("Received state machine message: %s" % message )
+
+        try:
+            result = json.loads(message)
+            target = (result["RA"],result["DEC"])
+        except:
+            print("Bad target format")
+        
+        print(target)
+        
+        camera_socket.send_string(config["camera_port_name"]+".getlatestfilename")
     
         #Ask camera for next image
         message = camera_socket.recv()
-        print("Received camera message: %s" % message)
+        print("Received camera message: %s" % message.decode("utf-8").strip('\"') )
 
         # WORK ON MESSAGE -> FILENAME
-        filename = message
-
-        #run image
-        angles = run_image(filename,config)
-
-        # WORK ON ANGLES -> return_message
-        return_message = b"DR.receive_CST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
-
-        #Send reply to robot
-        robot_control_socket.send_string(return_message)
+        filename = message.decode("utf-8").strip('\"') 
         
-        message = robot_control_socket.recv()
-        print("Robot response: %s" % message)
+        if os.path.exists(str(config["path_to_data"]+"/"+filename)):
+            print("Filename Exists. Running solver")
 
+            #run image
+            flag,angles = run_image(filename,config,target)
 
+            if flag>0:
+
+                # WORK ON ANGLES -> return_message
+                return_message = b"DR.receive_CST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
+
+                #Send reply to robot
+                print(return_message)
+                #robot_control_socket.send_string(return_message)
+                
+                #message = robot_control_socket.recv()
+                #print("Robot response: %s" % message)
+            else:
+                print("ERROR")
+        
 #-------------
 """
 

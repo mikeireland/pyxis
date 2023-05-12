@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
         cout << "No CONFIG file loaded" << endl;
         cout << "Will attempt to load default CONFIG" << endl;
         //config_file = string("config/defaultQHYLocalConfig.toml");
-        config_file = string("../config/defaultLocalConfig.toml");
+        config_file = string("config/defaultLocalConfig.toml");
     } else {
         // Assign config file value as string
         config_file = string(argv[1]);
@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
     // Retrieve port and IP
     string port = config["port"].value_or("4000");
     string IP = config["IP"].value_or("192.168.1.4");
-
+    
     // Turn into a TCPString
     string TCPString = "tcp://" + IP + ":" + port;
     char TCPCharArr[TCPString.length() + 1];

@@ -131,6 +131,7 @@ class BaseFLIRCameraWidget(QWidget):
 
         self.name = config["name"]
         self.port = config["port"]
+        self.prefix = config["prefix"]
         self.socket = ClientSocket(IP=IP, Port=self.port)
         self.feed_refresh_time = config["feed_refresh_time"]*1000
         self.compression_param = config["compression_param"]
@@ -144,7 +145,7 @@ class BaseFLIRCameraWidget(QWidget):
 
         #First, the command entry box
         lbl1 = QLabel('Command: ', self)
-        self.line_edit = QLineEdit("")
+        self.line_edit = QLineEdit("%s."%self.prefix)
         self.line_edit.returnPressed.connect(self.command_enter)
 
         #Next, the info button
@@ -180,7 +181,7 @@ class BaseFLIRCameraWidget(QWidget):
 
         bigfont = QFont("Times", 20, QFont.Bold)
 
-
+        vbox1.addSpacing(20)
 
         hbox4 = QHBoxLayout()
         vbox4 = QVBoxLayout()
@@ -190,6 +191,7 @@ class BaseFLIRCameraWidget(QWidget):
         #First row...
         config_grid = QGridLayout()
         config_grid.setColumnMinimumWidth(1,30)
+        config_grid.setVerticalSpacing(10)
 
         hbox3 = QHBoxLayout()
         lbl1 = QLabel('Width: ', self)
@@ -368,7 +370,7 @@ class BaseFLIRCameraWidget(QWidget):
         only see one server at a time)"""
         #As this is on a continuous timer, only do anything if we are
         #connected
-        response = self.socket.send_command("FLIRCam.status")
+        response = self.socket.send_command("%s.status"%self.prefix)
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
@@ -413,25 +415,24 @@ class BaseFLIRCameraWidget(QWidget):
     def get_params(self):
         """Ask for status for the server that applies to the current tab (as we can
         only see one server at a time)"""
-        command = "FLIRCam.getparams"
 
         if (self.socket.connected):
 
-            response = self.socket.send_command("FLIRCam.getparams")
+            response = self.socket.send_command("%s.getparams"%self.prefix)
 
             if response.startswith("Error receiving response, connection lost"):
-            	print(response)
+                print(response)
             else:
-	            response_dict = json.loads(response)
-	            self.width_edit.setText(str(response_dict["width"]))
-	            self.height_edit.setText(str(response_dict["height"]))
-	            self.xoffset_edit.setText(str(response_dict["offsetX"]))
-	            self.yoffset_edit.setText(str(response_dict["offsetY"]))
-	            self.expT_edit.setText(str(response_dict["exptime"]))
-	            self.gain_edit.setText(str(response_dict["gain"]))
-	            self.BL_edit.setText(str(response_dict["blacklevel"]))
-	            self.buffersize_edit.setText(str(response_dict["buffersize"]))
-	            self.save_dir_line_edit.setText(str(response_dict["savedir"]))
+                response_dict = json.loads(response)
+                self.width_edit.setText(str(response_dict["width"]))
+                self.height_edit.setText(str(response_dict["height"]))
+                self.xoffset_edit.setText(str(response_dict["offsetX"]))
+                self.yoffset_edit.setText(str(response_dict["offsetY"]))
+                self.expT_edit.setText(str(response_dict["exptime"]))
+                self.gain_edit.setText(str(response_dict["gain"]))
+                self.BL_edit.setText(str(response_dict["blacklevel"]))
+                self.buffersize_edit.setText(str(response_dict["buffersize"]))
+                self.save_dir_line_edit.setText(str(response_dict["savedir"]))
 
     #Function to auto update at a given rate
     def auto_updater(self):
@@ -445,7 +446,7 @@ class BaseFLIRCameraWidget(QWidget):
             # Refresh camera
             self.Connect_button.setText("Disconnect")
             print("Camera is now Connected")
-            self.send_to_server("FLIRCam.connect")
+            self.send_to_server("%s.connect"%self.prefix)
             time.sleep(2)
             self.get_params()
 
@@ -456,7 +457,7 @@ class BaseFLIRCameraWidget(QWidget):
         else:
             self.Connect_button.setText("Connect")
             print("Disconnecting Camera")
-            self.send_to_server("FLIRCam.disconnect")
+            self.send_to_server("%s.disconnect"%self.prefix)
 
 
     def reconfigure_camera(self):
@@ -477,7 +478,7 @@ class BaseFLIRCameraWidget(QWidget):
                 print("Reconfiguring Camera")
 
                 response_str = json.dumps(response_dict)
-                self.send_to_server("FLIRCam.reconfigure_all [%s]"%response_str)
+                self.send_to_server("%s.reconfigure_all [%s]"%(self.prefix,response_str))
 
         else:
             print("CAMERA NOT CONNECTED")
@@ -496,11 +497,11 @@ class BaseFLIRCameraWidget(QWidget):
                 self.run_button.setText("Stop Camera")
                 print("Starting Camera")
                 num_frames = str(self.numframes_edit.text())
-                self.send_to_server("FLIRCam.start [%s,%s]"%(num_frames,self.coadd_flag))
+                self.send_to_server("%s.start [%s,%s]"%(self.prefix,num_frames,self.coadd_flag))
             else:
                 self.run_button.setText("Start Camera")
                 print("Stopping Camera")
-                self.send_to_server("FLIRCam.stop")
+                self.send_to_server("%s.stop"%self.prefix)
 
         else:
             self.run_button.setChecked(False)
@@ -535,7 +536,7 @@ class BaseFLIRCameraWidget(QWidget):
     def get_new_frame(self):
         #j = random.randint(1, 6)
         #self.feed_window.cam_feed.changePixmap("assets/camtest%s.png"%j)
-        response = self.socket.send_command("FLIRCam.getlatestimage [%s,%s]"%(self.compression_param,self.feed_window.binning_flag))
+        response = self.socket.send_command("%s.getlatestimage [%s,%s]"%(self.prefix,self.compression_param,self.feed_window.binning_flag))
         data = json.loads(json.loads(response))
         compressed_data = np.array(data["Image"]["data"], dtype=np.uint8)
         print(len(compressed_data))
@@ -577,4 +578,4 @@ class BaseFLIRCameraWidget(QWidget):
                 self.response_label.append("Success!")
             else:
                 self.response_label.append("Failure!")
-        self.line_edit.setText("")
+        self.line_edit.setText("%s."%self.prefix)

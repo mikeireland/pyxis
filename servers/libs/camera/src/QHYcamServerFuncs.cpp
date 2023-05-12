@@ -302,22 +302,9 @@ string QHYCameraServer::stopcam(){
 // Get the filename of the latest saved FITS image
 string QHYCameraServer::getlatestfilename(){
 	string ret_msg;
-	if(GLOB_CAM_STATUS == 2){
-		if(GLOB_RUNNING == 1){
-			if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
-				pthread_mutex_lock(&GLOB_LATEST_FILE_LOCK);
-				ret_msg = GLOB_LATEST_FILE;
-				pthread_mutex_unlock(&GLOB_LATEST_FILE_LOCK);
-			}else{
-				ret_msg = "Camera Busy!";
-			}
-		}else{
-			ret_msg = "Camera not running!";
-		}
-	}else{
-		ret_msg = "Camera Not Connected or Currently Connecting!";
-	}
-
+    pthread_mutex_lock(&GLOB_LATEST_FILE_LOCK);
+    ret_msg = GLOB_LATEST_FILE;
+    pthread_mutex_unlock(&GLOB_LATEST_FILE_LOCK);
 	return ret_msg;
 }
 
