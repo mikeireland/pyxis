@@ -344,7 +344,7 @@ void SerialPort::ReadMessage() {
                 break;
             case PackFail:
                 printf("Packet Start Not Present\n");
-                /*
+                
                 std::cout << "sent:";
                 for(int i = 0; i < sizeof(last_pack_); ++i) {
                     std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)last_pack_[i] << std::dec << ':';
@@ -355,8 +355,8 @@ void SerialPort::ReadMessage() {
                     std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)read_buffer_[i] << std::dec << ':';
                 }
                 std::cout << "\n";
-                */
-                i = 64;
+                
+                i += 1;
                 break;
             default:
                 printf("Unknown Code  ");

@@ -243,6 +243,7 @@ class Controller {
             motor_driver.SetRawVelocity(3,0);
             motor_driver.SetRawVelocity(4,0);
             motor_driver.SetRawVelocity(5,0);
+            motor_driver.SetRawVelocity(6,0);
             break;
 
           case ResetSteps: //When we receive a ResetStepCount command we set all step count varibles to zero
@@ -631,9 +632,9 @@ void SchedulerWrapper() {
 }
 
 void setup() {
-  //controller.motor_driver.SetRawVelocity(0,2000);
-  //controller.motor_driver.SetRawVelocity(1,2000);
-  //controller.motor_driver.SetRawVelocity(2,2000);
+  //controller.motor_driver.SetRawVelocity(3,200);
+  //controller.motor_driver.SetRawVelocity(4,200);
+
   timer.begin(SchedulerWrapper, 20);
 }
 

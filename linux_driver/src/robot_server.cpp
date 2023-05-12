@@ -47,8 +47,9 @@ double z = 0.0;
 double roll = 0.0;
 double yaw = 0.0;
 double pitch = 0.0;
+double el = 0.0;
 
-double f = .2;
+double f = 0.5;
 
 void resonance(RobotDriver *driver) {
 	Servo::Doubles velocity_target;
@@ -105,7 +106,7 @@ void unambig(RobotDriver *driver) {
 	driver->stabiliser.enable_flag_ = true;
 	
 	if(global_timepoint-last_stabiliser_timepoint > 1000) {
-		if (global_timepoint*0.000001>100) {
+		if (f>100) {
 			driver->RequestAllStop(); 
 			driver->stabiliser.enable_flag_ = false;
 			cout << global_timepoint*0.000001 << '\n';
@@ -116,15 +117,27 @@ void unambig(RobotDriver *driver) {
 			driver->StabiliserLoop();
 
 			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
-			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z);
+			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, el);
 			//driver->UpdateActuatorVelocity(angle_target);
-			driver->LogSteps(global_timepoint, filename);
+			driver->LogSteps(global_timepoint, filename, f);
 			//driver->WriteStabiliserStateToFile();
 		}
 		if (global_timepoint-last_stabiliser_timepoint > 1500) {
 		    last_stabiliser_timepoint = global_timepoint;
 		} else {
 		    last_stabiliser_timepoint += 1000;
+		}
+		if (global_timepoint-last_resonance_timepoint > 5000000 && sin(2*3.14159265*f*global_timepoint*0.000001)<0.01) {
+			driver->RequestAllStop();
+			driver->teensy_port.SendAllRequests();
+			sleep(5);
+			f = f + 0.5;
+			cout << f << '\n';
+			time_point_start = steady_clock::now();
+			time_point_current = steady_clock::now();
+			last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+			global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
+			last_resonance_timepoint = global_timepoint;
 		}
 		driver->teensy_port.SendAllRequests();
 
@@ -134,27 +147,31 @@ void unambig(RobotDriver *driver) {
 void translate(RobotDriver *driver) {
 	Servo::Doubles velocity_target;
 	Servo::Doubles angle_target;
+	double elevation_target = el;
 	velocity_target.x = 0.001*velocity*x;
 	velocity_target.y = 0.001*velocity*y;
 	velocity_target.z = 0.001*velocity*z;
-	angle_target.x = 0;
-	angle_target.y = 0;
-	angle_target.z = 0;
+	angle_target.x = 0.001*roll;
+	angle_target.y = 0.001*pitch;
+	angle_target.z = 0.001*yaw;
+	
 	driver->SetNewStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
 	if(global_timepoint-last_stabiliser_timepoint > 1000) {	
 		if(driver->stabiliser.enable_flag_) {
-			printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
-			if  (global_timepoint < 10000000) {
-				velocity_target.x = 0;
-				velocity_target.y = 0;
-				velocity_target.z = 0;
-			}
+			//printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
+			//if  (global_timepoint < 10000000) {
+			//	velocity_target.x = 0;
+			//	velocity_target.y = 0;
+			//	velocity_target.z = 0;
+			//}
+			driver->teensy_port.ReadMessage();
 			driver->StabiliserLoop();
 
 			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
-			driver->UpdateBFFVelocity(velocity_target);
+			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, elevation_target);
 			//driver->WriteLevellerStateToFileAlt(f, velocity_target);
+			driver->teensy_port.SendAllRequests();
 		}
 		last_stabiliser_timepoint += 1000;
 	}
@@ -187,9 +204,9 @@ void ramp(RobotDriver *driver) {
 			driver->StabiliserLoop();
 
 			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
-			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z);
+			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, el);
 			//driver->UpdateActuatorVelocity(angle_target);
-			driver->LogSteps(global_timepoint, filename);
+			driver->LogSteps(global_timepoint, filename, f);
 			//driver->WriteStabiliserStateToFile();
 		}
 		last_stabiliser_timepoint += 1000;
@@ -307,7 +324,7 @@ int stop_robot_loop() {
 }
 
 
-void translate_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val) {
+void translate_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val, double el_val) {
     velocity = vel;
     x = x_val;
     y = y_val;
@@ -315,6 +332,7 @@ void translate_robot(double vel, double x_val, double y_val, double z_val, doubl
     roll = roll_val;
     yaw = yaw_val;
     pitch = pitch_val;
+    el = el_val;
     GLOBAL_STATUS_CHANGED = true;
     GLOBAL_SERVER_STATUS = 2;
 }

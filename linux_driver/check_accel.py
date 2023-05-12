@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-data = pd.read_csv('exp5_1mm.csv')
+data = pd.read_csv('x_res_2.csv')
 
 for i in ['0', '1', '2', '3', '4', '5']:
     for ax in ['x', 'y', 'z']:

@@ -41,7 +41,7 @@ namespace Control
             void LinearLateralRamp(Servo::Doubles velocity_target,double time);
             void LinearYawRamp(double yaw_rate_target,double time);
             void UpdateBFFVelocity(Servo::Doubles velocity);
-            void UpdateBFFVelocityAngle(double x, double y, double z, double r, double p, double s);
+            void UpdateBFFVelocityAngle(double x, double y, double z, double r, double p, double s, double e);
             void RequestNewVelocity(Servo::Doubles velocity);
 
             //Actuator control
@@ -91,7 +91,7 @@ namespace Control
             void LinearSweepTest();
             void RaiseAndLowerTest();
             void WriteLevellerStateToFile();
-            void LogSteps(int t_step, std::string filename);
+            void LogSteps(int t_step, std::string filename, double f);
             void WriteStabiliserStateToFile();
             void MeasureOrientationMeasurementNoise();
 

@@ -42,7 +42,7 @@ void RobotDriver::LinearYawRamp(double yaw_rate_target, double time) {
     }
 }
 
-void RobotDriver::UpdateBFFVelocityAngle(double x, double y, double z, double r, double p, double s) {
+void RobotDriver::UpdateBFFVelocityAngle(double x, double y, double z, double r, double p, double s, double e) {
     Servo::Doubles motor_velocity_target_;
     Servo::Doubles actuator_velocity_target_;
     motor_velocity_target_.x = -y - s;                                                     //Motor 0
@@ -69,12 +69,16 @@ void RobotDriver::UpdateBFFVelocityAngle(double x, double y, double z, double r,
 	PhysicalDoubleToVelocityBytes(-actuator_velocity_target_.z,
 								  &teensy_port.actuator_velocities_out_.z[0],
 								  &teensy_port.actuator_velocities_out_.z[1]);
+	PhysicalDoubleToVelocityBytes(e,
+								  &teensy_port.goniometer_velocity_out_[0],
+								  &teensy_port.goniometer_velocity_out_[1]);
 	teensy_port.Request(SetRaw0);
     teensy_port.Request(SetRaw1);
     teensy_port.Request(SetRaw2);
     teensy_port.Request(SetRaw3);	
 	teensy_port.Request(SetRaw4);
 	teensy_port.Request(SetRaw5);	
+	teensy_port.Request(SetRaw6);	
 }
 
 //Requests an update of the Body Fixed Frame velocity of the robot
@@ -670,13 +674,13 @@ void RobotDriver::MeasureOrientationMeasurementNoise() {
 	}
 }
 
-void RobotDriver::LogSteps(int t_step, std::string filename) {
+void RobotDriver::LogSteps(int t_step, std::string filename, double f) {
 	if(!stabiliser_file_open_flag_){
 		//Create a new file and write the state to it
 
 		std::ofstream output; 
 		output.open(filename ,std::ios::out);
-		output << "time" << ',' << "M0_steps" << ',' << "M1_steps" << ',' << "M2_steps" << ',' 
+		output << "time" << ',' << "freq" << ',' << "M0_steps" << ',' << "M1_steps" << ',' << "M2_steps" << ',' 
 			<< "LA0_steps" << ',' << "LA1_steps" << ',' << "LA2_steps" << ',' 
 			<< "pos_meas_x" << ',' << "pos_meas_y" << ',' << "pos_meas_z" << ','
 			<< "M0_vel_target" << ',' << "M1_vel_target" << ',' << "M2_vel_target" << ','
@@ -693,7 +697,7 @@ void RobotDriver::LogSteps(int t_step, std::string filename) {
 			   << "accelerometer4_ground_state_x" << ',' << "accelerometer4_ground_state_y" << ',' << "accelerometer4_ground_state_z" << ','
 			   << "accelerometer5_ground_state_x" << ',' << "accelerometer5_ground_state_y" << ',' << "accelerometer5_ground_state_z"
 			   << '\n'
-			   << t_step << ',' << stabiliser.motor_steps_measurement_.motor_0 << ',' << stabiliser.motor_steps_measurement_.motor_1 << ','  << stabiliser.motor_steps_measurement_.motor_2 << ',' 
+			   << t_step << ',' << f << ',' << stabiliser.motor_steps_measurement_.motor_0 << ',' << stabiliser.motor_steps_measurement_.motor_1 << ','  << stabiliser.motor_steps_measurement_.motor_2 << ',' 
 			   << stabiliser.actuator_steps_measurement_.motor_0 << ',' << stabiliser.actuator_steps_measurement_.motor_1 << ',' << stabiliser.actuator_steps_measurement_.motor_2 << ',' 
 			   << stabiliser.platform_position_measurement_.x << ',' << stabiliser.platform_position_measurement_.y << ',' << stabiliser.platform_position_measurement_.z << ','
 			   << motor_velocities_target_.x << ',' << motor_velocities_target_.y << ',' << motor_velocities_target_.z << ','
@@ -718,7 +722,7 @@ void RobotDriver::LogSteps(int t_step, std::string filename) {
 	else {
 		std::ofstream output; 
 		output.open(filename,std::ios::app);
-		output << t_step << ',' << stabiliser.motor_steps_measurement_.motor_0 << ',' << stabiliser.motor_steps_measurement_.motor_1 << ','  << stabiliser.motor_steps_measurement_.motor_2 << ',' 
+		output << t_step << ',' << f << ','<< stabiliser.motor_steps_measurement_.motor_0 << ',' << stabiliser.motor_steps_measurement_.motor_1 << ','  << stabiliser.motor_steps_measurement_.motor_2 << ',' 
 			   << stabiliser.actuator_steps_measurement_.motor_0 << ',' << stabiliser.actuator_steps_measurement_.motor_1 << ',' << stabiliser.actuator_steps_measurement_.motor_2 << ',' 
 			   << stabiliser.platform_position_measurement_.x << ',' << stabiliser.platform_position_measurement_.y << ',' << stabiliser.platform_position_measurement_.z << ','
 			   << motor_velocities_target_.x << ',' << motor_velocities_target_.y << ',' << motor_velocities_target_.z << ',' 
