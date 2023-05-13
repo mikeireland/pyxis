@@ -11,10 +11,10 @@ cam_ID = "20031616"
     height = 1080
     offset_x = 0
     offset_y = 0
-    gain = 20 #in dB
+    gain = 25 #in dB
     black_level = 2 #in percent? ADU?
-    exposure_time = 300000 # in microseconds
-    num_frames = 0 #Default number of frames to save per FITS file; 0 is continuous with no saving
+    exposure_time = 250000 # in microseconds
+    num_frames = 1 #Default number of frames to save per FITS file; 0 is continuous with no saving
     buffer_size = 20 #Size of circular buffer
 
     [FLIRcamera.bounds]

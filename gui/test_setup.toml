@@ -16,7 +16,7 @@ refresh_time = 0.5 #In seconds
     [Dextra.TargetControl]
     tab_name = "Target"
     name = "TargetControl"
-    prefix = "SM"
+    prefix = "TS"
     port = "4000"
     description = "Dextra Target selector (move to FSM?)"
     module_type = "TargetWidget"
@@ -32,7 +32,7 @@ refresh_time = 0.5 #In seconds
     [Dextra.StarTracker]
     tab_name = "Star Tracker Camera"
     name = "DextraStarTracker"
-    prefix = "ST"
+    prefix = "CST"
     port = "4202"
     description = "Camera controls for the Dextra star tracker"
     module_type = "BaseFLIRCameraWidget"

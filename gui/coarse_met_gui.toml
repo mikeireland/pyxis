@@ -3,7 +3,7 @@ refresh_time = 0.5 #In seconds
 
 	[Pyxis.IP]
     FSM = "192.168.1.2"
-    FSM_port = "42000"
+    FSM_port = "4000"
 		Navis = "127.0.0.1"
 		Dextra = "127.0.0.1"#"192.168.1.4"
 		Sinistra = "192.168.1.5"
@@ -33,3 +33,4 @@ refresh_time = 0.5 #In seconds
 
 
 [Sinistra]
+
