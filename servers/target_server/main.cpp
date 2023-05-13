@@ -12,35 +12,35 @@ struct coord{
     double DEC; //voltage
 };
 
-coord GLOB_SM_COORD;
+coord GLOB_TS_COORD;
 
 //config_file
 char* GLOB_CONFIGFILE = (char*)"./";
 
 
-struct StateMachineServer {
+struct TargetServer {
 
-    StateMachineServer()
+    TargetServer()
     {
         fmt::print("DeputyAuxServer\n");
     }
 
-    ~StateMachineServer()
+    ~TargetServer()
     {
         fmt::print("~DeputyAuxServer\n");
     }
 
 string setCoordinates(double new_ra, double new_dec){
     string ret_msg;
-    GLOB_SM_COORD.RA = new_ra;
-    GLOB_SM_COORD.DEC = new_dec;
+    GLOB_TS_COORD.RA = new_ra;
+    GLOB_TS_COORD.DEC = new_dec;
     ret_msg = "Set coordinates to " + to_string(new_ra) + ", " + to_string(new_dec);
 	return ret_msg;
 }
 
 coord getCoordinates(){
 	coord ret_coord;
-	ret_coord = GLOB_SM_COORD;
+	ret_coord = GLOB_TS_COORD;
 	return ret_coord;
 }
 
@@ -56,11 +56,11 @@ string status(){
 // Register as commander server
 COMMANDER_REGISTER(m)
 {
-    m.instance<StateMachineServer>("SM")
+    m.instance<TargetServer>("TS")
         // To insterface a class method, you can use the `def` method.
-        .def("getCoordinates", &StateMachineServer::getCoordinates, "Set Ra and Dec")
-        .def("setCoordinates", &StateMachineServer::setCoordinates, "Get Ra and Dec")
-        .def("status", &StateMachineServer::status, "Check status");
+        .def("getCoordinates", &TargetServer::getCoordinates, "Set Ra and Dec")
+        .def("setCoordinates", &TargetServer::setCoordinates, "Get Ra and Dec")
+        .def("status", &TargetServer::status, "Check status");
 }
 
 // Serialiser to convert coord struct to/from JSON
@@ -117,8 +117,8 @@ int main(int argc, char* argv[]) {
     string port = config["port"].value_or("4000");
     string IP = config["IP"].value_or("192.168.1.4");
     
-    GLOB_SM_COORD.RA = 0.0;
-    GLOB_SM_COORD.DEC = 0.0
+    GLOB_TS_COORD.RA = 0.0;
+    GLOB_TS_COORD.DEC = 0.0
     
     // Turn into a TCPString
     string TCPString = "tcp://" + IP + ":" + port;

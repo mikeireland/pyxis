@@ -5,7 +5,7 @@ refresh_time = 0.5 #In seconds
     FSM = "192.168.1.2"
     FSM_port = "4000"
 	Navis = "127.0.0.1"
-	Dextra = "127.0.0.1"#"192.168.1.4"
+	Dextra = "192.168.1.4"#"192.168.1.4"
 	Sinistra = "192.168.1.5"
 	External = "150.203.91.206"
 

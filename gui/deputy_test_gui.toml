@@ -1,0 +1,50 @@
+[Pyxis]
+refresh_time = 0.5 #In seconds
+
+	[Pyxis.IP]
+    FSM = "192.168.1.2"
+    FSM_port = "4000"
+		Navis = "192.168.1.3"
+		Dextra = "192.168.1.4"#"192.168.1.4"
+		Sinistra = "192.168.1.5"
+		External = "150.203.91.206"
+
+[Navis]
+
+
+[Dextra]
+
+
+[Sinistra]
+   [Sinistra.RobotControl]
+    tab_name = "Robot Control"
+    name = "SinistraRobotControl"
+    port = "4300"
+    description = "Motor/Actuator control for the deputy Sinistra"
+    module_type = "RobotControlWidget"
+
+    [Sinistra.DeputyAux]
+    tab_name = "Deputy Auxilliary"
+    name = "SinistraDeputyAux"
+    port = "4301"
+    description = "Sinistra power system + LED controls"
+    module_type = "DepAuxControlWidget"
+    voltage_limit = 10
+    
+    [Sinistra.StarTracker]
+    tab_name = "Star Tracker Camera"
+    name = "SinistraStarTracker"
+    prefix = "CST"
+    port = "4302"
+    description = "Camera controls for the Sinistra star tracker"
+    module_type = "BaseFLIRCameraWidget"
+    feed_refresh_time = 0.05
+    compression_param = 1
+
+    [Sinistra.TargetControl]
+    tab_name = "Target"
+    name = "TargetControl"
+    prefix = "TS"
+    port = "4303"
+    description = "Sinistra Target selector (move to FSM?)"
+    module_type = "TargetWidget"

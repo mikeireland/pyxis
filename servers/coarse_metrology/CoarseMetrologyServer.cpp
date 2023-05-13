@@ -131,7 +131,7 @@ struct CoarseMet: FLIRCameraServer{
         // Retrieve port and IP
         std::string RB_port = config["CoarseMet"]["RB_port"].value_or("4000");
         std::string DA_port = config["CoarseMet"]["DA_port"].value_or("4000");
-        std::string IP = config["IP"].value_or("192.168.1.4");
+        std::string IP = config["CoarseMet"]["IP"].value_or("192.168.1.4");
 
         // Turn into a TCPString
         GLOB_RB_TCP = "tcp://" + IP + ":" + RB_port;

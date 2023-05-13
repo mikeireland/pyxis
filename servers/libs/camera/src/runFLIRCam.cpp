@@ -202,6 +202,12 @@ void *runCam(void*) {
         		
         		free(GLOB_IMG_ARRAY);
 				free(GLOB_IMG_MUTEX_ARRAY);
+			
+				// Reset latest file for plate solver to stop solving when not running
+				pthread_mutex_lock(&GLOB_LATEST_FILE_LOCK);
+    			GLOB_LATEST_FILE = "CAMERA_NOT_RUNNING";
+   				pthread_mutex_unlock(&GLOB_LATEST_FILE_LOCK);
+
 			}
 			
 			usleep(sleeptime); // Sleep to save resources

@@ -112,6 +112,9 @@ def run_image(img_filename,config,target):
                        config["Astrometry"]["estimate_position"]["dec"],
                        config["Astrometry"]["estimate_position"]["rad"]))
 
+    #remove previous results if they exist
+    os.remove("%s.wcs"%folder_prefix)
+    
     #Run astrometry.net
     os.system("./astrometry/solver/astrometry-engine %s.axy -c astrometry.cfg"%folder_prefix)
 
@@ -154,7 +157,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         config_file = sys.argv[1]
     elif len(sys.argv) == 1:
-        config_file = "astrometry_fine.toml"
+        config_file = "Sinistra_astrometry.toml"
         if os.path.exists(config_file):
             print("Using config "+config_file)
         else:
@@ -171,12 +174,12 @@ if __name__ == "__main__":
 
     try:
         context = zmq.Context()
-        state_machine_socket = context.socket(zmq.REQ)
-        tcpstring = "tcp://"+IP+":"+config["state_machine_port"]
-        state_machine_socket.connect(tcpstring)
-        print("Connected to state machine, port %s"%config["state_machine_port"])
+        target_socket = context.socket(zmq.REQ)
+        tcpstring = "tcp://"+IP+":"+config["target_port"]
+        target_socket.connect(tcpstring)
+        print("Connected to target server, port %s"%config["target_port"])
     except:
-        print('ERROR: Could not connect to state machine server. Please check that the server is running and IP is correct.')
+        print('ERROR: Could not connect to target server. Please check that the server is running and IP is correct.')
     try:
         context = zmq.Context()
         camera_socket = context.socket(zmq.REQ)
@@ -195,14 +198,12 @@ if __name__ == "__main__":
     
     print("Beginning loop")
     while(1):
-        time.sleep(1)
         print("Sending request")
 
-
-        state_machine_socket.send_string("SM.getCoordinates")
-        message = state_machine_socket.recv()
+        target_socket.send_string("TS.getCoordinates")
+        message = target_socket.recv()
         message = message.decode("utf-8")
-        print("Received state machine message: %s" % message )
+        print("Received target server message: %s" % message )
 
         try:
             result = json.loads(message)
@@ -230,16 +231,19 @@ if __name__ == "__main__":
             if flag>0:
 
                 # WORK ON ANGLES -> return_message
-                return_message = b"DR.receive_CST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
+                return_message = b"RC.receive_CST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
 
                 #Send reply to robot
                 print(return_message)
-                #robot_control_socket.send_string(return_message)
+                robot_control_socket.send_string(return_message)
                 
-                #message = robot_control_socket.recv()
-                #print("Robot response: %s" % message)
+                message = robot_control_socket.recv()
+                print("Robot response: %s" % message)
             else:
                 print("ERROR")
+        else:
+            print("Not a real file")
+            time.sleep(1)
         
 #-------------
 """

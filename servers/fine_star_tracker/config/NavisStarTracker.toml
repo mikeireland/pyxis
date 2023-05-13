@@ -30,7 +30,7 @@ sleep_time = 1000 #Time to sleep in waiting loop
 	filename_prefix = "data/test" #Default "where to save" file prefix
 
 [FineStarTracker]
-RB_port = "5555"
+RB_port = "4100"
 Centroid_sleeptime = 700000
 Centroid_exptime = 10000
 PlateSolve_sleeptime = 200000
