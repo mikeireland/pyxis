@@ -17,4 +17,4 @@ extern double GLOB_SC_GD;
 int calcTrialDelayMat(int numDelays, double delaySize);
 
 
-int calcGroupDelay();
+int calcGroupDelay(unsigned short* data);
