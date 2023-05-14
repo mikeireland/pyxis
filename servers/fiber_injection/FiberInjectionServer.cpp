@@ -20,6 +20,18 @@ int AnotherCallback (unsigned short* data){
     return 0;
 }
 
+// Calculate differential voltage corresponding to the given displacement
+double displacementToVoltage(double displacement){
+    //Linear??
+    pthread_mutex_lock(&GLOB_FLAG_LOCK);
+    double a = GLOB_FI_VOLTAGE_FACTOR;
+    pthread_mutex_unlock(&GLOB_FLAG_LOCK);
+   
+    double result = a*displacement;
+    
+    return result;
+}
+
 
 // FLIR Camera Server
 struct FiberInjection: FLIRCameraServer{

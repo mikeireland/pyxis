@@ -20,8 +20,6 @@ double GLOB_SC_WINDOW_ALPHA;
 
 double GLOB_SC_GD;
 
-
-
 Eigen::ArrayXcd delays;
 
 
@@ -36,9 +34,9 @@ int calcTrialDelayMat(int numDelays, double delaySize){
 
     for(int k=0;k<numDelays;k++){
         for(int l=0;l<10;l++){
-            Cd num = 2*PI*If*delays(k)/GLOB_SC_WAVELENGTHS[l];
+            Cd num = 2*PI*If*delays(k)/GLOB_SC_CAL.wavelengths[l];
             phasors(k,l) = num;
-            phasors(k,l+10) = num;
+            phasors(k,l+10s) = num;
         }
     }
 
@@ -48,6 +46,7 @@ int calcTrialDelayMat(int numDelays, double delaySize){
 
 }
 
+
 // Main function to take in a frame and calculate the group delay
 int calcGroupDelay(unsigned short* data) {
     
@@ -55,18 +54,10 @@ int calcGroupDelay(unsigned short* data) {
     Eigen::Matrix<Cd, 20, 3> V;
     Eigen::Matrix<Cd, 20, 1> g;
     
-     // From the frame, extract pixel positions into O(utput) matrix
-     for(int k=0;k<10;k++){
-        O.row(k) << data[GLOB_SC_CAL.pos_p1_A,GLOB_SC_CAL.pos_wave+k],
-                    data[GLOB_SC_CAL.pos_p1_B,GLOB_SC_CAL.pos_wave+k],
-                    data[GLOB_SC_CAL.pos_p1_C,GLOB_SC_CAL.pos_wave+k];
-        O.row(k+10) << data[GLOB_SC_CAL.pos_p2_A,GLOB_SC_CAL.pos_wave+k],
-                    data[GLOB_SC_CAL.pos_p2_B,GLOB_SC_CAL.pos_wave+k],
-                    data[GLOB_SC_CAL.pos_p2_C,GLOB_SC_CAL.pos_wave+k];
-    }   
+    extractToMatrix(&data,&O);
 
     // Convert to V(isibilities) via P2VM
-    for(int k=0;k<20;k++){
+    for(int k=0;k<10;k++){
         Eigen::Matrix<Cd, 3, 1> O_i = O.row(k);
         V.row(k) = *GLOB_SC_P2VM_l[k]*O_i;
     }
@@ -78,7 +69,7 @@ int calcGroupDelay(unsigned short* data) {
     // Fourier transform sampling by multiplying by trial delay matrix
     GLOB_SC_DELAY_AMP = (GLOB_SC_DELAYMAT*g).cwiseAbs2().real();
     
-    //Moving average
+    //Moving average/fading memory
     if not (GLOB_SC_WINDOW_INDEX){
         GLOB_SC_DELAY_AVE = GLOB_SC_DELAY_AMP;
         GLOB_SC_WINDOW_INDEX = 1;

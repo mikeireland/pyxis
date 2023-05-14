@@ -7,7 +7,9 @@
 #include <Eigen/Dense>
 
 extern Eigen::Matrix<std::complex<double>,3,3> *GLOB_SC_P2VM_l[20];
-
+extern Eigen::Matrix<std::complex<double>,20,3> GLOB_SC_FLUX_A;
+extern Eigen::Matrix<std::complex<double>,20,3> GLOB_SC_FLUX_B;
+extern double GLOB_SC_DARK_VAL;
 
 struct SC_calibration {
 
@@ -27,9 +29,5 @@ struct SC_calibration {
 extern SC_calibration GLOB_SC_CAL;
 
 int calcP2VMMat();
-
-int wavelengthCal();
-
-int saveCalData();
-
-int findPixelPositions();
+void extractToMatrix(unsigned short* data, Eigen::Matrix* O);
+int findPixelPositions(int xref, int yref);
