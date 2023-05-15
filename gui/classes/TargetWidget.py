@@ -40,7 +40,7 @@ class TargetWidget(QWidget):
 
         #First, the command entry box
         lbl1 = QLabel('Command: ', self)
-        self.line_edit = QLineEdit("SM.")
+        self.line_edit = QLineEdit("TS.")
         self.line_edit.returnPressed.connect(self.command_enter)
 
         #Next, the info button
@@ -150,7 +150,7 @@ class TargetWidget(QWidget):
         only see one server at a time)"""
         #As this is on a continuous timer, only do anything if we are
         #connected
-        response = self.socket.send_command("SM.status")
+        response = self.socket.send_command("TS.status")
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
@@ -184,7 +184,7 @@ class TargetWidget(QWidget):
 
 
     def set_target_func(self):
-        self.send_to_server("SM.setCoordinates [%s,%s]"%(str(float(self.new_RA.text().split('=')[1])),str(float(self.new_DEC.text().split('=')[1]))))
+        self.send_to_server("TS.setCoordinates [%s,%s]"%(str(float(self.new_RA.text().split('=')[1])),str(float(self.new_DEC.text().split('=')[1]))))
         self.current_Target_Name.setText(str(self.new_Target_Name.text()))
         self.current_RA.setText(str(self.new_RA.text()))
         self.current_DEC.setText(str(self.new_DEC.text()))
@@ -216,7 +216,7 @@ class TargetWidget(QWidget):
                 self.response_label.append("Success!")
             else:
                 self.response_label.append("Failure!")
-        self.line_edit.setText("SM.")
+        self.line_edit.setText("TS.")
 
         return response
 
@@ -234,4 +234,4 @@ class TargetWidget(QWidget):
                 self.response_label.append("Success!")
             else:
                 self.response_label.append("Failure!")
-        self.line_edit.setText("SM.")
+        self.line_edit.setText("TS.")
