@@ -114,7 +114,12 @@ protected:
 class DFRobot_INA219_IIC : public DFRobot_INA219
 {
 public:
-    DFRobot_INA219_IIC(TwoWire *pWire, uint8_t i2caddr) : DFRobot_INA219() { _pWire = pWire; _addr = i2caddr; }
+    DFRobot_INA219_IIC(TwoWire *pWire, uint8_t i2caddr) : DFRobot_INA219() { 
+      _pWire = pWire; _addr = i2caddr;
+      _pWire->setSDA(17);
+      _pWire->setSCL(16);
+      _pWire->begin();
+      }
 
 protected:
     void    writeReg(uint8_t reg, uint8_t *pBuf, uint16_t len);

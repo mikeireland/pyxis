@@ -20,8 +20,8 @@
 #include <Wire.h>
 #include "DFRobot_INA219.h"
 
-DFRobot_INA219_IIC     ina2193(&Wire, INA219_I2C_ADDRESS3);
-DFRobot_INA219_IIC     ina2194(&Wire, INA219_I2C_ADDRESS4);
+DFRobot_INA219_IIC     ina2193(&Wire1, INA219_I2C_ADDRESS3);
+DFRobot_INA219_IIC     ina2194(&Wire1, INA219_I2C_ADDRESS4);
 
 float ina219Reading3_mA = 341;
 float extMeterReading3_mA = 342;
@@ -46,8 +46,14 @@ void setup(void)
     while(!Serial);
 
     Serial.println();
+
     while((ina2194.begin() != true)||(ina2193.begin() != true)) {
+      if (ina2194.begin() != true) {
         Serial.println("INA2194 begin failed");
+      } 
+      if (ina2193.begin() != true){
+        Serial.println("INA2193 begin failed");
+      }
         delay(2000);
     }
     ina2193.linearCalibrate(ina219Reading3_mA, extMeterReading3_mA);

@@ -5,7 +5,6 @@
 bool DFRobot_INA219::begin()
 {
     lastOperateStatus = eIna219_InitError;
-    Wire.begin();
     if (scan() == true)
     {
         setBRNG(eIna219BusVolRange_32V);

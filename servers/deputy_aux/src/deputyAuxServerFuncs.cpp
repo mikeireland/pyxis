@@ -5,6 +5,7 @@
 #include <time.h>
 #include <pthread.h>
 #include "deputyAuxGlobals.hpp"
+#include "SerialPort.h"
 
 #include <cstdlib>
 
@@ -16,6 +17,8 @@ using std::chrono::duration;
 using std::chrono::milliseconds;
 
 using namespace std;
+
+Comms::SerialPort teensy_port;
 
 void * serverLoop(void *){
 
@@ -137,30 +140,25 @@ string stopServer(){
 }
 
 
-string turnLEDOn(){
-    string ret_msg;
-	if(GLOB_DA_STATUS==2){
-		pthread_mutex_lock(&GLOB_FLAG_LOCK);
-		GLOB_DA_REQUEST = 1;
-		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-		ret_msg = "Turning LED on";
-	}else{
-		ret_msg = "DA server not currently running (or is connecting)";
-	}
+int turnLEDOn(){
+    int ret_msg;
+	teensy_port.Request(LEDON);
+	teensy_port.SendAllRequests();
+	usleep(150);
+	teensy_port.ReadMessage();
+	ret_msg = teensy_port.ledOn;
 	return ret_msg;
 }
 
 
-string turnLEDOff(){
-    string ret_msg;
-	if(GLOB_DA_STATUS==2){
-		pthread_mutex_lock(&GLOB_FLAG_LOCK);
-		GLOB_DA_REQUEST = 2;
-		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-		ret_msg = "Turning LED off";
-	}else{
-		ret_msg = "DA server not currently running (or is connecting)";
-	}
+int turnLEDOff(){
+    int ret_msg;
+	teensy_port.Request(LEDOFF);
+	teensy_port.SendAllRequests();
+	usleep(150);
+	teensy_port.ReadMessage();
+	ret_msg = !teensy_port.ledOn;
+	teensy_port.ledOn = false;
 	return ret_msg;
 }
 
