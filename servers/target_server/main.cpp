@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
     string IP = config["IP"].value_or("192.168.1.4");
     
     GLOB_TS_COORD.RA = 0.0;
-    GLOB_TS_COORD.DEC = 0.0
+    GLOB_TS_COORD.DEC = 0.0;
     
     // Turn into a TCPString
     string TCPString = "tcp://" + IP + ":" + port;
