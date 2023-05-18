@@ -43,26 +43,36 @@ int main(int argc, char* argv[]) {
 
     // Set config file path as a global variable
     GLOB_CONFIGFILE = (char*)config_file.c_str();
+    
+    if (config["mode"]=="Interactive") {
+    	argc = 1;
+    	char* argv_new[1];
 
-    GLOB_DA_POWER_REQUEST_TIME = config["aux"]["power_req_time"].value_or(1000);
+    	co::Server s(argc, argv_new);
+    
+    	s.run();
+    } else {
 
-    // Retrieve port and IP
-    string port = config["port"].value_or("4000");
-    string IP = config["IP"].value_or("192.168.1.4");
+	    GLOB_DA_POWER_REQUEST_TIME = config["aux"]["power_req_time"].value_or(1000);
 
-    // Turn into a TCPString
-    string TCPString = "tcp://" + IP + ":" + port;
-    char TCPCharArr[TCPString.length() + 1];
-    strcpy(TCPCharArr, TCPString.c_str());
+	    // Retrieve port and IP
+	    string port = config["port"].value_or("4000");
+	    string IP = config["IP"].value_or("192.168.1.4");
 
-    // Argc/Argv to turn into the required server input
-    argc = 3;
-    char* argv_new[3];
-    argv_new[1] = (char*)"--socket";
-    argv_new[2] = TCPCharArr;
+	    // Turn into a TCPString
+	    string TCPString = "tcp://" + IP + ":" + port;
+	    char TCPCharArr[TCPString.length() + 1];
+	    strcpy(TCPCharArr, TCPString.c_str());
 
-    // Start server!
-    co::Server s(argc, argv_new);
+	    // Argc/Argv to turn into the required server input
+	    argc = 3;
+	    char* argv_new[3];
+	    argv_new[1] = (char*)"--socket";
+	    argv_new[2] = TCPCharArr;
 
-    s.run();
+	    // Start server!
+	    co::Server s(argc, argv_new);
+
+	    s.run();
+	}
 }

@@ -12,11 +12,14 @@ int SerialPort::max_packet_size_ = 64;
 SerialPort::SerialPort(int device_id_target) {
     //Open comms with the first teensy we can find
     init = true;
+    sleep(30);
     OpenPort();
 
     //ID the opened teensy
-    Request(ID);
-	PacketManager();
+    Request(TID);
+	SendAllRequests();
+	sleep(1);
+	ReadMessage();
 	printf("Device ID: %u\n",device_id_);
 	printf("Device Firmware Version: %u\n",device_firmware_v_);
 
@@ -26,7 +29,7 @@ SerialPort::SerialPort(int device_id_target) {
 		ClosePort();
 		teensy_ = -1;
 		OpenPort();
-		Request(ID);
+		Request(TID);
 		PacketManager();
 		printf("Device ID: %u\n",device_id_);
 		printf("Device Firmware Version: %u\n",device_firmware_v_);
@@ -40,15 +43,15 @@ SerialPort::SerialPort(int device_id_target) {
 		ClosePort();
 		teensy_ = -1;
 		OpenPort();
-		Request(ID);
+		Request(TID);
 		PacketManager();
 		printf("Device ID: %u\n",device_id_);
 		printf("Device Firmware Version: %u\n",device_firmware_v_);
 	}
 	init = false;
-	serial_read_thread = std::thread(&SerialPort::ReadMessageAsync, this);
-    sch_params.sched_priority = 97;
-    pthread_setschedparam(serial_read_thread.native_handle(), SCHED_RR, &sch_params);
+	//serial_read_thread = std::thread(&SerialPort::ReadMessageAsync, this);
+    //sch_params.sched_priority = 97;
+    //pthread_setschedparam(serial_read_thread.native_handle(), SCHED_RR, &sch_params);
 }
 
 void SerialPort::OpenPort() {
@@ -141,6 +144,11 @@ void SerialPort::ClosePort() {
 }
 
 void SerialPort::WriteMessage() {
+    std::cout << "send:";
+            for(int i = 0; i < sizeof(write_buffer_); ++i) {
+                std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)write_buffer_[i] << std::dec << ':';
+            }
+            std::cout << "\n";
     memcpy(last_pack_, write_buffer_, sizeof(write_buffer_));
     write(teensy_,write_buffer_,sizeof(write_buffer_));
     ClearWriteBuff();
@@ -157,14 +165,14 @@ void SerialPort::ReadMessage() {
   
         ClearReadBuff();
         read(teensy_,&read_buffer_,sizeof(read_buffer_));
-        /*
+        
         if (read_buffer_[0]) {
             std::cout << "receive:";
             for(int i = 0; i < sizeof(read_buffer_); ++i) {
                 std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)read_buffer_[i] << std::dec << ':';
             }
             std::cout << "\n";
-        }*/
+        }
         int i = 0;
         while(i < sizeof(read_buffer_)){
         switch(read_buffer_[i]){
@@ -176,7 +184,7 @@ void SerialPort::ReadMessage() {
                 ledOn = false;
                 i += 3;
                 break;
-            case ID:
+            case TID:
                 device_id_ = read_buffer_[i+1];
                 device_firmware_v_ = read_buffer_[i+2];
                 i += 3;
@@ -304,7 +312,7 @@ void SerialPort::PacketManager() {
 
     for(int i = 0; i < request_buffer_first_empty_; ++i) {
         switch(request_buffer_[i]) {
-          case ID:
+          case TID:
                requested_incoming_byte_count += 3;
                requested_outgoing_byte_count += 3;
           default:

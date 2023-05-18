@@ -18,7 +18,7 @@ using std::chrono::milliseconds;
 
 using namespace std;
 
-Comms::SerialPort teensy_port;
+Comms::SerialPort teensy_port(128);
 
 void * serverLoop(void *){
 
@@ -96,48 +96,7 @@ struct DeputyAuxServer {
         fmt::print("~DeputyAuxServer\n");
     }
 
-string startServer(){
-    string ret_msg;
-	if(GLOB_DA_STATUS == 0){
-		pthread_create(&GLOB_DA_THREAD, NULL, serverLoop, NULL);
-		ret_msg = "Starting DA server";
-	}else{
-		ret_msg = "DA server already running";
-	}
-	return ret_msg;
-}
 
-
-//Get status of camera
-string status(){
-	string ret_msg;
-	if(GLOB_DA_STATUS == 0){
-		ret_msg = "Server Not Connected!";
-	}else if(GLOB_DA_STATUS == 1){
-		ret_msg = "Server Connecting";
-	}else{
-		ret_msg = "Server Running";
-	}
-
-	return ret_msg;
-}
-
-string stopServer(){
-	string ret_msg;
-	if(GLOB_DA_STATUS==2){
-		pthread_mutex_lock(&GLOB_FLAG_LOCK);
-		GLOB_DA_STATUS = 0;
-		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-
-		pthread_join(GLOB_DA_THREAD, NULL);
-		ret_msg = "Stopped server";
-
-	}else{
-		ret_msg = "DA server not currently running (or is connecting)";
-	}
-
-	return ret_msg;
-}
 
 
 int turnLEDOn(){
@@ -219,9 +178,6 @@ COMMANDER_REGISTER(m)
 {
     m.instance<DeputyAuxServer>("DA")
         // To insterface a class method, you can use the `def` method.
-        .def("connect", &DeputyAuxServer::startServer, "Start the server")
-        .def("disconnect", &DeputyAuxServer::stopServer, "Stop the server")
-        .def("status", &DeputyAuxServer::status, "Server status")
         .def("LEDOn", &DeputyAuxServer::turnLEDOn, "Turn on the LED")
         .def("LEDOff", &DeputyAuxServer::turnLEDOff, "Turn off the LED")
         .def("reqpower", &DeputyAuxServer::requestPower, "Request power values");
