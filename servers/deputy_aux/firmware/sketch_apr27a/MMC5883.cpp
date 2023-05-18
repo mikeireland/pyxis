@@ -36,12 +36,14 @@ void MMC5883MA::begin()
     //send another STOP READ
     wire->endTransmission();
     // print out the ID which is 0x0C
-
+    //Serial.print("ID = ");
+    //Serial.println(ID);
 }
 
 void MMC5883MA::calibrate()
 {
     static int count = 0;
+    //Serial.println("Please wait until calibration is done!");
     while (count < 10000)
     {
         wire->beginTransmission(MMC_ADDRESS);
@@ -118,10 +120,11 @@ void MMC5883MA::calibrate()
         /*delay(100);*/
         // just a little debug so I can see how long to go
         // using the mod operator it limits the output to 10 lines 0 through 9000
-        if ((count % 1000) == 0)
+        //if ((count % 1000) == 0)
+            //Serial.print(".");
         count++;
     }
-
+    //Serial.println(".");
 }
 
 void MMC5883MA::update()

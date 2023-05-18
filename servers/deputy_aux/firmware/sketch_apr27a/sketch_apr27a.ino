@@ -115,6 +115,7 @@ void setup() {
 
   // setup wattmeters
   while((ina2194.begin() != true)||(ina2193.begin() != true)) {
+
       delay(2000);
   }
   ina2193.linearCalibrate(ina219Reading3_mA, extMeterReading3_mA);
