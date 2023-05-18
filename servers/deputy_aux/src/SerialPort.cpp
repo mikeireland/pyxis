@@ -16,9 +16,10 @@ SerialPort::SerialPort(int device_id_target) {
     OpenPort();
 
     //ID the opened teensy
+    ReadMessage();
     Request(TID);
 	SendAllRequests();
-	sleep(1);
+	sleep(20);
 	ReadMessage();
 	printf("Device ID: %u\n",device_id_);
 	printf("Device Firmware Version: %u\n",device_firmware_v_);

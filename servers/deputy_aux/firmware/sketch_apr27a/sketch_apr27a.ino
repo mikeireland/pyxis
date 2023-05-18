@@ -62,7 +62,7 @@ void readMessage() {
           i += 1;
           break;
         case TID:
-          digitalWrite(ledPin, HIGH);
+          //digitalWrite(ledPin, HIGH);
           write_buffer_[0] = TID;
           write_buffer_[1] = DeviceID;
           write_buffer_[2] = FirmwareV;
