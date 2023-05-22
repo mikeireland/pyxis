@@ -4,7 +4,7 @@ camera_port = "4302"
 camera_port_name = "CST"
 robot_control_port = "4300"
 target_port = "4303"
-path_to_data = "/home/jhansen/GitRepos/pyxis/servers/coarse_star_tracker"
+path_to_data = "/home/pyxis/git/pyxis/servers/coarse_star_tracker"
 
 [Tetra3]
 bg_sub_mode = "local_mean" #"Continuous" is default

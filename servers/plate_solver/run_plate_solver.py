@@ -113,7 +113,8 @@ def run_image(img_filename,config,target):
                        config["Astrometry"]["estimate_position"]["rad"]))
 
     #remove previous results if they exist
-    os.remove("%s.wcs"%folder_prefix)
+    if (os.path.exists("%s.wcs"%folder_prefix)):
+        os.remove("%s.wcs"%folder_prefix)
     
     #Run astrometry.net
     os.system("./astrometry/solver/astrometry-engine %s.axy -c astrometry.cfg"%folder_prefix)
@@ -198,6 +199,7 @@ if __name__ == "__main__":
     
     print("Beginning loop")
     while(1):
+        time.sleep(1)
         print("Sending request")
 
         target_socket.send_string("TS.getCoordinates")

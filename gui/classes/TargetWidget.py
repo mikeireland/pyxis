@@ -152,6 +152,12 @@ class TargetWidget(QWidget):
         #connected
         response = self.socket.send_command("TS.status")
         if (self.socket.connected):
+
+            #GET COORDINATES
+            response = self.send_to_server_with_response("TS.getCoordinates")
+            self.current_RA.setText(str(response["RA"]))
+            self.current_DEC.setText(str(response["DEC"]))
+
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
             self.response_label.append(response)
@@ -209,6 +215,7 @@ class TargetWidget(QWidget):
                     self.response_label.append(response_dict["message"])
                 else:
                     self.response_label.append(response)
+                return response_dict
             except:
                 self.response_label.append(response)
         elif type(response)==bool:
