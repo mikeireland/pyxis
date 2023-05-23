@@ -406,6 +406,7 @@ class BaseFLIRCameraWidget(QWidget):
             self.get_params()
 
         else:
+            self.response_label.append(response)
             self.status_light = "assets/red.svg"
             self.status_text = "Socket Not Connected"
             self.status_label.setText(self.status_text)

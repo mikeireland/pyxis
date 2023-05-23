@@ -27,9 +27,9 @@ class ClientSocket:
         try:
             self.context = zmq.Context()
             self.client = self.context.socket(zmq.REQ)
-            tcpstring = "tcp://"+IP+":"+Port 
-            print(tcpstring)   
-            self.client.connect(tcpstring)
+            self.tcpstring = "tcp://"+IP+":"+Port 
+            print(self.tcpstring)   
+            self.client.connect(self.tcpstring)
             self.client.RCVTIMEO = 5000
             self.connected=True
         except:
@@ -38,11 +38,14 @@ class ClientSocket:
 
     def send_command(self, command):
         """Send a command"""
-
         #If we aren't connected and the user pressed <Enter>, just try to reconnect
-        if (self.connected==False) and (len(command)==0):
+        if (self.connected==False) and ((len(command)==0) or (len(command.split(".")[1])==0)):
             try:
-                response = self.client.recv()
+                self.client = self.context.socket(zmq.REQ)
+                self.client.connect(self.tcpstring)
+                self.client.RCVTIMEO = 5000
+                self.client.send_string(command,zmq.NOBLOCK)
+                self.client.recv()
             except:
                 self.count += 1
                 return "Could not receive buffered response - connection still lost ({0:d} times).".format(self.count)
