@@ -192,6 +192,6 @@ def diffRaDec2AltAz(RA,DEC,POS_ANG,RA2,DEC2):
     #Altitude equivalent to pitch
 
     #Pos angle equivalent to roll
-    angles = (2*np.pi-dAZ,dALT,np.radians(POS_ANG))
+    angles = (dAZ,dALT,np.radians(POS_ANG))
 
     return np.array(angles)

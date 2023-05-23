@@ -48,6 +48,12 @@ double roll = 0.0;
 double yaw = 0.0;
 double pitch = 0.0;
 double el = 0.0;
+double az = 0.0;
+double alt = 0.0;
+double pos = 0.0;
+
+double ygain = 0.0;
+double egain = 0.0;
 
 double f = 0.5;
 
@@ -172,6 +178,42 @@ void translate(RobotDriver *driver) {
 			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, elevation_target);
 			//driver->WriteLevellerStateToFileAlt(f, velocity_target);
 			driver->teensy_port.SendAllRequests();
+			cout << global_timepoint << '\n';
+		}
+		last_stabiliser_timepoint += 1000;
+	}
+}
+
+void track(RobotDriver *driver) {
+	Servo::Doubles velocity_target;
+	Servo::Doubles angle_target;
+	double elevation_target = 1000*(el + egain*alt);
+	velocity_target.x = 0.001*velocity*x;
+	velocity_target.y = 0.001*velocity*y;
+	velocity_target.z = 0.001*velocity*z;
+	angle_target.x = 0.001*roll;
+	angle_target.y = 0.001*pitch;
+	angle_target.z = 0.0000014302*(yaw + ygain*az);
+	
+	driver->SetNewStabiliserTarget(velocity_target,angle_target);
+	driver->stabiliser.enable_flag_ = true;
+	if(global_timepoint-last_stabiliser_timepoint > 1000) {	
+		if(driver->stabiliser.enable_flag_) {
+			//printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
+			//if  (global_timepoint < 10000000) {
+			//	velocity_target.x = 0;
+			//	velocity_target.y = 0;
+			//	velocity_target.z = 0;
+			//}
+			driver->teensy_port.ReadMessage();
+			driver->StabiliserLoop();
+
+			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
+			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, elevation_target);
+			//driver->WriteLevellerStateToFileAlt(f, velocity_target);
+			driver->teensy_port.SendAllRequests();
+			cout << global_timepoint << '\n';
+			cout << angle_target.z << '\n';
 		}
 		last_stabiliser_timepoint += 1000;
 	}
@@ -277,7 +319,7 @@ int robot_loop() {
 				usleep(10);
 				break;
 			case 2:
-				ramp(driver);
+				translate(driver);
 				break;
 			case 3:
 				//resonance(driver);
@@ -289,6 +331,9 @@ int robot_loop() {
 				break;
 			case 5:
 				level(driver);
+				break;
+			case 6:
+				track(driver);
 				break;
 			default:
 				stop(driver);
@@ -358,6 +403,29 @@ void change_file(string file) {
     filename = file;
 }
 
+void receive_CST_angles(double azimuth, double altitude, double pos_angle) {
+	az = 206265.0*azimuth;
+	alt = 206265.0*altitude;
+	pos = 206265.0*pos_angle;
+}
+
+void set_gains(double y, double e) {
+	ygain = y;
+	egain = e;
+}
+
+void track_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val, double el_val) {
+    velocity = vel;
+    x = x_val;
+    y = y_val;
+    z = z_val;
+    roll = roll_val;
+    yaw = yaw_val;
+    pitch = pitch_val;
+    el = el_val;
+    GLOBAL_STATUS_CHANGED = true;
+    GLOBAL_SERVER_STATUS = 6;
+}
 
 COMMANDER_REGISTER(m)
 {
@@ -370,4 +438,7 @@ COMMANDER_REGISTER(m)
     m.def("resonance", resonance_robot, "A function that translates robot");
     m.def("level", level_robot, "placeholder");
     m.def("file", change_file, "placeholder");
+    m.def("receive_CST_angles", receive_CST_angles, "placeholder");
+    m.def("track", track_robot, "placeholder");
+    m.def("set_gains", set_gains, "placeholder");
 }

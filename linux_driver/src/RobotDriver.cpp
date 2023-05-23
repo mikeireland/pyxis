@@ -246,13 +246,13 @@ void RobotDriver::PassActuatorStepsToLeveller() {
 
 void RobotDriver::EngageLeveller() {
 	
-	LowerToReference();
+	//LowerToReference();
 	
 	//Move the platform up from its reference by 20mm
-	UpdateZVelocity(0.001);
-	teensy_port.PacketManager();
-	sleep(20);
-	RequestAllStop();
+	//UpdateZVelocity(0.001);
+	//teensy_port.PacketManager();
+	//sleep(20);
+	//RequestAllStop();
 
 	if(short_level_flag2_) {
 		leveller.pitch_target_cache_ = leveller.pitch_target_;
@@ -367,9 +367,9 @@ void RobotDriver::PassStepsToStabiliser() {
 }
 
 void RobotDriver::StabiliserLoop() {
-	PassAccelBytesToStabiliser();
-	PassStepsToStabiliser();
-	stabiliser.UpdateTarget();
+	//PassAccelBytesToStabiliser();
+	//PassStepsToStabiliser();
+	//stabiliser.UpdateTarget();
 	//WriteStabiliserStateToFile();
 	RequestAccelerations();
 	RequestStepCounts();

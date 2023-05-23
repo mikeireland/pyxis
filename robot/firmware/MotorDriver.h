@@ -22,7 +22,7 @@ class MotorDriver {
     //This array stores the physical distance which each motor moves per microstep
     //as an integer number of nanometres (the 1000s are placeholders for real values)
     //For the linear actuators the resolution is 0.01mm/step which (for 256 microsteps) is 39 nm/microstep
-    unsigned int distance_per_microstep_[7] = {295,295,295,39,39,39,1000};
+    unsigned int distance_per_microstep_[7] = {295,295,295,39,39,39,90};
 
   public:
     MotorDriver() {

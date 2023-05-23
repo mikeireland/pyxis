@@ -113,7 +113,8 @@ def run_image(img_filename,config,target):
                        config["Astrometry"]["estimate_position"]["rad"]))
 
     #remove previous results if they exist
-    os.remove("%s.wcs"%folder_prefix)
+    if (os.path.exists("%s.wcs"%folder_prefix)):
+        os.remove("%s.wcs"%folder_prefix)
     
     #Run astrometry.net
     os.system("./astrometry/solver/astrometry-engine %s.axy -c astrometry.cfg"%folder_prefix)
@@ -198,6 +199,7 @@ if __name__ == "__main__":
     
     print("Beginning loop")
     while(1):
+        time.sleep(2)
         print("Sending request")
 
         target_socket.send_string("TS.getCoordinates")
@@ -231,14 +233,14 @@ if __name__ == "__main__":
             if flag>0:
 
                 # WORK ON ANGLES -> return_message
-                return_message = b"RC.receive_CST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
+                return_message = b"receive_CST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
 
                 #Send reply to robot
                 print(return_message)
-                robot_control_socket.send_string(return_message)
+                #robot_control_socket.send_string(return_message)
                 
-                message = robot_control_socket.recv()
-                print("Robot response: %s" % message)
+                #message = robot_control_socket.recv()
+                #print("Robot response: %s" % message)
             else:
                 print("ERROR")
         else:

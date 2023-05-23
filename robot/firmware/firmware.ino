@@ -633,7 +633,7 @@ void SchedulerWrapper() {
 
 void setup() {
   //controller.motor_driver.SetRawVelocity(3,200);
-  //controller.motor_driver.SetRawVelocity(4,200);
+  //controller.motor_driver.SetRawVelocity(6,-10000);
 
   timer.begin(SchedulerWrapper, 20);
 }
