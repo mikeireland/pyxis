@@ -28,7 +28,10 @@ depth = number of stars to match to
 scale_bounds = min/max of FOV of camera in degrees
 """
 
-def writeANxy(filename, x, y, dim=(0,0), depth=10, scale_bounds = (0.,0.), est_pos_flag = 0, est_pos = (0,0,10)):
+def writeANxy(filename, x, y, dim, depth=10, scale_bounds = (0.,0.), ref_pix = (None,None), est_pos_flag = 0, est_pos = (0,0,10)):
+
+    if ref_pix == (None,None):
+        ref_pix = (dim[0]//2+0.5,dim[1]//2+0.5)
 
     #Create FITS BINTABLE columns
     colX = fits.Column(name='X', format='1D', array=x)
@@ -50,13 +53,15 @@ def writeANxy(filename, x, y, dim=(0,0), depth=10, scale_bounds = (0.,0.), est_p
     prihdr['ANAPPU1'] = (scale_bounds[1]/dim[0]*3600,'scale: arcsec/pixel max')
     prihdr['ANTWEAK'] = (True, 'Tweak: yes please!')
     prihdr['ANTWEAKO'] = (2, 'Tweak order')
-    prihdr['ANSOLVED'] = ('./%s.solved'%filename,'solved output file')
-    prihdr['ANMATCH']  = ('./%s.match'%filename, 'match output file')
-    prihdr['ANRDLS']   = ('./%s.rdls'%filename, 'ra-dec output file')
+    #prihdr['ANSOLVED'] = ('./%s.solved'%filename,'solved output file')
+    #prihdr['ANMATCH']  = ('./%s.match'%filename, 'match output file')
+    #prihdr['ANRDLS']   = ('./%s.rdls'%filename, 'ra-dec output file')
     prihdr['ANWCS']    = ('./%s.wcs'%filename, 'WCS header output filename')
-    prihdr['ANCORR']   = ('./%s.corr'%filename, 'Correspondences output filename')
+    #prihdr['ANCORR']   = ('./%s.corr'%filename, 'Correspondences output filename')
     prihdr['ANDPL1']   = (1, 'no comment')
     prihdr['ANDPU1']   = (depth, 'no comment')
+    prihdr['ANCRPIX1']   = (ref_pix[0], 'set the WCS x reference point to the given position')
+    prihdr['ANCRPIX2']   = (ref_pix[1], 'set the WCS y reference point to the given position')
     if est_pos_flag:
         prihdr['ANERA']   = (est_pos[0], 'RA center estimate (deg)')
         prihdr['ANEDEC']   = (est_pos[1], 'Dec center estimate (deg)')
@@ -107,6 +112,8 @@ def run_image(img_filename,config,target):
               depth=config["Astrometry"]["depth"],
               scale_bounds=(config["Astrometry"]["FOV_min"],
                             config["Astrometry"]["FOV_max"]),
+              ref_pix=(config["Astrometry"]["ref_pix_x"],
+                       config["Astrometry"]["ref_pix_y"]),
               est_pos_flag=config["Astrometry"]["estimate_position"]["flag"],
               est_pos=(config["Astrometry"]["estimate_position"]["ra"],
                        config["Astrometry"]["estimate_position"]["dec"],
@@ -126,10 +133,10 @@ def run_image(img_filename,config,target):
 
     #Extract astrometry.net WCS info and print to terminal
     print("\nRESULTS:")
-    os.system("./astrometry/util/wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation|pixscale|fieldw|fieldh'"%folder_prefix)
+    os.system("./astrometry/util/wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|crval0|crval1|orientation|pixscale|fieldw|fieldh'"%folder_prefix)
 
     #Extract RA, DEC and POSANGLE from astrometry.net output
-    output = sp.getoutput("./astrometry/util/wcsinfo %s.wcs| grep -E -w 'ra_center|dec_center|orientation'"%folder_prefix)
+    output = sp.getoutput("./astrometry/util/wcsinfo %s.wcs| grep -E -w 'crval0|crval1|orientation'"%folder_prefix)
     [POS,RA,DEC] = [float(s.split(" ")[1]) for s in output.splitlines()]
     
     config["Astrometry"]["estimate_position"]["ra"] = RA
