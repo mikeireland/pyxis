@@ -199,7 +199,9 @@ if __name__ == "__main__":
     
     print("Beginning loop")
     while(1):
+
         time.sleep(2)
+
         print("Sending request")
 
         target_socket.send_string("TS.getCoordinates")
