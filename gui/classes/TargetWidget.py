@@ -160,7 +160,7 @@ class TargetWidget(QWidget):
 
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
-            self.response_label.append(response)
+            self.response_label.append(str(response))
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
 

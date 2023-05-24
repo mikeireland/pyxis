@@ -13,38 +13,37 @@ refresh_time = 0.5 #In seconds
 
 
 [Dextra]
-
-
-[Sinistra]
-   [Sinistra.RobotControl]
+   [Dextra.RobotControl]
     tab_name = "Robot Control"
-    name = "SinistraRobotControl"
-    port = "4300"
-    description = "Motor/Actuator control for the deputy Sinistra"
+    name = "DextraRobotControl"
+    port = "4200"
+    description = "Motor/Actuator control for the deputy Dextra"
     module_type = "RobotControlWidget"
 
-    [Sinistra.DeputyAux]
+    [Dextra.DeputyAux]
     tab_name = "Deputy Auxilliary"
-    name = "SinistraDeputyAux"
-    port = "4301"
-    description = "Sinistra power system + LED controls"
+    name = "DextraDeputyAux"
+    port = "4201"
+    description = "Dextra power system + LED controls"
     module_type = "DepAuxControlWidget"
     voltage_limit = 10
     
-    [Sinistra.StarTracker]
+    [Dextra.StarTracker]
     tab_name = "Star Tracker Camera"
     name = "SinistraStarTracker"
     prefix = "CST"
-    port = "4302"
-    description = "Camera controls for the Sinistra star tracker"
+    port = "4202"
+    description = "Camera controls for the Dextra star tracker"
     module_type = "BaseFLIRCameraWidget"
     feed_refresh_time = 0.05
     compression_param = 2
 
-    [Sinistra.TargetControl]
+    [Dextra.TargetControl]
     tab_name = "Target"
     name = "TargetControl"
     prefix = "TS"
-    port = "4303"
-    description = "Sinistra Target selector (move to FSM?)"
+    port = "4203"
+    description = "Dextra Target selector (move to FSM?)"
     module_type = "TargetWidget"
+
+[Sinistra]

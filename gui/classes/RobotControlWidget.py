@@ -249,6 +249,7 @@ class RobotControlWidget(QWidget):
         vBoxlayout.addLayout(status_layout)
 
         self.setLayout(vBoxlayout)
+        self.ask_for_status()
 
     def change_ip(self,IP):
         self.socket = ClientSocket(IP=IP, Port=self.port)
@@ -259,17 +260,10 @@ class RobotControlWidget(QWidget):
         #As this is on a continuous timer, only do anything if we are
         #connected
         response = self.socket.send_command("RC.status")
+
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
-
-            if response == '"Server Not Connected!"':
-                self.Connect_button.setText("Connect")
-                self.Connect_button.setChecked(False)
-            else:
-                self.Connect_button.setChecked(True)
-                self.Connect_button.setText("Disconnect")
-
             self.response_label.append(response)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
