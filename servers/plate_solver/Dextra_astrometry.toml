@@ -4,7 +4,7 @@ camera_port = "4202"
 camera_port_name = "CST"
 robot_control_port = "4200"
 target_port = "4203"
-path_to_data = "/home/jhansen/GitRepos/pyxis/servers/coarse_star_tracker"
+path_to_data = "/home/pyxisuser/GitRepos/pyxis/servers/coarse_star_tracker"
 
 [Tetra3]
 bg_sub_mode = "local_mean" #"Continuous" is default
@@ -15,6 +15,8 @@ filt_size = 15 #Size of filter
 depth = 10 #How many stars to match?
 FOV_min = 5 #minimum estimate of FOV in degrees
 FOV_max = 6 #maximum estimate of FOV in degrees
+ref_pix_x = 400 #x reference pixel for WCS solution
+ref_pix_y = 200 #y reference pixel for WCS solution
 
     [Astrometry.estimate_position]
     flag = 0

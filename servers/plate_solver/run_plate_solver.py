@@ -97,6 +97,7 @@ def run_image(img_filename,config,target):
     #Open FITS
     hdul = fits.open(str(config["path_to_data"]+"/"+img_filename))
     img = (hdul[0].data)[0]
+    #img = hdul[0].data
 
     #Get list of positions (extract centroids) via Tetra3
     lst = t3.get_centroids_from_image(img,bg_sub_mode=config["Tetra3"]["bg_sub_mode"],
@@ -185,6 +186,7 @@ if __name__ == "__main__":
         target_socket = context.socket(zmq.REQ)
         tcpstring = "tcp://"+IP+":"+config["target_port"]
         target_socket.connect(tcpstring)
+        target_socket.RCVTIMEO = 1000
         print("Connected to target server, port %s"%config["target_port"])
     except:
         print('ERROR: Could not connect to target server. Please check that the server is running and IP is correct.')
@@ -193,6 +195,7 @@ if __name__ == "__main__":
         camera_socket = context.socket(zmq.REQ)
         tcpstring = "tcp://"+IP+":"+config["camera_port"]
         camera_socket.connect(tcpstring)
+        camera_socket.RCVTIMEO = 1000
         print("Connected to camera, port %s"%config["camera_port"])
     except:
         print('ERROR: Could not connect to camera server. Please check that the server is running and IP is correct.')
@@ -201,6 +204,8 @@ if __name__ == "__main__":
         robot_control_socket = context.socket(zmq.REQ)
         tcpstring = "tcp://"+IP+":"+config["robot_control_port"]
         robot_control_socket.connect(tcpstring)
+        robot_control_socket.RCVTIMEO = 1000
+        print("Connected to robot")
     except:
         print('ERROR: Could not connect to robot server. Please check that the server is running and IP is correct.')       
     
@@ -246,10 +251,12 @@ if __name__ == "__main__":
 
                 #Send reply to robot
                 print(return_message)
-                #robot_control_socket.send_string(return_message)
-                
-                #message = robot_control_socket.recv()
-                #print("Robot response: %s" % message)
+                robot_control_socket.send_string(return_message)
+                try:
+                    message = robot_control_socket.recv()
+                    print("Robot response: %s" % message)
+                except:
+                    print("Could not communicate with robot")
             else:
                 print("ERROR")
         else:
