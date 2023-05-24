@@ -138,8 +138,8 @@ def run_image(img_filename,config,target):
 
     #Extract RA, DEC and POSANGLE from astrometry.net output
     output = sp.getoutput("./astrometry/util/wcsinfo %s.wcs| grep -E -w 'crval0|crval1|orientation'"%folder_prefix)
-    [POS,RA,DEC] = [float(s.split(" ")[1]) for s in output.splitlines()]
-    
+    [RA,DEC,POS] = [float(s.split(" ")[1]) for s in output.splitlines()]
+    print(RA,DEC)
     config["Astrometry"]["estimate_position"]["ra"] = RA
     config["Astrometry"]["estimate_position"]["dec"] = DEC
     config["Astrometry"]["estimate_position"]["flag"] = 1
@@ -212,7 +212,6 @@ if __name__ == "__main__":
     print("Beginning loop")
     while(1):
 
-        time.sleep(2)
 
         print("Sending request")
 
@@ -247,7 +246,7 @@ if __name__ == "__main__":
             if flag>0:
 
                 # WORK ON ANGLES -> return_message
-                return_message = b"receive_CST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
+                return_message = "receive_CST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
 
                 #Send reply to robot
                 print(return_message)

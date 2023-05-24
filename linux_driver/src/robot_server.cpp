@@ -184,16 +184,26 @@ void translate(RobotDriver *driver) {
 	}
 }
 
+double saturation(double val) {
+    if (val > 50000.0) {
+        return 50000.0;
+    }
+    if (val < -50000.0) {
+        return -50000.0;
+    }
+    return val;
+}
+
 void track(RobotDriver *driver) {
 	Servo::Doubles velocity_target;
 	Servo::Doubles angle_target;
-	double elevation_target = 0.0000048481*(el + egain*alt);
+	double elevation_target = 0.0000048481*saturation(el + egain*alt);
 	velocity_target.x = 0.001*velocity*x;
 	velocity_target.y = 0.001*velocity*y;
 	velocity_target.z = 0.001*velocity*z;
 	angle_target.x = 0.001*roll;
 	angle_target.y = 0.001*pitch;
-	angle_target.z = 0.0000014302*(yaw + ygain*az);
+	angle_target.z = 0.0000014302*saturation(yaw + ygain*az);
 	
 	driver->SetNewStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
@@ -212,8 +222,8 @@ void track(RobotDriver *driver) {
 			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, elevation_target);
 			//driver->WriteLevellerStateToFileAlt(f, velocity_target);
 			driver->teensy_port.SendAllRequests();
-			cout << global_timepoint << '\n';
-			cout << angle_target.z << '\n';
+		//	driver->LogSteps(global_timepoint, filename, f);
+
 		}
 		last_stabiliser_timepoint += 1000;
 	}
