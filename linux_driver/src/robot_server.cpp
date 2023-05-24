@@ -187,7 +187,7 @@ void translate(RobotDriver *driver) {
 void track(RobotDriver *driver) {
 	Servo::Doubles velocity_target;
 	Servo::Doubles angle_target;
-	double elevation_target = 1000*(el + egain*alt);
+	double elevation_target = 0.0000048481*(el + egain*alt);
 	velocity_target.x = 0.001*velocity*x;
 	velocity_target.y = 0.001*velocity*y;
 	velocity_target.z = 0.001*velocity*z;
