@@ -43,7 +43,7 @@ config.pop("Pyxis")
 config = collections.OrderedDict({k: {key: value for key, value in sorted(config[k].items(), key=lambda x:x[1]["port"])}  for k in ["Navis","Dextra","Sinistra"]})
 
 #Time to automatically update the gui
-refresh_time = pyxis_config["refresh_time"]*1000 #now in ms
+refresh_time = int(pyxis_config["refresh_time"]*1000) #now in ms
 
 def debug_trace():
   '''Set a tracepoint in the Python debugger that works with Qt.

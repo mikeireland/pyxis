@@ -133,7 +133,7 @@ class CoarseMetCameraWidget(QWidget):
         self.port = config["port"]
         self.prefix = config["prefix"]
         self.socket = ClientSocket(IP=IP, Port=self.port)
-        self.feed_refresh_time = config["feed_refresh_time"]*1000
+        self.feed_refresh_time = int(config["feed_refresh_time"]*1000)
         self.compression_param = config["compression_param"]
 
         #Layout the common elements
