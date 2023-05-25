@@ -31,9 +31,9 @@ sleep_time = 1000 #Time to sleep in waiting loop
 
 [FineStarTracker]
 RB_port = "4100"
-Centroid_sleeptime = 700000
+platescale = 1.547
 Centroid_exptime = 10000
-PlateSolve_sleeptime = 200000
-PlateSolve_exptime = 150000
-
+PlateSolve_exptime = 250000
+centroid_x_target = 720.0
+centroid_y_target = 540.0
 

@@ -205,7 +205,7 @@ void *runCam(void*) {
 			
 				// Reset latest file for plate solver to stop solving when not running
 				pthread_mutex_lock(&GLOB_LATEST_FILE_LOCK);
-    			GLOB_LATEST_FILE = "CAMERA_NOT_RUNNING";
+    			GLOB_LATEST_FILE = "CAMERA_NOT_SAVING";
    				pthread_mutex_unlock(&GLOB_LATEST_FILE_LOCK);
 
 			}

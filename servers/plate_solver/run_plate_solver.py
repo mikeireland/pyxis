@@ -87,7 +87,7 @@ output_folder = folder to store auxillary and solution files
 OUTPUTS:
 An attitude quaternion in AltAz coordinate frame of the image
 """
-def run_image(img_filename,config,target):
+def run_image(img_filename,config,target,offset):
     start_time = time.perf_counter()
 
     prefix = os.path.basename(img_filename).split('.', 1)[0]
@@ -113,8 +113,8 @@ def run_image(img_filename,config,target):
               depth=config["Astrometry"]["depth"],
               scale_bounds=(config["Astrometry"]["FOV_min"],
                             config["Astrometry"]["FOV_max"]),
-              ref_pix=(config["Astrometry"]["ref_pix_x"],
-                       config["Astrometry"]["ref_pix_y"]),
+              ref_pix=(config["Astrometry"]["ref_pix_x"]+offset[0],
+                       config["Astrometry"]["ref_pix_y"]+offset[1]),
               est_pos_flag=config["Astrometry"]["estimate_position"]["flag"],
               est_pos=(config["Astrometry"]["estimate_position"]["ra"],
                        config["Astrometry"]["estimate_position"]["dec"],
@@ -149,7 +149,7 @@ def run_image(img_filename,config,target):
     end_time = time.perf_counter()
     print(f"\nCompleted in {end_time - start_time:0.4f} seconds")
 
-    print(f"Angles: Alt={angles[1]}, Az={angles[0]}, PosAng={angles[2]}")
+    print(f"Angles: Az={angles[0]}, Alt={angles[1]}, PosAng={angles[2]}")
 
     return (1,angles)
 
@@ -209,6 +209,17 @@ if __name__ == "__main__":
     except:
         print('ERROR: Could not connect to robot server. Please check that the server is running and IP is correct.')       
     
+    #Tip Tilt Server
+    if config["use_tiptilt_offset"]:
+        try:
+            fibre_injection_socket = context.socket(zmq.REQ)
+            tcpstring = "tcp://"+config["NavisIP"]+":"+config["tiptilt_port"]
+            fibre_injection_socket.connect(tcpstring)
+            fibre_injection_socket.RCVTIMEO = 1000
+            print("Connected to fibre injection")
+        except:
+            print('ERROR: Could not connect to fibre injection server. Please check that the server is running and IP is correct.')       
+      
     print("Beginning loop")
     while(1):
 
@@ -227,6 +238,21 @@ if __name__ == "__main__":
             print("Bad target format")
         
         print(target)
+
+        if config["use_tiptilt_offset"]:
+            fibre_injection_socket.send_string(config["tiptilt_command"])
+            message = fibre_injection_socket.recv()
+            message = message.decode("utf-8")
+            print("Received fibre injection server message: %s" % message )
+
+            try:
+                result = json.loads(message)
+                offset = (result["X"],result["Y"])
+            except:
+                print("Bad target format")
+                offset = (0,0)
+        else:
+            offset = (0,0)
         
         camera_socket.send_string(config["camera_port_name"]+".getlatestfilename")
     
@@ -241,12 +267,12 @@ if __name__ == "__main__":
             print("Filename Exists. Running solver")
 
             #run image
-            flag,angles = run_image(filename,config,target)
+            flag,angles = run_image(filename,config,target,offset)
 
             if flag>0:
 
                 # WORK ON ANGLES -> return_message
-                return_message = "receive_CST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
+                return_message = "receive_ST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
 
                 #Send reply to robot
                 print(return_message)

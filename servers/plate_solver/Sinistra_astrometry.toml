@@ -4,6 +4,12 @@ camera_port = "4302"
 camera_port_name = "CST"
 robot_control_port = "4300"
 target_port = "4303"
+
+use_tiptilt_offset = True
+tiptilt_port = "4105"
+NavisIP = "192.168.1.3"
+tiptilt_command = "FI.getSinistraOffset"
+
 path_to_data = "/home/pyxisuser/git/pyxis/servers/coarse_star_tracker"
 
 [Tetra3]
@@ -22,4 +28,4 @@ ref_pix_y = 500 #y reference pixel for WCS solution
     flag = 0
     ra = 0
     dec = 0
-    rad = 5
+    rad = 10
