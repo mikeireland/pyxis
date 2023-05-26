@@ -1,6 +1,10 @@
-screen -t Camera sh -c "cd ~/GitRepos/pyxis/servers/coarse_star_tracker; bin/CoarseStarTrackerServer config/DextraStarTracker.toml; bash"
-screen -t Target sh -c "cd ~/GitRepos/pyxis/servers/target_server; bin/TargetServer config/DextraTargetConfig.toml; bash"
-screen -t PlateSolver sh -c "cd ~/GitRepos/pyxis/servers/plate_solver; python3 run_plate_solver.py Dextra_astrometry.toml; bash"
-screen -t Auxillary sh -c "cd ~/GitRepos/pyxis/servers/deputy_aux; bin/DeputyAuxServer config/DextraAuxConfig.toml; bash"
-screen -t Robot sh -c "cd ~/GitRepos/pyxis/linux_driver; bin/robot_driver; bash"
-screen -t Shell sh -c "cd ~/GitRepos/pyxis/servers; bash"
+hardstatus alwayslastline "Terminal Win: %n - [%t]"
+hardstatus ignore
+zombie kr
+screen -t Camera bash -c "cd ~/GitRepos/pyxis/servers/coarse_star_tracker; bin/CoarseStarTrackerServer config/DextraStarTracker.toml; exec bash"
+screen -t Target bash -c "cd ~/GitRepos/pyxis/servers/target_server; bin/TargetServer config/DextraTargetConfig.toml; bash"
+screen -t PlateSolver bash -c "cd ~/GitRepos/pyxis/servers/plate_solver; python3 run_plate_solver.py Dextra_astrometry.toml; bash"
+screen -t Auxillary bash -c "cd ~/GitRepos/pyxis/servers/deputy_aux; bin/DeputyAuxServer config/DextraAuxConfig.toml; bash"
+screen -t Robot bash -c "cd ~/GitRepos/pyxis/linux_driver; bin/robot_driver; bash"
+screen -t Shell bash -c "cd ~/GitRepos/pyxis/servers; bash"
+

@@ -158,6 +158,33 @@ def get_image(input_folder):
     latest_file = max(list_of_files, key=os.path.getctime)
     return latest_file
 
+
+def tt_to_plate(index,current_radec,offset):
+
+    del_x,del_y = offset
+
+    tt_to_beam = 3.35 #1px to arcseconds
+    plate_scale = 14.2
+    
+    beam_angles = np.array([del_x,del_y])*tt_to_beam
+    
+    #get elevation (and azimuth)
+    e,a = conversion.toAltAz_rad(current_radec[0],current_radec[1])
+    
+
+    #Coordinate transform
+    if index == 1:
+        M = np.array([[np.cos(e)**2, 5], [np.cos(e)*np.sin(e) + 5*np.cos(e)**2, 1]])
+    elif index == 2:
+        M = np.array([[np.cos(e)**2, 5], [np.cos(e)*np.sin(e) + 5*np.cos(e)**2, 1]])
+    
+    inv_M = np.linalg.inv(M)
+    plate_angles = inv_M @ beam_angles
+    pixel_plate_angles = plate_angles/plate_scale
+    
+    return pixel_plate_angles
+
+
 ###############################################################################
 
 if __name__ == "__main__":
@@ -210,7 +237,7 @@ if __name__ == "__main__":
         print('ERROR: Could not connect to robot server. Please check that the server is running and IP is correct.')       
     
     #Tip Tilt Server
-    if config["use_tiptilt_offset"]:
+    if config["platesolver_index"] > 0:
         try:
             fibre_injection_socket = context.socket(zmq.REQ)
             tcpstring = "tcp://"+config["NavisIP"]+":"+config["tiptilt_port"]
@@ -239,7 +266,7 @@ if __name__ == "__main__":
         
         print(target)
 
-        if config["use_tiptilt_offset"]:
+        if config["platesolver_index"] > 0:
             fibre_injection_socket.send_string(config["tiptilt_command"])
             message = fibre_injection_socket.recv()
             message = message.decode("utf-8")
@@ -247,7 +274,13 @@ if __name__ == "__main__":
 
             try:
                 result = json.loads(message)
-                offset = (result["X"],result["Y"])
+                raw_offset = (result["X"],result["Y"])
+                
+                offset = tt_to_plate(config["platesolver_index"],
+                                    (config["Astrometry"]["estimate_position"]["ra"],
+                                     config["Astrometry"]["estimate_position"]["dec"]),
+                                     raw_offset)
+                
             except:
                 print("Bad target format")
                 offset = (0,0)
