@@ -16,7 +16,18 @@ using std::chrono::milliseconds;
 
 using namespace std;
 
+// Calculate differential voltage corresponding to the given displacement
+double displacementToVoltage(double displacement){
+    //Linear??
+    pthread_mutex_lock(&GLOB_FLAG_LOCK);
+    double a = GLOB_CA_TIPTILT_VOLTAGE_FACTOR;
+	double b = GLOB_CA_TIPTILT_PIXEL_CONVERSION;
+    pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 
+    double result = a*b*displacement;
+    
+    return result;
+}
 
 void* serverLoop(void*){
 
