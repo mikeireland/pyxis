@@ -4,7 +4,9 @@ camera_port = "4102"
 camera_port_name = "FST"
 robot_control_port = "4100"
 target_port = "4303"
-use_tiptilt_offset = False
+
+platesolver_index = 0
+
 path_to_data = "/home/jhansen/GitRepos/pyxis/servers/fine_star_tracker"
 
 [Tetra3]

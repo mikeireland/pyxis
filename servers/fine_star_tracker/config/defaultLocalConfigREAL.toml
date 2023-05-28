@@ -1,5 +1,5 @@
 port = "4102"
-IP = "192.168.1.3"
+IP = "127.0.0.1"
 
 [FLIRcamera]
 #cam_ID = "20031596"
@@ -31,9 +31,10 @@ sleep_time = 1000 #Time to sleep in waiting loop
 
 [FineStarTracker]
 RB_port = "4100"
-platescale = 7.5e-6
+platescale = 1.547
 Centroid_exptime = 10000
 PlateSolve_exptime = 250000
 centroid_x_target = 720.0
 centroid_y_target = 540.0
+
 

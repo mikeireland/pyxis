@@ -84,13 +84,13 @@ int FST_Callback (unsigned short* data){
     diff_angles.y = (position.y - GLOB_FST_TARGET_CENTROID.y)*GLOB_FST_PLATESCALE;
 
     pthread_mutex_lock(&GLOB_FST_FLAG_LOCK);
-    GLOB_FST_CENTROID = diff_position;
+    GLOB_FST_CENTROID = diff_angles;
     pthread_mutex_unlock(&GLOB_FST_FLAG_LOCK);
 
     cout << "Sending diff angles" << endl;
     
     cout << diff_angles.x << ", " << diff_angles.y << endl;
-    std::string result = RB_SOCKET->send<std::string>("receive_ST_angle", diff_angles.x, diff_angles.y, 0.0);
+    //std::string result = RB_SOCKET->send<std::string>("receive_ST_angle", diff_angles.x, diff_angles.y, 0.0);
 
     return 0;
 }
@@ -135,6 +135,7 @@ struct FineStarTracker: FLIRCameraServer{
     }
 
     string switchToCentroid(){
+        string ret_msg;
         if(GLOB_CAM_STATUS == 2){
             if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
                 // First, stop the camera if running
@@ -156,7 +157,7 @@ struct FineStarTracker: FLIRCameraServer{
                 ret_msg = this->startcam(GLOB_NUMFRAMES,GLOB_COADD);
                 cout << ret_msg << endl;
 
-                ret_msg = "Switched to Centroiding Mode"
+                ret_msg = "Switched to Centroiding Mode";
             }else{
                 ret_msg = "Camera Busy!";
             }
@@ -167,6 +168,7 @@ struct FineStarTracker: FLIRCameraServer{
     }
     
     string switchToPlatesolve(){
+        string ret_msg;
         if(GLOB_CAM_STATUS == 2){
             if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
                 // First, stop the camera if running
@@ -188,7 +190,7 @@ struct FineStarTracker: FLIRCameraServer{
                 ret_msg = this->startcam(GLOB_NUMFRAMES,GLOB_COADD);
                 cout << ret_msg << endl;
                 
-                ret_msg = "Switched to Plate Solving Mode"
+                ret_msg = "Switched to Plate Solving Mode";
             }else{
                 ret_msg = "Camera Busy!";
             }
@@ -224,7 +226,7 @@ COMMANDER_REGISTER(m)
         .def("reconfigure_savedir", &FineStarTracker::reconfigure_savedir, "Reconfigure the save directory")
         .def("getparams", &FineStarTracker::getparams, "Get all parameters")
         .def("getstar", &FineStarTracker::getstarposition, "Get position of the star")
-        .def("switchCentroid", &FineStarTracker::startFSTloop, "Switch to Centroiding Mode")
-        .def("switchPlateSolve", &FineStarTracker::stopFSTloop, "Switch to Plate Solving Mode");
+        .def("switchCentroid", &FineStarTracker::switchToCentroid, "Switch to Centroiding Mode")
+        .def("switchPlateSolve", &FineStarTracker::switchToPlatesolve, "Switch to Plate Solving Mode");
 
 }
