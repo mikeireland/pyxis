@@ -210,7 +210,7 @@ piezoXYStatus moveTipTiltDextra(double x_voltage, double y_voltage){
 	return ret_val;
 }
 
-piezoXYStatus moveTipTiltSinistra(double x_voltage, double y_voltage){
+piezoXYStatus moveTipTiltSinistra(double dx_voltage, double dy_voltage){
     piezoXYStatus ret_val;
     string ret_msg;
 	if(GLOB_CA_STATUS==2){
@@ -277,6 +277,17 @@ powerStatus requestPower(){
     return ret_p;
 }
 
+string receiveTipTiltPos(centroid Dpos, centroid Spos){
+	double DextraDx = displacementToVoltage(Dpos.x) + CURRENT_DEXTRA_X_VOLTAGE;
+	double DextraDy = displacementToVoltage(Dpos.y) + CURRENT_DEXTRA_Y_VOLTAGE;
+	double SinistraDx = displacementToVoltage(Spos.x) + CURRENT_SINISTRA_X_VOLTAGE;
+	double SinistraDy = displacementToVoltage(Spos.y) + CURRENT_SINISTRA_Y_VOLTAGE;
+
+	// SEND TO TEENSY
+
+
+}
+
 };
 
 // Serialiser to convert configuration struct to/from JSON
@@ -330,6 +341,18 @@ namespace nlohmann {
             j.at("message").get_to(p.msg);
         }
     };
+
+    template <>
+    struct adl_serializer<centroid> {
+        static void to_json(json& j, const centroid& c) {
+            j = json{{"x", c.x},{"y", c.y}};
+        }
+
+        static void from_json(const json& j, centroid& c) {
+            j.at("x").get_to(c.x);
+            j.at("y").get_to(c.y);
+        }
+    };
 }
 
 // Register as commander server
@@ -344,6 +367,7 @@ COMMANDER_REGISTER(m)
 		.def("finestage", &ChiefAuxServer::moveFineStage, "Move fine stage")
 		.def("tiptiltD", &ChiefAuxServer::moveTipTiltDextra, "Move tip tilt piezo for Dextra beam")
 		.def("tiptiltS", &ChiefAuxServer::moveTipTiltSinistra, "Move tip tilt piezo for Sinistra beam")
-		.def("scipiezo", &ChiefAuxServer::moveSciPiezo, "Move science piezo");
+		.def("scipiezo", &ChiefAuxServer::moveSciPiezo, "Move science piezo")
+		.def("receiveTipTiltPos", &ChiefAuxServer::receiveTipTiltPos, "Receive positions to move tip tilt piezos");
 
 }

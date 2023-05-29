@@ -124,7 +124,7 @@ struct FiberInjection: FLIRCameraServer{
         // Set up client parameters
         toml::table config = toml::parse_file(GLOB_CONFIGFILE);
         // Retrieve port and IP
-        std::string CA_port = config["FibreInjection"]["FI_port"].value_or("4100");
+        std::string CA_port = config["FibreInjection"]["CA_port"].value_or("4100");
         std::string IP = config["FibreInjection"]["IP"].value_or("192.168.1.3");
 
         // Turn into a TCPString

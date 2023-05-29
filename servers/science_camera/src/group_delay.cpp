@@ -18,7 +18,8 @@ Eigen::MatrixXd GLOB_SC_DELAY_AVE;
 int GLOB_SC_WINDOW_INDEX = 0;
 double GLOB_SC_WINDOW_ALPHA;
 
-double GLOB_SC_GD;
+double GLOB_SC_GD = 0.0;
+double GLOB_SC_V2SNR = 0.0;
 
 Eigen::ArrayXcd delays;
 
@@ -53,6 +54,8 @@ int calcGroupDelay(unsigned short* data) {
     Eigen::Matrix<Cd, 20, 3> O;
     Eigen::Matrix<Cd, 20, 3> V;
     Eigen::Matrix<Cd, 20, 1> g;
+    Eigen::Matrix<Cd, 20, 1> V2;
+    Eigen::Matrix<Cd, 20, 1> SNR;
     
     extractToMatrix(&data,&O);
 
@@ -65,6 +68,11 @@ int calcGroupDelay(unsigned short* data) {
     // Get complex coherence vector (g) as a function of wavelength
     g = (V.col(0) + If*V.col(1));
     g = g.array()*((V.col(2)).array().inverse());
+
+    V2 = g.array().abs2();
+    SNR = V2*(V.col(2)).array();
+
+    GLOB_SC_V2SNR = SNR.norm();
 
     // Fourier transform sampling by multiplying by trial delay matrix
     GLOB_SC_DELAY_AMP = (GLOB_SC_DELAYMAT*g).cwiseAbs2().real();
