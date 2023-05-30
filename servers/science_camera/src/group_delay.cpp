@@ -8,12 +8,10 @@
 
 using Cd = std::complex<double>;
 
-const double PI = 3.14159265;
-const Cd If(0.,1.);
-
 Eigen::MatrixXcd GLOB_SC_DELAYMAT;
 Eigen::MatrixXd GLOB_SC_DELAY_CURRENT_AMP;
 Eigen::MatrixXd GLOB_SC_DELAY_AVE;
+Eigen::MatrixXd GLOB_SC_V2;
 
 int GLOB_SC_WINDOW_INDEX = 0;
 double GLOB_SC_WINDOW_ALPHA;
@@ -35,9 +33,9 @@ int calcTrialDelayMat(int numDelays, double delaySize){
 
     for(int k=0;k<numDelays;k++){
         for(int l=0;l<10;l++){
-            Cd num = 2*PI*If*delays(k)/GLOB_SC_CAL.wavelengths[l];
+            Cd num = 2*PI*I*delays(k)/GLOB_SC_CAL.wavelengths[l];
             phasors(k,l) = num;
-            phasors(k,l+10s) = num;
+            phasors(k,l+10) = num;
         }
     }
 
@@ -49,40 +47,39 @@ int calcTrialDelayMat(int numDelays, double delaySize){
 
 
 // Main function to take in a frame and calculate the group delay
-int calcGroupDelay(unsigned short* data) {
+int calcGroupDelay(const unsigned short* data) {
     
     Eigen::Matrix<Cd, 20, 3> O;
     Eigen::Matrix<Cd, 20, 3> V;
     Eigen::Matrix<Cd, 20, 1> g;
-    Eigen::Matrix<Cd, 20, 1> V2;
     Eigen::Matrix<Cd, 20, 1> SNR;
     
     extractToMatrix(&data,&O);
 
     // Convert to V(isibilities) via P2VM
-    for(int k=0;k<10;k++){
+    for(int k=0;k<20;k++){
         Eigen::Matrix<Cd, 3, 1> O_i = O.row(k);
         V.row(k) = *GLOB_SC_P2VM_l[k]*O_i;
     }
 
     // Get complex coherence vector (g) as a function of wavelength
-    g = (V.col(0) + If*V.col(1));
+    g = (V.col(0) + I*V.col(1));
     g = g.array()*((V.col(2)).array().inverse());
 
-    V2 = g.array().abs2();
-    SNR = V2*(V.col(2)).array();
+    GLOB_SC_V2 = g.array().abs2().real();
+    SNR = GLOB_SC_V2*(V.col(2)).array();
 
-    GLOB_SC_V2SNR = SNR.norm();
+    GLOB_SC_V2SNR = SNR.norm().real();
 
     // Fourier transform sampling by multiplying by trial delay matrix
-    GLOB_SC_DELAY_AMP = (GLOB_SC_DELAYMAT*g).cwiseAbs2().real();
+    GLOB_SC_DELAY_CURRENT_AMP = (GLOB_SC_DELAYMAT*g).cwiseAbs2().real();
     
     //Moving average/fading memory
     if not (GLOB_SC_WINDOW_INDEX){
         GLOB_SC_DELAY_AVE = GLOB_SC_DELAY_AMP;
         GLOB_SC_WINDOW_INDEX = 1;
     } else{
-        GLOB_SC_DELAY_AVE = GLOB_SC_WINDOW_ALPHA*GLOB_SC_DELAY_AMP + (1.0-GLOB_SC_WINDOW_ALPHA)*GLOB_SC_DELAY_AVE;
+        GLOB_SC_DELAY_AVE = GLOB_SC_WINDOW_ALPHA*GLOB_SC_DELAY_CURRENT_AMP + (1.0-GLOB_SC_WINDOW_ALPHA)*GLOB_SC_DELAY_AVE;
     }
 
     // Extract group delay from maximum of the fourier transform

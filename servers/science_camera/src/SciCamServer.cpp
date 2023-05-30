@@ -4,6 +4,9 @@
 #include <commander/commander.h>
 #include "QHYcamServerFuncs.h"
 
+
+using json = nlohmann::json;
+
 commander::client::Socket* CA_SOCKET;
 
 int GLOB_SC_DARK_FLAG;
@@ -15,7 +18,7 @@ double GLOB_SC_V2SNR_THRESHOLD;
 pthread_mutex_t GLOB_SC_FLAG_LOCK;
 
 // Return 1 if error!
-int GroupDelayCallback (unsigned short* data){
+int GroupDelayCallback (const unsigned short* data){
     int ret_val;
     if (GLOB_SC_DARK_FLAG){
         ret_val = measureDark(data);
@@ -29,7 +32,8 @@ int GroupDelayCallback (unsigned short* data){
             GLOB_SC_STAGE = 2;
             pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
         } else {
-            cout << "HAVE NOT SAVED DARKS YET" << endl; 
+            cout << "HAVE NOT SAVED DARKS YET" << endl;
+            return 1;
         }
     } else if (GLOB_SC_FLUX_FLAG == 2){
         if (GLOB_SC_STAGE == 2){
@@ -39,6 +43,7 @@ int GroupDelayCallback (unsigned short* data){
             pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
         } else {
             cout << "HAVE NOT SAVED FLUX 1 YET" << endl; 
+            return 1;
         }
     } else {
         if (GLOB_SC_STAGE == 4){
@@ -50,6 +55,9 @@ int GroupDelayCallback (unsigned short* data){
                     pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                     GLOB_SC_SCAN_FLAG = 0;
                     pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                    // SEND STOP COMMAND
+                    cout << "FOUND FRINGES" << endl;
+                    return 1;
                 }
             } else{
                 cout << GLOB_SC_GD << endl;
@@ -58,7 +66,8 @@ int GroupDelayCallback (unsigned short* data){
             }
 
         } else {
-            cout << "HAVE NOT CREATED P2VM MATRIX YET" << endl;   
+            cout << "HAVE NOT CREATED P2VM MATRIX YET" << endl; 
+            return 1;  
         }
     }
 
@@ -93,6 +102,12 @@ struct SciCam: QHYCameraServer{
 
         calcTrialDelayMat(numDelays,delaySize);
 
+        for(int k=0;k<20;k++){
+            GLOB_SC_P2VM_SIGNS[k] = config["ScienceCamera"]["signs"][k].value_or(1); 
+        }
+
+        GLOB_SC_V2 = MatrixXd::Zero(20);
+        GLOB_SC_DELAY_AVE = MatrixXd::Zero(numDelays);
     }
 
     ~SciCam(){
@@ -134,13 +149,32 @@ struct SciCam: QHYCameraServer{
         string ret_msg;
         if (GLOB_SC_STAGE > 2){
             ret_msg = "Setting up P2VM Matrix";
-            calcP2VMMat();
+            calcP2VMmain();
         } else if (GLOB_SC_STAGE == 0){
             ret_msg = "Please save Darks first";
         } else if (GLOB_SC_STAGE == 1){
             ret_msg = "Please save Flux Dextra first";
         } else if (GLOB_SC_STAGE == 2){
             ret_msg = "Please save Flux Sinistra first";
+        }
+        return ret_msg;
+    }
+
+    string enableFringeScan(){
+        string ret_msg;
+        if (GLOB_SC_STAGE > 3){
+            ret_msg = "Enabling Fringe Scanning";
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        GLOB_SC_SCAN_FLAG = 1;
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        } else if (GLOB_SC_STAGE == 0){
+            ret_msg = "Please save Darks first";
+        } else if (GLOB_SC_STAGE == 1){
+            ret_msg = "Please save Flux Dextra first";
+        } else if (GLOB_SC_STAGE == 2){
+            ret_msg = "Please save Flux Sinistra first";
+        } else if (GLOB_SC_STAGE == 3){
+            ret_msg = "Please make P2VM matrices first";
         }
         return ret_msg;
     }
@@ -163,16 +197,28 @@ struct SciCam: QHYCameraServer{
         return ret_msg;
     }
 
-    ?? getV2array(){
-
+    string getV2array(){
+        string ret_msg;
+        json j;
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        vector<double> vec (GLOB_SC_V2.data(), GLOB_SC_V2.data() + GLOB_SC_V2.size());
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        j["V2"] = vec;
+        std::string s = j.dump();
+        ret_msg = s;
+        return ret_msg
     }
 
-    ??? getGDarray(){
-
-    }
-
-    string FRINGESCANNING(){
-        
+    string getGDarray(){
+        string ret_msg;
+        json j;
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        vector<double> vec (GLOB_SC_DELAY_AVE.data(), GLOB_SC_DELAY_AVE.data() + GLOB_SC_DELAY_AVE.size());
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        j["GroupDelay"] = vec;
+        std::string s = j.dump();
+        ret_msg = s;
+        return ret_msg
     }
 
 };
@@ -201,13 +247,13 @@ COMMANDER_REGISTER(m)
         .def("reconfigure_buffersize", &SciCam::reconfigure_buffersize, "Reconfigure the buffer size")
         .def("reconfigure_savedir", &SciCam::reconfigure_savedir, "Reconfigure the save directory")
         .def("getparams", &SciCam::getparams, "Get all parameters")
-        .def("getgroupdelay", &SciCam::getGroupDelay, "Get current group delay estimate")
-        .def("getgroupdelayarr", &SciCam::getGroupDelayArr, "Get group delay array amplitudes")
-        .def("calibrateP2VM", &SciCam::calibrateP2VM, "Get current group delay estimate")
-        .def("setwavescale", &SciCam::setWaveScale, "Get current group delay estimate")
-        .def("calctrialdelays", &SciCam::calcTrialDelays, "Get current group delay estimate")
-        .def("setpixelpos", &SciCam::setPixelPos, "Get current group delay estimate")
-        .def("savecalibration", &SciCam::saveCal, "Save calibration data to file")
-        .def("readcalibration", &SciCam::readCal, "Read calibration data from file");
+        .def("enableDarks", &SciCam::enableDarks, "Enable darks")
+        .def("enableFluxes", &SciCam::enableFluxes, "Enable fluxes")
+        .def("calcP2VM", &SciCam::calcP2VM, "Calculate P2VM matrices")
+        .def("enableFringeScan", &SciCam::enableFringeScan, "Enable fringe scanning")
+        .def("getGDarray", &SciCam::getGDarray, "Get current group delay envelope")
+        .def("getGDestimate", &SciCam::getGDestimate, "Get current group delay estimate")
+        .def("getV2array", &SciCam::getV2array, "Get V2 array per pixel")
+        .def("getV2SNRestimate", &SciCam::getV2SNRestimate, "Get V2 SNR estimate");
 
 }

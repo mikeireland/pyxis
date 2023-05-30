@@ -8,6 +8,11 @@
 extern int GLOB_CA_STATUS; //0 = Off, 1 = On, 2 = waiting
 extern int GLOB_CA_REQUEST; //1 = no command, 2 = turn LED on, 3 = turn LED off, 4 = request power
 
+struct centroid {
+    double x;
+    double y;
+};
+
 //Power parameters struct. Can be serialised to/from JSON
 struct powerStruct{
     float current; //current
