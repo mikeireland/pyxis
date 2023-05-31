@@ -28,7 +28,9 @@ IP = "192.168.1.3"#"192.168.1.4"
 
 [ScienceCamera]
 IP = "192.168.1.3"
-port = "4100"
+CA_port = "4100"
+TS_port = "4100"
 numDelays = 1000
 delaySize = 1
 SNRThreshold = 10
+signs = [1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0]

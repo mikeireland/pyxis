@@ -13,6 +13,8 @@ struct coord{
 };
 
 coord GLOB_TS_COORD;
+string GLOB_TS_NAME;
+double GLOB_TS_BASELINE;
 
 //config_file
 char* GLOB_CONFIGFILE = (char*)"./";
@@ -38,10 +40,34 @@ string setCoordinates(double new_ra, double new_dec){
 	return ret_msg;
 }
 
+string setTargetName(string target_name){
+    string ret_msg;
+    GLOB_TS_NAME = target_name;
+    ret_msg = "Set Target Name to " + target_name;
+	return ret_msg;
+}
+
+string setBaseline(double baseline){
+    string ret_msg;
+    GLOB_TS_BASELINE = baseline;
+    ret_msg = "Set baseline " + to_string(baseline);
+	return ret_msg;
+}
+
 coord getCoordinates(){
 	coord ret_coord;
 	ret_coord = GLOB_TS_COORD;
 	return ret_coord;
+}
+
+string getTargetName(){
+	string name = GLOB_TS_NAME;
+	return name;
+}
+
+double getBaseline(){
+	double baseline = GLOB_TS_BASELINE;
+	return baseline;
 }
 
 string status(){
@@ -58,8 +84,12 @@ COMMANDER_REGISTER(m)
 {
     m.instance<TargetServer>("TS")
         // To insterface a class method, you can use the `def` method.
-        .def("getCoordinates", &TargetServer::getCoordinates, "Set Ra and Dec")
-        .def("setCoordinates", &TargetServer::setCoordinates, "Get Ra and Dec")
+        .def("getCoordinates", &TargetServer::getCoordinates, "Get Ra and Dec")
+        .def("getTargetName", &TargetServer::getTargetName, "Get Target Name")
+        .def("getBaseline", &TargetServer::getBaseline, "Get Baseline")
+        .def("setCoordinates", &TargetServer::setCoordinates, "Set Ra and Dec")
+        .def("setTargetName", &TargetServer::setTargetName, "Set Target Name")
+        .def("setBaseline", &TargetServer::setBaseline, "Set Baseline")
         .def("status", &TargetServer::status, "Check status");
 }
 

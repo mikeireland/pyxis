@@ -105,6 +105,11 @@ QHYCamera::QHYCamera(qhyccd_handle *pCam_init, toml::table config_init){
 
     savefilename_prefix = config["fits"]["filename_prefix"].value_or("");
     savefilename = savefilename_prefix + ".fits";
+
+    ra = 0.0;
+    dec = 0.0;
+    target_name = "No Target Set";
+    baseline = 0.0;
 }
 
 
@@ -568,12 +573,37 @@ int QHYCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
          "Timestamp of beginning of exposure UTC", &status) )
          return( status );
 
-    // Write starting time in UTC
+    // Write Target Name
+    if ( fits_write_key(fptr, TSTRING, "TARGETNAME", &GLOB_TARGET_NAME,
+         "Name of Target", &status) )
+         return( status );
+
+    // Write RA
+    if ( fits_write_key(fptr, TDOUBLE, "RA", &GLOB_RA,
+         "Right Ascension (deg)", &status) )
+         return( status );
+
+    // Write DEC
+    if ( fits_write_key(fptr, TDOUBLE, "DEC", &GLOB_DEC,
+         "Declination (deg)", &status) )
+         return( status );
+
+    // Write Baseline
+    if ( fits_write_key(fptr, TDOUBLE, "BASELINE", &GLOB_BASELINE,
+         "Baseline (m)", &status) )
+         return( status );
+
+    // Write Datatype
+    if ( fits_write_key(fptr, TSTRING, "DATATYPE", &GLOB_DATATYPE,
+         "Baseline (m)", &status) )
+         return( status );
+
+    // Write Pixel Format
     if ( fits_write_key(fptr, TINT, "PIXEL FORMAT", &pixel_format,
          "Pixel Format", &status) )
          return( status );
 
-    // Write starting time in UTC
+    // Write Readout Mode
     if ( fits_write_key(fptr, TINT, "READOUTMODE", &readout_mode,
          "Readout mode", &status) )
          return( status );

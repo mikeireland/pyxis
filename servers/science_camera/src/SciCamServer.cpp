@@ -13,7 +13,28 @@
 
 using json = nlohmann::json;
 
+struct coord{
+    double RA; //current
+    double DEC; //voltage
+};
+
+// Serialiser to convert coord struct to/from JSON
+namespace nlohmann {
+    template <>
+    struct adl_serializer<coord> {
+        static void to_json(json& j, const coord& c) {
+            j = json{{"RA", c.RA}, {"DEC", c.DEC}};
+        }
+
+        static void from_json(const json& j, coord& c) {
+            j.at("RA").get_to(c.RA);
+            j.at("DEC").get_to(c.DEC);
+        }
+    };
+}
+
 commander::client::Socket* CA_SOCKET;
+commander::client::Socket* TS_SOCKET;
 
 int GLOB_SC_DARK_FLAG;
 int GLOB_SC_FLUX_FLAG;
@@ -61,7 +82,8 @@ int GroupDelayCallback (unsigned short* data){
                     pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                     GLOB_SC_SCAN_FLAG = 0;
                     pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
-                    // SEND STOP COMMAND
+                    // SEND STOP COMMAND and SET TO FAST FREQUENCY
+                    // std::string result = CA_SOCKET->send<std::string>("receiveGroupDelay", GLOB_SC_GD);
                     cout << "FOUND FRINGES" << endl;
                     return 1;
                 }
@@ -89,12 +111,15 @@ struct SciCam: QHYCameraServer{
         toml::table config = toml::parse_file(GLOB_CONFIGFILE);
         // Retrieve port and IP
         std::string CA_port = config["ScienceCamera"]["CA_port"].value_or("4100");
-        std::string IP = config["ScienceCamera"]["IP"].value_or("192.168.1.3");
+        std::string TS_port = config["ScienceCamera"]["TS_port"].value_or("4100");
+        std::string IP = config["IP"].value_or("192.168.1.3");
 
         // Turn into a TCPString
         std::string CA_TCP = "tcp://" + IP + ":" + CA_port;
+        std::string TS_TCP = "tcp://" + IP + ":" + TS_port;
         
         CA_SOCKET = new commander::client::Socket(CA_TCP);
+        TS_SOCKET = new commander::client::Socket(TS_TCP);
 
         int xref = config["ScienceCamera"]["xref"].value_or(500);
         int yref = config["ScienceCamera"]["yref"].value_or(500);
@@ -121,33 +146,58 @@ struct SciCam: QHYCameraServer{
     }
 
     string enableDarks(int flag){
-        string ret_msg = "Changing Dark flag to: " + to_string(flag);
-        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-        GLOB_SC_DARK_FLAG = flag;
-        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        string ret_msg;
+        if(GLOB_CAM_STATUS == 2){
+            if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0 and GLOB_RUNNING == 0){
+                ret_msg = "Changing Dark flag to: " + to_string(flag);
+                pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                GLOB_SC_DARK_FLAG = flag;
+                if (flag){
+                    GLOB_DATATYPE = "DARK";
+                } else {
+                    GLOB_DATATYPE = "INTERFEROMETRIC";
+                }
+                pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+            }else{
+                ret_msg = "Camera Busy!";
+            }
+	    }else{
+		    ret_msg = "Camera Not Connected or Currently Connecting!";
+	    }
         return ret_msg;
     }
 
     string enableFluxes(int flag){
         string ret_msg;
-        if (GLOB_SC_STAGE > 0){
-            string status;
-            if (flag == 0){
-                status = "off";
-            } else if (flag == 1){
-                status = "Dextra";
-            } else if (flag == 2){
-                status = "Sinistra";
-            } else {
-                status = "UNKNOWN INDEX";
+        if(GLOB_CAM_STATUS == 2){
+            if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0 and GLOB_RUNNING == 0){
+                if (GLOB_SC_STAGE > 0){
+                    string status;
+                    pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                    if (flag == 0){
+                        status = "off"; 
+                        GLOB_DATATYPE = "INTERFEROMETRIC";
+                    } else if (flag == 1){
+                        status = "Dextra";
+                        GLOB_DATATYPE = "DEXTRA FLUX";
+                    } else if (flag == 2){
+                        status = "Sinistra";
+                        GLOB_DATATYPE = "SINISTRA FLUX";
+                    } else {
+                        status = "UNKNOWN INDEX";
+                    }
+                    GLOB_SC_FLUX_FLAG = flag;
+                    pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                    ret_msg = "Changing Flux flag to: " + status;
+                } else {
+                    ret_msg = "Please save Darks first";
+                }
+            }else{
+                ret_msg = "Camera Busy!";
             }
-            ret_msg = "Changing Flux flag to: " + status;
-            pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-            GLOB_SC_FLUX_FLAG = flag;
-            pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
-        } else {
-            ret_msg = "Please save Darks first";
-        }
+	    }else{
+		    ret_msg = "Camera Not Connected or Currently Connecting!";
+	    }
         return ret_msg;
     }
 
@@ -168,20 +218,30 @@ struct SciCam: QHYCameraServer{
 
     string enableFringeScan(){
         string ret_msg;
-        if (GLOB_SC_STAGE > 3){
-            ret_msg = "Enabling Fringe Scanning";
-        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-        GLOB_SC_SCAN_FLAG = 1;
-        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
-        } else if (GLOB_SC_STAGE == 0){
-            ret_msg = "Please save Darks first";
-        } else if (GLOB_SC_STAGE == 1){
-            ret_msg = "Please save Flux Dextra first";
-        } else if (GLOB_SC_STAGE == 2){
-            ret_msg = "Please save Flux Sinistra first";
-        } else if (GLOB_SC_STAGE == 3){
-            ret_msg = "Please make P2VM matrices first";
-        }
+        if(GLOB_CAM_STATUS == 2){
+            if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0 and GLOB_RUNNING == 0){
+                if (GLOB_SC_STAGE > 3){
+                    ret_msg = "Enabling Fringe Scanning";
+                    pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                    GLOB_SC_SCAN_FLAG = 1;
+                    pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                    // SET TO SLOW FREQUENCY
+                    // std::string result = CA_SOCKET->send<std::string>("receiveGroupDelay", GLOB_SC_GD);
+                } else if (GLOB_SC_STAGE == 0){
+                    ret_msg = "Please save Darks first";
+                } else if (GLOB_SC_STAGE == 1){
+                    ret_msg = "Please save Flux Dextra first";
+                } else if (GLOB_SC_STAGE == 2){
+                    ret_msg = "Please save Flux Sinistra first";
+                } else if (GLOB_SC_STAGE == 3){
+                    ret_msg = "Please make P2VM matrices first";
+                }
+            }else{
+                ret_msg = "Camera Busy!";
+            }
+	    }else{
+		    ret_msg = "Camera Not Connected or Currently Connecting!";
+	    }
         return ret_msg;
     }
 
@@ -227,6 +287,21 @@ struct SciCam: QHYCameraServer{
         return ret_msg;
     }
 
+    string setTargetandBaseline(){
+        string ret_msg;
+        auto coords = TS_SOCKET->send<coord>("getCoordinates");
+        auto target_name = TS_SOCKET->send<std::string>("getTargetName");
+        auto baseline = TS_SOCKET->send<double>("getBaseline");
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        GLOB_TARGET_NAME = target_name;
+        GLOB_BASELINE = baseline;
+        GLOB_RA = coords.RA;
+        GLOB_DEC = coords.DEC;
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        ret_msg = "Science Camera: Set Baseline to " + to_string(baseline) + " and target to " + to_string(target_name);
+        return ret_msg;
+    }
+
 };
 
 // Register as commander server
@@ -260,6 +335,7 @@ COMMANDER_REGISTER(m)
         .def("getGDarray", &SciCam::getGDarray, "Get current group delay envelope")
         .def("getGDestimate", &SciCam::getGDestimate, "Get current group delay estimate")
         .def("getV2array", &SciCam::getV2array, "Get V2 array per pixel")
-        .def("getV2SNRestimate", &SciCam::getV2SNRestimate, "Get V2 SNR estimate");
+        .def("getV2SNRestimate", &SciCam::getV2SNRestimate, "Get V2 SNR estimate")
+        .def("setTargetandBaseline", &SciCam::setTargetandBaseline, "Set target and baseline info for FITS");
 
 }
