@@ -4,11 +4,11 @@ project(FiberInjectionServer VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
 
 add_executable(FiberInjectionServer
-    ../libs/camera/src/main.cpp ../libs/camera/src/runFLIRCam.cpp ../libs/camera/src/FLIRCamera.cpp ../libs/camera/src/globals.cpp ../libs/camera/src/FLIRcamServerFuncs.cpp FiberInjectionServer.cpp
+    ../libs/camera/src/main.cpp ../libs/camera/src/runFLIRCam.cpp ../libs/camera/src/FLIRCamera.cpp ../libs/camera/src/globals.cpp ../libs/imageproc/src/centroid.cpp ../libs/camera/src/FLIRcamServerFuncs.cpp FiberInjectionServer.cpp
 )
 
 
-target_include_directories(FiberInjectionServer PUBLIC ../libs/camera/include /opt/spinnaker/include ~/Downloads/build/include)
+target_include_directories(FiberInjectionServer PUBLIC ../libs/camera/include ../libs/imageproc/include /opt/spinnaker/include ~/Downloads/build/include)
 target_compile_features(FiberInjectionServer PUBLIC cxx_std_17)
 
 find_package(commander REQUIRED)

@@ -2,8 +2,11 @@
 #include <fmt/core.h>
 #include <iostream>
 #include <commander/commander.h>
+#include <commander/client/socket.h>
 #include "FLIRcamServerFuncs.h"
 #include "globals.h"
+#include "toml.hpp"
+#include "centroid.hpp"
 #include <opencv2/opencv.hpp>
 
 using json = nlohmann::json;
@@ -62,8 +65,8 @@ int FibreInjectionCallback (unsigned short* data){
             cv::Point2i DextraCentre(GLOB_FI_DEXTRA_CURRENT_CENTROID.x, GLOB_FI_DEXTRA_CURRENT_CENTROID.y);
             cv::Point2i SinistraCentre(GLOB_FI_SINISTRA_CURRENT_CENTROID.x, GLOB_FI_SINISTRA_CURRENT_CENTROID.y);
 
-            auto DextraP = getCentroidWCOG(img, DextraCentre, GLOB_FI_CENTROID_WEIGHTS, GLOB_FI_INTERP_SIZE, GLOB_FI_CENTROID_GAIN);
-            auto SinistraP = getCentroidWCOG(img, SinistraCentre, GLOB_FI_CENTROID_WEIGHTS, GLOB_FI_INTERP_SIZE, GLOB_FI_CENTROID_GAIN);
+            auto DextraP = centroid_funcs::getCentroidWCOG(img, DextraCentre, GLOB_FI_CENTROID_WEIGHTS, GLOB_FI_INTERP_SIZE, GLOB_FI_CENTROID_GAIN);
+            auto SinistraP = centroid_funcs::getCentroidWCOG(img, SinistraCentre, GLOB_FI_CENTROID_WEIGHTS, GLOB_FI_INTERP_SIZE, GLOB_FI_CENTROID_GAIN);
             
             pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
             GLOB_FI_DEXTRA_CURRENT_CENTROID.x = DextraP.x;
@@ -71,13 +74,13 @@ int FibreInjectionCallback (unsigned short* data){
             GLOB_FI_SINISTRA_CURRENT_CENTROID.x = SinistraP.x;
             GLOB_FI_SINISTRA_CURRENT_CENTROID.x = SinistraP.y;
 
-            GLOB_FI_DEXTRA_DIFF_CENTROID.x = GLOB_FI_DEXTRA_TARGET_CENTROID.x - DextraP.x;
-            GLOB_FI_DEXTRA_DIFF_CENTROID.y = GLOB_FI_DEXTRA_TARGET_CENTROID.y - DextraP.y;
-            GLOB_FI_SINISTRA_DIFF_CENTROID.x = GLOB_FI_SINISTRA_TARGET_CENTROID.x - SinistraP.x;
-            GLOB_FI_SINISTRA_DIFF_CENTROID.y = GLOB_FI_SINISTRA_TARGET_CENTROID.y - SinistraP.y;
+            GLOB_FI_DEXTRA_DIFF_POSITION.x = GLOB_FI_DEXTRA_TARGET_CENTROID.x - DextraP.x;
+            GLOB_FI_DEXTRA_DIFF_POSITION.y = GLOB_FI_DEXTRA_TARGET_CENTROID.y - DextraP.y;
+            GLOB_FI_SINISTRA_DIFF_POSITION.x = GLOB_FI_SINISTRA_TARGET_CENTROID.x - SinistraP.x;
+            GLOB_FI_SINISTRA_DIFF_POSITION.y = GLOB_FI_SINISTRA_TARGET_CENTROID.y - SinistraP.y;
             pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
             
-            std::string result = CA_SOCKET->send<std::string>("receiveTipTiltPos", GLOB_FI_DEXTRA_DIFF_CENTROID, GLOB_FI_SINISTRA_DIFF_CENTROID)
+            std::string result = CA_SOCKET->send<std::string>("receiveTipTiltPos", GLOB_FI_DEXTRA_DIFF_POSITION, GLOB_FI_SINISTRA_DIFF_POSITION);
             cout << result << endl;
 
         } else {
@@ -85,9 +88,9 @@ int FibreInjectionCallback (unsigned short* data){
             cv::Point2i DextraCentre(GLOB_FI_DEXTRA_TARGET_CENTROID.x, GLOB_FI_DEXTRA_TARGET_CENTROID.y);
             cv::Point2i SinistraCentre(GLOB_FI_SINISTRA_TARGET_CENTROID.x, GLOB_FI_SINISTRA_TARGET_CENTROID.y);
 
-            auto DextraP = windowCentroidWCOG(img, GLOB_FI_INTERP_SIZE, GLOB_FI_GAUSS_RAD, DextraCentre, 
+            auto DextraP = centroid_funcs::windowCentroidWCOG(img, GLOB_FI_INTERP_SIZE, GLOB_FI_GAUSS_RAD, DextraCentre, 
                                             GLOB_FI_WINDOW_SIZE, GLOB_FI_CENTROID_WEIGHTS, GLOB_FI_CENTROID_GAIN);
-            auto SinistraP = windowCentroidWCOG(img, GLOB_FI_INTERP_SIZE, GLOB_FI_GAUSS_RAD, SinistraCentre, 
+            auto SinistraP = centroid_funcs::windowCentroidWCOG(img, GLOB_FI_INTERP_SIZE, GLOB_FI_GAUSS_RAD, SinistraCentre, 
                                             GLOB_FI_WINDOW_SIZE, GLOB_FI_CENTROID_WEIGHTS, GLOB_FI_CENTROID_GAIN);
 
             pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
@@ -96,10 +99,10 @@ int FibreInjectionCallback (unsigned short* data){
             GLOB_FI_SINISTRA_CURRENT_CENTROID.x = SinistraP.x;
             GLOB_FI_SINISTRA_CURRENT_CENTROID.x = SinistraP.y;
 
-            GLOB_FI_DEXTRA_DIFF_CENTROID.x = GLOB_FI_DEXTRA_TARGET_CENTROID.x - DextraP.x;
-            GLOB_FI_DEXTRA_DIFF_CENTROID.y = GLOB_FI_DEXTRA_TARGET_CENTROID.y - DextraP.y;
-            GLOB_FI_SINISTRA_DIFF_CENTROID.x = GLOB_FI_SINISTRA_TARGET_CENTROID.x - SinistraP.x;
-            GLOB_FI_SINISTRA_DIFF_CENTROID.y = GLOB_FI_SINISTRA_TARGET_CENTROID.y - SinistraP.y;
+            GLOB_FI_DEXTRA_DIFF_POSITION.x = GLOB_FI_DEXTRA_TARGET_CENTROID.x - DextraP.x;
+            GLOB_FI_DEXTRA_DIFF_POSITION.y = GLOB_FI_DEXTRA_TARGET_CENTROID.y - DextraP.y;
+            GLOB_FI_SINISTRA_DIFF_POSITION.x = GLOB_FI_SINISTRA_TARGET_CENTROID.x - SinistraP.x;
+            GLOB_FI_SINISTRA_DIFF_POSITION.y = GLOB_FI_SINISTRA_TARGET_CENTROID.y - SinistraP.y;
 
             if (GLOB_FI_SET_TARGET_FLAG){
                 GLOB_FI_DEXTRA_TARGET_CENTROID.x = GLOB_FI_DEXTRA_CURRENT_CENTROID.x;
@@ -149,9 +152,10 @@ struct FiberInjection: FLIRCameraServer{
         GLOB_FI_WINDOW_SIZE = config["FibreInjection"]["Centroid"]["gaussian_window_size"].value_or(50);
         GLOB_FI_CENTROID_GAIN = config["FibreInjection"]["Centroid"]["WCOG_gain"].value_or(1.0);
 
-        sigma = config["FibreInjection"]["Centroid"]["WCOG_sigma"].value_or(1.0);
+        double sigma = config["FibreInjection"]["Centroid"]["WCOG_sigma"].value_or(1.0);
+        int img_type = config["FibreInjection"]["Centroid"]["img_type"].value_or(2);
 
-        GLOB_FI_CENTROID_WEIGHTS = centroid::weightFunction(GLOB_FI_INTERP_SIZE, sigma);
+        GLOB_FI_CENTROID_WEIGHTS = centroid_funcs::weightFunction(GLOB_FI_INTERP_SIZE, sigma, img_type);
 
     }
 
@@ -179,9 +183,9 @@ struct FiberInjection: FLIRCameraServer{
         centroid pos;
         pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
         if (index == 1){
-            pos = GLOB_FI_DEXTRA_TARGET_POSITION;
+            pos = GLOB_FI_DEXTRA_TARGET_CENTROID;
         } else if (index == 2){
-            pos = GLOB_FI_SINISTRA_TARGET_POSITION;
+            pos = GLOB_FI_SINISTRA_TARGET_CENTROID;
         } else {
             cout << "BAD INDEX" << endl;
             pos.x = 0.0;
@@ -195,9 +199,9 @@ struct FiberInjection: FLIRCameraServer{
         centroid pos;
         pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
         if (index == 1){
-            pos = GLOB_FI_DEXTRA_CURRENT_POSITION;
+            pos = GLOB_FI_DEXTRA_CURRENT_CENTROID;
         } else if (index == 2){
-            pos = GLOB_FI_SINISTRA_CURRENT_POSITION;
+            pos = GLOB_FI_SINISTRA_CURRENT_CENTROID;
         } else {
             cout << "BAD INDEX" << endl;
             pos.x = 0.0;
@@ -228,7 +232,7 @@ struct FiberInjection: FLIRCameraServer{
         if (GLOB_FI_SET_TARGET_FLAG){
             ret_msg = "Target flag already set";
         } else if (GLOB_FI_TIPTILTSERVO_FLAG){
-            ret_msg = "Can't set target when tip/tilt servo is running"
+            ret_msg = "Can't set target when tip/tilt servo is running";
         } else {
             pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
             GLOB_FI_SET_TARGET_FLAG = 1;

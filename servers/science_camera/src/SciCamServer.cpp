@@ -1,8 +1,15 @@
-
+#include <fstream>
+#include <string>
 #include <fmt/core.h>
 #include <iostream>
 #include <commander/commander.h>
+#include <commander/client/socket.h>
+#include "toml.hpp"
 #include "QHYcamServerFuncs.h"
+#include "globals.h"
+#include "setup.hpp"
+#include "group_delay.hpp"
+#include <Eigen/Dense>
 
 
 using json = nlohmann::json;
@@ -18,7 +25,7 @@ double GLOB_SC_V2SNR_THRESHOLD;
 pthread_mutex_t GLOB_SC_FLAG_LOCK;
 
 // Return 1 if error!
-int GroupDelayCallback (const unsigned short* data){
+int GroupDelayCallback (unsigned short* data){
     int ret_val;
     if (GLOB_SC_DARK_FLAG){
         ret_val = measureDark(data);
@@ -47,7 +54,7 @@ int GroupDelayCallback (const unsigned short* data){
         }
     } else {
         if (GLOB_SC_STAGE == 4){
-            retVal = calcGroupDelay(data);
+            ret_val = calcGroupDelay(data);
 
             if (GLOB_SC_SCAN_FLAG){
                 cout << GLOB_SC_V2SNR << endl;
@@ -61,7 +68,7 @@ int GroupDelayCallback (const unsigned short* data){
                 }
             } else{
                 cout << GLOB_SC_GD << endl;
-                std::string result = CA_SOCKET->send<std::string>("receiveGroupDelay", GLOB_SC_GD)
+                std::string result = CA_SOCKET->send<std::string>("receiveGroupDelay", GLOB_SC_GD);
                 cout << result << endl;
             }
 
@@ -106,8 +113,8 @@ struct SciCam: QHYCameraServer{
             GLOB_SC_P2VM_SIGNS[k] = config["ScienceCamera"]["signs"][k].value_or(1); 
         }
 
-        GLOB_SC_V2 = MatrixXd::Zero(20);
-        GLOB_SC_DELAY_AVE = MatrixXd::Zero(numDelays);
+        GLOB_SC_V2 = Eigen::MatrixXd::Zero(20,1);
+        GLOB_SC_DELAY_AVE = Eigen::MatrixXd::Zero(numDelays,1);
     }
 
     ~SciCam(){
@@ -184,7 +191,7 @@ struct SciCam: QHYCameraServer{
         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
         a = GLOB_SC_V2SNR;
         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
-        string ret_msg = "V2 SNR Estimate is " + a;
+        string ret_msg = "V2 SNR Estimate is " + to_string(a);
         return ret_msg;
     }
 
@@ -193,7 +200,7 @@ struct SciCam: QHYCameraServer{
         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
         a = GLOB_SC_GD;
         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
-        string ret_msg = "Group Delay Estimate is " + a;
+        string ret_msg = "Group Delay Estimate is " + to_string(a);
         return ret_msg;
     }
 
@@ -206,7 +213,7 @@ struct SciCam: QHYCameraServer{
         j["V2"] = vec;
         std::string s = j.dump();
         ret_msg = s;
-        return ret_msg
+        return ret_msg;
     }
 
     string getGDarray(){
@@ -218,7 +225,7 @@ struct SciCam: QHYCameraServer{
         j["GroupDelay"] = vec;
         std::string s = j.dump();
         ret_msg = s;
-        return ret_msg
+        return ret_msg;
     }
 
 };

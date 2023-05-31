@@ -1,7 +1,7 @@
 #include <opencv2/opencv.hpp>
 #include <cassert>
 
-namespace centroid {
+namespace centroid_funcs {
 void meshgrid(const cv::Mat &x, const cv::Mat &y, cv::Mat &X, cv::Mat &Y) {
         cv::repeat(x.reshape(1, 1), y.total(), 1, X);
         cv::repeat(y.reshape(1, 1).t(), 1, x.total(), Y);
@@ -12,16 +12,18 @@ cv::Point2d getCentroidCOG(const cv::Mat &image, const cv::Point &center, int in
     assert(image.channels() == 1 &&
            "CentroidInterp only defined for grey scale image");
     
-    sub_rect = cv::Rect(center.x - (interp_size-1)/2, center.y - (interp_size-1)/2, 
-                        interp_size, interp_size)
+    auto sub_rect = cv::Rect(center.x - (interp_size-1)/2, center.y - (interp_size-1)/2, 
+                        interp_size, interp_size);
     cv::Mat img = image(sub_rect);
     cv::Mat gridx, gridy;
     cv::Mat XX, YY;
     double x, y;
-    for (int i = 0; i != sub_rect.width; i++)
+    for (int i = 0; i != sub_rect.width; i++){
         gridx.push_back(i);
-    for (int i = 0; i != sub_rect.height; i++)
+        }
+    for (int i = 0; i != sub_rect.height; i++){
         gridy.push_back(i);
+        }
     meshgrid(gridx, gridy, XX, YY);
     XX.convertTo(XX, img.type());
     YY.convertTo(YY, img.type());
@@ -30,9 +32,9 @@ cv::Point2d getCentroidCOG(const cv::Mat &image, const cv::Point &center, int in
     return cv::Point2d(x, y) + static_cast<cv::Point2d>(sub_rect.tl());
 }
 
-cv::Mat weightFunction(int interp_size, double sigma){
+cv::Mat weightFunction(int interp_size, double sigma, int img_type){
 
-    int radius = (interp_size-1)/2
+    int radius = (interp_size-1)/2;
     
     cv::Mat gridx, gridy;
     cv::Mat XX, YY;
@@ -43,13 +45,15 @@ cv::Mat weightFunction(int interp_size, double sigma){
         gridy.push_back(i);
     }
     meshgrid(gridx, gridy, XX, YY);
-    XX.convertTo(XX, img.type());
-    YY.convertTo(YY, img.type());
+    XX.convertTo(XX, img_type);
+    YY.convertTo(YY, img_type);
 
     XX2 = XX.clone() - radius;
     YY2 = YY.clone() - radius;
-
-    ZZ = cv::pow(XX2,2,XX2) + cv::pow(YY2,2,YY2);
+    
+    cv::pow(XX2,2,XX2);
+    cv::pow(YY2,2,YY2);
+    ZZ = XX2 + YY2;
     cv::pow(ZZ,2,ZZ);
     ZZ *= -sigma;
 
@@ -64,8 +68,8 @@ cv::Point2d getCentroidWCOG(const cv::Mat &image, const cv::Point &center, const
     assert(image.channels() == 1 &&
            "CentroidInterp only defined for grey scale image");
     
-    int radius = (interp_size-1)/2
-    sub_rect = cv::Rect(center.x - radius, center.y - radius, interp_size, interp_size)
+    int radius = (interp_size-1)/2;
+    auto sub_rect = cv::Rect(center.x - radius, center.y - radius, interp_size, interp_size);
 
     cv::Mat img = image(sub_rect);
     cv::Mat gridx, gridy;
@@ -107,7 +111,7 @@ cv::Point2d windowCentroidCOG(const cv::Mat &image, int interp_size, int gauss_r
 
     cv::minMaxLoc(gauss_img, nullptr, nullptr, nullptr, &p_est);
 
-    p_est += static_cast<cv::Point2d>(window.tl());
+    p_est += static_cast<cv::Point2i>(window.tl());
 
     p_ret = getCentroidCOG(image, p_est, interp_size);
 
@@ -119,7 +123,7 @@ cv::Point2d windowCentroidCOG(const cv::Mat &image, int interp_size, int gauss_r
     assert(image.channels() == 1 &&
            "CentroidInterp only defined for grey scale image");
 
-    window = cv::Rect(center.x - (window_size-1)/2, center.y - (window_size-1)/2, window_size, window_size);
+    auto window = cv::Rect(center.x - (window_size-1)/2, center.y - (window_size-1)/2, window_size, window_size);
     cv::Mat window_img = image(window);
 
     cv::Mat gauss_img = window_img.clone();
@@ -131,7 +135,7 @@ cv::Point2d windowCentroidCOG(const cv::Mat &image, int interp_size, int gauss_r
 
     cv::minMaxLoc(gauss_img, nullptr, nullptr, nullptr, &p_est);
 
-    p_est += static_cast<cv::Point2d>(window.tl());
+    p_est += static_cast<cv::Point2i>(window.tl());
 
     p_ret = getCentroidCOG(image, p_est, interp_size);
 
@@ -155,7 +159,7 @@ cv::Point2d windowCentroidWCOG(const cv::Mat &image, int interp_size, int gauss_
 
     cv::minMaxLoc(gauss_img, nullptr, nullptr, nullptr, &p_est);
 
-    p_est += static_cast<cv::Point2d>(window.tl());
+    p_est += static_cast<cv::Point2i>(window.tl());
 
     p_ret = getCentroidWCOG(image, p_est, weights, interp_size, gain);
 
@@ -168,7 +172,7 @@ cv::Point2d windowCentroidWCOG(const cv::Mat &image, int interp_size, int gauss_
     assert(image.channels() == 1 &&
            "CentroidInterp only defined for grey scale image");
 
-    window = cv::Rect(center.x - (window_size-1)/2, center.y - (window_size-1)/2, window_size, window_size);
+    auto window = cv::Rect(center.x - (window_size-1)/2, center.y - (window_size-1)/2, window_size, window_size);
     cv::Mat window_img = image(window);
 
     cv::Mat gauss_img = window_img.clone();
@@ -180,7 +184,7 @@ cv::Point2d windowCentroidWCOG(const cv::Mat &image, int interp_size, int gauss_
 
     cv::minMaxLoc(gauss_img, nullptr, nullptr, nullptr, &p_est);
 
-    p_est += static_cast<cv::Point2d>(window.tl());
+    p_est += static_cast<cv::Point2i>(window.tl());
 
     p_ret = getCentroidWCOG(image, p_est, weights, interp_size, gain);
 
