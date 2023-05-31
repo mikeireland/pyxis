@@ -1,11 +1,17 @@
 #include <opencv2/opencv.hpp>
 #include <cassert>
+#include "centroid.hpp"
+
 
 namespace centroid_funcs {
+
+
 void meshgrid(const cv::Mat &x, const cv::Mat &y, cv::Mat &X, cv::Mat &Y) {
         cv::repeat(x.reshape(1, 1), y.total(), 1, X);
         cv::repeat(y.reshape(1, 1).t(), 1, x.total(), Y);
     }
+    
+ 
 
 cv::Point2d getCentroidCOG(const cv::Mat &image, const cv::Point &center, int interp_size) {
 
@@ -27,12 +33,14 @@ cv::Point2d getCentroidCOG(const cv::Mat &image, const cv::Point &center, int in
     meshgrid(gridx, gridy, XX, YY);
     XX.convertTo(XX, img.type());
     YY.convertTo(YY, img.type());
+    
+    std::cout << XX << std::endl;
     x = double(cv::sum(XX.mul(img))[0]) / cv::sum(img)[0];
     y = double(cv::sum(YY.mul(img))[0]) / cv::sum(img)[0];
     return cv::Point2d(x, y) + static_cast<cv::Point2d>(sub_rect.tl());
 }
 
-cv::Mat weightFunction(int interp_size, double sigma, int img_type){
+cv::Mat weightFunction(int interp_size, double sigma){
 
     int radius = (interp_size-1)/2;
     
@@ -45,8 +53,8 @@ cv::Mat weightFunction(int interp_size, double sigma, int img_type){
         gridy.push_back(i);
     }
     meshgrid(gridx, gridy, XX, YY);
-    XX.convertTo(XX, img_type);
-    YY.convertTo(YY, img_type);
+    XX.convertTo(XX, CV_32F);
+    YY.convertTo(YY, CV_32F);
 
     XX2 = XX.clone() - radius;
     YY2 = YY.clone() - radius;
@@ -55,7 +63,7 @@ cv::Mat weightFunction(int interp_size, double sigma, int img_type){
     cv::pow(YY2,2,YY2);
     ZZ = XX2 + YY2;
     cv::pow(ZZ,2,ZZ);
-    ZZ *= -sigma;
+    ZZ *= -1.0/(2.0*sigma*sigma);
 
     cv::exp(ZZ,ZZ);
 
@@ -72,23 +80,24 @@ cv::Point2d getCentroidWCOG(const cv::Mat &image, const cv::Point &center, const
     auto sub_rect = cv::Rect(center.x - radius, center.y - radius, interp_size, interp_size);
 
     cv::Mat img = image(sub_rect);
+    
     cv::Mat gridx, gridy;
-    cv::Mat XX, YY, weighted_images;
+    cv::Mat XX, YY, weighted_image;
     double x, y;
     for (int i = 0; i != interp_size; i++){
         gridx.push_back(i);
         gridy.push_back(i);
     }
     meshgrid(gridx, gridy, XX, YY);
-    XX.convertTo(XX, img.type());
-    YY.convertTo(YY, img.type());
+    XX.convertTo(XX, CV_32F);
+    YY.convertTo(YY, CV_32F);
 
-    weighted_images = img.clone();
-    weighted_images = weighted_images.mul(weights);
-
-    x = double(cv::sum(XX.mul(weighted_images))[0]) / cv::sum(weighted_images)[0];
-    y = double(cv::sum(YY.mul(weighted_images))[0]) / cv::sum(weighted_images)[0];
-
+    img.convertTo(weighted_image, CV_32F);
+    weighted_image = weighted_image.mul(weights);
+    
+    x = double(cv::sum(XX.mul(weighted_image))[0]) / cv::sum(weighted_image)[0];
+    y = double(cv::sum(YY.mul(weighted_image))[0]) / cv::sum(weighted_image)[0];
+    
     x*=gain;
     y*=gain;
     return cv::Point2d(x, y) + static_cast<cv::Point2d>(sub_rect.tl());
@@ -107,6 +116,7 @@ cv::Point2d windowCentroidCOG(const cv::Mat &image, int interp_size, int gauss_r
     cv::GaussianBlur(gauss_img, gauss_img, cv::Size(gauss_radius, gauss_radius), 0, 0, cv::BORDER_DEFAULT);
 
     cv::Point2i p_est;
+    
     cv::Point2d p_ret;
 
     cv::minMaxLoc(gauss_img, nullptr, nullptr, nullptr, &p_est);
@@ -134,7 +144,7 @@ cv::Point2d windowCentroidCOG(const cv::Mat &image, int interp_size, int gauss_r
     cv::Point2d p_ret;
 
     cv::minMaxLoc(gauss_img, nullptr, nullptr, nullptr, &p_est);
-
+    
     p_est += static_cast<cv::Point2i>(window.tl());
 
     p_ret = getCentroidCOG(image, p_est, interp_size);

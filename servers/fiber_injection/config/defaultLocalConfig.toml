@@ -2,18 +2,18 @@ port = "4105"
 IP = "127.0.0.1"
 
 [FLIRcamera]
-#cam_ID = "20031596"
-cam_ID = "20031616"
+cam_ID = "20031596"
+#cam_ID = "20031616"
 
     [FLIRcamera.camera]
     adc_bit_depth = "Bit10" #"Bit10" is a good default
-    width = 1440
-    height = 1080
+    width = 300
+    height = 300
     offset_x = 0
     offset_y = 0
     gain = 10 #in dB
     black_level = 2 #in percent? ADU?
-    exposure_time = 50000 # in microseconds
+    exposure_time = 5000 # in microseconds
     num_frames = 0 #Default number of frames to save per FITS file; 0 is continuous with no saving
     buffer_size = 200 #Size of circular buffer
 

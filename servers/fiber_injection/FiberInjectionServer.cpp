@@ -9,12 +9,8 @@
 #include "centroid.hpp"
 #include <opencv2/opencv.hpp>
 
-using json = nlohmann::json;
-
-struct centroid {
-    double x;
-    double y;
-};
+#include <chrono>
+#include <ctime>
 
 centroid GLOB_FI_DEXTRA_TARGET_CENTROID;
 centroid GLOB_FI_DEXTRA_CURRENT_CENTROID;
@@ -38,6 +34,11 @@ int GLOB_FI_WINDOW_SIZE;
 int GLOB_FI_CENTROID_GAIN;
 
 cv::Mat GLOB_FI_CENTROID_WEIGHTS;
+
+std::chrono::time_point<std::chrono::system_clock> GLOB_FI_PREVIOUS = std::chrono::system_clock::now();
+
+
+using json = nlohmann::json;
 
 namespace nlohmann {
     template <>
@@ -115,6 +116,12 @@ int FibreInjectionCallback (unsigned short* data){
             pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
         }
     }
+    usleep(4000);
+    std::chrono::time_point<std::chrono::system_clock> end;
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - GLOB_FI_PREVIOUS;
+    GLOB_FI_PREVIOUS = end;
+    cout << "FPS: " << 1/elapsed_seconds.count() << endl;
     return 0;
 }
 
@@ -153,9 +160,8 @@ struct FiberInjection: FLIRCameraServer{
         GLOB_FI_CENTROID_GAIN = config["FibreInjection"]["Centroid"]["WCOG_gain"].value_or(1.0);
 
         double sigma = config["FibreInjection"]["Centroid"]["WCOG_sigma"].value_or(1.0);
-        int img_type = config["FibreInjection"]["Centroid"]["img_type"].value_or(2);
 
-        GLOB_FI_CENTROID_WEIGHTS = centroid_funcs::weightFunction(GLOB_FI_INTERP_SIZE, sigma, img_type);
+        GLOB_FI_CENTROID_WEIGHTS = centroid_funcs::weightFunction(GLOB_FI_INTERP_SIZE, sigma);
 
     }
 
