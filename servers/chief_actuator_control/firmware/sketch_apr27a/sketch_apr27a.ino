@@ -28,6 +28,7 @@ volatile int prev = 0;
 byte latest_message = 0x00;
 byte read_buffer_[128] = {0x00};
 byte write_buffer_[128] = {0x00};
+volatile int write_index = 0;
 
 unsigned short int DeviceID  = 128;
 unsigned short int FirmwareV = 2;
@@ -90,23 +91,25 @@ void readMessage() {
           break;
         case TID:
           //digitalWrite(ledPin, HIGH);
-          write_buffer_[0] = TID;
-          write_buffer_[1] = DeviceID;
-          write_buffer_[2] = FirmwareV;
-          writeMessage();
+          write_buffer_[write_index] = TID;
+          write_buffer_[write_index + 1] = DeviceID;
+          write_buffer_[write_index + 2] = FirmwareV;
+          write_index += 3;
+          //writeMessage();
           i += 3;
           break;
         case WATTMETER:
-          write_buffer_[0] = WATTMETER;
-          write_buffer_[1] = PC_Voltage & 0xFF;
-          write_buffer_[2] = (PC_Voltage >> 8) & 0xFF;
-          write_buffer_[3] = PC_Current & 0xFF;
-          write_buffer_[4] = (PC_Current >> 8) & 0xFF;
-          write_buffer_[5] = Motor_Voltage & 0xFF;
-          write_buffer_[6] = (Motor_Voltage >> 8) & 0xFF;
-          write_buffer_[7] = Motor_Current & 0xFF;
-          write_buffer_[8] = (Motor_Current >> 8) & 0xFF;
-          writeMessage();
+          write_buffer_[write_index] = WATTMETER;
+          write_buffer_[write_index + 1] = PC_Voltage & 0xFF;
+          write_buffer_[write_index + 2] = (PC_Voltage >> 8) & 0xFF;
+          write_buffer_[write_index + 3] = PC_Current & 0xFF;
+          write_buffer_[write_index + 4] = (PC_Current >> 8) & 0xFF;
+          write_buffer_[write_index + 5] = Motor_Voltage & 0xFF;
+          write_buffer_[write_index + 6] = (Motor_Voltage >> 8) & 0xFF;
+          write_buffer_[write_index + 7] = Motor_Current & 0xFF;
+          write_buffer_[write_index + 8] = (Motor_Current >> 8) & 0xFF;
+          write_index += 9;
+          //writeMessage();
           i+= 1;
           break;
         case COMPASS:
@@ -122,13 +125,14 @@ void readMessage() {
           i += 6;
           break;
         case GETPWM:
-          write_buffer_[0] = GETPWM;
-          write_buffer_[1] = duty_cycles[0];
-          write_buffer_[2] = duty_cycles[1];
-          write_buffer_[3] = duty_cycles[2];
-          write_buffer_[4] = duty_cycles[3];
-          write_buffer_[5] = duty_cycles[4];
-          writeMessage();
+          write_buffer_[write_index] = GETPWM;
+          write_buffer_[write_index + 1] = duty_cycles[0];
+          write_buffer_[write_index + 2] = duty_cycles[1];
+          write_buffer_[write_index + 3] = duty_cycles[2];
+          write_buffer_[write_index + 4] = duty_cycles[3];
+          write_buffer_[write_index + 5] = duty_cycles[4];
+          write_index += 6;
+          //writeMessage();
           i += 1;
           break;
         case SETSDC:
@@ -138,14 +142,15 @@ void readMessage() {
           i += 7;
           break;
         case GETSDC:
-          write_buffer_[0] = GETSDC;
-          write_buffer_[1] = steps_to_go & 0xFF;
-          write_buffer_[2] = (steps_to_go >> 8) & 0xFF;
-          write_buffer_[3] = (steps_to_go >> 16) & 0xFF;
-          write_buffer_[4] = (steps_to_go >> 24) & 0xFF;
-          write_buffer_[5] = period & 0xFF;
-          write_buffer_[6] = (period >> 8) & 0xFF;
-          writeMessage();
+          write_buffer_[write_index] = GETSDC;
+          write_buffer_[write_index + 1] = steps_to_go & 0xFF;
+          write_buffer_[write_index + 2] = (steps_to_go >> 8) & 0xFF;
+          write_buffer_[write_index + 3] = (steps_to_go >> 16) & 0xFF;
+          write_buffer_[write_index + 4] = (steps_to_go >> 24) & 0xFF;
+          write_buffer_[write_index + 5] = period & 0xFF;
+          write_buffer_[write_index + 6] = (period >> 8) & 0xFF;
+          write_index += 7;
+          //writeMessage();
           i += 1;
           break;
         case EMPTY:
@@ -155,6 +160,10 @@ void readMessage() {
           i += 1;
           break;
       }
+    }
+    if (write_index != 0) {
+      writeMessage();
+      write_index = 0;
     }
     for (int i = 0; i < 128; i++) {
       read_buffer_[i] = 0x00;

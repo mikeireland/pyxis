@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include "chiefAuxGlobals.hpp"
 #include <cstdlib>
+#include "SerialPort.h"
 
 using json = nlohmann::json;
 
@@ -15,6 +16,8 @@ using std::chrono::duration;
 using std::chrono::milliseconds;
 
 using namespace std;
+
+Comms::SerialPort teensy_port(128);
 
 // Calculate differential voltage corresponding to the given displacement
 double displacementToVoltage(double displacement){

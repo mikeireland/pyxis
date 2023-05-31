@@ -4,7 +4,7 @@ project(ChiefAuxServer VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
 
 add_executable(ChiefAuxServer
-    src/main.cpp src/chiefAuxGlobals.cpp src/chiefAuxServerFuncs.cpp
+    src/main.cpp src/chiefAuxGlobals.cpp src/chiefAuxServerFuncs.cpp src/Decode.cpp src/SerialPort.cpp
 )
 
 target_include_directories(ChiefAuxServer PUBLIC include ../libs/camera/include)
