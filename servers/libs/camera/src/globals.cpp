@@ -51,6 +51,16 @@ std::function<int(unsigned short*)> GLOB_CALLBACK;
 string GLOB_LATEST_FILE = "NOFILESAVED";
 int GLOB_LATEST_IMG_INDEX = 0;
 
+// TARGET PARAMS
+char* GLOB_TARGET_NAME = "NO TARGET SET";
+double GLOB_BASELINE = 0.0;
+double GLOB_RA = 0.0;
+double GLOB_DEC = 0.0;
+
+// TYPE OF DATA
+char* GLOB_DATATYPE = "INTERFEROMETRIC"
+
+
 //Global configuration struct instance
 configuration GLOB_CONFIG_PARAMS;
 

@@ -12,13 +12,27 @@
 #include <chrono>
 #include <ctime>
 
-centroid GLOB_FI_DEXTRA_TARGET_CENTROID;
-centroid GLOB_FI_DEXTRA_CURRENT_CENTROID;
-centroid GLOB_FI_DEXTRA_DIFF_POSITION;
+struct injection_centroids{
+    centroid current_pos {0.0,0.0};
+    centroid target_pos {0.0,0.0};
+    centroid diff_pos {0.0,0.0};
+    centroid centre {0.0,0.0};
+}
 
-centroid GLOB_FI_SINISTRA_TARGET_CENTROID;
-centroid GLOB_FI_SINISTRA_CURRENT_CENTROID;
-centroid GLOB_FI_SINISTRA_DIFF_POSITION;
+struct centroid_settings{
+    int interp_size;
+    int gaussian_radius;
+    int window_size;
+    int gain;
+    cv::Mat weights;
+}
+
+struct ROI{
+    int width;
+    int height;
+    int offset_x;
+    int offset_y;
+}
 
 pthread_mutex_t GLOB_FI_FLAG_LOCK;
 
@@ -28,15 +42,15 @@ int GLOB_FI_ENABLECENTROID_FLAG;
 int GLOB_FI_TIPTILTSERVO_FLAG;
 int GLOB_FI_SET_TARGET_FLAG;
 
-int GLOB_FI_INTERP_SIZE;
-int GLOB_FI_GAUSS_RAD;
-int GLOB_FI_WINDOW_SIZE;
-int GLOB_FI_CENTROID_GAIN;
-
-cv::Mat GLOB_FI_CENTROID_WEIGHTS;
-
 std::chrono::time_point<std::chrono::system_clock> GLOB_FI_PREVIOUS = std::chrono::system_clock::now();
 
+injection_centroids GLOB_FI_DEXTRA_CENTROIDS;
+injection_centroids GLOB_FI_SINISTRA_CENTROIDS;
+
+centroid_settings GLOB_FI_COARSE_SETTINGS;
+centroid_settings GLOB_FI_FINE_SETTINGS;
+
+ROI GLOB_FI_COARSE_ROI;
 
 using json = nlohmann::json;
 
@@ -54,6 +68,49 @@ namespace nlohmann {
     };
 }
 
+int roundUp(int numToRound, int multiple) {
+    assert(multiple && ((multiple & (multiple - 1)) == 0));
+    return (numToRound + multiple - 1) & -multiple;
+}
+
+int roundDown(int numToRound, int multiple) {
+    assert(multiple && ((multiple & (multiple - 1)) == 0));
+    return (numToRound) & -multiple;
+}
+
+ROI calcROI(){
+    ROI ret_ROI;
+    pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
+    injection_centroids dCentroid = GLOB_FI_DEXTRA_CENTROIDS;
+    injection_centroids sCentroid = GLOB_FI_SINISTRA_CENTROIDS;
+    centroid_settings c_fine = GLOB_FI_FINE_SETTINGS;
+    pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
+
+    int width = abs(dCentroid.target_pos.x - sCentroid.target_pos.x) + c_fine.window_size;
+    int height = abs(dCentroid.target_pos.y - sCentroid.target_pos.y) + c_fine.window_size;
+
+    int xoffset, yoffset;
+
+    if (dCentroid.target_pos.x < dCentroid.target_pos.y){
+        xoffset = dCentroid.target_pos.x - c_fine.window_size;
+    } else {
+        xoffset = sCentroid.target_pos.x - c_fine.window_size;
+    }
+    if (dCentroid.target_pos.y < dCentroid.target_pos.y){
+        yoffset = dCentroid.target_pos.y - c_fine.window_size;
+    } else {
+        yoffset = sCentroid.target_pos.y - c_fine.window_size;
+    }
+
+    ret_ROI.width = roundUp(width,4);
+    ret_ROI.height = roundUp(height,4);
+    ret_ROI.offset_x = roundDown(xoffset,4);
+    ret_ROI.offset_y = roundDown(yoffset,4);
+
+    return ret_ROI;
+}
+
+
 // Return 1 if error!
 int FibreInjectionCallback (unsigned short* data){
     if (GLOB_FI_ENABLECENTROID_FLAG){
@@ -61,59 +118,43 @@ int FibreInjectionCallback (unsigned short* data){
 
         cv::Mat img (height,GLOB_WIDTH,CV_16U,data);
 
-        if (GLOB_FI_TIPTILTSERVO_FLAG){
+        pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
+        if (GLOB_FI_TIPTILTSERVO_FLAG){  
+            centroid_settings temp_settings = GLOB_FI_FINE_SETTINGS;
+            cv::Point2i DextraCentre(GLOB_FI_DEXTRA_CENTROIDS.target_pos.x, GLOB_FI_DEXTRA_CENTROIDS.target_pos.y);
+            cv::Point2i SinistraCentre(GLOB_FI_SINISTRA_CENTROIDS.target_pos.x, GLOB_FI_SINISTRA_CENTROIDS.target_pos.y);
+        } else {
+            centroid_settings temp_settings = GLOB_FI_COARSE_SETTINGS;
+            cv::Point2i DextraCentre(GLOB_FI_DEXTRA_CENTROIDS.centre.x, GLOB_FI_DEXTRA_CENTROIDS.centre.y);
+            cv::Point2i SinistraCentre(GLOB_FI_SINISTRA_CENTROIDS.centre.x, GLOB_FI_SINISTRA_CENTROIDS.centre.y);
+        }
+        pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
 
-            cv::Point2i DextraCentre(GLOB_FI_DEXTRA_CURRENT_CENTROID.x, GLOB_FI_DEXTRA_CURRENT_CENTROID.y);
-            cv::Point2i SinistraCentre(GLOB_FI_SINISTRA_CURRENT_CENTROID.x, GLOB_FI_SINISTRA_CURRENT_CENTROID.y);
+        auto DextraP = centroid_funcs::windowCentroidWCOG(img, temp_settings.interp_size, temp_settings.gaussian_radius, DextraCentre, 
+                                        temp_settings.window_size, temp_settings.weights, temp_settings.gain);
+        auto SinistraP = centroid_funcs::windowCentroidWCOG(img, temp_settings.interp_size, temp_settings.gaussian_radius, SinistraCentre, 
+                                        temp_settings.window_size, temp_settings.weights, temp_settings.gain);
 
-            auto DextraP = centroid_funcs::getCentroidWCOG(img, DextraCentre, GLOB_FI_CENTROID_WEIGHTS, GLOB_FI_INTERP_SIZE, GLOB_FI_CENTROID_GAIN);
-            auto SinistraP = centroid_funcs::getCentroidWCOG(img, SinistraCentre, GLOB_FI_CENTROID_WEIGHTS, GLOB_FI_INTERP_SIZE, GLOB_FI_CENTROID_GAIN);
-            
-            pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
-            GLOB_FI_DEXTRA_CURRENT_CENTROID.x = DextraP.x;
-            GLOB_FI_DEXTRA_CURRENT_CENTROID.y = DextraP.y;
-            GLOB_FI_SINISTRA_CURRENT_CENTROID.x = SinistraP.x;
-            GLOB_FI_SINISTRA_CURRENT_CENTROID.x = SinistraP.y;
+        pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
+        GLOB_FI_DEXTRA_CENTROIDS.current_pos = DextraP;
+        GLOB_FI_SINISTRA_CENTROIDS.current_pos = SinistraP;
+        GLOB_FI_DEXTRA_CENTROIDS.diff_pos.x = GLOB_FI_DEXTRA_CENTROIDS.target_pos.x - DextraP.x;
+        GLOB_FI_DEXTRA_CENTROIDS.diff_pos.y = GLOB_FI_DEXTRA_CENTROIDS.target_pos.y - DextraP.y;
+        GLOB_FI_SINISTRA_CENTROIDS.diff_pos.x = GLOB_FI_SINISTRA_CENTROIDS.target_pos.x - SinistraP.x;
+        GLOB_FI_SINISTRA_CENTROIDS.diff_pos.y = GLOB_FI_SINISTRA_CENTROIDS.target_pos.y - SinistraP.y;
+        pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
 
-            GLOB_FI_DEXTRA_DIFF_POSITION.x = GLOB_FI_DEXTRA_TARGET_CENTROID.x - DextraP.x;
-            GLOB_FI_DEXTRA_DIFF_POSITION.y = GLOB_FI_DEXTRA_TARGET_CENTROID.y - DextraP.y;
-            GLOB_FI_SINISTRA_DIFF_POSITION.x = GLOB_FI_SINISTRA_TARGET_CENTROID.x - SinistraP.x;
-            GLOB_FI_SINISTRA_DIFF_POSITION.y = GLOB_FI_SINISTRA_TARGET_CENTROID.y - SinistraP.y;
-            pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
-            
+        if (GLOB_FI_TIPTILTSERVO_FLAG){  
             std::string result = CA_SOCKET->send<std::string>("receiveTipTiltPos", GLOB_FI_DEXTRA_DIFF_POSITION, GLOB_FI_SINISTRA_DIFF_POSITION);
             cout << result << endl;
-
         } else {
-
-            cv::Point2i DextraCentre(GLOB_FI_DEXTRA_TARGET_CENTROID.x, GLOB_FI_DEXTRA_TARGET_CENTROID.y);
-            cv::Point2i SinistraCentre(GLOB_FI_SINISTRA_TARGET_CENTROID.x, GLOB_FI_SINISTRA_TARGET_CENTROID.y);
-
-            auto DextraP = centroid_funcs::windowCentroidWCOG(img, GLOB_FI_INTERP_SIZE, GLOB_FI_GAUSS_RAD, DextraCentre, 
-                                            GLOB_FI_WINDOW_SIZE, GLOB_FI_CENTROID_WEIGHTS, GLOB_FI_CENTROID_GAIN);
-            auto SinistraP = centroid_funcs::windowCentroidWCOG(img, GLOB_FI_INTERP_SIZE, GLOB_FI_GAUSS_RAD, SinistraCentre, 
-                                            GLOB_FI_WINDOW_SIZE, GLOB_FI_CENTROID_WEIGHTS, GLOB_FI_CENTROID_GAIN);
-
-            pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
-            GLOB_FI_DEXTRA_CURRENT_CENTROID.x = DextraP.x;
-            GLOB_FI_DEXTRA_CURRENT_CENTROID.y = DextraP.y;
-            GLOB_FI_SINISTRA_CURRENT_CENTROID.x = SinistraP.x;
-            GLOB_FI_SINISTRA_CURRENT_CENTROID.x = SinistraP.y;
-
-            GLOB_FI_DEXTRA_DIFF_POSITION.x = GLOB_FI_DEXTRA_TARGET_CENTROID.x - DextraP.x;
-            GLOB_FI_DEXTRA_DIFF_POSITION.y = GLOB_FI_DEXTRA_TARGET_CENTROID.y - DextraP.y;
-            GLOB_FI_SINISTRA_DIFF_POSITION.x = GLOB_FI_SINISTRA_TARGET_CENTROID.x - SinistraP.x;
-            GLOB_FI_SINISTRA_DIFF_POSITION.y = GLOB_FI_SINISTRA_TARGET_CENTROID.y - SinistraP.y;
-
-            if (GLOB_FI_SET_TARGET_FLAG){
-                GLOB_FI_DEXTRA_TARGET_CENTROID.x = GLOB_FI_DEXTRA_CURRENT_CENTROID.x;
-                GLOB_FI_DEXTRA_TARGET_CENTROID.y = GLOB_FI_DEXTRA_CURRENT_CENTROID.y;
-                GLOB_FI_SINISTRA_TARGET_CENTROID.x = GLOB_FI_SINISTRA_CURRENT_CENTROID.x;
-                GLOB_FI_SINISTRA_TARGET_CENTROID.y = GLOB_FI_SINISTRA_CURRENT_CENTROID.y;
+             if (GLOB_FI_SET_TARGET_FLAG){
+                pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
+                GLOB_FI_DEXTRA_CENTROIDS.target_pos = DextraP;
+                GLOB_FI_SINISTRA_CENTROIDS.target_pos = SinistraP;
                 GLOB_FI_SET_TARGET_FLAG = 0;
-                
+                pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
             }
-            pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
         }
     }
     usleep(4000);
@@ -142,26 +183,37 @@ struct FiberInjection: FLIRCameraServer{
         
         CA_SOCKET = new commander::client::Socket(CA_TCP);
 
-        GLOB_FI_DEXTRA_TARGET_CENTROID.x = config["FibreInjection"]["Dextra"]["target_x"].value_or(720.0);
-        GLOB_FI_DEXTRA_TARGET_CENTROID.y = config["FibreInjection"]["Dextra"]["target_y"].value_or(420.0);
+        GLOB_FI_DEXTRA_CENTROIDS.target_pos.x = config["FibreInjection"]["Dextra"]["target_x"].value_or(720.0);
+        GLOB_FI_DEXTRA_CENTROIDS.target_pos.y = config["FibreInjection"]["Dextra"]["target_y"].value_or(420.0);
         
-        GLOB_FI_SINISTRA_TARGET_CENTROID.x = config["FibreInjection"]["Sinistra"]["target_x"].value_or(720.0);
-        GLOB_FI_SINISTRA_TARGET_CENTROID.y = config["FibreInjection"]["Sinistra"]["target_y"].value_or(420.0);
+        GLOB_FI_SINISTRA_CENTROIDS.target_pos.x = config["FibreInjection"]["Sinistra"]["target_x"].value_or(720.0);
+        GLOB_FI_SINISTRA_CENTROIDS.target_pos.y = config["FibreInjection"]["Sinistra"]["target_y"].value_or(420.0);
 
-        GLOB_FI_DEXTRA_DIFF_POSITION.x = 0.0;
-        GLOB_FI_DEXTRA_DIFF_POSITION.y = 0.0;
+        GLOB_FI_DEXTRA_CENTROIDS.centre.x = config["FibreInjection"]["Dextra"]["centre_x"].value_or(720.0);
+        GLOB_FI_DEXTRA_CENTROIDS.centre.y = config["FibreInjection"]["Dextra"]["centre_y"].value_or(420.0);
+        
+        GLOB_FI_SINISTRA_CENTROIDS.centre.x = config["FibreInjection"]["Sinistra"]["centre_x"].value_or(720.0);
+        GLOB_FI_SINISTRA_CENTROIDS.centre.y = config["FibreInjection"]["Sinistra"]["centre_y"].value_or(420.0);
 
-        GLOB_FI_SINISTRA_DIFF_POSITION.x = 0.0;
-        GLOB_FI_SINISTRA_DIFF_POSITION.y = 0.0;
 
-        GLOB_FI_INTERP_SIZE = config["FibreInjection"]["Centroid"]["interp_size"].value_or(7);
-        GLOB_FI_GAUSS_RAD = config["FibreInjection"]["Centroid"]["gaussian_radius"].value_or(10);
-        GLOB_FI_WINDOW_SIZE = config["FibreInjection"]["Centroid"]["gaussian_window_size"].value_or(50);
-        GLOB_FI_CENTROID_GAIN = config["FibreInjection"]["Centroid"]["WCOG_gain"].value_or(1.0);
+        GLOB_FI_COARSE_SETTINGS.interp_size = config["FibreInjection"]["CoarseCentroid"]["interp_size"].value_or(9);
+        GLOB_FI_COARSE_SETTINGS.gaussian_radius = config["FibreInjection"]["CoarseCentroid"]["gaussian_radius"].value_or(9);
+        GLOB_FI_COARSE_SETTINGS.window_size = config["FibreInjection"]["CoarseCentroid"]["gaussian_window_size"].value_or(250);
+        GLOB_FI_COARSE_SETTINGS.gain = config["FibreInjection"]["CoarseCentroid"]["WCOG_gain"].value_or(1);
+        double sigma = config["FibreInjection"]["CoarseCentroid"]["WCOG_sigma"].value_or(4);
+        GLOB_FI_COARSE_SETTINGS.weights = centroid_funcs::weightFunction(GLOB_FI_COARSE_SETTINGS.interp_size, sigma);
 
-        double sigma = config["FibreInjection"]["Centroid"]["WCOG_sigma"].value_or(1.0);
+        GLOB_FI_FINE_SETTINGS.interp_size = config["FibreInjection"]["FineCentroid"]["interp_size"].value_or(9);
+        GLOB_FI_FINE_SETTINGS.gaussian_radius = config["FibreInjection"]["FineCentroid"]["gaussian_radius"].value_or(9);
+        GLOB_FI_FINE_SETTINGS.window_size = config["FibreInjection"]["FineCentroid"]["gaussian_window_size"].value_or(100);
+        GLOB_FI_FINE_SETTINGS.gain = config["FibreInjection"]["FineCentroid"]["WCOG_gain"].value_or(1);
+        double sigma = config["FibreInjection"]["FineCentroid"]["WCOG_sigma"].value_or(4);
+        GLOB_FI_FINE_SETTINGS.weights = centroid_funcs::weightFunction(GLOB_FI_FINE_SETTINGS.interp_size, sigma);
 
-        GLOB_FI_CENTROID_WEIGHTS = centroid_funcs::weightFunction(GLOB_FI_INTERP_SIZE, sigma);
+        GLOB_FI_COARSE_ROI.width = config["FLIRcamera"]["camera"]["width"].value_or(9);
+        GLOB_FI_COARSE_ROI.height = config["FLIRcamera"]["camera"]["height"].value_or(9); 
+        GLOB_FI_COARSE_ROI.offset_x = config["FLIRcamera"]["camera"]["offset_x"].value_or(9); 
+        GLOB_FI_COARSE_ROI.offset_y = config["FLIRcamera"]["camera"]["offset_y"].value_or(9);
 
     }
 
@@ -173,9 +225,9 @@ struct FiberInjection: FLIRCameraServer{
         centroid dpos;
         pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
         if (index == 1){
-            dpos = GLOB_FI_DEXTRA_DIFF_POSITION;
+            dpos = GLOB_FI_DEXTRA_CENTROIDS.diff_pos;
         } else if (index == 2){
-            dpos = GLOB_FI_SINISTRA_DIFF_POSITION;
+            dpos = GLOB_FI_SINISTRA_CENTROIDS.diff_pos;
         } else {
             cout << "BAD INDEX" << endl;
             dpos.x = 0.0;
@@ -189,9 +241,9 @@ struct FiberInjection: FLIRCameraServer{
         centroid pos;
         pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
         if (index == 1){
-            pos = GLOB_FI_DEXTRA_TARGET_CENTROID;
+            pos = GLOB_FI_DEXTRA_CENTROIDS.target_pos;
         } else if (index == 2){
-            pos = GLOB_FI_SINISTRA_TARGET_CENTROID;
+            pos = GLOB_FI_SINISTRA_CENTROIDS.target_pos;
         } else {
             cout << "BAD INDEX" << endl;
             pos.x = 0.0;
@@ -205,9 +257,9 @@ struct FiberInjection: FLIRCameraServer{
         centroid pos;
         pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
         if (index == 1){
-            pos = GLOB_FI_DEXTRA_CURRENT_CENTROID;
+            pos = GLOB_FI_DEXTRA_CENTROIDS.current_pos;
         } else if (index == 2){
-            pos = GLOB_FI_SINISTRA_CURRENT_CENTROID;
+            pos = GLOB_FI_SINISTRA_CENTROIDS.current_pos;
         } else {
             cout << "BAD INDEX" << endl;
             pos.x = 0.0;
@@ -225,11 +277,63 @@ struct FiberInjection: FLIRCameraServer{
         return ret_msg;
     }
 
+    void change_ROI(ROI roi_settings){
+        string ret_msg;
+        ret_msg = this->reconfigure_offsetX(0);    
+        cout << ret_msg << endl;
+        ret_msg = this->reconfigure_offsetY(0);    
+        cout << ret_msg << endl;
+        ret_msg = this->reconfigure_width(roi_settings.width);    
+        cout << ret_msg << endl;
+        ret_msg = this->reconfigure_height(roi_settings.height);    
+        cout << ret_msg << endl;
+        ret_msg = this->reconfigure_offsetX(roi_settings.offset_x);    
+        cout << ret_msg << endl;
+        ret_msg = this->reconfigure_offsetY(roi_settings.offset_y);    
+        cout << ret_msg << endl;
+        return;
+    }
+
     string enableTipTiltServo(int flag){
-        string ret_msg = "Changing enable flag to: " + to_string(flag);
-        pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
-        GLOB_FI_TIPTILTSERVO_FLAG = flag;
-        pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
+        string ret_msg;
+        if(GLOB_CAM_STATUS == 2){
+            if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
+                if (flag == GLOB_FI_TIPTILTSERVO_FLAG){
+                    ret_msg = "Flag is already set"
+                } else{
+                    // First, stop the camera if running
+                    ret_msg = this->stopcam();
+                    while (GLOB_RUNNING == 1){
+                        usleep(1000);
+                    }
+                    cout << ret_msg << endl;
+
+                    if (flag == 1){
+                        // Reconfigure to fine centroiding
+                        ROI fineROI = calcROI();
+                        this->change_ROI(fineROI);    
+                    } else {
+                        // Reconfigure to coarse centroiding
+                        this->change_ROI(GLOB_FI_COARSE_ROI);    
+                    }
+
+                    while (GLOB_RECONFIGURE == 1){
+                        usleep(1000);
+                    }
+                    pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
+                    GLOB_FI_TIPTILTSERVO_FLAG = flag;
+                    pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
+                    ret_msg = this->startcam(GLOB_NUMFRAMES,GLOB_COADD);
+                    cout << ret_msg << endl;
+                    
+                    ret_msg = "Changing enable flag to: " + to_string(flag);
+                } 
+            }else{
+                ret_msg = "Camera Busy!";
+            }
+	    }else{
+		    ret_msg = "Camera Not Connected or Currently Connecting!";
+	    }        
         return ret_msg;
     }
 

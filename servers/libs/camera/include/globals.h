@@ -51,6 +51,14 @@ extern std::function<int(unsigned short*)> GLOB_CALLBACK;
 extern std::string GLOB_LATEST_FILE ;
 extern int GLOB_LATEST_IMG_INDEX;
 
+// TARGET PARAMS
+extern char* GLOB_TARGET_NAME;
+extern double GLOB_BASELINE;
+extern double GLOB_RA;
+extern double GLOB_DEC;
+
+extern char* GLOB_DATATYPE;
+
 //configuration struct of various camera parameters. Can be serialised to/from JSON
 struct configuration{
     float gain; //Gain
