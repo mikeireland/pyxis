@@ -4,6 +4,7 @@
 
 // C library headers
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <pthread.h>
 #include <thread>

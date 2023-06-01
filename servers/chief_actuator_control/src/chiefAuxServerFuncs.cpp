@@ -1,6 +1,7 @@
 
 #include <fmt/core.h>
 #include <iostream>
+#include <stdint.h>
 #include <commander/commander.h>
 #include <time.h>
 #include <pthread.h>
@@ -220,15 +221,15 @@ piezoXYStatus moveTipTiltSinistra(double dx_voltage, double dy_voltage){
 		pthread_mutex_lock(&GLOB_FLAG_LOCK);
 
 		pthread_mutex_lock(&GLOB_DATA_LOCK);
-		GLOB_CA_TIPTILT_PIEZO_SINISTRA_X = x_voltage;
-		GLOB_CA_TIPTILT_PIEZO_SINISTRA_Y = y_voltage;
+		GLOB_CA_TIPTILT_PIEZO_SINISTRA_X = dx_voltage;
+		GLOB_CA_TIPTILT_PIEZO_SINISTRA_Y = dy_voltage;
 		ret_val.X = GLOB_CA_TIPTILT_PIEZO_SINISTRA_X;
 		ret_val.Y = GLOB_CA_TIPTILT_PIEZO_SINISTRA_Y;
 		pthread_mutex_unlock(&GLOB_DATA_LOCK);
 
 		GLOB_CA_REQUEST = 3;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-		ret_msg = "Moving tip/tilt piezo Sinistra to X = " + to_string(x_voltage) + " V, Y = " + to_string(y_voltage) + " V";
+		ret_msg = "Moving tip/tilt piezo Sinistra to X = " + to_string(dx_voltage) + " V, Y = " + to_string(dy_voltage) + " V";
 	}else{
 	    ret_val.X = 0;
 		ret_val.Y = 0;
@@ -291,6 +292,15 @@ string receiveTipTiltPos(centroid Dpos, centroid Spos){
 
 }
 
+void test_piezo(uint8_t zero, uint8_t one, uint8_t two, uint8_t three, uint8_t four) {
+    teensy_port.piezo_duties[0] = zero;
+    teensy_port.piezo_duties[1] = one;
+    teensy_port.piezo_duties[2] = two;
+    teensy_port.piezo_duties[3] = three;
+    teensy_port.piezo_duties[4] = four;
+    teensy_port.Request(SETPWM);
+    teensy_port.SendAllRequests();
+}
 };
 
 // Serialiser to convert configuration struct to/from JSON
@@ -371,6 +381,7 @@ COMMANDER_REGISTER(m)
 		.def("tiptiltD", &ChiefAuxServer::moveTipTiltDextra, "Move tip tilt piezo for Dextra beam")
 		.def("tiptiltS", &ChiefAuxServer::moveTipTiltSinistra, "Move tip tilt piezo for Sinistra beam")
 		.def("scipiezo", &ChiefAuxServer::moveSciPiezo, "Move science piezo")
-		.def("receiveTipTiltPos", &ChiefAuxServer::receiveTipTiltPos, "Receive positions to move tip tilt piezos");
+		.def("receiveTipTiltPos", &ChiefAuxServer::receiveTipTiltPos, "Receive positions to move tip tilt piezos")
+		.def("testpiezo", &ChiefAuxServer::test_piezo, "testing");
 
 }

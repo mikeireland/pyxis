@@ -1,5 +1,6 @@
 port = "4101"
 IP = "127.0.0.1"
+mode = "Interactive"
 
 [actuators]
 

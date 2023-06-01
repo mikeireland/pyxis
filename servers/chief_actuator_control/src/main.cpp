@@ -54,6 +54,15 @@ int main(int argc, char* argv[]) {
     string TCPString = "tcp://" + IP + ":" + port;
     char TCPCharArr[TCPString.length() + 1];
     strcpy(TCPCharArr, TCPString.c_str());
+    
+    if (config["mode"]=="Interactive") {
+    	argc = 1;
+    	char* argv_new[1];
+
+    	co::Server s(argc, argv_new);
+    
+    	s.run();
+    } else {
 
     // Argc/Argv to turn into the required server input
     argc = 3;
@@ -65,4 +74,5 @@ int main(int argc, char* argv[]) {
     co::Server s(argc, argv_new);
 
     s.run();
+    }
 }

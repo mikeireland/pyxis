@@ -3,8 +3,10 @@
 #ifndef DECODE_H_INCLUDE_GUARD
 #define DECODE_H_INCLUDE_GUARD
 
-void int32_to_bytes(int32_t, uint8_t *byte0_ptr, uint8_t *byte1_ptr); // for steps
-void uint16_to_bytes(uint16_t, uint8_t *byte0_ptr, uint8_t *byte1_ptr); // for period
+#include <stdint.h>
+
+//void int32_to_bytes(int32_t, uint8_t *byte0_ptr, uint8_t *byte1_ptr); // for steps
+//void uint16_to_bytes(uint16_t, uint8_t *byte0_ptr, uint8_t *byte1_ptr); // for period
 
 
 //Takes in the two bytes representing a the signed integer version of the robot velocity
