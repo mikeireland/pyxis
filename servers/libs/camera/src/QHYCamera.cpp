@@ -105,11 +105,6 @@ QHYCamera::QHYCamera(qhyccd_handle *pCam_init, toml::table config_init){
 
     savefilename_prefix = config["fits"]["filename_prefix"].value_or("");
     savefilename = savefilename_prefix + ".fits";
-
-    ra = 0.0;
-    dec = 0.0;
-    target_name = "No Target Set";
-    baseline = 0.0;
 }
 
 
@@ -569,12 +564,12 @@ int QHYCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
     // Configure FITS header keywords
 
     // Write starting time in UTC
-    if ( fits_write_key(fptr, TSTRING, "STARTTIME", &timestamp,
+    if ( fits_write_key(fptr, TSTRING, "STARTTIME", &timestamp[0],
          "Timestamp of beginning of exposure UTC", &status) )
          return( status );
 
     // Write Target Name
-    if ( fits_write_key(fptr, TSTRING, "TARGETNAME", &GLOB_TARGET_NAME,
+    if ( fits_write_key(fptr, TSTRING, "TARGETNAME", &GLOB_TARGET_NAME[0],
          "Name of Target", &status) )
          return( status );
 
@@ -594,7 +589,7 @@ int QHYCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
          return( status );
 
     // Write Datatype
-    if ( fits_write_key(fptr, TSTRING, "DATATYPE", &GLOB_DATATYPE,
+    if ( fits_write_key(fptr, TSTRING, "DATATYPE", &GLOB_DATATYPE[0],
          "Baseline (m)", &status) )
          return( status );
 

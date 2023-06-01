@@ -298,7 +298,7 @@ struct SciCam: QHYCameraServer{
         GLOB_RA = coords.RA;
         GLOB_DEC = coords.DEC;
         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
-        ret_msg = "Science Camera: Set Baseline to " + to_string(baseline) + " and target to " + to_string(target_name);
+        ret_msg = "Science Camera: Set Baseline to " + to_string(baseline) + " and target to " + target_name;
         return ret_msg;
     }
 
