@@ -69,7 +69,7 @@ class FLIRCamera {
         double total_exposure;
 
         // Timestamp of first image
-        char* timestamp;
+        std::string timestamp;
         
         //Saving directory; prefix is without frame number and extension
         std::string savefilename_prefix;

@@ -335,7 +335,8 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
 
         //Set timestamp
         tm *gmtm = gmtime(&start_time);
-        char* dt = asctime(gmtm);
+        std::string dt = asctime(gmtm);
+        dt.pop_back();
 
         timestamp = dt;
 
@@ -425,21 +426,18 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
     }
     // Configure FITS header keywords
 
-    char *pix_format = &pixel_format[0];
-    char *adc = &adc_bit_depth[0];
-
     // Write starting time in UTC
-    if ( fits_write_key(fptr, TSTRING, "STARTTIME", &timestamp,
+    if ( fits_write_key(fptr, TSTRING, "STARTTIME", &timestamp[0],
          "Timestamp of beginning of exposure UTC", &status) )
          return( status );
 
     // Write pixel format
-    if ( fits_write_key(fptr, TSTRING, "PIXEL FORMAT", pix_format,
+    if ( fits_write_key(fptr, TSTRING, "PIXEL FORMAT", &pixel_format[0],
          "Pixel Format", &status) )
          return( status );
 
     // Write ADC Bit Depth
-    if ( fits_write_key(fptr, TSTRING, "ADC BIT DEPTH", adc,
+    if ( fits_write_key(fptr, TSTRING, "ADC BIT DEPTH", &adc_bit_depth[0],
          "ADC Bit Depth", &status) )
          return( status );
          

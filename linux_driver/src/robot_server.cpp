@@ -413,7 +413,7 @@ void change_file(string file) {
     filename = file;
 }
 
-void receive_CST_angles(double azimuth, double altitude, double pos_angle) {
+void receive_ST_angles(double azimuth, double altitude, double pos_angle) {
 	az = 206265.0*azimuth;
 	alt = 206265.0*altitude;
 	pos = 206265.0*pos_angle;
@@ -448,7 +448,7 @@ COMMANDER_REGISTER(m)
     m.def("resonance", resonance_robot, "A function that translates robot");
     m.def("level", level_robot, "placeholder");
     m.def("file", change_file, "placeholder");
-    m.def("receive_CST_angles", receive_CST_angles, "placeholder");
+    m.def("receive_ST_angles", receive_ST_angles, "placeholder");
     m.def("track", track_robot, "placeholder");
     m.def("set_gains", set_gains, "placeholder");
 }

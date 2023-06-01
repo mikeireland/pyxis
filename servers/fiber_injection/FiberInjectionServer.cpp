@@ -17,7 +17,7 @@ struct injection_centroids{
     centroid target_pos {0.0,0.0};
     centroid diff_pos {0.0,0.0};
     centroid centre {0.0,0.0};
-}
+};
 
 struct centroid_settings{
     int interp_size;
@@ -25,14 +25,14 @@ struct centroid_settings{
     int window_size;
     int gain;
     cv::Mat weights;
-}
+};
 
 struct ROI{
     int width;
     int height;
     int offset_x;
     int offset_y;
-}
+};
 
 pthread_mutex_t GLOB_FI_FLAG_LOCK;
 
@@ -117,14 +117,17 @@ int FibreInjectionCallback (unsigned short* data){
         int height = GLOB_IMSIZE/GLOB_WIDTH;
 
         cv::Mat img (height,GLOB_WIDTH,CV_16U,data);
-
+        
+        centroid_settings temp_settings;
+        cv::Point2i DextraCentre, SinistraCentre;
+        
         pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
         if (GLOB_FI_TIPTILTSERVO_FLAG){  
-            centroid_settings temp_settings = GLOB_FI_FINE_SETTINGS;
+            temp_settings = GLOB_FI_FINE_SETTINGS;
             cv::Point2i DextraCentre(GLOB_FI_DEXTRA_CENTROIDS.target_pos.x, GLOB_FI_DEXTRA_CENTROIDS.target_pos.y);
             cv::Point2i SinistraCentre(GLOB_FI_SINISTRA_CENTROIDS.target_pos.x, GLOB_FI_SINISTRA_CENTROIDS.target_pos.y);
         } else {
-            centroid_settings temp_settings = GLOB_FI_COARSE_SETTINGS;
+            temp_settings = GLOB_FI_COARSE_SETTINGS;
             cv::Point2i DextraCentre(GLOB_FI_DEXTRA_CENTROIDS.centre.x, GLOB_FI_DEXTRA_CENTROIDS.centre.y);
             cv::Point2i SinistraCentre(GLOB_FI_SINISTRA_CENTROIDS.centre.x, GLOB_FI_SINISTRA_CENTROIDS.centre.y);
         }
@@ -135,23 +138,30 @@ int FibreInjectionCallback (unsigned short* data){
         auto SinistraP = centroid_funcs::windowCentroidWCOG(img, temp_settings.interp_size, temp_settings.gaussian_radius, SinistraCentre, 
                                         temp_settings.window_size, temp_settings.weights, temp_settings.gain);
 
+        centroid DexP, SinP;
+        DexP.x = DextraP.x;
+        DexP.y = DextraP.y;
+        SinP.x = SinistraP.x;
+        SinP.y = SinistraP.y;
+        
         pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
-        GLOB_FI_DEXTRA_CENTROIDS.current_pos = DextraP;
-        GLOB_FI_SINISTRA_CENTROIDS.current_pos = SinistraP;
-        GLOB_FI_DEXTRA_CENTROIDS.diff_pos.x = GLOB_FI_DEXTRA_CENTROIDS.target_pos.x - DextraP.x;
-        GLOB_FI_DEXTRA_CENTROIDS.diff_pos.y = GLOB_FI_DEXTRA_CENTROIDS.target_pos.y - DextraP.y;
-        GLOB_FI_SINISTRA_CENTROIDS.diff_pos.x = GLOB_FI_SINISTRA_CENTROIDS.target_pos.x - SinistraP.x;
-        GLOB_FI_SINISTRA_CENTROIDS.diff_pos.y = GLOB_FI_SINISTRA_CENTROIDS.target_pos.y - SinistraP.y;
+        GLOB_FI_DEXTRA_CENTROIDS.current_pos = DexP;
+        GLOB_FI_SINISTRA_CENTROIDS.current_pos = SinP;
+        GLOB_FI_DEXTRA_CENTROIDS.diff_pos.x = GLOB_FI_DEXTRA_CENTROIDS.target_pos.x - DexP.x;
+        GLOB_FI_DEXTRA_CENTROIDS.diff_pos.y = GLOB_FI_DEXTRA_CENTROIDS.target_pos.y - DexP.y;
+        GLOB_FI_SINISTRA_CENTROIDS.diff_pos.x = GLOB_FI_SINISTRA_CENTROIDS.target_pos.x - SinP.x;
+        GLOB_FI_SINISTRA_CENTROIDS.diff_pos.y = GLOB_FI_SINISTRA_CENTROIDS.target_pos.y - SinP.y;
         pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
 
         if (GLOB_FI_TIPTILTSERVO_FLAG){  
-            std::string result = CA_SOCKET->send<std::string>("receiveTipTiltPos", GLOB_FI_DEXTRA_DIFF_POSITION, GLOB_FI_SINISTRA_DIFF_POSITION);
+            int result = CA_SOCKET->send<int>("receiveRelativeTipTiltPos", GLOB_FI_DEXTRA_CENTROIDS.diff_pos, 
+                                                                                         GLOB_FI_SINISTRA_CENTROIDS.diff_pos);
             cout << result << endl;
         } else {
              if (GLOB_FI_SET_TARGET_FLAG){
                 pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
-                GLOB_FI_DEXTRA_CENTROIDS.target_pos = DextraP;
-                GLOB_FI_SINISTRA_CENTROIDS.target_pos = SinistraP;
+                GLOB_FI_DEXTRA_CENTROIDS.target_pos = DexP;
+                GLOB_FI_SINISTRA_CENTROIDS.target_pos = SinP;
                 GLOB_FI_SET_TARGET_FLAG = 0;
                 pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
             }
@@ -207,7 +217,7 @@ struct FiberInjection: FLIRCameraServer{
         GLOB_FI_FINE_SETTINGS.gaussian_radius = config["FibreInjection"]["FineCentroid"]["gaussian_radius"].value_or(9);
         GLOB_FI_FINE_SETTINGS.window_size = config["FibreInjection"]["FineCentroid"]["gaussian_window_size"].value_or(100);
         GLOB_FI_FINE_SETTINGS.gain = config["FibreInjection"]["FineCentroid"]["WCOG_gain"].value_or(1);
-        double sigma = config["FibreInjection"]["FineCentroid"]["WCOG_sigma"].value_or(4);
+        sigma = config["FibreInjection"]["FineCentroid"]["WCOG_sigma"].value_or(4);
         GLOB_FI_FINE_SETTINGS.weights = centroid_funcs::weightFunction(GLOB_FI_FINE_SETTINGS.interp_size, sigma);
 
         GLOB_FI_COARSE_ROI.width = config["FLIRcamera"]["camera"]["width"].value_or(9);
@@ -299,7 +309,7 @@ struct FiberInjection: FLIRCameraServer{
         if(GLOB_CAM_STATUS == 2){
             if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
                 if (flag == GLOB_FI_TIPTILTSERVO_FLAG){
-                    ret_msg = "Flag is already set"
+                    ret_msg = "Flag is already set";
                 } else{
                     // First, stop the camera if running
                     ret_msg = this->stopcam();
