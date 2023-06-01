@@ -1,5 +1,16 @@
 #include "Decode.h"
 
+void int32_to_bytes(int32_t input, uint8_t *byte0_ptr, uint8_t *byte1_ptr, uint8_t *byte2_ptr, uint8_t *byte3_ptr) {
+    *byte0_ptr = input & 0xFF;
+    *byte1_ptr = (input >> 8) & 0xFF;
+    *byte2_ptr = (input >> 16) & 0xFF;
+    *byte3_ptr = (input >> 24) & 0xFF;
+}
+
+void uint16_to_bytes(uint16_t input, uint8_t *byte0_ptr, uint8_t *byte1_ptr) {
+    *byte0_ptr = input & 0xFF;
+    *byte1_ptr = (input >> 8) & 0xFF;
+}
 
 int16_t bytes_to_int16(uint8_t byte0, uint8_t byte1) {
     return ((uint16_t)byte1 << 8) | (uint16_t)byte0;

@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-//void int32_to_bytes(int32_t, uint8_t *byte0_ptr, uint8_t *byte1_ptr); // for steps
-//void uint16_to_bytes(uint16_t, uint8_t *byte0_ptr, uint8_t *byte1_ptr); // for period
+void int32_to_bytes(int32_t input, uint8_t *byte0_ptr, uint8_t *byte1_ptr, uint8_t *byte2_ptr, uint8_t *byte3_ptr); // for steps
+void uint16_to_bytes(uint16_t input, uint8_t *byte0_ptr, uint8_t *byte1_ptr); // for period
 
 int16_t bytes_to_int16(uint8_t byte0, uint8_t byte1);
 //Takes in the two bytes representing a the signed integer version of the robot velocity

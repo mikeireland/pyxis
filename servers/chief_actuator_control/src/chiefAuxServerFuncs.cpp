@@ -8,6 +8,7 @@
 #include "chiefAuxGlobals.hpp"
 #include <cstdlib>
 #include "SerialPort.h"
+#include "Decode.h"
 
 using json = nlohmann::json;
 
@@ -312,6 +313,14 @@ void test_watt() {
 	cout << "Motor Voltage (mV): " << teensy_port.Motor_Voltage << endl;
 	cout << "Motor Current (mA): " << teensy_port.Motor_Current << endl;
 }
+
+void test_sdc(int32_t steps, uint16_t period) {
+    // -ve steps is towards middle of injection system
+    int32_to_bytes(steps, &teensy_port.steps[0], &teensy_port.steps[1], &teensy_port.steps[2], &teensy_port.steps[3]);
+    uint16_to_bytes(period, &teensy_port.period[0], &teensy_port.period[1]);
+    teensy_port.Request(SETSDC);
+    teensy_port.SendAllRequests();
+}
 };
 
 // Serialiser to convert configuration struct to/from JSON
@@ -394,6 +403,7 @@ COMMANDER_REGISTER(m)
 		.def("scipiezo", &ChiefAuxServer::moveSciPiezo, "Move science piezo")
 		.def("receiveTipTiltPos", &ChiefAuxServer::receiveTipTiltPos, "Receive positions to move tip tilt piezos")
 		.def("testpiezo", &ChiefAuxServer::test_piezo, "testing")
-		.def("testwatt", &ChiefAuxServer::test_watt, "testing");
+		.def("testwatt", &ChiefAuxServer::test_watt, "testing")
+		.def("testsdc", &ChiefAuxServer::test_sdc, "testing");
 
 }

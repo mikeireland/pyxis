@@ -58,10 +58,10 @@ int SDC_LIMN = 36;
 
 volatile uint8_t duty_cycles[5] = {0};
 
-volatile int32_t steps_to_go = 0;
+volatile int32_t steps_to_go = 400000;
 volatile int32_t current_step = 0; 
-volatile uint16_t period = 2000;
-int32_t limit = 10000;
+volatile uint16_t period = 100;
+int32_t limit = -400000;
 
 int16_t PC_Voltage = 0;
 int16_t PC_Current = 0;
@@ -137,8 +137,8 @@ void readMessage() {
           break;
         case SETSDC:
           period = ((uint16_t)read_buffer_[i+6] << 8) | (uint32_t)read_buffer_[i+5];
-          steps_to_go = ((uint32_t)read_buffer_[i+4] << 24) | ((uint32_t)read_buffer_[i+3] << 16) | ((uint32_t)read_buffer_[i+2] << 8) | (uint32_t)read_buffer_[i+1];
           SDCStepper.update(period);
+          steps_to_go = ((uint32_t)read_buffer_[i+4] << 24) | ((uint32_t)read_buffer_[i+3] << 16) | ((uint32_t)read_buffer_[i+2] << 8) | (uint32_t)read_buffer_[i+1];
           i += 7;
           break;
         case GETSDC:
@@ -183,35 +183,41 @@ void step_SDC() {
   // going negative
   if (steps_to_go < 0) {
     // not at negative limit
-    if (!digitalRead(SDC_LIMN)) {
+    if (current_step > limit) {
       digitalWrite(SDC_DIR, LOW);
-      delayMicroseconds(1);
+      delayMicroseconds(10);
       digitalWrite(SDC_CLK, HIGH);
-      delayMicroseconds(1);
+      delayMicroseconds(10);
       digitalWrite(SDC_CLK, LOW);
       current_step -= 1;
       steps_to_go += 1;
+      //Serial.println(steps_to_go);
     } 
     // at negative limit
     else {
       steps_to_go = 0;
+      //Serial.println("limit reached");
     }
   } 
   // going positive
   else if (steps_to_go > 0) {
-    if (current_step < limit) {
+    if (!digitalRead(SDC_LIMN)) {
       digitalWrite(SDC_DIR, HIGH);
-      delayMicroseconds(1);
+      delayMicroseconds(10);
       digitalWrite(SDC_CLK, HIGH);
-      delayMicroseconds(1);
+      delayMicroseconds(10);
       digitalWrite(SDC_CLK, LOW);
       current_step += 1;
       steps_to_go -= 1;
+      //Serial.println(steps_to_go);
     }
     else {
       steps_to_go = 0;
+      //Serial.println("pos lim");
+      current_step = 0;
     }
   }
+  
 }
 
 void setup() {
@@ -274,7 +280,7 @@ void setup() {
 
   // start timers
   piezoPWM.begin(update_piezos, 2000);
-  SDCStepper.begin(step_SDC, 2000);
+  SDCStepper.begin(step_SDC, period);
   messageChecker.begin(readMessage, 100);
   //
 }
