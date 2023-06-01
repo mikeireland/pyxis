@@ -328,7 +328,7 @@ class PyxisGui(QTabWidget):
 
 app = QApplication(sys.argv)
 app.setStyle("Fusion")
-apply_stylesheet(app, theme='dark_amber.xml')  #Design file
+apply_stylesheet(app, theme='dark_amber_JH.xml')  #Design file
 
 main = QWidget()
 main.resize(1200, 750)

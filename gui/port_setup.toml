@@ -46,7 +46,7 @@ refresh_time = 0.5 #In seconds
     prefix = "FST"
     port = "4102"
     description = "Camera controls for the Navis star tracker"
-    module_type = "BaseFLIRCameraWidget"
+    module_type = "FSTCameraWidget"
     feed_refresh_time = 0.05
     compression_param = 1
 
@@ -105,6 +105,7 @@ refresh_time = 0.5 #In seconds
     description = "Dextra power system + LED controls"
     module_type = "DepAuxControlWidget"
     voltage_limit = 10
+    power_refresh_time = 1
 
     [Dextra.StarTracker]
     tab_name = "Star Tracker Camera"
@@ -115,6 +116,14 @@ refresh_time = 0.5 #In seconds
     module_type = "BaseFLIRCameraWidget"
     feed_refresh_time = 0.05
     compression_param = 1
+    
+    [Dextra.TargetControl]
+    tab_name = "Target"
+    name = "TargetControl"
+    prefix = "TS"
+    port = "4203"
+    description = "Dextra Target selector (move to FSM?)"
+    module_type = "TargetWidget"
 
 
 [Sinistra]
@@ -133,6 +142,7 @@ refresh_time = 0.5 #In seconds
     description = "Sinistra power system + LED controls"
     module_type = "DepAuxControlWidget"
     voltage_limit = 10
+    power_refresh_time = 1
     
     [Sinistra.StarTracker]
     tab_name = "Star Tracker Camera"

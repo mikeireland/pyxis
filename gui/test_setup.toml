@@ -47,6 +47,7 @@ refresh_time = 0.5 #In seconds
     description = "Dextra power system + LED controls"
     module_type = "DepAuxControlWidget"
     voltage_limit = 10
+    power_refresh_time = 1
 
     [Dextra.ChiefAux]
     tab_name = "Chief Auxilliary"

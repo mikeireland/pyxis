@@ -9,8 +9,9 @@ import json
 
 try:
     from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, \
-        QVBoxLayout, QLabel, QLineEdit, QTextEdit
+        QVBoxLayout, QLabel, QLineEdit, QTextEdit, QGridLayout
     from PyQt5.QtSvg import QSvgWidget
+    from PyQt5.QtCore import QTimer
 except:
     print("Please install PyQt5.")
     raise UserWarning
@@ -25,6 +26,7 @@ class DepAuxControlWidget(QWidget):
         self.port = config["port"]
         self.socket = ClientSocket(IP=IP, Port=self.port)
         self.voltage_limit = config["voltage_limit"]
+        self.power_refresh_time = int(config["power_refresh_time"]*1000)
 
         #Layout the common elements
         vBoxlayout = QVBoxLayout()
@@ -96,14 +98,38 @@ class DepAuxControlWidget(QWidget):
         self.getPower_button.clicked.connect(self.getPower_func)
         LED_layout.addWidget(self.getPower_button)
         LED_layout.addSpacing(50)
-        self.voltage = QLabel("0.00 V")
-        self.voltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
-        LED_layout.addWidget(self.voltage)
-        LED_layout.addSpacing(50)
-        self.current = QLabel("0.00 A")
-        self.current.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
-        LED_layout.addWidget(self.current)
-        LED_layout.addSpacing(50)
+        
+        Power_layout = QGridLayout()
+        Power_layout.setColumnMinimumWidth(0,100)
+        Power_layout.setColumnMinimumWidth(1,100)
+        Power_layout.setColumnMinimumWidth(2,100)
+ 
+        self.PC = QLabel("PC: ")
+        self.PC.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
+        Power_layout.addWidget(self.PC,0,0)
+        
+        self.PCvoltage = QLabel("0.00 V")
+        self.PCvoltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        Power_layout.addWidget(self.PCvoltage,0,1)
+        
+        self.PCcurrent = QLabel("0.00 A")
+        self.PCcurrent.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        Power_layout.addWidget(self.PCcurrent,0,2)
+
+        self.Motor = QLabel("Motor: ")
+        self.Motor.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
+        Power_layout.addWidget(self.Motor,1,0)
+        
+        self.Motorvoltage = QLabel("0.00 V")
+        self.Motorvoltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        Power_layout.addWidget(self.Motorvoltage,1,1)
+        
+        self.Motorcurrent = QLabel("0.00 A")
+        self.Motorcurrent.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        Power_layout.addWidget(self.Motorcurrent,1,2)
+        
+        LED_layout.addLayout(Power_layout)
+        
         # Complete setup, add status labels and indicators
         self.LED_status_light = 'assets/red.svg'
         self.LED_status_text = 'Voltage getting low'
@@ -129,6 +155,8 @@ class DepAuxControlWidget(QWidget):
         vBoxlayout.addLayout(status_layout)
 
         self.setLayout(vBoxlayout)
+        self.stimer = QTimer()
+        self.auto_updater()
         self.ask_for_status()
 
     def change_ip(self,IP):
@@ -143,14 +171,6 @@ class DepAuxControlWidget(QWidget):
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
-
-            if response == '"Server Not Connected!"':
-                self.Connect_button.setText("Connect")
-                self.Connect_button.setChecked(False)
-            else:
-                self.Connect_button.setChecked(True)
-                self.Connect_button.setText("Disconnect")
-
             self.response_label.append(response)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
@@ -166,7 +186,12 @@ class DepAuxControlWidget(QWidget):
         print(self.name)
         self.ask_for_status()
 
-
+    #Function to auto update at a given rate
+    def auto_updater(self):
+        self.getPower_func()
+        self.stimer.singleShot(self.power_refresh_time, self.auto_updater)
+        return
+        
     def command_enter(self):
         """Parse the LineEdit string and send_to_server
         """
@@ -200,10 +225,12 @@ class DepAuxControlWidget(QWidget):
             power_dict = json.loads(power_str)
         except:
             return
-        self.voltage.setText("{:.2f} V".format(power_dict["voltage"]))
-        self.current.setText("{:.2f} A".format(power_dict["current"]))
+        self.PCvoltage.setText("{:.2f} V".format(power_dict["PC_voltage"]))
+        self.PCcurrent.setText("{:.2f} A".format(power_dict["PC_current"]))
+        self.Motorvoltage.setText("{:.2f} V".format(power_dict["Motor_voltage"]))
+        self.Motorcurrent.setText("{:.2f} A".format(power_dict["Motor_current"]))
         
-        if power_dict["voltage"] > self.voltage_limit:
+        if power_dict["PC_voltage"] > self.voltage_limit:
             self.LED_status_light = "assets/green.svg"
             self.LED_svgWidget.load(self.LED_status_light)
             self.LED_status_text = "Voltage good"

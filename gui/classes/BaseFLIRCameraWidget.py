@@ -528,9 +528,11 @@ class BaseFLIRCameraWidget(QWidget):
                     self.Camera_button.setText("Start Feed")
             else:
                 self.Camera_button.setChecked(False)
+                self.Camera_button.setText("Start Feed")
                 #print("CAMERA NOT RUNNING")
         else:
             self.Camera_button.setChecked(False)
+            self.Camera_button.setText("Start Feed")
             #print("CAMERA NOT CONNECTED")
 
 

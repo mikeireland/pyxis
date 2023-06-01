@@ -176,7 +176,7 @@ void readWattmeter() {
 	cout << "PC Voltage (mV): " << PS.PC_V << endl;
 	cout << "PC Current (mA): " << PS.PC_A << endl;
 	cout << "Motor Voltage (mV): " << PS.motor_V << endl;
-	cout << "Motor Current (mA): " << teensy_port.Motor_Current << endl;
+	cout << "Motor Current (mA): " << PS.motor_A << endl;
 }
 
 void sendPiezoVals(piezoPWMvals ppv) {
@@ -206,10 +206,11 @@ namespace nlohmann {
                      {"Sinistra Y", s.ppv.SinistraY},
                      {"Science", s.ppv.science},
                      {"SDC_step_count", XXX},
-                     {"SDC_frequency", XXX}};
+                     {"SDC_frequency", XXX},
+                     {"Message",XXX}};
         }
 
-        static void from_json(const json& j, powerStruct& p) {
+        static void from_json(const json& j, status& p) {
             j.at("PC_current").get_to(s.ps.PC_A);
             j.at("PC_voltage").get_to(s.ps.PC_V);
             j.at("Motor_current").get_to(s.ps.motor_A);
@@ -221,6 +222,7 @@ namespace nlohmann {
             j.at("Science").get_to(s.ppv.science);
             j.at("SDC_step_count").get_to(XXX);
             j.at("SDC_frequency").get_to(XXX);
+            j.at("Message").get_to(XXX);
         }
     };
 
@@ -247,7 +249,6 @@ COMMANDER_REGISTER(m)
 		.def("moveFineStage", &ChiefAuxServer::moveFineStage, "Move fine stage")
 		.def("moveTipTiltPiezos", &ChiefAuxServer::moveTipTiltPiezos, "Set the tip/tilt piezos")
 		.def("receiveRelativeTipTiltPos", &ChiefAuxServer::receiveRelativeTipTiltPos, "Receive positions to move tip tilt piezos")
-		.def("moveSciPiezo", &ChiefAuxServer::moveSciPiezo, "Set the science piezos")
-		.def("readWattmeter", &ChiefAuxServer::readWattmeter, "Get power information");
+		.def("moveSciPiezo", &ChiefAuxServer::moveSciPiezo, "Set the science piezos");
 
 }

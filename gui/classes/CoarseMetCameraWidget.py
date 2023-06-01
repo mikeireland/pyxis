@@ -535,9 +535,11 @@ class CoarseMetCameraWidget(QWidget):
                     self.Camera_button.setText("Start Feed")
             else:
                 self.Camera_button.setChecked(False)
+                self.Camera_button.setText("Start Feed")
                 #print("CAMERA NOT RUNNING")
         else:
             self.Camera_button.setChecked(False)
+            self.Camera_button.setText("Start Feed")
             #print("CAMERA NOT CONNECTED")
 
 
@@ -568,11 +570,11 @@ class CoarseMetCameraWidget(QWidget):
     def enable_met_loop_button_func(self):
         if self.Connect_button.isChecked():       
             if self.enable_button.isChecked():
-                self.Connect_button.setText("Disable metrology")
+                self.enable_button.setText("Disable metrology")
                 self.send_to_server("CM.enableLEDs [1]")
                 print("Enabling Coarse Met Loop")
             else:
-                self.Connect_button.setText("Enable metrology")
+                self.enable_button.setText("Enable metrology")
                 self.send_to_server("CM.enableLEDs [0]")
                 print("Disabling Coarse Met Loop")
         else:

@@ -6,4 +6,4 @@
 #Kill current screen
 pkill screen
 #Start terminals
-screen -S DextraServers -c screen_config_dextra
+screen -L -S DextraServers -c screen_config_dextra

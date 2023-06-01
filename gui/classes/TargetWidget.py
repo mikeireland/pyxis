@@ -105,6 +105,27 @@ class TargetWidget(QWidget):
         Coord_layout.addStretch()
         vBoxlayout.addLayout(Coord_layout)
         vBoxlayout.addSpacing(30)
+        
+        lbl1 = QLabel('Input: ', self)
+        self.baseline_line_edit = QLineEdit("1.0")
+        self.baseline_line_edit.returnPressed.connect(self.change_baseline)
+
+        #Next, the info button
+        self.baseline_submit_button = QPushButton("Configure", self)
+        self.baseline_submit_button.clicked.connect(self.change_baseline)
+        
+        Coord_layout = QHBoxLayout()
+        lbl = QLabel("Baseline:",self)
+        lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
+        Coord_layout.addWidget(lbl)
+        Coord_layout.addStretch()
+        Coord_layout.addWidget(lbl1)
+        Coord_layout.addWidget(self.baseline_line_edit)
+        Coord_layout.addWidget(self.baseline_submit_button)
+        Coord_layout.addStretch()
+        
+        vBoxlayout.addLayout(Coord_layout)
+        vBoxlayout.addSpacing(30)
 
         Coord_layout = QHBoxLayout()
         lbl = QLabel("Current target:",self)
@@ -122,6 +143,10 @@ class TargetWidget(QWidget):
         self.current_DEC = QLabel("DEC = 0.0")
         self.current_DEC.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         Coord_layout.addWidget(self.current_DEC)
+        Coord_layout.addSpacing(50)
+        self.current_baseline = QLabel("Baseline = 0.0")
+        self.current_baseline.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        Coord_layout.addWidget(self.current_baseline)
         Coord_layout.addStretch()
 
         vBoxlayout.addLayout(Coord_layout)
@@ -191,9 +216,16 @@ class TargetWidget(QWidget):
 
     def set_target_func(self):
         self.send_to_server("TS.setCoordinates [%s,%s]"%(str(float(self.new_RA.text().split('=')[1])),str(float(self.new_DEC.text().split('=')[1]))))
+        self.send_to_server("TS.setTargetName [%s]"%self.new_Target_Name.text().split('=')[1])
         self.current_Target_Name.setText(str(self.new_Target_Name.text()))
         self.current_RA.setText(str(self.new_RA.text()))
         self.current_DEC.setText(str(self.new_DEC.text()))
+        
+    def change_baseline(self):
+        self.send_to_server("TS.setBaseline [%s]"%str(float(self.baseline_line_edit.text())))
+        baseline = "Baseline = "+str(float(self.baseline_line_edit.text()))
+        self.current_baseline.setText(baseline)
+
 
     def command_enter(self):
         """Parse the LineEdit string and send_to_server

@@ -39,7 +39,7 @@ class RobotControlWidget(QWidget):
 
         #First, the command entry box
         lbl1 = QLabel('Command: ', self)
-        self.line_edit = QLineEdit("RC.")
+        self.line_edit = QLineEdit("")
         self.line_edit.returnPressed.connect(self.command_enter)
 
         #Next, the info button
@@ -62,10 +62,10 @@ class RobotControlWidget(QWidget):
         vBoxlayout.addSpacing(30)
 
         button_layout = QHBoxLayout()
-        self.zero_button = QPushButton("Zero", self)
-        self.zero_button.setFixedWidth(200)
-        self.zero_button.clicked.connect(self.zero_button_func)
-        button_layout.addWidget(self.zero_button)
+        self.start_button = QPushButton("Start", self)
+        self.start_button.setFixedWidth(200)
+        self.start_button.clicked.connect(self.start_button_func)
+        button_layout.addWidget(self.start_button)
         self.level_button = QPushButton("Level", self)
         self.level_button.setFixedWidth(200)
         self.level_button.clicked.connect(self.level_button_func)
@@ -74,6 +74,10 @@ class RobotControlWidget(QWidget):
         self.stop_button.setFixedWidth(200)
         self.stop_button.clicked.connect(self.stop_button_func)
         button_layout.addWidget(self.stop_button)
+        self.hard_stop_button = QPushButton("Hard Stop", self)
+        self.hard_stop_button.setFixedWidth(200)
+        self.hard_stop_button.clicked.connect(self.hard_stop_button_func)
+        button_layout.addWidget(self.hard_stop_button)
         vBoxlayout.addLayout(button_layout)
 
         vBoxlayout.addSpacing(30)
@@ -160,7 +164,7 @@ class RobotControlWidget(QWidget):
         config_grid.addLayout(hbox3,2,0)
 
         hbox3 = QHBoxLayout()
-        lbl1 = QLabel('Pos Angle ', self)
+        lbl1 = QLabel('Roll', self)
         lbl1.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.Robot_roll_edit = QLineEdit("0.0")
         self.Robot_roll_edit.setFixedWidth(120)
@@ -185,7 +189,7 @@ class RobotControlWidget(QWidget):
 
 
         hbox3 = QHBoxLayout()
-        lbl1 = QLabel('Alt', self)
+        lbl1 = QLabel('Pitch', self)
         lbl1.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.Robot_pitch_edit = QLineEdit("0.0")
         self.Robot_pitch_edit.setFixedWidth(120)
@@ -210,7 +214,7 @@ class RobotControlWidget(QWidget):
 
 
         hbox3 = QHBoxLayout()
-        lbl1 = QLabel('Az ', self)
+        lbl1 = QLabel('Yaw', self)
         lbl1.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.Robot_yaw_edit = QLineEdit("0.0")
         self.Robot_yaw_edit.setFixedWidth(120)
@@ -232,6 +236,30 @@ class RobotControlWidget(QWidget):
         hbox3.addWidget(self.Robot_yaw_R_button)
         hbox3.addStretch()
         config_grid.addLayout(hbox3,2,1)
+        
+        hbox3 = QHBoxLayout()
+        lbl1 = QLabel('Goniometer', self)
+        lbl1.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.Robot_gon_edit = QLineEdit("0.0")
+        self.Robot_gon_edit.setFixedWidth(120)
+        self.Robot_gon_L_button = QPushButton("<<", self)
+        self.Robot_gon_L_button.pressed.connect(lambda: self.move_func(6,-float(self.Robot_gon_edit.text())))
+        self.Robot_gon_L_button.released.connect(self.stop_button_func)
+        self.Robot_gon_L_button.setFixedWidth(50)
+        self.Robot_gon_R_button = QPushButton(">>", self)
+        self.Robot_gon_R_button.pressed.connect(lambda: self.move_func(6,float(self.Robot_gon_edit.text())))
+        self.Robot_gon_R_button.released.connect(self.stop_button_func)
+        self.Robot_gon_R_button.setFixedWidth(50)
+        hbox3.addStretch()
+        hbox3.addWidget(lbl1)
+        hbox3.addSpacing(20)
+        hbox3.addWidget(self.Robot_gon_L_button)
+        hbox3.addSpacing(10)
+        hbox3.addWidget(self.Robot_gon_edit)
+        hbox3.addSpacing(10)
+        hbox3.addWidget(self.Robot_gon_R_button)
+        hbox3.addStretch()
+        config_grid.addLayout(hbox3,3,1)
 
         content_layout.addLayout(config_grid)
         vBoxlayout.addLayout(content_layout)
@@ -285,20 +313,28 @@ class RobotControlWidget(QWidget):
         """
         self.send_to_server(str(self.line_edit.text()))
 
-    def zero_button_func(self):
-        self.send_to_server("RC.zero")
-        print("Sending 'Zero' command")
-
     def level_button_func(self):
-        self.send_to_server("RC.level")
+        #self.send_to_server("RC.level")
         print("Sending 'Level' command")
 
     def stop_button_func(self):
-        #self.send_to_server("RC.stop")
+        #self.send_to_server("RC.translate [0,0,0,0,0,0,0]")
         print("Sending 'Stop' command")
+        
+    def hard_stop_button_func(self):
+        #self.send_to_server("RC.stop")
+        print("Sending 'Hard stop' command")
+        
+    def start_button_func(self):
+        #self.send_to_server("RC.start")
+        print("Sending 'Start' command")
 
 
     def move_func(self,axis,velocity):
+        command = ["0","0","0","0","0","0","0"]
+        command[axis] = str(velocity)
+        str_command = ",".join(command)
+        #self.send_to_server("RC.translate [%s]"%str_command)
         print("moving %s at %s"%(axis,velocity))
         return
 
@@ -317,4 +353,4 @@ class RobotControlWidget(QWidget):
                 self.response_label.setText("Success!")
             else:
                 self.response_label.setText("Failure!")
-        self.line_edit.setText("RC.")
+        self.line_edit.setText("")
