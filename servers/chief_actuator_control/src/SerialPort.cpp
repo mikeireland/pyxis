@@ -19,7 +19,7 @@ SerialPort::SerialPort(int device_id_target) {
     ReadMessage();
     Request(TID);
 	SendAllRequests();
-	sleep(20);
+	sleep(5);
 	ReadMessage();
 	printf("Device ID: %u\n",device_id_);
 	printf("Device Firmware Version: %u\n",device_firmware_v_);
@@ -181,6 +181,13 @@ void SerialPort::ReadMessage() {
                 device_id_ = read_buffer_[i+1];
                 device_firmware_v_ = read_buffer_[i+2];
                 i += 3;
+                break;
+            case WATTMETER:
+            	PC_Voltage = bytes_to_int16(read_buffer_[i+1], read_buffer_[i+2]);
+           	PC_Current = bytes_to_int16(read_buffer_[i+3], read_buffer_[i+4]);
+           	Motor_Voltage = bytes_to_int16(read_buffer_[i+5], read_buffer_[i+6]);
+           	Motor_Current = bytes_to_int16(read_buffer_[i+7], read_buffer_[i+8]);
+                i += 9;
                 break;
             case 0x00:
                 //if(read_buffer_[i+1]==0x00){if(read_buffer_[i+2]==0x00){

@@ -301,6 +301,17 @@ void test_piezo(uint8_t zero, uint8_t one, uint8_t two, uint8_t three, uint8_t f
     teensy_port.Request(SETPWM);
     teensy_port.SendAllRequests();
 }
+
+void test_watt() {
+    teensy_port.Request(WATTMETER);
+	teensy_port.SendAllRequests();
+	usleep(150);
+	teensy_port.ReadMessage();
+	cout << "PC Voltage (mV): " << teensy_port.PC_Voltage << endl;
+	cout << "PC Current (mA): " << teensy_port.PC_Current << endl;
+	cout << "Motor Voltage (mV): " << teensy_port.Motor_Voltage << endl;
+	cout << "Motor Current (mA): " << teensy_port.Motor_Current << endl;
+}
 };
 
 // Serialiser to convert configuration struct to/from JSON
@@ -382,6 +393,7 @@ COMMANDER_REGISTER(m)
 		.def("tiptiltS", &ChiefAuxServer::moveTipTiltSinistra, "Move tip tilt piezo for Sinistra beam")
 		.def("scipiezo", &ChiefAuxServer::moveSciPiezo, "Move science piezo")
 		.def("receiveTipTiltPos", &ChiefAuxServer::receiveTipTiltPos, "Receive positions to move tip tilt piezos")
-		.def("testpiezo", &ChiefAuxServer::test_piezo, "testing");
+		.def("testpiezo", &ChiefAuxServer::test_piezo, "testing")
+		.def("testwatt", &ChiefAuxServer::test_watt, "testing");
 
 }

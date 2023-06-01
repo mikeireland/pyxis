@@ -64,6 +64,11 @@ namespace Comms
             uint8_t piezo_duties [5];
             uint8_t steps [4];
             uint8_t period [2];
+            
+            int16_t PC_Voltage;
+            int16_t PC_Current;
+            int16_t Motor_Voltage;
+            int16_t Motor_Current;
 
             AccelBytes accelerometer0_in_;//Byte arrays to store the incoming accelerations
             AccelBytes accelerometer1_in_;

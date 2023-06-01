@@ -1,5 +1,9 @@
 #include "Decode.h"
 
+
+int16_t bytes_to_int16(uint8_t byte0, uint8_t byte1) {
+    return ((uint16_t)byte1 << 8) | (uint16_t)byte0;
+}
 //Takes in the two bytes representing a the signed integer version of the robot velocity
 //and converts it to to a physical velocity as a double precision float
 double VelocityBytesToPhysicalDouble(unsigned char byte0, unsigned char byte1) {
