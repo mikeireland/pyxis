@@ -4,7 +4,7 @@ project(DeputyAuxServer VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
 
 add_executable(DeputyAuxServer
-    src/deputyAuxServerFuncs_new.cpp src/Decode.cpp src/SerialPort.cpp src/main.cpp
+    src/deputyAuxServerFuncs.cpp src/Decode.cpp src/SerialPort.cpp src/main.cpp
 )
 
 target_include_directories(DeputyAuxServer PUBLIC include ../libs/camera/include)

@@ -3,8 +3,6 @@
 #include <iostream>
 #include <commander/commander.h>
 #include <time.h>
-#include <pthread.h>
-#include "deputyAuxGlobals.hpp"
 #include "SerialPort.h"
 
 #include <cstdlib>
@@ -20,68 +18,15 @@ using namespace std;
 
 Comms::SerialPort teensy_port(128);
 
-void * serverLoop(void *){
+struct powerStatus{
+    double PC_V;
+    double PC_A;
+    double motor_V;
+    double motor_A;
+    string message;
+};
 
-    pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    GLOB_DA_STATUS = 1; // Connecting
-    pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-
-    auto time_start = steady_clock::now();
-    auto time_current = steady_clock::now();
-
-    //START UP TEENSY COMMS
-
-    pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    GLOB_DA_STATUS = 2; // Running/waiting
-    pthread_mutex_unlock(&GLOB_FLAG_LOCK);  
-
-    time_start = steady_clock::now();
-    
-    while(GLOB_DA_STATUS > 0){
-        switch(GLOB_DA_REQUEST) {
-			case 1:
-				cout << "TURNING LED ON" << endl;
-				pthread_mutex_lock(&GLOB_FLAG_LOCK);
-		        GLOB_DA_REQUEST = 0;
-		        pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-                break;
-			case 2:
-				cout << "TURNING LED OFF" << endl;
-		        pthread_mutex_lock(&GLOB_FLAG_LOCK);
-		        GLOB_DA_REQUEST = 0;
-		        pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-				break;
-			default: //if no correct flag, sleep
-				usleep(1000);
-				break;
-		}
-
-		time_current = steady_clock::now();
-
-		auto delta_time = duration_cast<milliseconds>(time_current-time_start).count();
-
-        if(delta_time>GLOB_DA_POWER_REQUEST_TIME){
-
-            // Request power info
-            
-            powerStruct result; //test data
-            result.current = rand() % 100;
-            result.voltage = rand() % 100;
-            
-            pthread_mutex_lock(&GLOB_FLAG_LOCK);
-            GLOB_DA_POWER_VALUES = result;
-            pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-            
-            time_start = steady_clock::now();
-        }
-    }
-
-    
-    pthread_exit(NULL);
-
-    // Shut down Teensy comms
-}
-
+powerStatus PS;
 
 // FLIR Camera Server
 struct DeputyAuxServer {
@@ -97,78 +42,78 @@ struct DeputyAuxServer {
     }
 
 
+    int turnLEDOn(){
+        int ret_msg;
+	    teensy_port.Request(LEDON);
+	    teensy_port.SendAllRequests();
+	    usleep(150);
+	    teensy_port.ReadMessage();
+	    ret_msg = teensy_port.ledOn;
+	    return ret_msg;
+    }
 
 
-int turnLEDOn(){
-    int ret_msg;
-	teensy_port.Request(LEDON);
-	teensy_port.SendAllRequests();
-	usleep(150);
-	teensy_port.ReadMessage();
-	ret_msg = teensy_port.ledOn;
-	return ret_msg;
-}
+    int turnLEDOff(){
+        int ret_msg;
+	    teensy_port.Request(LEDOFF);
+	    teensy_port.SendAllRequests();
+	    usleep(150);
+	    teensy_port.ReadMessage();
+	    ret_msg = !teensy_port.ledOn;
+	    teensy_port.ledOn = false;
+	    return ret_msg;
+    }
 
+    powerStatus requestPower(){
+        string ret_msg;
+        
+        readWattmeter();
+        
+        ret_msg = "PC Voltage = " + to_string(PS.PC_V) + ", PC Current = " + to_string(PS.PC_A) + 
+                  ", Motor Voltage = " + to_string(PS.motor_V) + ", Motor Current = " + to_string(PS.motor_A);
+        
+        PS.message = ret_msg;
+        
+        return PS;
+    }
 
-int turnLEDOff(){
-    int ret_msg;
-	teensy_port.Request(LEDOFF);
-	teensy_port.SendAllRequests();
-	usleep(150);
-	teensy_port.ReadMessage();
-	ret_msg = !teensy_port.ledOn;
-	teensy_port.ledOn = false;
-	return ret_msg;
-}
-
-
-powerStatus requestPower(){
-    powerStatus ret_p;
-	powerStruct p;
-    string ret_msg;
-    
-    pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    p = GLOB_DA_POWER_VALUES;
-    pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-    
-    ret_p.current = p.current;
-    ret_p.voltage = p.voltage;
-    
-    ret_msg = "Voltage = " + to_string(p.voltage) + ", Current = " + to_string(p.current);
-    
-    ret_p.msg = ret_msg;
-    
-    return ret_p;
-}
+    void readWattmeter() {
+        teensy_port.Request(WATTMETER);
+	    teensy_port.SendAllRequests();
+	    usleep(150);
+	    teensy_port.ReadMessage();
+	    
+	    PS.PC_V = teensy_port.PC_Voltage;
+	    PS.PC_A = teensy_port.PC_Current;
+	    PS.motor_V = teensy_port.Motor_Voltage;
+	    PS.motor_A = teensy_port.Motor_Current;
+	    
+	    cout << "PC Voltage (mV): " << PS.PC_V << endl;
+	    cout << "PC Current (mA): " << PS.PC_A << endl;
+	    cout << "Motor Voltage (mV): " << PS.motor_V << endl;
+	    cout << "Motor Current (mA): " << PS.motor_A << endl;
+    }
 
 };
 
 // Serialiser to convert configuration struct to/from JSON
 namespace nlohmann {
     template <>
-    struct adl_serializer<powerStruct> {
-        static void to_json(json& j, const powerStruct& p) {
-            j = json{{"current", p.current}, {"voltage", p.voltage}};
-        }
-
-        static void from_json(const json& j, powerStruct& p) {
-            j.at("current").get_to(p.current);
-            j.at("voltage").get_to(p.voltage);
-        }
-    };
-}
-
-namespace nlohmann {
-    template <>
     struct adl_serializer<powerStatus> {
-        static void to_json(json& j, const powerStatus& p) {
-            j = json{{"current", p.current}, {"voltage", p.voltage}, {"message", p.msg}};
+        static void to_json(json& j, const powerStatus& ps) {
+            j = json{{"PC_current", ps.PC_A}, 
+                     {"PC_voltage", ps.PC_V},
+                     {"Motor_current", ps.motor_A}, 
+                     {"Motor_voltage", ps.motor_V},
+                     {"message",ps.message}};
         }
 
-        static void from_json(const json& j, powerStatus& p) {
-            j.at("current").get_to(p.current);
-            j.at("voltage").get_to(p.voltage);
-            j.at("message").get_to(p.msg);
+        static void from_json(const json& j, powerStatus& ps) {
+            j.at("PC_current").get_to(ps.PC_A);
+            j.at("PC_voltage").get_to(ps.PC_V);
+            j.at("Motor_current").get_to(ps.motor_A);
+            j.at("Motor_voltage").get_to(ps.motor_V);
+            j.at("message").get_to(ps.message);
         }
     };
 }

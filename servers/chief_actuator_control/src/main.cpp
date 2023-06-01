@@ -1,5 +1,4 @@
 #include <commander/commander.h>
-#include "chiefAuxGlobals.hpp"
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -40,11 +39,6 @@ int main(int argc, char* argv[]) {
 
     // Parse the configuration file
     toml::table config = toml::parse_file(config_file);
-
-    // Set config file path as a global variable
-    GLOB_CONFIGFILE = (char*)config_file.c_str();
-
-    GLOB_CA_POWER_REQUEST_TIME = config["aux"]["power_req_time"].value_or(1000);
 
     // Retrieve port and IP
     string port = config["port"].value_or("4000");
