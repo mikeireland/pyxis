@@ -70,6 +70,8 @@ namespace Comms
             int16_t Motor_Voltage;
             int16_t Motor_Current;
 
+            int32_t current_step;
+
             AccelBytes accelerometer0_in_;//Byte arrays to store the incoming accelerations
             AccelBytes accelerometer1_in_;
             AccelBytes accelerometer2_in_;

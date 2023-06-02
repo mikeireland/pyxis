@@ -200,7 +200,7 @@ struct ChiefAuxServer {
 
     void readWattmeterAndSDC() {
         teensy_port.Request(WATTMETER);
-        //teensy_port.Request(SDC);
+        teensy_port.Request(GETSDC);
         teensy_port.SendAllRequests();
         usleep(150);
         teensy_port.ReadMessage();
@@ -210,7 +210,7 @@ struct ChiefAuxServer {
         PS.motor_V = teensy_port.Motor_Voltage;
         PS.motor_A = teensy_port.Motor_Current;
         
-        // int32_t SDC_step_count = teensy_port.XXX
+        int32_t SDC_step_count = teensy_port.current_step;
         SDC_pos = SDC_step_count*0.02;
 
         cout << "PC Voltage (mV): " << PS.PC_V << endl;

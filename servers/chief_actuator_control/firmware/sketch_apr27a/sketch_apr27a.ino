@@ -58,7 +58,7 @@ int SDC_LIMN = 36;
 
 volatile uint8_t duty_cycles[5] = {0};
 
-volatile int32_t steps_to_go = 400000;
+volatile int32_t steps_to_go = 450000;
 volatile int32_t current_step = 0; 
 volatile uint16_t period = 100;
 int32_t limit = -400000;
@@ -143,10 +143,10 @@ void readMessage() {
           break;
         case GETSDC:
           write_buffer_[write_index] = GETSDC;
-          write_buffer_[write_index + 1] = steps_to_go & 0xFF;
-          write_buffer_[write_index + 2] = (steps_to_go >> 8) & 0xFF;
-          write_buffer_[write_index + 3] = (steps_to_go >> 16) & 0xFF;
-          write_buffer_[write_index + 4] = (steps_to_go >> 24) & 0xFF;
+          write_buffer_[write_index + 1] = current_step & 0xFF;
+          write_buffer_[write_index + 2] = (current_step >> 8) & 0xFF;
+          write_buffer_[write_index + 3] = (current_step >> 16) & 0xFF;
+          write_buffer_[write_index + 4] = (current_step >> 24) & 0xFF;
           write_buffer_[write_index + 5] = period & 0xFF;
           write_buffer_[write_index + 6] = (period >> 8) & 0xFF;
           write_index += 7;

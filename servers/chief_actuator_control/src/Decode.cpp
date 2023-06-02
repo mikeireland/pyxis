@@ -15,6 +15,10 @@ void uint16_to_bytes(uint16_t input, uint8_t *byte0_ptr, uint8_t *byte1_ptr) {
 int16_t bytes_to_int16(uint8_t byte0, uint8_t byte1) {
     return ((uint16_t)byte1 << 8) | (uint16_t)byte0;
 }
+
+int32_t bytes_to_int32(uint8_t byte0, uint8_t byte1, uint8_t byte2, uint8_t byte3) {
+    return ((uint32_t)byte3 << 24) | ((uint32_t)byte2 << 16) | ((uint32_t)byte1 << 8) | (uint32_t)byte0;
+}
 //Takes in the two bytes representing a the signed integer version of the robot velocity
 //and converts it to to a physical velocity as a double precision float
 double VelocityBytesToPhysicalDouble(unsigned char byte0, unsigned char byte1) {

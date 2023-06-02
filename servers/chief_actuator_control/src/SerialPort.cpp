@@ -189,6 +189,10 @@ void SerialPort::ReadMessage() {
            	Motor_Current = bytes_to_int16(read_buffer_[i+7], read_buffer_[i+8]);
                 i += 9;
                 break;
+            case GETSDC:
+                current_step = bytes_to_int32(read_buffer_[i+1], read_buffer_[i+2], read_buffer_[i+3], read_buffer_[i+4]);
+                i += 7;
+                break;
             case 0x00:
                 //if(read_buffer_[i+1]==0x00){if(read_buffer_[i+2]==0x00){
                 //    i = 64;//If we have reached three consecutive nulls, end the loop
