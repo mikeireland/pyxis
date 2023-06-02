@@ -21,6 +21,16 @@ refresh_time = 0.5 #In seconds
     description = "Dextra Target selector (move to FSM?)"
     module_type = "TargetWidget"
     
+    [Dextra.STargetControl]
+    tab_name = "STarget"
+    name = "STargetControl"
+    prefix = ""
+    port = "4001"
+    description = "Dextra Target selector (move to FSM?)"
+    module_type = "ScienceCameraWidget"
+    feed_refresh_time = 0.05
+    compression_param = 1
+    
     [Dextra.RobotControl]
     tab_name = "Robot Control"
     name = "DextraRobotControl"

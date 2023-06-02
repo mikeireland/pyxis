@@ -23,27 +23,32 @@ struct piezoPWMvals{
     double SinistraX;
     double SinistraY;
     double Science;
-}
+};
 
 struct powerStatus{
     double PC_V;
     double PC_A;
     double motor_V;
     double motor_A;
-}
+};
 
 struct piezoStatus{
     double um;
     double voltage;
     string msg;
-}
+};
 
 struct status{
     piezoPWMvals ppv;
     double sdc_pos;
     powerStatus ps;
     string msg;
-}
+};
+
+struct centroid {
+    double x;
+    double y;
+};
 
 piezoPWMvals PPV;
 powerStatus PS;
@@ -63,12 +68,12 @@ struct ChiefAuxServer {
     status requestStatus(){
         status ret_status;
         
-        status.ppv = PPV;
+        ret_status.ppv = PPV;
         readWattmeterAndSDC();
-        status.ps = PS;
-        status.sdc_pos = SDC_pos;
+        ret_status.ps = PS;
+        ret_status.sdc_pos = SDC_pos;
 
-        status.msg = "Updated values";
+        ret_status.msg = "Updated values";
 
         return ret_status;
     }
@@ -98,16 +103,16 @@ struct ChiefAuxServer {
 
             if (flag == 0){
                 PPV.DextraX = voltage;
-                ret_msg_tmp = "Dextra X"
+                ret_msg_tmp = "Dextra X";
             } else if (flag == 1){
                 PPV.DextraY = voltage;
-                ret_msg_tmp = "Dextra Y"
+                ret_msg_tmp = "Dextra Y";
             } else if (flag == 2){
                 PPV.SinistraX = voltage;
-                ret_msg_tmp = "Sinistra X"
+                ret_msg_tmp = "Sinistra X";
             } else if (flag == 3){
                 PPV.SinistraY = voltage;
-                ret_msg_tmp = "Sinistra Y"
+                ret_msg_tmp = "Sinistra Y";
             }
 
             sendPiezoVals(PPV);
@@ -138,8 +143,8 @@ struct ChiefAuxServer {
             PPV.SinistraX = um_to_V*Sx_um-15;
             PPV.SinistraY = um_to_V*Sy_um-15;
             
-            string ret_msg_a = "Moved Dextra piezo to " + to_string(DextraX) + ", " + to_string(DextraY) + "V (" + to_string(Dx_um) + ", "+ to_string(Dy_um) " microns)";
-            string ret_msg_b = "Moved Sinistra piezo to " + to_string(SinistraX) + ", " + to_string(SinistraY) + "V (" + to_string(Sx_um) + ", "+ to_string(Sy_um) " microns)";
+            string ret_msg_a = "Moved Dextra piezo to " + to_string(PPV.DextraX) + ", " + to_string(PPV.DextraY) + "V (" + to_string(Dx_um) + ", "+ to_string(Dy_um) + " microns)";
+            string ret_msg_b = "Moved Sinistra piezo to " + to_string(PPV.SinistraX) + ", " + to_string(PPV.SinistraY) + "V (" + to_string(Sx_um) + ", "+ to_string(Sy_um) + " microns)";
             
             sendPiezoVals(PPV);
             ret_msg = ret_msg_a + " and " + ret_msg_b;
@@ -148,7 +153,7 @@ struct ChiefAuxServer {
             ret_msg = "Piezo values out of range";
         }
         
-        return ret_msg
+        return ret_msg;
     }
 
     int receiveRelativeTipTiltPos(centroid Dpos, centroid Spos){
@@ -172,7 +177,7 @@ struct ChiefAuxServer {
 
         piezoStatus ps;
 
-        if (img_px < XX && img_px >= 0){
+        if (img_px < 3.0 && img_px >= 0){
             //double img_px_to_img_um = 6.5;
             //double img_um_to_piezo_um = 0.8333333333;
             //double um_to_V = 6.428801028608165;
@@ -180,9 +185,9 @@ struct ChiefAuxServer {
             double im_px_to_piezo_um = 5.41666666;
             double conversion = 34.82267223815494;
             
-            PPV.science = img_px*conversion-15;
+            PPV.Science = img_px*conversion-15;
             
-            string ret_msg = "Moved science piezo to " + to_string(PPV.science) + "V (moved " + to_string(img_px*im_px_to_piezo_um) + " microns)";
+            string ret_msg = "Moved science piezo to " + to_string(PPV.Science) + "V (moved " + to_string(img_px*im_px_to_piezo_um) + " microns)";
             
             sendPiezoVals(PPV);
 
@@ -217,7 +222,7 @@ struct ChiefAuxServer {
         cout << "PC Current (mA): " << PS.PC_A << endl;
         cout << "Motor Voltage (mV): " << PS.motor_V << endl;
         cout << "Motor Current (mA): " << PS.motor_A << endl;
-        cout << "SDC position (um): " << SDC_pos << endl;
+        cout << "SDC position (um): " << SDC_step_count << endl;
     }
 
     uint8_t roundPWM(double voltage){
@@ -225,7 +230,7 @@ struct ChiefAuxServer {
         double V_to_PWM = 2.217391304347826;
         long temp = lround(V_to_PWM*(voltage+15));
         ret_val = (uint8_t) temp;
-        return temp
+        return temp;
     }
 
     void sendPiezoVals(piezoPWMvals ppv) {
@@ -233,7 +238,7 @@ struct ChiefAuxServer {
         teensy_port.piezo_duties[1] = roundPWM(ppv.DextraX);
         teensy_port.piezo_duties[2] = roundPWM(ppv.SinistraX);
         teensy_port.piezo_duties[3] = roundPWM(ppv.SinistraY);
-        teensy_port.piezo_duties[4] = roundPWM(ppv.science);
+        teensy_port.piezo_duties[4] = roundPWM(ppv.Science);
         teensy_port.Request(SETPWM);
         teensy_port.SendAllRequests();
     }
@@ -253,12 +258,12 @@ namespace nlohmann {
                      {"Dextra Y", s.ppv.DextraY},
                      {"Sinistra X", s.ppv.SinistraX}, 
                      {"Sinistra Y", s.ppv.SinistraY},
-                     {"Science", s.ppv.science},
+                     {"Science", s.ppv.Science},
                      {"SDC_step_count", s.sdc_pos},
                      {"message",s.msg}};
         }
 
-        static void from_json(const json& j, status& p) {
+        static void from_json(const json& j, status& s) {
             j.at("PC_current").get_to(s.ps.PC_A);
             j.at("PC_voltage").get_to(s.ps.PC_V);
             j.at("Motor_current").get_to(s.ps.motor_A);
@@ -267,7 +272,7 @@ namespace nlohmann {
             j.at("Dextra Y").get_to(s.ppv.DextraY);
             j.at("Sinistra X").get_to(s.ppv.SinistraX);
             j.at("Sinistra Y").get_to(s.ppv.SinistraY);
-            j.at("Science").get_to(s.ppv.science);
+            j.at("Science").get_to(s.ppv.Science);
             j.at("SDC_step_count").get_to(s.sdc_pos);
             j.at("message").get_to(s.msg);
         }
