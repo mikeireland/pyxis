@@ -15,14 +15,8 @@
 
 using json = nlohmann::json;
 
-struct centroid {
-    double x;
-    double y;
-};
-
 centroid GLOB_FST_CENTROID;
 centroid GLOB_FST_TARGET_CENTROID;
-
 
 int GLOB_FST_CENTROID_EXPTIME;
 int GLOB_FST_PLATESOLVE_EXPTIME;

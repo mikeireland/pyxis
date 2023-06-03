@@ -77,7 +77,7 @@ refresh_time = 0.5 #In seconds
     port = "4105"
     description = "Camera controls for the Navis fiber injection"
     feed_refresh_time = 0.05
-    module_type = "BaseFLIRCameraWidget"
+    module_type = "FICameraWidget"
     compression_param = 1
 
     [Navis.ScienceCamera]

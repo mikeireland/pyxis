@@ -369,6 +369,7 @@ class ScienceCameraWidget(QWidget):
 
             if response == '"Camera Not Connected!"':
                 self.Connect_button.setChecked(False)
+                self.Connect_button.setText("Connect")
                 self.run_button.setChecked(False)
             elif response == '"Camera Connecting"':
                 self.Connect_button.setChecked(True)

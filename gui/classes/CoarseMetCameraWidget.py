@@ -39,7 +39,7 @@ class FeedLabel(QLabel):
         size = self.size()
         painter = QPainter(self)
         point = QPoint(0,0)
-        scaledPix = self.pixmap.scaled(size, Qt.KeepAspectRatio, transformMode = Qt.SmoothTransformation)
+        scaledPix = self.pixmap.scaled(size, Qt.KeepAspectRatio, transformMode = Qt.FastTransformation)
         # start painting the label from left upper corner
         point.setX((size.width() - scaledPix.width())/2)
         point.setY((size.height() - scaledPix.height())/2)
@@ -385,6 +385,7 @@ class CoarseMetCameraWidget(QWidget):
 
             if response == '"Camera Not Connected!"':
                 self.Connect_button.setChecked(False)
+                self.Connect_button.setText("Connect")
                 self.run_button.setChecked(False)
             elif response == '"Camera Connecting"':
                 self.Connect_button.setChecked(True)

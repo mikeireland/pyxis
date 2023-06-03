@@ -3,6 +3,7 @@ from __future__ import print_function, division
 from client_socket import ClientSocket
 import random
 import json
+from conversion import RaDecDot
 from astroquery.simbad import Simbad
 #Import only what we need from PyQt5, or everything from PyQt4. In any case, we'll try
 #to keep this back-compatible. Although this floods the namespace somewhat, everything
@@ -128,6 +129,22 @@ class TargetWidget(QWidget):
         vBoxlayout.addSpacing(30)
 
         Coord_layout = QHBoxLayout()
+        lbl = QLabel("Velocities:",self)
+        lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
+        Coord_layout.addWidget(lbl)
+        Coord_layout.addStretch()
+        self.dALTdt = QLabel("dALTdt = 0.0")
+        self.dALTdt.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffffff}")
+        Coord_layout.addWidget(self.dALTdt)
+        Coord_layout.addSpacing(50)
+        self.dAZdt = QLabel("dAZdt = 0.0")
+        self.dAZdt.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffffff}")
+        Coord_layout.addWidget(self.dAZdt)
+        Coord_layout.addStretch()
+        vBoxlayout.addLayout(Coord_layout)
+        vBoxlayout.addSpacing(30)
+
+        Coord_layout = QHBoxLayout()
         lbl = QLabel("Current target:",self)
         lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
         Coord_layout.addWidget(lbl)
@@ -205,12 +222,22 @@ class TargetWidget(QWidget):
         if table is None:
             self.response_label.append("Target not found")
             return
-        ra = "RA = "+str(table["RA_d_A"][0])
-        dec = "DEC = "+str(table["DEC_d_D"][0])
+        ra = str(table["RA_d_A"][0])
+        dec = str(table["DEC_d_D"][0])
+        ra_str = "RA = "+ra
+        dec_str = "DEC = "+dec
         name = "Target = "+str(table["MAIN_ID"][0])
         self.new_Target_Name.setText(name)
-        self.new_RA.setText(ra)
-        self.new_DEC.setText(dec)
+        self.new_RA.setText(ra_str)
+        self.new_DEC.setText(dec_str)
+
+        dALTdt, dAZdt = RaDecDot(float(ra),float(dec))
+
+        dALTdt_str = "dALTdt = " + str(dALTdt)
+        dAZdt_str = "dAZdt = " + str(dAZdt)
+        self.dALTdt.setText(dALTdt_str)
+        self.dAZdt.setText(dAZdt_str)
+
         return
 
 

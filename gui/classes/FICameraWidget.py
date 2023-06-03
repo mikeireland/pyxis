@@ -124,10 +124,10 @@ class FeedWindow(QWidget):
 
 
 
-class FSTCameraWidget(QWidget):
+class FICameraWidget(QWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
 
-        super(FSTCameraWidget,self).__init__(parent)
+        super(FICameraWidget,self).__init__(parent)
 
         self.name = config["name"]
         self.port = config["port"]
@@ -341,9 +341,17 @@ class FSTCameraWidget(QWidget):
         self.Camera_button.clicked.connect(self.camera_feed)
         hbox3.addWidget(self.Camera_button)
         vbox2.addLayout(hbox3)
+
+        hbox3 = QHBoxLayout()
+        self.enable_button = QPushButton("Enable Centroiding", self)
+        self.enable_button.setCheckable(True)
+        self.enable_button.setFixedWidth(200)
+        self.enable_button.clicked.connect(self.enable_centroid_loop_button_func)
+        hbox3.addWidget(self.enable_button)
+        vbox2.addLayout(hbox3)
         
         hbox3 = QHBoxLayout()
-        self.state_button = QPushButton("Manual Mode", self)
+        self.state_button = QPushButton("Set Tip/Tilt Mode", self)
         self.state_button.setCheckable(True)
         self.state_button.setFixedWidth(200)
         self.state_button.clicked.connect(self.switch_state_button_func)
@@ -575,22 +583,33 @@ class FSTCameraWidget(QWidget):
         if self.Connect_button.isChecked():
             if self.run_button.isChecked():     
                 if self.state_button.isChecked():
-                    self.state_button.setText("Centroid Mode")
-                    self.send_to_server("FST.switchCentroid")
-                    print("Beginning Centroid Mode")
+                    self.state_button.setText("Set Acquisition Mode")
+                    self.send_to_server("FI.enable_tiptiltservo [1]")
+                    print("Beginning Tip/Tilt Servo Mode")
                 else:
-                    self.state_button.setText("Plate Solve Mode")
-                    self.send_to_server("FST.switchPlateSolve")
-                    print("Beginning Plate Solve Mode")
+                    self.state_button.setText("Set Tip/Tilt Mode")
+                    self.send_to_server("FI.enable_tiptiltservo [0]")
+                    print("Beginning Acquisition Mode")
             else:
                 self.state_button.setChecked(False)
-                self.state_button.setText("Manual Mode")
                 print("CAMERA NOT RUNNING")
         else:
             self.state_button.setChecked(False)
-            self.state_button.setText("Manual Mode")
             print("CAMERA NOT CONNECTED")
 
+    def enable_centroid_loop_button_func(self):
+        if self.Connect_button.isChecked():       
+            if self.enable_button.isChecked():
+                self.enable_button.setText("Disable centroiding")
+                self.send_to_server("FI.enable_centroiding [1]")
+                print("Enabling Centroiding")
+            else:
+                self.enable_button.setText("Enable centroiding")
+                self.send_to_server("FI.enable_centroiding [0]")
+                print("Disabling Centroiding")
+        else:
+            self.enable_button.setChecked(False)
+            print("CAMERA NOT CONNECTED")
 
     def command_enter(self):
         """Parse the LineEdit string and send_to_server
