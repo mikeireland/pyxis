@@ -9,9 +9,9 @@ import json
 
 try:
     from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, \
-        QVBoxLayout, QGridLayout, QLabel, QLineEdit, QTextEdit, QFrame
+        QVBoxLayout, QGridLayout, QLabel, QLineEdit, QTextEdit
     from PyQt5.QtSvg import QSvgWidget
-    from PyQt5.QtCore import Qt
+    from PyQt5.QtCore import Qt, QTimer
 except:
     print("Please install PyQt5.")
     raise UserWarning
@@ -26,6 +26,7 @@ class ChiefAuxControlWidget(QWidget):
         self.port = config["port"]
         self.socket = ClientSocket(IP=IP, Port=self.port)
         self.voltage_limit = config["voltage_limit"]
+        self.status_refresh_time = int(config["status_refresh_time"]*1000)
 
         #Layout the common elements
         vBoxlayout = QVBoxLayout()
@@ -313,6 +314,7 @@ class ChiefAuxControlWidget(QWidget):
         self.PC = QLabel("PC: ")
         self.PC.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
         power_master_layout.addWidget(self.PC)
+        power_master_layout.addSpacing(20)
         self.PCvoltage = QLabel("0.00 V")
         self.PCvoltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         power_layout.addWidget(self.PCvoltage)
@@ -331,11 +333,13 @@ class ChiefAuxControlWidget(QWidget):
         power_layout.addWidget(self.power_status_label)
         power_layout.addStretch()
         power_master_layout.addLayout(power_layout)
+        power_master_layout.addSpacing(20)
 
         power_layout = QHBoxLayout()
         self.Motor = QLabel("Motor: ")
         self.Motor.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
         power_master_layout.addWidget(self.Motor)
+        power_master_layout.addSpacing(20)
         self.Motorvoltage = QLabel("0.00 V")
         self.Motorvoltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         power_layout.addWidget(self.Motorvoltage)
@@ -367,6 +371,9 @@ class ChiefAuxControlWidget(QWidget):
 
         self.setLayout(vBoxlayout)
 
+        self.stimer = QTimer()
+        self.auto_updater()
+
         #self.Piezo_click(0, self.Dextra_X_V)
         #self.Piezo_click(1, self.Dextra_Y_V)
         #self.Piezo_click(2, self.Sinistra_X_V)
@@ -374,6 +381,11 @@ class ChiefAuxControlWidget(QWidget):
         #self.Piezo_click(4, self.SciPiezo_V)
 
         self.ask_for_status()
+
+    def auto_updater(self):
+        self.ask_for_status()
+        self.stimer.singleShot(self.status_refresh_time, self.auto_updater)
+        return
 
     def change_ip(self,IP):
         self.socket = ClientSocket(IP=IP, Port=self.port)
@@ -469,7 +481,7 @@ class ChiefAuxControlWidget(QWidget):
         return
         
     def FineStage_click(self,numSteps,freq):
-        period = 1e6/freq
+        period = int(1e6/freq)
         self.send_to_server("CA.moveSDC [%s,%s]"%(numSteps,period))
         return
     

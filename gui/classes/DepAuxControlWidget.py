@@ -188,7 +188,7 @@ class DepAuxControlWidget(QWidget):
 
     #Function to auto update at a given rate
     def auto_updater(self):
-        self.getPower_func()
+        self.ask_for_status()
         self.stimer.singleShot(self.power_refresh_time, self.auto_updater)
         return
         
