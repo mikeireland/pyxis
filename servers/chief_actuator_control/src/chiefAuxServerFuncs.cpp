@@ -18,11 +18,17 @@ using namespace std;
 Comms::SerialPort teensy_port(128);
 
 struct piezoPWMvals{
-    double DextraX;
-    double DextraY;
-    double SinistraX;
-    double SinistraY;
-    double Science;
+    double DextraX_V = -15.0;
+    double DextraY_V = -15.0;
+    double SinistraX_V = -15.0;
+    double SinistraY_V = -15.0;
+    double Science_V = -15.0;
+    
+    double DextraX_um = 0.0;
+    double DextraY_um = 0.0;
+    double SinistraX_um = 0.0;
+    double SinistraY_um = 0.0;
+    double Science_um = 0.0;
 };
 
 struct powerStatus{
@@ -115,16 +121,20 @@ struct ChiefAuxServer {
             string ret_msg_tmp; 
 
             if (flag == 0){
-                PPV.DextraX = voltage;
+                PPV.DextraX_V = voltage;
+                PPV.DextraX_um = um;
                 ret_msg_tmp = "Dextra X";
             } else if (flag == 1){
-                PPV.DextraY = voltage;
+                PPV.DextraY_V = voltage;
+                PPV.DextraY_um = um;
                 ret_msg_tmp = "Dextra Y";
             } else if (flag == 2){
-                PPV.SinistraX = voltage;
+                PPV.SinistraX_V = voltage;
+                PPV.SinistraX_um = um;
                 ret_msg_tmp = "Sinistra X";
             } else if (flag == 3){
-                PPV.SinistraY = voltage;
+                PPV.SinistraY_V = voltage;
+                PPV.SinistraY_um = um;
                 ret_msg_tmp = "Sinistra Y";
             }
 
@@ -151,13 +161,18 @@ struct ChiefAuxServer {
             
             double um_to_V = 0.7614213197969543;
             
-            PPV.DextraX = um_to_V*Dx_um-15;
-            PPV.DextraY = um_to_V*Dy_um-15;
-            PPV.SinistraX = um_to_V*Sx_um-15;
-            PPV.SinistraY = um_to_V*Sy_um-15;
+            PPV.DextraX_V = um_to_V*Dx_um-15;
+            PPV.DextraY_V = um_to_V*Dy_um-15;
+            PPV.SinistraX_V = um_to_V*Sx_um-15;
+            PPV.SinistraY_V = um_to_V*Sy_um-15;
+
+            PPV.DextraX_um = Dx_um;
+            PPV.DextraY_um = Dy_um;
+            PPV.SinistraX_um = Sx_um;
+            PPV.SinistraY_um = Sy_um;
             
-            string ret_msg_a = "Moved Dextra piezo to " + to_string(PPV.DextraX) + ", " + to_string(PPV.DextraY) + "V (" + to_string(Dx_um) + ", "+ to_string(Dy_um) + " microns)";
-            string ret_msg_b = "Moved Sinistra piezo to " + to_string(PPV.SinistraX) + ", " + to_string(PPV.SinistraY) + "V (" + to_string(Sx_um) + ", "+ to_string(Sy_um) + " microns)";
+            string ret_msg_a = "Moved Dextra piezo to " + to_string(PPV.DextraX_V) + ", " + to_string(PPV.DextraY_V) + "V (" + to_string(Dx_um) + ", "+ to_string(Dy_um) + " microns)";
+            string ret_msg_b = "Moved Sinistra piezo to " + to_string(PPV.SinistraX_V) + ", " + to_string(PPV.SinistraY_V) + "V (" + to_string(Sx_um) + ", "+ to_string(Sy_um) + " microns)";
             
             sendPiezoVals(PPV);
             ret_msg = ret_msg_a + " and " + ret_msg_b;
@@ -171,15 +186,19 @@ struct ChiefAuxServer {
 
     int receiveRelativeTipTiltPos(centroid Dpos, centroid Spos){
 
-        //double px_to_um = 1.725; 
-        //double um_to_V = 0.7614213197969543;
-        //double conversion = px_to_um*um_to_V
-        double conversion = 1.3134517766497462;
-        
-        PPV.DextraX += conversion*Dpos.x;
-        PPV.DextraY += conversion*Dpos.y;
-        PPV.SinistraX += conversion*Spos.x;
-        PPV.SinistraY += conversion*Spos.y;
+        double px_to_um = 1.725; 
+        double um_to_V = 0.7614213197969543;
+        double conversion = px_to_um*um_to_V
+
+        PPV.DextraX_um += px_to_um*Dpos.x;
+        PPV.DextraY_um += px_to_um*Dpos.y;
+        PPV.SinistraX_um += px_to_um*Spos.x;
+        PPV.SinistraY_um += px_to_um*Spos.y;
+
+        PPV.DextraX_V += conversion*Dpos.x;
+        PPV.DextraY_V += conversion*Dpos.y;
+        PPV.SinistraX_V += conversion*Spos.x;
+        PPV.SinistraY_V += conversion*Spos.y;
         
         sendPiezoVals(PPV);
         
@@ -199,9 +218,10 @@ struct ChiefAuxServer {
             double V_to_um = 0.15555;
             
             double um = V_to_um*(voltage + 15.0);
-            PPV.Science = voltage;
+            PPV.Science_V = voltage;
+            PPV.Science_um = um;
 
-            string ret_msg = "Moved science piezo to " + to_string(PPV.Science) + "V (moved " + to_string(um) + " microns)";
+            string ret_msg = "Moved science piezo to " + to_string(PPV.Science_V) + "V (moved " + to_string(um) + " microns)";
             
             sendPiezoVals(PPV);
 
@@ -248,11 +268,11 @@ struct ChiefAuxServer {
     }
 
     void sendPiezoVals(piezoPWMvals ppv) {
-        teensy_port.piezo_duties[0] = roundPWM(ppv.DextraX);
-        teensy_port.piezo_duties[1] = roundPWM(ppv.DextraX);
-        teensy_port.piezo_duties[2] = roundPWM(ppv.SinistraX);
-        teensy_port.piezo_duties[3] = roundPWM(ppv.SinistraY);
-        teensy_port.piezo_duties[4] = roundPWM(ppv.Science);
+        teensy_port.piezo_duties[0] = roundPWM(ppv.DextraX_V);
+        teensy_port.piezo_duties[1] = roundPWM(ppv.DextraX_V);
+        teensy_port.piezo_duties[2] = roundPWM(ppv.SinistraX_V);
+        teensy_port.piezo_duties[3] = roundPWM(ppv.SinistraY_V);
+        teensy_port.piezo_duties[4] = roundPWM(ppv.Science_V);
         teensy_port.Request(SETPWM);
         teensy_port.SendAllRequests();
     }
@@ -268,11 +288,16 @@ namespace nlohmann {
                      {"PC_voltage", s.ps.PC_V},
                      {"Motor_current", s.ps.motor_A}, 
                      {"Motor_voltage", s.ps.motor_V},
-                     {"Dextra X", s.ppv.DextraX}, 
-                     {"Dextra Y", s.ppv.DextraY},
-                     {"Sinistra X", s.ppv.SinistraX}, 
-                     {"Sinistra Y", s.ppv.SinistraY},
-                     {"Science", s.ppv.Science},
+                     {"Dextra_X_V", s.ppv.DextraX_V}, 
+                     {"Dextra_Y_V", s.ppv.DextraY_V},
+                     {"Sinistra_X_V", s.ppv.SinistraX_V}, 
+                     {"Sinistra_Y_V", s.ppv.SinistraY_V},
+                     {"Science_V", s.ppv.Science_V},
+                     {"Dextra_X_um", s.ppv.DextraX_um}, 
+                     {"Dextra_Y_um", s.ppv.DextraY_um},
+                     {"Sinistra_X_um", s.ppv.SinistraX_um}, 
+                     {"Sinistra_Y_um", s.ppv.SinistraY_um},
+                     {"Science_um", s.ppv.Science_um},
                      {"SDC_step_count", s.sdc_pos},
                      {"message",s.msg}};
         }
@@ -282,11 +307,16 @@ namespace nlohmann {
             j.at("PC_voltage").get_to(s.ps.PC_V);
             j.at("Motor_current").get_to(s.ps.motor_A);
             j.at("Motor_voltage").get_to(s.ps.motor_V);
-            j.at("Dextra X").get_to(s.ppv.DextraX);
-            j.at("Dextra Y").get_to(s.ppv.DextraY);
-            j.at("Sinistra X").get_to(s.ppv.SinistraX);
-            j.at("Sinistra Y").get_to(s.ppv.SinistraY);
-            j.at("Science").get_to(s.ppv.Science);
+            j.at("Dextra_X_V").get_to(s.ppv.DextraX_V);
+            j.at("Dextra_Y_V").get_to(s.ppv.DextraY_V);
+            j.at("Sinistra_X_V").get_to(s.ppv.SinistraX_V);
+            j.at("Sinistra_Y_V").get_to(s.ppv.SinistraY_V);
+            j.at("Science_V").get_to(s.ppv.Science_V);
+            j.at("Dextra_X_um").get_to(s.ppv.DextraX_um);
+            j.at("Dextra_Y_um").get_to(s.ppv.DextraY_um);
+            j.at("Sinistra_X_um").get_to(s.ppv.SinistraX_um);
+            j.at("Sinistra_Y_um").get_to(s.ppv.SinistraY_um);
+            j.at("Science_um").get_to(s.ppv.Science_um);
             j.at("SDC_step_count").get_to(s.sdc_pos);
             j.at("message").get_to(s.msg);
         }

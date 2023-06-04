@@ -47,16 +47,11 @@ class ChiefAuxControlWidget(QWidget):
         #Next, the info button
         self.info_button = QPushButton("INFO", self)
         self.info_button.clicked.connect(self.info_click)
-        
-        self.Connect_button = QPushButton("Connect", self)
-        self.Connect_button.setCheckable(True)
-        self.Connect_button.clicked.connect(self.connect_server)
 
         hbox1 = QHBoxLayout()
         hbox1.addWidget(lbl1)
         hbox1.addWidget(self.line_edit)
         hbox1.addWidget(self.info_button)
-        hbox1.addWidget(self.Connect_button)
         vBoxlayout.addLayout(hbox1)
 
         #Next, the response box
@@ -259,6 +254,8 @@ class ChiefAuxControlWidget(QWidget):
         hbox3 = QHBoxLayout()
         lbl2 = QLabel('SDC Steps: ', self)
         lbl4 = QLabel('SDC Frequency (Hz): ', self)
+        self.SDC_lbl = QLabel("", self)
+        self.SDC_lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #f47cfc}")
         self.FineStage_numSteps_edit = QLineEdit("0")
         self.FineStage_numSteps_edit.setFixedWidth(120)
         self.FineStage_numSteps_edit.setStyleSheet("color: #ff7f69; border-color: #ff7f69")
@@ -277,6 +274,7 @@ class ChiefAuxControlWidget(QWidget):
                                              "QPushButton:pressed {color: #000000; background-color: #ff7f69}")
         config_grid.addWidget(lbl2,5,0)
         config_grid.addWidget(lbl4,6,0)
+        config_grid.addWidget(self.SDC_lbl,5,1,2,1)        
         config_grid.addWidget(self.FineStage_numSteps_edit,5,2)
         config_grid.addWidget(self.FineStage_freq_edit,6,2)
         config_grid.addWidget(self.FineStage_Set_button,5,3,2,1)
@@ -288,52 +286,69 @@ class ChiefAuxControlWidget(QWidget):
         content_layout.addLayout(Piezo_layout,1)
         content_layout.addSpacing(50)
 
-        LED_master_layout = QVBoxLayout()
+        power_master_layout = QVBoxLayout()
 
-        LED_layout = QHBoxLayout()
+        power_layout = QHBoxLayout()
         lbl = QLabel("Power System Controls:",self)
         lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
-        LED_layout.addWidget(lbl)
+        power_layout.addWidget(lbl)
         
-        #LED_layout.addSpacing(50)
-        LED_master_layout.addLayout(LED_layout)
-        LED_master_layout.addSpacing(20)
-        LED_layout = QHBoxLayout()
+        #power_layout.addSpacing(50)
+        power_master_layout.addLayout(power_layout)
+        power_master_layout.addSpacing(20)
+        power_layout = QHBoxLayout()
         
-        self.getPower_button = QPushButton("Get Power", self)
+        self.getPower_button = QPushButton("Request Status", self)
         self.getPower_button.setFixedWidth(200)
-        self.getPower_button.clicked.connect(self.getPower_func)
+        self.getPower_button.clicked.connect(self.ask_for_status)
         #self.getPower_button.setAlignment(Qt.AlignLeft)
-        #LED_layout.addStretch()
-        LED_layout.addWidget(self.getPower_button)
-        LED_layout.setAlignment(Qt.AlignLeft)
+        #power_layout.addStretch()
+        power_layout.addWidget(self.getPower_button)
+        power_layout.setAlignment(Qt.AlignLeft)
         
-        LED_master_layout.addLayout(LED_layout)
-        LED_master_layout.addSpacing(20)
+        power_master_layout.addLayout(power_layout)
+        power_master_layout.addSpacing(20)
         
-        LED_layout = QHBoxLayout()
-        self.voltage = QLabel("0.00 V")
-        self.voltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
-        LED_layout.addWidget(self.voltage)
-        LED_layout.addSpacing(50)
-        self.current = QLabel("0.00 A")
-        self.current.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
-        LED_layout.addWidget(self.current)
-        LED_layout.addSpacing(50)
+        power_layout = QHBoxLayout()
+        self.PC = QLabel("PC: ")
+        self.PC.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
+        power_master_layout.addWidget(self.PC)
+        self.PCvoltage = QLabel("0.00 V")
+        self.PCvoltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        power_layout.addWidget(self.PCvoltage)
+        power_layout.addSpacing(50)
+        self.PCcurrent = QLabel("0.00 A")
+        self.PCcurrent.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        power_layout.addWidget(self.PCcurrent)
+        power_layout.addSpacing(50)
         # Complete setup, add status labels and indicators
-        self.LED_status_light = 'assets/red.svg'
-        self.LED_status_text = 'Voltage getting low'
-        self.LED_svgWidget = QSvgWidget(self.LED_status_light)
-        self.LED_svgWidget.setFixedSize(20,20)
-        self.LED_status_label = QLabel(self.LED_status_text, self)
-        LED_layout.addWidget(self.LED_svgWidget)
-        LED_layout.addWidget(self.LED_status_label)
-        LED_layout.addStretch()
-        LED_master_layout.addLayout(LED_layout)
+        self.power_status_light = 'assets/red.svg'
+        self.power_status_text = 'Voltage getting low'
+        self.power_svgWidget = QSvgWidget(self.power_status_light)
+        self.power_svgWidget.setFixedSize(20,20)
+        self.power_status_label = QLabel(self.power_status_text, self)
+        power_layout.addWidget(self.power_svgWidget)
+        power_layout.addWidget(self.power_status_label)
+        power_layout.addStretch()
+        power_master_layout.addLayout(power_layout)
+
+        power_layout = QHBoxLayout()
+        self.Motor = QLabel("Motor: ")
+        self.Motor.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
+        power_master_layout.addWidget(self.Motor)
+        self.Motorvoltage = QLabel("0.00 V")
+        self.Motorvoltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        power_layout.addWidget(self.Motorvoltage)
+        power_layout.addSpacing(50)
+        self.Motorcurrent = QLabel("0.00 A")
+        self.Motorcurrent.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        power_layout.addWidget(self.Motorcurrent)
+        power_layout.addStretch()
+        power_master_layout.addLayout(power_layout)
         
-        LED_master_layout.setAlignment(Qt.AlignTop)
+        power_master_layout.setAlignment(Qt.AlignTop)
         
-        content_layout.addLayout(LED_master_layout,1)
+        content_layout.addLayout(power_master_layout,1)
         #content_layout.setAlignment(Qt.AlignTop)
 
         vBoxlayout.addLayout(content_layout)
@@ -368,21 +383,42 @@ class ChiefAuxControlWidget(QWidget):
         only see one server at a time)"""
         #As this is on a continuous timer, only do anything if we are
         #connected
-        response = self.socket.send_command("CA.status")
+        response = self.send_to_server_with_response("CA.requestStatus")
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
-
-            if response == '"Server Not Connected!"':
-                self.Connect_button.setText("Connect")
-                self.Connect_button.setChecked(False)
-            else:
-                self.Connect_button.setChecked(True)
-                self.Connect_button.setText("Disconnect")
-
             self.response_label.append(response)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
+
+            try:
+                status_dict = json.loads(response)
+            except:
+                return
+
+            self.PCvoltage.setText("{:.2f} V".format(status_dict["PC_voltage"]))
+            self.PCcurrent.setText("{:.2f} A".format(status_dict["PC_current"]))
+            self.Motorvoltage.setText("{:.2f} V".format(status_dict["Motor_voltage"]))
+            self.Motorcurrent.setText("{:.2f} A".format(status_dict["Motor_current"]))
+
+            self.Dextra_X_lbl.setText("{:.2f} V, {:.2f} um".format(status_dict["Dextra_X_V"],status_dict["Dextra_X_um"]))
+            self.Dextra_Y_lbl.setText("{:.2f} V, {:.2f} um".format(status_dict["Dextra_Y_V"],status_dict["Dextra_Y_um"]))
+            self.Sinistra_X_lbl.setText("{:.2f} V, {:.2f} um".format(status_dict["Sinistra_X_V"],status_dict["Sinistra_X_um"]))
+            self.Sinistra_Y_lbl.setText("{:.2f} V, {:.2f} um".format(status_dict["Sinistra_Y_V"],status_dict["Sinistra_Y_um"]))
+            self.SciPiezo_lbl.setText("{:.2f} V, {:.2f} um".format(status_dict["Science_V"],status_dict["Science_um"]))
+            self.SDC_lbl.setText("{} step, {:.2f} um".format(status_dict["SDC_step_count"],0.02*status_dict["SDC_step_count"]))
+
+            if status_dict["PC_voltage"] > self.voltage_limit:
+                self.power_status_light = "assets/green.svg"
+                self.power_svgWidget.load(self.power_status_light)
+                self.power_status_text = "Voltage good"
+                self.power_status_label.setText(self.power_status_text)
+            else:
+                self.power_status_light = "assets/red.svg"
+                self.power_status_text = "Voltage getting low"
+                self.power_status_label.setText(self.power_status_text)
+                self.power_svgWidget.load(self.power_status_light)    
+
 
         else:
             self.status_light = "assets/red.svg"
@@ -459,27 +495,7 @@ class ChiefAuxControlWidget(QWidget):
             print("Disconnecting Server")
             self.send_to_server("CA.disconnect")
 
-
-    def getPower_func(self):
-        power_str = self.send_to_server_with_response("CA.reqpower")
-        print("Sending 'getPower' command")
-        try:
-            power_dict = json.loads(power_str)
-        except:
-            return
-        self.voltage.setText("{:.2f} V".format(power_dict["voltage"]))
-        self.current.setText("{:.2f} A".format(power_dict["current"]))
-        
-        if power_dict["voltage"] > self.voltage_limit:
-            self.LED_status_light = "assets/green.svg"
-            self.LED_svgWidget.load(self.LED_status_light)
-            self.LED_status_text = "Voltage good"
-            self.LED_status_label.setText(self.LED_status_text)
-        else:
-            self.LED_status_light = "assets/red.svg"
-            self.LED_status_text = "Voltage getting low"
-            self.LED_status_label.setText(self.LED_status_text)
-            self.LED_svgWidget.load(self.LED_status_light)            
+     
 
 
     def send_to_server_with_response(self, text):

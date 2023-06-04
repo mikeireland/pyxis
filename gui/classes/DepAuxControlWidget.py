@@ -167,7 +167,7 @@ class DepAuxControlWidget(QWidget):
         only see one server at a time)"""
         #As this is on a continuous timer, only do anything if we are
         #connected
-        response = self.socket.send_command("DA.status")
+        self.getPower_func()
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
