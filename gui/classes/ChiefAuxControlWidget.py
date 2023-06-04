@@ -120,7 +120,7 @@ class ChiefAuxControlWidget(QWidget):
         config_grid.addWidget(lbl1,0,0)
         config_grid.addWidget(self.Dextra_X_lbl,0,1)
         config_grid.addWidget(self.Dextra_X_edit,0,2)
-        config_grid.addWidget(self.Dextra_Set_button,0,3,2,1)
+        config_grid.addWidget(self.Dextra_X_Set_button,0,3)
         hbox3 = QHBoxLayout()
         hbox3.addWidget(self.Dextra_X_L_button)
         hbox3.addSpacing(10)
@@ -152,6 +152,7 @@ class ChiefAuxControlWidget(QWidget):
         config_grid.addWidget(lbl1,1,0)
         config_grid.addWidget(self.Dextra_Y_lbl,1,1)
         config_grid.addWidget(self.Dextra_Y_edit,1,2)
+        config_grid.addWidget(self.Dextra_Y_Set_button,1,3)
         hbox3 = QHBoxLayout()
         hbox3.addWidget(self.Dextra_Y_L_button)
         hbox3.addSpacing(10)
@@ -184,7 +185,7 @@ class ChiefAuxControlWidget(QWidget):
         config_grid.addWidget(lbl1,2,0)
         config_grid.addWidget(self.Sinistra_X_lbl,2,1)
         config_grid.addWidget(self.Sinistra_X_edit,2,2)
-        config_grid.addWidget(self.Sinistra_Set_button,2,3,2,1)
+        config_grid.addWidget(self.Sinistra_X_Set_button,2,3)
         hbox3 = QHBoxLayout()
         hbox3.addWidget(self.Sinistra_X_L_button)
         hbox3.addSpacing(10)
@@ -216,6 +217,7 @@ class ChiefAuxControlWidget(QWidget):
         config_grid.addWidget(lbl1,3,0)
         config_grid.addWidget(self.Sinistra_Y_lbl,3,1)
         config_grid.addWidget(self.Sinistra_Y_edit,3,2)
+        config_grid.addWidget(self.Sinistra_Y_Set_button,3,3)
         hbox3 = QHBoxLayout()
         hbox3.addWidget(self.Sinistra_Y_L_button)
         hbox3.addSpacing(10)
@@ -350,11 +352,11 @@ class ChiefAuxControlWidget(QWidget):
 
         self.setLayout(vBoxlayout)
 
-        self.Piezo_click(0, self.Dextra_X_V)
-        self.Piezo_click(1, self.Dextra_Y_V)
-        self.Piezo_click(2, self.Sinistra_X_V)
-        self.Piezo_click(3, self.Sinistra_Y_V)
-        self.Piezo_click(4, self.SciPiezo_V)
+        #self.Piezo_click(0, self.Dextra_X_V)
+        #self.Piezo_click(1, self.Dextra_Y_V)
+        #self.Piezo_click(2, self.Sinistra_X_V)
+        #self.Piezo_click(3, self.Sinistra_Y_V)
+        #self.Piezo_click(4, self.SciPiezo_V)
 
         self.ask_for_status()
 
@@ -395,6 +397,7 @@ class ChiefAuxControlWidget(QWidget):
 
         
     def Piezo_click(self,index,voltage):
+
         if index == 4:
             response = self.send_to_server_with_response("CA.moveSciPiezo [%s]"%(voltage))
         elif index < 4:
