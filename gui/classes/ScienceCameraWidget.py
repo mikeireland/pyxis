@@ -116,7 +116,7 @@ class FeedWindow(QWidget):
         bias = np.percentile(image[0:3],30)
         noise = 1.48*np.median(image[0:3]-bias)
         scaled = np.arcsinh( A* (image - bias)/noise) + B
-        return scaled
+        return scaled.astype("uint8")
 
     def linear_func(self,image):
         return image
@@ -180,7 +180,7 @@ class ScienceCameraWidget(QWidget):
 
         bigfont = QFont("Times", 20, QFont.Bold)
 
-
+        vbox1.addSpacing(20)
 
         hbox4 = QHBoxLayout()
         vbox4 = QVBoxLayout()
@@ -190,6 +190,7 @@ class ScienceCameraWidget(QWidget):
         #First row...
         config_grid = QGridLayout()
         config_grid.setColumnMinimumWidth(1,30)
+        config_grid.setVerticalSpacing(10)
 
         hbox3 = QHBoxLayout()
         lbl1 = QLabel('Width: ', self)
@@ -295,6 +296,51 @@ class ScienceCameraWidget(QWidget):
         vbox4.addLayout(hbox1)
 
         hbox4.addLayout(vbox4)
+        vbox1.addLayout(hbox4)
+
+        #################################
+
+        SC_button_grid = QGridLayout()
+        SC_button_grid.setColumnMinimumWidth(1,30)
+        SC_button_grid.setVerticalSpacing(10)
+
+        self.darks_button = QPushButton("Connect", self)
+        self.darks_button.setCheckable(True)
+        self.darks_button.setFixedWidth(200)
+        self.darks_button.clicked.connect(self.darks_func)
+        SC_button_grid.addWidget(self.darks_button,0,0)
+
+        self.flux1_button = QPushButton("Connect", self)
+        self.flux1_button.setCheckable(True)
+        self.flux1_button.setFixedWidth(200)
+        self.flux1_button.clicked.connect(self.flux_func(0))
+        SC_button_grid.addWidget(self.flux1_button,0,1)
+
+        self.flux2_button = QPushButton("Connect", self)
+        self.flux2_button.setCheckable(True)
+        self.flux2_button.setFixedWidth(200)
+        self.flux2_button.clicked.connect(self.flux_func(1))
+        SC_button_grid.addWidget(self.flux2_button,0,2)
+
+        self.target_baseline_button = QPushButton("Connect", self)
+        self.target_baseline_button.setFixedWidth(200)
+        self.target_baseline_button.clicked.connect(self.target_baseline_func)
+        SC_button_grid.addWidget(self.target_baseline_button,1,0)
+
+        self.p2vm_button = QPushButton("Connect", self)
+        self.p2vm_button.setFixedWidth(200)
+        self.p2vm_button.clicked.connect(self.p2vm_func)
+        SC_button_grid.addWidget(self.p2vm_button,1,1)
+
+        self.fringe_scan_button = QPushButton("Connect", self)
+        self.fringe_scan_button.setCheckable(True)
+        self.fringe_scan_button.setFixedWidth(200)
+        self.fringe_scan_button.clicked.connect(self.fringe_scan_func)
+        SC_button_grid.addWidget(self.fringe_scan_button,1,2)
+
+        vbox1.addLayout(SC_button_grid)
+
+        ####################################
 
         hbox3 = QHBoxLayout()
         hbox3.addSpacing(50)
@@ -314,8 +360,6 @@ class ScienceCameraWidget(QWidget):
         hbox3.addWidget(self.run_button)
         vbox2.addLayout(hbox3)
 
-        vbox1.addLayout(hbox4)
-
         #vbox2 things
         hbox3 = QHBoxLayout()
         self.Reconfigure_button = QPushButton("Reconfigure", self)
@@ -332,6 +376,22 @@ class ScienceCameraWidget(QWidget):
         self.Camera_button.setFixedWidth(200)
         self.Camera_button.clicked.connect(self.camera_feed)
         hbox3.addWidget(self.Camera_button)
+        vbox2.addLayout(hbox3)
+
+        hbox3 = QHBoxLayout()
+        self.GD_button = QPushButton("Group Delay Plot", self)
+        self.GD_button.setCheckable(True)
+        self.GD_button.setFixedWidth(200)
+        self.GD_button.clicked.connect(self.GD_plot_func)
+        hbox3.addWidget(self.GD_button)
+        vbox2.addLayout(hbox3)
+        
+        hbox3 = QHBoxLayout()
+        self.V2_button = QPushButton("V2 Plot", self)
+        self.V2_button.setCheckable(True)
+        self.V2_button.setFixedWidth(200)
+        self.V2_button.clicked.connect(self.V2_plot_func)
+        hbox3.addWidget(self.V2_button)
         vbox2.addLayout(hbox3)
 
         hbox2.addLayout(vbox1)
@@ -430,6 +490,8 @@ class ScienceCameraWidget(QWidget):
     #Function to auto update at a given rate
     def auto_updater(self):
         self.refresh_camera_feed()
+        self.refresh_V2_func()
+        self.refresh_GD_func()
         self.stimer.singleShot(self.feed_refresh_time, self.auto_updater)
         return
 
@@ -476,10 +538,24 @@ class ScienceCameraWidget(QWidget):
         else:
             print("CAMERA NOT CONNECTED")
 
-
         return
 
 
+    def darks_func(self):
+        return
+
+
+    def flux_func(self,index):       
+        return
+    
+    def fringe_scan_func(self):
+        return
+
+    def target_baseline_func(self):
+        return
+    
+    def p2vm_func(self):
+        return
 
     def run_camera(self):
 
@@ -520,11 +596,30 @@ class ScienceCameraWidget(QWidget):
                     self.Camera_button.setText("Start Feed")
             else:
                 self.Camera_button.setChecked(False)
+                self.Camera_button.setText("Start Feed")
                 #print("CAMERA NOT RUNNING")
         else:
             self.Camera_button.setChecked(False)
+            self.Camera_button.setText("Start Feed")
             #print("CAMERA NOT CONNECTED")
 
+    def GD_func(self):
+        time.sleep(1)
+        self.refresh_GD_func()
+        return
+    
+    def refresh_GD_func(self):
+        print("DO GROUP DELAY")
+        return
+    
+    def V2_func(self):
+        time.sleep(1)
+        self.refresh_V2_func()
+        return
+    
+    def refresh_V2_func(self):
+        print("DO V2")
+        return
 
     def get_new_frame(self):
         #j = random.randint(1, 6)
