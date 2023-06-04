@@ -6,6 +6,7 @@ import random
 import json
 import numpy as np
 import cv2
+import pyqtgraph as pg
 
 try:
     try:
@@ -59,7 +60,6 @@ class FeedWindow(QWidget):
         hbox = QHBoxLayout()
         self.cam_feed = FeedLabel("assets/camtest1.png")
         self.binning_flag = 0
-
 
         hbox.addWidget(self.cam_feed)
         hbox.addSpacing(50)
@@ -121,7 +121,36 @@ class FeedWindow(QWidget):
     def linear_func(self,image):
         return image
 
+class GDPlotWindow(QWidget):
+    def __init__(self):
+        super(GDPlotWindow, self).__init__()
 
+        # Label
+        self.resize(900, 500)
+        self.setWindowTitle("Group Delay Plot Feed")
+        hbox = QHBoxLayout()
+        self.cam_feed = FeedLabel("assets/camtest1.png")
+        hbox.addWidget(self.cam_feed)
+        self.setLayout(hbox)
+
+class V2PlotWindow(QWidget):
+    def __init__(self):
+        super(PlotWindow, self).__init__()
+
+        # Label
+        self.resize(900, 500)
+        self.setWindowTitle("V2 Plot Feed")
+        hbox = QHBoxLayout()
+        self.graphWidget = pg.PlotWidget()
+        self.x = np.arange(20)
+        self.y = np.zeros(20)
+
+        pen = pg.mkPen(width=15)
+        self.data_line =  self.graphWidget.plot(self.x, self.y, pen=pen, symbol='+', symbolSize=30)
+        self.graphWidget.setLabel('left', 'V^2 Estimate')
+        self.graphWidget.setLabel('bottom', 'Channel No.')
+        hbox.addWidget(self.graphWidget)
+        self.setLayout(hbox)
 
 
 class ScienceCameraWidget(QWidget):
@@ -134,6 +163,9 @@ class ScienceCameraWidget(QWidget):
         self.socket = ClientSocket(IP=IP, Port=self.port)
         self.feed_refresh_time = int(config["feed_refresh_time"]*1000)
         self.compression_param = config["compression_param"]
+
+        self.GD_array = np.zeros((config["GD_window_size"],config["num_delays"]),dtype="uint16")
+        self.GD_scale = config["GD_scale"]
 
         #Layout the common elements
         vBoxlayout = QVBoxLayout()
@@ -298,41 +330,42 @@ class ScienceCameraWidget(QWidget):
         hbox4.addLayout(vbox4)
         vbox1.addLayout(hbox4)
 
+        vbox1.addSpacing(15)
         #################################
 
         SC_button_grid = QGridLayout()
         SC_button_grid.setColumnMinimumWidth(1,30)
-        SC_button_grid.setVerticalSpacing(10)
+        SC_button_grid.setVerticalSpacing(15)
 
-        self.darks_button = QPushButton("Connect", self)
+        self.darks_button = QPushButton("Dark", self)
         self.darks_button.setCheckable(True)
         self.darks_button.setFixedWidth(200)
         self.darks_button.clicked.connect(self.darks_func)
         SC_button_grid.addWidget(self.darks_button,0,0)
 
-        self.flux1_button = QPushButton("Connect", self)
+        self.flux1_button = QPushButton("Flux 1", self)
         self.flux1_button.setCheckable(True)
         self.flux1_button.setFixedWidth(200)
-        self.flux1_button.clicked.connect(self.flux_func(0))
+        self.flux1_button.clicked.connect(self.flux1_func)
         SC_button_grid.addWidget(self.flux1_button,0,1)
 
-        self.flux2_button = QPushButton("Connect", self)
+        self.flux2_button = QPushButton("Flux 2", self)
         self.flux2_button.setCheckable(True)
         self.flux2_button.setFixedWidth(200)
-        self.flux2_button.clicked.connect(self.flux_func(1))
+        self.flux2_button.clicked.connect(self.flux2_func)
         SC_button_grid.addWidget(self.flux2_button,0,2)
 
-        self.target_baseline_button = QPushButton("Connect", self)
+        self.target_baseline_button = QPushButton("Target/Baseline Calc", self)
         self.target_baseline_button.setFixedWidth(200)
         self.target_baseline_button.clicked.connect(self.target_baseline_func)
         SC_button_grid.addWidget(self.target_baseline_button,1,0)
 
-        self.p2vm_button = QPushButton("Connect", self)
+        self.p2vm_button = QPushButton("Calc P2VM", self)
         self.p2vm_button.setFixedWidth(200)
         self.p2vm_button.clicked.connect(self.p2vm_func)
         SC_button_grid.addWidget(self.p2vm_button,1,1)
 
-        self.fringe_scan_button = QPushButton("Connect", self)
+        self.fringe_scan_button = QPushButton("Start Fringe Scan", self)
         self.fringe_scan_button.setCheckable(True)
         self.fringe_scan_button.setFixedWidth(200)
         self.fringe_scan_button.clicked.connect(self.fringe_scan_func)
@@ -378,16 +411,20 @@ class ScienceCameraWidget(QWidget):
         hbox3.addWidget(self.Camera_button)
         vbox2.addLayout(hbox3)
 
+        self.GD_window = GDPlotWindow("Group Delay")
+
         hbox3 = QHBoxLayout()
-        self.GD_button = QPushButton("Group Delay Plot", self)
+        self.GD_button = QPushButton("Start GD plotter", self)
         self.GD_button.setCheckable(True)
         self.GD_button.setFixedWidth(200)
         self.GD_button.clicked.connect(self.GD_plot_func)
         hbox3.addWidget(self.GD_button)
         vbox2.addLayout(hbox3)
         
+        self.V2_window = V2PlotWindow("V2")
+
         hbox3 = QHBoxLayout()
-        self.V2_button = QPushButton("V2 Plot", self)
+        self.V2_button = QPushButton("Start V2 plotter", self)
         self.V2_button.setCheckable(True)
         self.V2_button.setFixedWidth(200)
         self.V2_button.clicked.connect(self.V2_plot_func)
@@ -492,6 +529,8 @@ class ScienceCameraWidget(QWidget):
         self.refresh_camera_feed()
         self.refresh_V2_func()
         self.refresh_GD_func()
+        if self.fringe_scan_button.isChecked():
+            self.check_fringe_scan_mode()
         self.stimer.singleShot(self.feed_refresh_time, self.auto_updater)
         return
 
@@ -542,19 +581,111 @@ class ScienceCameraWidget(QWidget):
 
 
     def darks_func(self):
+        if self.Connect_button.isChecked():
+            if self.flux1_button.isChecked():
+                self.darks_button.setChecked(False)
+                print("TURN OFF FLUX1 MODE!")                 
+            elif self.flux2_button.isChecked():
+                self.darks_button.setChecked(False)
+                print("TURN OFF FLUX2 MODE!") 
+            elif self.fringe_scan_button.isChecked():
+                self.darks_button.setChecked(False)
+                print("CURRENTLY FRINGE SCANNING!")                  
+            else:
+                print("SETTING DARK MODE")
+                self.send_to_server("SC.enableDarks [%s]" %int(self.darks_button.isChecked()))
+                print(int(self.darks_button.isChecked()))  
+        else:
+            self.darks_button.setChecked(False)
+            print("CAMERA NOT CONNECTED")        
         return
 
+    def flux1_func(self):       
+        if self.Connect_button.isChecked():
+            if self.darks_button.isChecked():
+                self.flux1_button.setChecked(False)
+                print("TURN OFF DARK MODE!") 
+            elif self.flux2_button.isChecked():
+                self.flux1_button.setChecked(False)
+                print("TURN OFF FLUX2 MODE!") 
+            elif self.fringe_scan_button.isChecked():
+                self.flux1_button.setChecked(False)
+                print("CURRENTLY FRINGE SCANNING!")     
+            else:
+                print("SETTING FLUX1 MODE")
+                self.send_to_server("SC.enableFluxes [%s]" %int(self.flux1_button.isChecked()))
+                print(int(self.flux1_button.isChecked()))  
+    
+        else:
+            self.flux1_button.setChecked(False)
+            print("CAMERA NOT CONNECTED")        
+        return
 
-    def flux_func(self,index):       
+    def flux2_func(self):       
+        if self.Connect_button.isChecked():
+            if self.flux1_button.isChecked():
+                self.flux2_button.setChecked(False)
+                print("TURN OFF FLUX1 MODE!")                 
+            elif self.darks_button.isChecked():
+                self.flux2_button.setChecked(False)
+                print("TURN OFF DARK MODE!") 
+            elif self.fringe_scan_button.isChecked():
+                self.flux2_button.setChecked(False)
+                print("CURRENTLY FRINGE SCANNING!")     
+            else:
+                print("SETTING FLUX2 MODE")
+                self.send_to_server("SC.enableFluxes [%s]" %int(self.flux2_button.isChecked()*2))
+                print(int(self.flux2_button.isChecked()*2))  
+        else:
+            self.flux2_button.setChecked(False)
+            print("CAMERA NOT CONNECTED")        
         return
     
     def fringe_scan_func(self):
+        if self.Connect_button.isChecked():
+            if self.flux1_button.isChecked():
+                self.fringe_scan_button.setChecked(False)
+                print("TURN OFF FLUX1 MODE!")                 
+            elif self.flux2_button.isChecked():
+                self.fringe_scan_button.setChecked(False)
+                print("TURN OFF FLUX2 MODE!") 
+            elif self.darks_button.isChecked():
+                self.fringe_scan_button.setChecked(False)
+                print("TURN OFF DARK MODE!")  
+            else:  
+                if self.fringe_scan_button.isChecked():
+                    self.send_to_server("SC.enableFringeScan [1]")
+                    print("Starting Fringe Scanning")                 
+                else:
+                    print("Stopping Fringe Scanning")
+                    self.send_to_server("SC.enableFringeScan [0]")
+        else:
+            self.fringe_scan_button.setChecked(False)
+            print("CAMERA NOT CONNECTED")        
         return
 
+
+    def check_fringe_scan_mode(self):       
+        if self.Connect_button.isChecked():
+            if self.fringe_scan_button.isChecked():
+                response = self.socket.send_command("SC.fringeScanStatus")
+                if not response:
+                    self.fringe_scan_button.setChecked(False)
+                    print("Fringe scan ended")
+                else:
+                    print("Still fringe scanning")                 
+        else:
+            self.flux2_button.setChecked(False)
+            print("CAMERA NOT CONNECTED")        
+        return
+
+
     def target_baseline_func(self):
+        self.send_to_server("SC.setTargetandBaseline")
         return
     
     def p2vm_func(self):
+        self.send_to_server("SC.calcP2VM")
         return
 
     def run_camera(self):
@@ -603,23 +734,78 @@ class ScienceCameraWidget(QWidget):
             self.Camera_button.setText("Start Feed")
             #print("CAMERA NOT CONNECTED")
 
-    def GD_func(self):
+    def GD_plot_func(self):
         time.sleep(1)
         self.refresh_GD_func()
         return
     
     def refresh_GD_func(self):
-        print("DO GROUP DELAY")
+        if self.Connect_button.isChecked():
+            if self.run_button.isChecked():
+                if self.GD_button.isChecked():
+                    # Refresh camera
+                    self.GD_window.show()
+                    self.GD_button.setText("Stop GD plotter")
+                    print("gd")
+                    self.get_new_GD()
+
+                else:
+                    self.GD_button.setText("Start GD plotter")
+            else:
+                self.GD_button.setChecked(False)
+                self.GD_button.setText("Start GD plotter")
+                #print("CAMERA NOT RUNNING")
+        else:
+            self.GD_button.setChecked(False)
+            self.GD_button.setText("Start GD plotter")
+            #print("CAMERA NOT CONNECTED")
         return
     
-    def V2_func(self):
+    def V2_plot_func(self):
         time.sleep(1)
         self.refresh_V2_func()
         return
     
     def refresh_V2_func(self):
-        print("DO V2")
+        if self.Connect_button.isChecked():
+            if self.run_button.isChecked():
+                if self.V2_button.isChecked():
+                    # Refresh camera
+                    self.V2_window.show()
+                    self.V2_button.setText("Stop V2 plotter")
+                    print("v2")
+
+                    self.get_new_v2()
+
+                else:
+                    self.V2_button.setText("Start V2 plotter")
+            else:
+                self.V2_button.setChecked(False)
+                self.V2_button.setText("Start V2 plotter")
+                #print("CAMERA NOT RUNNING")
+        else:
+            self.V2_button.setChecked(False)
+            self.V2_button.setText("Start V2 plotter")
+            #print("CAMERA NOT CONNECTED")
         return
+
+    def get_new_GD(self):
+        response = self.socket.send_command("SC.getGDarray")
+        data = json.loads(json.loads(response))
+        GD_data = np.array(data["GroupDelay"], np.double)
+        GD_data = (GD_data*self.GD_scale).astype("uint16")
+        temp = np.roll(self.GD_array,1,axis=0)
+        temp[0] = GD_data
+        self.GD_array = temp
+        qimg = QImage(self.GD_array, self.GD_array.shape(0), self.GD_array.shape(1), QImage.Format_Grayscale16)
+        ##########
+        self.GD_window.cam_feed.changePixmap(qimg)
+        
+    def get_new_V2(self):
+        response = self.socket.send_command("SC.getV2array")
+        data = json.loads(json.loads(response))
+        V2_data = np.array(data["V2"], np.double)
+        self.V2_window.data_line.setData(self.V2_window.x, V2_data)
 
     def get_new_frame(self):
         #j = random.randint(1, 6)

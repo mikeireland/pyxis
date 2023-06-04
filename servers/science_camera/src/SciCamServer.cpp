@@ -40,6 +40,8 @@ int GLOB_SC_DARK_FLAG;
 int GLOB_SC_FLUX_FLAG;
 int GLOB_SC_SCAN_FLAG;
 int GLOB_SC_STAGE = 0;
+int GLOB_SC_TRACK_PERIOD;
+int GLOB_SC_SCAN_PERIOD;
 double GLOB_SC_V2SNR_THRESHOLD;
 
 pthread_mutex_t GLOB_SC_FLAG_LOCK;
@@ -83,13 +85,15 @@ int GroupDelayCallback (unsigned short* data){
                     GLOB_SC_SCAN_FLAG = 0;
                     pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
                     // SEND STOP COMMAND and SET TO FAST FREQUENCY
-                    // std::string result = CA_SOCKET->send<std::string>("receiveGroupDelay", GLOB_SC_GD);
+                    std::string result = CA_SOCKET->send<std::string>("moveSDC", 0, 1000);
                     cout << "FOUND FRINGES" << endl;
                     return 1;
                 }
             } else{
+
                 cout << GLOB_SC_GD << endl;
-                std::string result = CA_SOCKET->send<std::string>("receiveGroupDelay", GLOB_SC_GD);
+                int32_t num_steps = static_cast<int32_t>GLOB_SC_GD*20; //
+                std::string result = CA_SOCKET->send<std::string>("moveSDC", num_steps, GLOB_SC_TRACK_PERIOD);
                 cout << result << endl;
             }
 
@@ -120,6 +124,9 @@ struct SciCam: QHYCameraServer{
         
         CA_SOCKET = new commander::client::Socket(CA_TCP);
         TS_SOCKET = new commander::client::Socket(TS_TCP);
+
+        GLOB_SC_TRACK_PERIOD = config["ScienceCamera"]["tracking_period"].value_or(100);
+        GLOB_SC_SCAN_PERIOD = config["ScienceCamera"]["scanning_period"].value_or(500);
 
         int xref = config["ScienceCamera"]["xref"].value_or(500);
         int yref = config["ScienceCamera"]["yref"].value_or(500);
@@ -216,15 +223,58 @@ struct SciCam: QHYCameraServer{
         return ret_msg;
     }
 
-    string enableFringeScan(){
+    string enableFringeScan(int flag){
         string ret_msg;
         if(GLOB_CAM_STATUS == 2){
             if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0 and GLOB_RUNNING == 0){
                 if (GLOB_SC_STAGE > 3){
-                    ret_msg = "Enabling Fringe Scanning";
-                    pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-                    GLOB_SC_SCAN_FLAG = 1;
-                    pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                    if (flag == 1){
+                        ret_msg = "Enabling Fringe Scanning";
+                        cout << ret_msg << endl;
+                        ret_msg = this->stopcam();
+                        while (GLOB_RUNNING == 1){
+                            usleep(1000);
+                        }
+                        cout << ret_msg << endl;
+
+                        // MAY NEED TO WAIT FOR HOME TO COMPLETE
+                        std::string result = CA_SOCKET->send<std::string>("homeSDC");
+                        cout << result << endl;
+
+                        // Start Camera with no frames
+                        pthread_mutex_lock(&GLOB_FLAG_LOCK);
+                        GLOB_NUMFRAMES = 0;
+                        pthread_mutex_unlock(&GLOB_FLAG_LOCK);
+                        ret_msg = this->startcam(GLOB_NUMFRAMES,GLOB_COADD);
+                        cout << ret_msg << endl;
+
+                        // Start scan
+                        std::string ret_msg = CA_SOCKET->send<std::string>("moveSDC", -400000, GLOB_SC_TRACK_PERIOD);
+                        cout << ret_msg << endl;
+
+                        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                        GLOB_SC_SCAN_FLAG = 1;
+                        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                    } else {
+
+                        ret_msg = "Disabling Fringe Scanning";
+                        cout << ret_msg << endl;
+                        ret_msg = this->stopcam();
+                        while (GLOB_RUNNING == 1){
+                            usleep(1000);
+                        }
+                        cout << ret_msg << endl;
+
+                        // Start scan
+                        std::string ret_msg = CA_SOCKET->send<std::string>("moveSDC", 0, GLOB_SC_TRACK_PERIOD);
+                        cout << ret_msg << endl;
+
+                        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                        GLOB_SC_SCAN_FLAG = 0;
+                        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+
+                    }
+                    
                     // SET TO SLOW FREQUENCY
                     // std::string result = CA_SOCKET->send<std::string>("receiveGroupDelay", GLOB_SC_GD);
                 } else if (GLOB_SC_STAGE == 0){
@@ -261,6 +311,14 @@ struct SciCam: QHYCameraServer{
         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
         string ret_msg = "Group Delay Estimate is " + to_string(a);
         return ret_msg;
+    }
+
+    bool fringeScanStatus(){
+        bool a;
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        a = GLOB_SC_SCAN_FLAG;
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        return a;
     }
 
     string getV2array(){
@@ -332,6 +390,7 @@ COMMANDER_REGISTER(m)
         .def("enableFluxes", &SciCam::enableFluxes, "Enable fluxes")
         .def("calcP2VM", &SciCam::calcP2VM, "Calculate P2VM matrices")
         .def("enableFringeScan", &SciCam::enableFringeScan, "Enable fringe scanning")
+        .def("fringeScanStatus", &SciCam::fringeScanStatus, "Are we still fringe scanning?")
         .def("getGDarray", &SciCam::getGDarray, "Get current group delay envelope")
         .def("getGDestimate", &SciCam::getGDestimate, "Get current group delay estimate")
         .def("getV2array", &SciCam::getV2array, "Get V2 array per pixel")

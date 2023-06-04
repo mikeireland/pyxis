@@ -103,6 +103,7 @@ struct ChiefAuxServer {
         //teensy_port.Request(HOMESDC);
         teensy_port.SendAllRequests();
         ret_msg = "Homing fine stage";
+        //WAIT TO RETURN???
         return ret_msg;
     }
 
