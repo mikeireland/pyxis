@@ -89,15 +89,28 @@ struct ChiefAuxServer {
         return ret_msg;
     }
 
-    piezoStatus moveTipTiltPiezos(int flag, double um){
+    string homeSDC() {
+        string ret_msg;
+        // -ve steps is towards middle of injection system
+        //int32_to_bytes(steps, &teensy_port.steps[0], &teensy_port.steps[1], &teensy_port.steps[2], &teensy_port.steps[3]);
+        //uint16_to_bytes(period, &teensy_port.period[0], &teensy_port.period[1]);
+        //teensy_port.Request(HOMESDC);
+        teensy_port.SendAllRequests();
+        ret_msg = "Homing fine stage";
+        return ret_msg;
+    }
+
+    piezoStatus moveTipTiltPiezos(int flag, double voltage){
         
         piezoStatus ps;
 
-        if (um < 151 && um >= 0){
+        if (um < 100.0 && um >= -15.0){
             
-            double um_to_V = 0.7614213197969543;
-            
-            double voltage = um_to_V*um-15;
+            //double um_to_V = 0.7614213197969543;
+            //double voltage = um_to_V*um-15;
+            double V_to_um = 1.313333333;
+
+            double um = V_to_um*(voltage + 15);
 
             string ret_msg_tmp; 
 
@@ -173,26 +186,27 @@ struct ChiefAuxServer {
         return 0;
     }
 
-    piezoStatus moveSciPiezo(double img_px){
+    piezoStatus moveSciPiezo(double voltage){
 
         piezoStatus ps;
 
-        if (img_px < 3.0 && img_px >= 0){
+        if (voltage < 100.0 && voltage >= -15.0){
             //double img_px_to_img_um = 6.5;
             //double img_um_to_piezo_um = 0.8333333333;
             //double um_to_V = 6.428801028608165;
             //double conversion = img_px_to_img_um*img_um_to_piezo_um*um_to_V;
-            double im_px_to_piezo_um = 5.41666666;
-            double conversion = 34.82267223815494;
+            // double im_px_to_piezo_um = 5.41666666;
+            double V_to_um = 0.15555;
             
-            PPV.Science = img_px*conversion-15;
-            
-            string ret_msg = "Moved science piezo to " + to_string(PPV.Science) + "V (moved " + to_string(img_px*im_px_to_piezo_um) + " microns)";
+            double um = V_to_um*(voltage + 15.0);
+            PPV.Science = voltage;
+
+            string ret_msg = "Moved science piezo to " + to_string(PPV.Science) + "V (moved " + to_string(um) + " microns)";
             
             sendPiezoVals(PPV);
 
             ps.um = img_px*im_px_to_piezo_um;
-            ps.voltage = img_px*conversion-15;
+            ps.voltage = voltage;
             ps.msg = ret_msg;
         
         } else {
@@ -312,6 +326,7 @@ COMMANDER_REGISTER(m)
         // To insterface a class method, you can use the `def` method.
         .def("requestStatus", &ChiefAuxServer::requestStatus, "Get information on all actuators and power")
 		.def("moveSDC", &ChiefAuxServer::moveSDC, "Move fine stage")
+        .def("homeSDC", &ChiefAuxServer::homeSDC, "Home fine stage")
 		.def("moveTipTiltPiezos", &ChiefAuxServer::moveTipTiltPiezos, "Set the tip/tilt piezos")
 		.def("moveAllTipTiltPiezos", &ChiefAuxServer::moveAllTipTiltPiezos, "Set all the tip/tilt piezos")
 		.def("receiveRelativeTipTiltPos", &ChiefAuxServer::receiveRelativeTipTiltPos, "Receive positions to move tip tilt piezos")
