@@ -190,6 +190,7 @@ void SerialPort::ReadMessage() {
                 i += 9;
                 break;
             case GETSDC:
+
                 current_step = bytes_to_int32(read_buffer_[i+1], read_buffer_[i+2], read_buffer_[i+3], read_buffer_[i+4]);
                 i += 7;
                 break;

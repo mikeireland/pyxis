@@ -110,7 +110,7 @@ void readMessage() {
           write_buffer_[write_index + 8] = (Motor_Current >> 8) & 0xFF;
           write_index += 9;
           //writeMessage();
-          i+= 1;
+          i+= 3;
           break;
         case COMPASS:
         //todo
@@ -209,7 +209,7 @@ void step_SDC() {
       digitalWrite(SDC_CLK, LOW);
       current_step += 1;
       steps_to_go -= 1;
-      //Serial.println(steps_to_go);
+      //Serial.println(current_step);
     }
     else {
       steps_to_go = 0;

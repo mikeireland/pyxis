@@ -111,7 +111,7 @@ struct ChiefAuxServer {
         
         piezoStatus ps;
 
-        if (um < 100.0 && um >= -15.0){
+        if (voltage < 100.0 && voltage >= -15.0){
             
             //double um_to_V = 0.7614213197969543;
             //double voltage = um_to_V*um-15;
@@ -189,7 +189,7 @@ struct ChiefAuxServer {
 
         double px_to_um = 1.725; 
         double um_to_V = 0.7614213197969543;
-        double conversion = px_to_um*um_to_V
+        double conversion = px_to_um*um_to_V;
 
         PPV.DextraX_um += px_to_um*Dpos.x;
         PPV.DextraY_um += px_to_um*Dpos.y;
@@ -226,7 +226,7 @@ struct ChiefAuxServer {
             
             sendPiezoVals(PPV);
 
-            ps.um = img_px*im_px_to_piezo_um;
+            ps.um = um;
             ps.voltage = voltage;
             ps.msg = ret_msg;
         
