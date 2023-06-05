@@ -26,9 +26,6 @@ refresh_time = 0.5 #In seconds
     module_type = "ChiefAuxControlWidget"
     voltage_limit = 10
     status_refresh_time = 2
-    num_delays = 100
-    GD_window_size = 50
-    GD_scale = 0.5
     
         [Navis.ChiefAux.PiezoSteps]
         dextra_X = 0.1
@@ -92,6 +89,9 @@ refresh_time = 0.5 #In seconds
     module_type = "ScienceCameraWidget"
     feed_refresh_time = 0.05
     compression_param = 1
+    num_delays = 100
+    GD_window_size = 50
+    GD_scale = 0.5
 
 [Dextra]
 

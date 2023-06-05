@@ -4,16 +4,16 @@ IP = "127.0.0.1"#"192.168.1.4"
 [QHYCamera]
     [QHYcamera.camera]
     readout_mode = 2 #0 is HDR mode, 1 is STD LGC mode, 2 is STD HGC mode. Use 2!
-    width = 2000
-    height = 1500
-    offset_x = 0
-    offset_y = 0
-    gain = 5
+    width = 60
+    height = 60
+    offset_x = 972
+    offset_y = 900
+    gain = 20
     gamma = 1.0
     black_level = 5 # Black level offset in ADU
-    exposure_time = 50000 # in microseconds
+    exposure_time = 5000 # in microseconds
     num_frames = 500 #Default number of frames to save per FITS file; 0 is continuous with no saving
-    buffer_size = 200 #Size of circular buffer
+    buffer_size = 10000 #Size of circular buffer
 
     [QHYcamera.bounds]
     width = [32,2048]

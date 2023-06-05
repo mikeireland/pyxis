@@ -135,7 +135,7 @@ class GDPlotWindow(QWidget):
 
 class V2PlotWindow(QWidget):
     def __init__(self):
-        super(PlotWindow, self).__init__()
+        super(V2PlotWindow, self).__init__()
 
         # Label
         self.resize(900, 500)
@@ -411,7 +411,7 @@ class ScienceCameraWidget(QWidget):
         hbox3.addWidget(self.Camera_button)
         vbox2.addLayout(hbox3)
 
-        self.GD_window = GDPlotWindow("Group Delay")
+        self.GD_window = GDPlotWindow()
 
         hbox3 = QHBoxLayout()
         self.GD_button = QPushButton("Start GD plotter", self)
@@ -421,7 +421,7 @@ class ScienceCameraWidget(QWidget):
         hbox3.addWidget(self.GD_button)
         vbox2.addLayout(hbox3)
         
-        self.V2_window = V2PlotWindow("V2")
+        self.V2_window = V2PlotWindow()
 
         hbox3 = QHBoxLayout()
         self.V2_button = QPushButton("Start V2 plotter", self)
@@ -527,10 +527,10 @@ class ScienceCameraWidget(QWidget):
     #Function to auto update at a given rate
     def auto_updater(self):
         self.refresh_camera_feed()
-        self.refresh_V2_func()
-        self.refresh_GD_func()
-        if self.fringe_scan_button.isChecked():
-            self.check_fringe_scan_mode()
+        #self.refresh_V2_func()
+        #self.refresh_GD_func()
+        #if self.fringe_scan_button.isChecked():
+        #    self.check_fringe_scan_mode()
         self.stimer.singleShot(self.feed_refresh_time, self.auto_updater)
         return
 
