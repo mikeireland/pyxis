@@ -263,6 +263,20 @@ class RobotControlWidget(QWidget):
 
         content_layout.addLayout(config_grid)
         vBoxlayout.addLayout(content_layout)
+        vBoxlayout.addSpacing(20)
+        lbl1 = QLabel('Save to file: ', self)
+        self.file_line_edit = QLineEdit("")
+        self.file_line_edit.returnPressed.connect(self.save_file)
+
+        #Next, the info button
+        self.file_submit_button = QPushButton("Submit", self)
+        self.file_submit_button.clicked.connect(self.save_file)
+
+        hbox1 = QHBoxLayout()
+        hbox1.addWidget(lbl1)
+        hbox1.addWidget(self.file_line_edit)
+        hbox1.addWidget(self.file_submit_button)
+        vBoxlayout.addLayout(hbox1)
 
         # Complete setup, add status labels and indicators
         status_layout = QHBoxLayout()
@@ -329,6 +343,10 @@ class RobotControlWidget(QWidget):
         #self.send_to_server("RC.start")
         print("Sending 'Start' command")
 
+    def save_file(self):
+        filename = str(self.file_line_edit.text())
+        #self.send_to_server("RC.file []%filename")
+        print("Sending 'Save' command")        
 
     def move_func(self,axis,velocity):
         command = ["0","0","0","0","0","0","0"]

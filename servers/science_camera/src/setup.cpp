@@ -138,12 +138,29 @@ void extractToMatrix(unsigned short* data, Eigen::Matrix<double, 20, 3> & O) {
     
      // From the frame, extract pixel positions into O(utput) matrix
      for(int k=0;k<10;k++){
-        O.row(k) << data[GLOB_SC_CAL.pos_p1_A,GLOB_SC_CAL.pos_wave+k]-GLOB_SC_DARK_VAL,
-                    data[GLOB_SC_CAL.pos_p1_B,GLOB_SC_CAL.pos_wave+k]-GLOB_SC_DARK_VAL,
-                    data[GLOB_SC_CAL.pos_p1_C,GLOB_SC_CAL.pos_wave+k]-GLOB_SC_DARK_VAL;
-        O.row(k+10) << data[GLOB_SC_CAL.pos_p2_A,GLOB_SC_CAL.pos_wave+k]-GLOB_SC_DARK_VAL,
-                    data[GLOB_SC_CAL.pos_p2_B,GLOB_SC_CAL.pos_wave+k]-GLOB_SC_DARK_VAL,
-                    data[GLOB_SC_CAL.pos_p2_C,GLOB_SC_CAL.pos_wave+k]-GLOB_SC_DARK_VAL;
+        O.row(k) << data[GLOB_SC_CAL.pos_p1_A,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[0]+k]+
+                    data[GLOB_SC_CAL.pos_p1_A+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[0]+k]- 
+                    GLOB_SC_DARK_VAL,
+
+                    data[GLOB_SC_CAL.pos_p1_B,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[1]+k]+
+                    data[GLOB_SC_CAL.pos_p1_B+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[1]+k]-
+                    GLOB_SC_DARK_VAL,
+
+                    data[GLOB_SC_CAL.pos_p1_C,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[2]+k]+
+                    data[GLOB_SC_CAL.pos_p1_C+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[2]+k]-
+                    GLOB_SC_DARK_VAL;
+
+        O.row(k+10) << data[GLOB_SC_CAL.pos_p2_A,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[3]+k]+
+                       data[GLOB_SC_CAL.pos_p2_A+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[3]+k]-
+                       GLOB_SC_DARK_VAL,
+
+                       data[GLOB_SC_CAL.pos_p2_B,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[4]+k]+
+                       data[GLOB_SC_CAL.pos_p2_B+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[4]+k]-
+                       GLOB_SC_DARK_VAL,
+
+                       data[GLOB_SC_CAL.pos_p2_C,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[5]+k]+
+                       data[GLOB_SC_CAL.pos_p2_C+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[5]+k]-
+                       GLOB_SC_DARK_VAL;
     }   
 }
 
@@ -159,11 +176,11 @@ int setPixelPositions(int xref, int yref) {
     GLOB_SC_CAL.pos_wave = xref - 4;
 
     GLOB_SC_CAL.pos_p1_A = yref;
-    GLOB_SC_CAL.pos_p2_A = yref + 3;
-    GLOB_SC_CAL.pos_p1_B = yref + 7;
-    GLOB_SC_CAL.pos_p2_B = yref + 12;
-    GLOB_SC_CAL.pos_p1_C = yref + 15;
-    GLOB_SC_CAL.pos_p2_C = yref + 18;
+    GLOB_SC_CAL.pos_p2_A = yref + 8;
+    GLOB_SC_CAL.pos_p1_B = yref + 14;
+    GLOB_SC_CAL.pos_p2_B = yref + 22;
+    GLOB_SC_CAL.pos_p1_C = yref + 28;
+    GLOB_SC_CAL.pos_p2_C = yref + 36;
 
     double temp_waves [] = {0.6063, 0.6186, 0.6316, 0.6454, 0.66, 0.6755, 0.6918, 0.7092, 0.7277, 0.7473};
 

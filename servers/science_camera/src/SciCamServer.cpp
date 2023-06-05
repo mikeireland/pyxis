@@ -144,6 +144,10 @@ struct SciCam: QHYCameraServer{
             GLOB_SC_P2VM_SIGNS[k] = config["ScienceCamera"]["signs"][k].value_or(1); 
         }
 
+        for(int k=0;k<6;k++){
+            GLOB_SC_CAL.wave_offset[k] = config["ScienceCamera"]["wave_offsets"][k].value_or(0); 
+        }
+
         GLOB_SC_V2 = Eigen::MatrixXd::Zero(20,1);
         GLOB_SC_DELAY_AVE = Eigen::MatrixXd::Zero(numDelays,1);
     }

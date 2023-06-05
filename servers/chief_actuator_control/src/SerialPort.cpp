@@ -183,10 +183,10 @@ void SerialPort::ReadMessage() {
                 i += 3;
                 break;
             case WATTMETER:
-            	PC_Voltage = bytes_to_int16(read_buffer_[i+1], read_buffer_[i+2]);
-           	PC_Current = bytes_to_int16(read_buffer_[i+3], read_buffer_[i+4]);
-           	Motor_Voltage = bytes_to_int16(read_buffer_[i+5], read_buffer_[i+6]);
-           	Motor_Current = bytes_to_int16(read_buffer_[i+7], read_buffer_[i+8]);
+            	Motor_Voltage = bytes_to_int16(read_buffer_[i+1], read_buffer_[i+2]);
+                Motor_Current = bytes_to_int16(read_buffer_[i+3], read_buffer_[i+4]);
+                PC_Voltage = bytes_to_int16(read_buffer_[i+5], read_buffer_[i+6]);
+                PC_Current = bytes_to_int16(read_buffer_[i+7], read_buffer_[i+8]);
                 i += 9;
                 break;
             case GETSDC:
