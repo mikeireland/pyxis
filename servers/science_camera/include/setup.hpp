@@ -22,7 +22,7 @@ extern double GLOB_SC_DARK_VAL;
 struct SC_calibration {
 
     double wavelengths[10];
-    double wave_offset[6];
+    int wave_offset[6];
 
     int pos_wave;
 

@@ -98,11 +98,25 @@ struct ChiefAuxServer {
     string homeSDC() {
         string ret_msg;
         // -ve steps is towards middle of injection system
-        //int32_to_bytes(steps, &teensy_port.steps[0], &teensy_port.steps[1], &teensy_port.steps[2], &teensy_port.steps[3]);
-        //uint16_to_bytes(period, &teensy_port.period[0], &teensy_port.period[1]);
-        //teensy_port.Request(HOMESDC);
+        int32_t steps = 450000;
+        uint16_t period = 100;
+        int32_to_bytes(steps, &teensy_port.steps[0], &teensy_port.steps[1], &teensy_port.steps[2], &teensy_port.steps[3]);
+        uint16_to_bytes(period, &teensy_port.period[0], &teensy_port.period[1]);
+        teensy_port.Request(SETSDC);
         teensy_port.SendAllRequests();
-        ret_msg = "Homing fine stage";
+
+        while (true){
+            sleep(1);
+            teensy_port.Request(GETSDC);
+            teensy_port.SendAllRequests();
+            usleep(150);
+            teensy_port.ReadMessage();
+            if (teensy_port.current_step == 0){
+                break;
+            }       
+        }
+
+        ret_msg = "Fine stage is homed";
         //WAIT TO RETURN???
         return ret_msg;
     }

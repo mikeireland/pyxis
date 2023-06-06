@@ -92,7 +92,7 @@ int GroupDelayCallback (unsigned short* data){
             } else{
 
                 cout << GLOB_SC_GD << endl;
-                int32_t num_steps = static_cast<int32_t>GLOB_SC_GD*20; //
+                int32_t num_steps = static_cast<int32_t>(GLOB_SC_GD*20); //
                 std::string result = CA_SOCKET->send<std::string>("moveSDC", num_steps, GLOB_SC_TRACK_PERIOD);
                 cout << result << endl;
             }
@@ -249,7 +249,7 @@ struct SciCam: QHYCameraServer{
                         pthread_mutex_lock(&GLOB_FLAG_LOCK);
                         GLOB_NUMFRAMES = 0;
                         pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-                        ret_msg = this->startcam(GLOB_NUMFRAMES,GLOB_COADD);
+                        ret_msg = this->startcam(GLOB_NUMFRAMES);
                         cout << ret_msg << endl;
 
                         // Start scan

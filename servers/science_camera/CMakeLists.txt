@@ -7,11 +7,12 @@ add_executable(SciCamServer
     ../libs/camera/src/main.cpp ../libs/camera/src/runQHYCam.cpp ../libs/camera/src/QHYCamera.cpp ../libs/camera/src/globals.cpp ../libs/camera/src/QHYcamServerFuncs.cpp ../libs/brent/brent.cpp src/SciCamServer.cpp src/setup.cpp src/group_delay.cpp
 )
 
+set(CMAKE_CXX_FLAGS "-O2")
+
 target_include_directories(SciCamServer PUBLIC ../libs/camera/include ../libs/brent include ../libs)
 target_compile_features(SciCamServer PUBLIC cxx_std_17)
 
 find_package(commander REQUIRED)
-find_package(Eigen3 REQUIRED)
 find_package( OpenCV REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 
