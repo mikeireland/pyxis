@@ -284,7 +284,7 @@ struct ChiefAuxServer {
 
     void sendPiezoVals(piezoPWMvals ppv) {
         teensy_port.piezo_duties[0] = roundPWM(ppv.DextraX_V);
-        teensy_port.piezo_duties[1] = roundPWM(ppv.DextraX_V);
+        teensy_port.piezo_duties[1] = roundPWM(ppv.DextraY_V);
         teensy_port.piezo_duties[2] = roundPWM(ppv.SinistraX_V);
         teensy_port.piezo_duties[3] = roundPWM(ppv.SinistraY_V);
         teensy_port.piezo_duties[4] = roundPWM(ppv.Science_V);
