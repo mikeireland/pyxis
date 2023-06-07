@@ -171,7 +171,27 @@ struct ChiefAuxServer {
         return ps;
     }
 
-
+    string moveHV(int flag, double voltageX, double voltageY){
+        
+        piezoStatus ps;
+        
+        if (flag == 0){
+            double voltageXd = cos(Dextra_angle)*voltageX + sin(Dextra_angle)*voltageY;
+            PPV.DextraX_V = voltageXd;
+            double voltageYd = -sin(Dextra_angle)*voltageX + cos(Dextra_angle)*voltageY;
+            PPV.DextraY_V = voltageYd;
+        } else if (flag == 1){
+            double voltageXd = cos(Sinistra_angle)*voltageX - sin(Sinistra_angle)*voltageY;
+            PPV.SinistraX_V = voltageXd;
+            double voltageYd = sin(Sinistra_angle)*voltageX + cos(Sinistra_angle)*voltageY;
+            PPV.SinistraY_V = voltageYd;
+        }
+         
+        double voltage = sqrt(voltageXd*voltageXd + voltageYd*voltageYd);
+       
+        return to_string(voltage);
+    }
+    
     int receiveRelativeTipTiltPos(centroid Dpos, centroid Spos){
 
         double px_to_um = 1.725; 
@@ -180,8 +200,8 @@ struct ChiefAuxServer {
         
         double Dx = cos(Dextra_angle)*Dpos.x + sin(Dextra_angle)*Dpos.y;
         double Dy = -sin(Dextra_angle)*Dpos.x + cos(Dextra_angle)*Dpos.y;
-        double Sx = cos(Sinistra_angle)*Spos.x + sin(Sinistra_angle)*Spos.y;
-        double Sy = -sin(Sinistra_angle)*Spos.x + cos(Sinistra_angle)*Spos.y;
+        double Sx = cos(Sinistra_angle)*Spos.x - sin(Sinistra_angle)*Spos.y;
+        double Sy = sin(Sinistra_angle)*Spos.x + cos(Sinistra_angle)*Spos.y;
 
         PPV.DextraX_um += px_to_um*Dx;
         PPV.DextraY_um += px_to_um*Dy;
@@ -352,5 +372,6 @@ COMMANDER_REGISTER(m)
         .def("homeSDC", &ChiefAuxServer::homeSDC, "Home fine stage")
 		.def("moveTipTiltPiezo", &ChiefAuxServer::moveTipTiltPiezo, "Set the tip/tilt piezos")
 		.def("receiveRelativeTipTiltPos", &ChiefAuxServer::receiveRelativeTipTiltPos, "Receive positions to move tip tilt piezos")
+		.def("moveHV", &ChiefAuxServer::moveHV, "Move piezos horizontally and vertically")
 		.def("moveSciPiezo", &ChiefAuxServer::moveSciPiezo, "Set the science piezos");
 }
