@@ -47,7 +47,7 @@ struct piezoStatus{
 
 struct status{
     piezoPWMvals ppv;
-    double sdc_pos;
+    int32_t sdc_step_count;
     powerStatus ps;
     string msg;
 };
@@ -60,6 +60,7 @@ struct centroid {
 piezoPWMvals PPV;
 powerStatus PS;
 double SDC_pos;
+int32_t SDC_step_count;
 
 // FLIR Camera Server
 struct ChiefAuxServer {
@@ -79,7 +80,7 @@ struct ChiefAuxServer {
         ret_status.ppv = PPV;
         readWattmeterAndSDC();
         ret_status.ps = PS;
-        ret_status.sdc_pos = SDC_pos;
+        ret_status.sdc_step_count = SDC_step_count;
 
         ret_status.msg = "Updated values";
 
@@ -181,12 +182,15 @@ struct ChiefAuxServer {
             voltageYd = -sin(Dextra_angle)*voltageX + cos(Dextra_angle)*voltageY;
             PPV.DextraY_V += voltageYd;
         } else if (flag == 1){
-            voltageXd = cos(Sinistra_angle)*voltageX - sin(Sinistra_angle)*voltageY;
+            voltageXd = cos(Sinistra_angle)*voltageX + sin(Sinistra_angle)*voltageY;
             PPV.SinistraX_V += voltageXd;
-            voltageYd = sin(Sinistra_angle)*voltageX + cos(Sinistra_angle)*voltageY;
+            voltageYd = sin(Sinistra_angle)*voltageX - cos(Sinistra_angle)*voltageY;
             PPV.SinistraY_V += voltageYd;
         }
-        sendPiezoVals(PPV);
+        
+        cout << voltageXd << ", " << voltageYd << endl;
+        cout << Dextra_angle << endl;
+        //sendPiezoVals(PPV);
         
         double voltage = sqrt(voltageXd*voltageXd + voltageYd*voltageYd);
        
@@ -263,8 +267,7 @@ struct ChiefAuxServer {
         PS.motor_V = teensy_port.Motor_Voltage;
         PS.motor_A = teensy_port.Motor_Current;
         
-        int32_t SDC_step_count = teensy_port.current_step;
-        SDC_pos = SDC_step_count*0.02;
+        SDC_step_count = -teensy_port.current_step;
 
         cout << "PC Voltage (mV): " << PS.PC_V << endl;
         cout << "PC Current (mA): " << PS.PC_A << endl;
@@ -312,7 +315,7 @@ namespace nlohmann {
                      {"Sinistra_X_um", s.ppv.SinistraX_um}, 
                      {"Sinistra_Y_um", s.ppv.SinistraY_um},
                      {"Science_um", s.ppv.Science_um},
-                     {"SDC_step_count", s.sdc_pos},
+                     {"SDC_step_count", s.sdc_step_count},
                      {"message",s.msg}};
         }
 
@@ -331,7 +334,7 @@ namespace nlohmann {
             j.at("Sinistra_X_um").get_to(s.ppv.SinistraX_um);
             j.at("Sinistra_Y_um").get_to(s.ppv.SinistraY_um);
             j.at("Science_um").get_to(s.ppv.Science_um);
-            j.at("SDC_step_count").get_to(s.sdc_pos);
+            j.at("SDC_step_count").get_to(s.sdc_step_count);
             j.at("message").get_to(s.msg);
         }
     };

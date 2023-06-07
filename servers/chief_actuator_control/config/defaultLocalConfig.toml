@@ -4,5 +4,5 @@ IP = "127.0.0.1"
 
 [actuators]
 Dextra_angle = 90.0
-Sinistra_angle = 60.0
+Sinistra_angle = 70.0
 
