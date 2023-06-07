@@ -5,6 +5,7 @@
 #include <time.h>
 #include <cstdlib>
 #include "SerialPort.h"
+#include "chiefAuxGlobals2.hpp"
 
 using json = nlohmann::json;
 
@@ -349,7 +350,7 @@ COMMANDER_REGISTER(m)
         .def("requestStatus", &ChiefAuxServer::requestStatus, "Get information on all actuators and power")
 		.def("moveSDC", &ChiefAuxServer::moveSDC, "Move fine stage")
         .def("homeSDC", &ChiefAuxServer::homeSDC, "Home fine stage")
-		.def("moveTipTiltPiezo", &ChiefAuxServer::moveTipTiltPiezos, "Set the tip/tilt piezos")
+		.def("moveTipTiltPiezo", &ChiefAuxServer::moveTipTiltPiezo, "Set the tip/tilt piezos")
 		.def("receiveRelativeTipTiltPos", &ChiefAuxServer::receiveRelativeTipTiltPos, "Receive positions to move tip tilt piezos")
 		.def("moveSciPiezo", &ChiefAuxServer::moveSciPiezo, "Set the science piezos");
 }

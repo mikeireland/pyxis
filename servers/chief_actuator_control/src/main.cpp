@@ -3,12 +3,12 @@
 #include <fstream>
 #include <iostream>
 #include "toml.hpp"
+#include "chiefAuxGlobals2.hpp"
 
 namespace co = commander;
 using namespace std;
 
-extern Dextra_centroid_angle = 
-extern Sinistra_centroid_angle = 
+
 
 // Main server function. Accepts one parameter: link to the camera config file.
 int main(int argc, char* argv[]) {
