@@ -65,6 +65,7 @@ struct ChiefAuxServer {
 
     ChiefAuxServer(){
         fmt::print("ChiefAuxServer\n");
+        
     }
 
     ~ChiefAuxServer(){
@@ -121,7 +122,7 @@ struct ChiefAuxServer {
         return ret_msg;
     }
 
-    piezoStatus moveTipTiltPiezos(int flag, double voltage){
+    piezoStatus moveTipTiltPiezo(int flag, double voltage){
         
         piezoStatus ps;
 
@@ -170,50 +171,26 @@ struct ChiefAuxServer {
     }
 
 
-    string moveAllTipTiltPiezos(double Dx_um, double Dy_um, double Sx_um, double Sy_um){
-        string ret_msg;
-        if ((Dx_um < 151 && Dx_um >= 0) && (Dy_um < 151 && Dy_um >= 0) && (Sx_um < 151 && Sx_um >= 0) && (Sy_um < 151 && Sy_um >= 0)){
-            
-            double um_to_V = 0.7614213197969543;
-            
-            PPV.DextraX_V = um_to_V*Dx_um-15;
-            PPV.DextraY_V = um_to_V*Dy_um-15;
-            PPV.SinistraX_V = um_to_V*Sx_um-15;
-            PPV.SinistraY_V = um_to_V*Sy_um-15;
-
-            PPV.DextraX_um = Dx_um;
-            PPV.DextraY_um = Dy_um;
-            PPV.SinistraX_um = Sx_um;
-            PPV.SinistraY_um = Sy_um;
-            
-            string ret_msg_a = "Moved Dextra piezo to " + to_string(PPV.DextraX_V) + ", " + to_string(PPV.DextraY_V) + "V (" + to_string(Dx_um) + ", "+ to_string(Dy_um) + " microns)";
-            string ret_msg_b = "Moved Sinistra piezo to " + to_string(PPV.SinistraX_V) + ", " + to_string(PPV.SinistraY_V) + "V (" + to_string(Sx_um) + ", "+ to_string(Sy_um) + " microns)";
-            
-            sendPiezoVals(PPV);
-            ret_msg = ret_msg_a + " and " + ret_msg_b;
-            
-        } else{
-            ret_msg = "Piezo values out of range";
-        }
-        
-        return ret_msg;
-    }
-
     int receiveRelativeTipTiltPos(centroid Dpos, centroid Spos){
 
         double px_to_um = 1.725; 
         double um_to_V = 0.7614213197969543;
         double conversion = px_to_um*um_to_V;
+        
+        double Dx = cos(Dextra_angle)*Dpos.x + sin(Dextra_angle)*Dpos.y;
+        double Dy = -sin(Dextra_angle)*Dpos.x + cos(Dextra_angle)*Dpos.y;
+        double Sx = cos(Sinistra_angle)*Spos.x + sin(Sinistra_angle)*Spos.y;
+        double Sy = -sin(Sinistra_angle)*Spos.x + cos(Sinistra_angle)*Spos.y;
 
-        PPV.DextraX_um += px_to_um*Dpos.x;
-        PPV.DextraY_um += px_to_um*Dpos.y;
-        PPV.SinistraX_um += px_to_um*Spos.x;
-        PPV.SinistraY_um += px_to_um*Spos.y;
+        PPV.DextraX_um += px_to_um*Dx;
+        PPV.DextraY_um += px_to_um*Dy;
+        PPV.SinistraX_um += px_to_um*Sx;
+        PPV.SinistraY_um += px_to_um*Sy;
 
-        PPV.DextraX_V += conversion*Dpos.x;
-        PPV.DextraY_V += conversion*Dpos.y;
-        PPV.SinistraX_V += conversion*Spos.x;
-        PPV.SinistraY_V += conversion*Spos.y;
+        PPV.DextraX_V += conversion*Dx;
+        PPV.DextraY_V += conversion*Dy;
+        PPV.SinistraX_V += conversion*Sx;
+        PPV.SinistraY_V += conversion*Sy;
         
         sendPiezoVals(PPV);
         
@@ -372,8 +349,7 @@ COMMANDER_REGISTER(m)
         .def("requestStatus", &ChiefAuxServer::requestStatus, "Get information on all actuators and power")
 		.def("moveSDC", &ChiefAuxServer::moveSDC, "Move fine stage")
         .def("homeSDC", &ChiefAuxServer::homeSDC, "Home fine stage")
-		.def("moveTipTiltPiezos", &ChiefAuxServer::moveTipTiltPiezos, "Set the tip/tilt piezos")
-		.def("moveAllTipTiltPiezos", &ChiefAuxServer::moveAllTipTiltPiezos, "Set all the tip/tilt piezos")
+		.def("moveTipTiltPiezo", &ChiefAuxServer::moveTipTiltPiezos, "Set the tip/tilt piezos")
 		.def("receiveRelativeTipTiltPos", &ChiefAuxServer::receiveRelativeTipTiltPos, "Receive positions to move tip tilt piezos")
 		.def("moveSciPiezo", &ChiefAuxServer::moveSciPiezo, "Set the science piezos");
 }

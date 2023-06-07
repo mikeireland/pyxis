@@ -7,6 +7,8 @@
 namespace co = commander;
 using namespace std;
 
+extern Dextra_centroid_angle = 
+extern Sinistra_centroid_angle = 
 
 // Main server function. Accepts one parameter: link to the camera config file.
 int main(int argc, char* argv[]) {
@@ -43,7 +45,10 @@ int main(int argc, char* argv[]) {
     // Retrieve port and IP
     string port = config["port"].value_or("4000");
     string IP = config["IP"].value_or("192.168.1.4");
-
+    
+    Dextra_angle = config["actuators"]["Dextra_angle"].value_or(0.0);
+    Sinistra_angle = config["actuators"]["Sinistra_angle"].value_or(0.0);
+    
     // Turn into a TCPString
     string TCPString = "tcp://" + IP + ":" + port;
     char TCPCharArr[TCPString.length() + 1];
