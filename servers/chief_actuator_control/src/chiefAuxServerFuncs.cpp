@@ -177,16 +177,17 @@ struct ChiefAuxServer {
         double voltageXd, voltageYd;
         if (flag == 0){
             voltageXd = cos(Dextra_angle)*voltageX + sin(Dextra_angle)*voltageY;
-            PPV.DextraX_V = voltageXd;
+            PPV.DextraX_V += voltageXd;
             voltageYd = -sin(Dextra_angle)*voltageX + cos(Dextra_angle)*voltageY;
-            PPV.DextraY_V = voltageYd;
+            PPV.DextraY_V += voltageYd;
         } else if (flag == 1){
             voltageXd = cos(Sinistra_angle)*voltageX - sin(Sinistra_angle)*voltageY;
-            PPV.SinistraX_V = voltageXd;
+            PPV.SinistraX_V += voltageXd;
             voltageYd = sin(Sinistra_angle)*voltageX + cos(Sinistra_angle)*voltageY;
-            PPV.SinistraY_V = voltageYd;
+            PPV.SinistraY_V += voltageYd;
         }
-         
+        sendPiezoVals(PPV);
+        
         double voltage = sqrt(voltageXd*voltageXd + voltageYd*voltageYd);
        
         return to_string(voltage);

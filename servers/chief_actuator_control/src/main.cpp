@@ -49,6 +49,9 @@ int main(int argc, char* argv[]) {
     Dextra_angle = config["actuators"]["Dextra_angle"].value_or(0.0);
     Sinistra_angle = config["actuators"]["Sinistra_angle"].value_or(0.0);
     
+    Dextra_angle *= 0.0174532925199;
+    Sinistra_angle *= 0.0174532925199;
+    
     // Turn into a TCPString
     string TCPString = "tcp://" + IP + ":" + port;
     char TCPCharArr[TCPString.length() + 1];

@@ -383,7 +383,7 @@ class ChiefAuxControlWidget(QWidget):
         self.ask_for_status()
 
     def auto_updater(self):
-        self.ask_for_status()
+        #self.ask_for_status()
         self.stimer.singleShot(self.status_refresh_time, self.auto_updater)
         return
 
