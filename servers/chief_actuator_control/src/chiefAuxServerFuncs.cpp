@@ -174,16 +174,16 @@ struct ChiefAuxServer {
     string moveHV(int flag, double voltageX, double voltageY){
         
         piezoStatus ps;
-        
+        double voltageXd, voltageYd;
         if (flag == 0){
-            double voltageXd = cos(Dextra_angle)*voltageX + sin(Dextra_angle)*voltageY;
+            voltageXd = cos(Dextra_angle)*voltageX + sin(Dextra_angle)*voltageY;
             PPV.DextraX_V = voltageXd;
-            double voltageYd = -sin(Dextra_angle)*voltageX + cos(Dextra_angle)*voltageY;
+            voltageYd = -sin(Dextra_angle)*voltageX + cos(Dextra_angle)*voltageY;
             PPV.DextraY_V = voltageYd;
         } else if (flag == 1){
-            double voltageXd = cos(Sinistra_angle)*voltageX - sin(Sinistra_angle)*voltageY;
+            voltageXd = cos(Sinistra_angle)*voltageX - sin(Sinistra_angle)*voltageY;
             PPV.SinistraX_V = voltageXd;
-            double voltageYd = sin(Sinistra_angle)*voltageX + cos(Sinistra_angle)*voltageY;
+            voltageYd = sin(Sinistra_angle)*voltageX + cos(Sinistra_angle)*voltageY;
             PPV.SinistraY_V = voltageYd;
         }
          
