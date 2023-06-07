@@ -383,7 +383,7 @@ class ChiefAuxControlWidget(QWidget):
         self.ask_for_status()
 
     def auto_updater(self):
-        self.ask_for_status()
+        #self.ask_for_status()
         self.stimer.singleShot(self.status_refresh_time, self.auto_updater)
         return
 
@@ -449,7 +449,7 @@ class ChiefAuxControlWidget(QWidget):
         if index == 4:
             response = self.send_to_server_with_response("CA.moveSciPiezo [%s]"%(voltage))
         elif index < 4:
-            response = self.send_to_server_with_response("CA.moveTipTiltPiezos [%s,%s]"%(index, voltage))
+            response = self.send_to_server_with_response("CA.moveTipTiltPiezo [%s,%s]"%(index, voltage))
         else:
             print("INDEX OUT OF RANGE")
             return 

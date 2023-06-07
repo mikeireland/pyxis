@@ -8,10 +8,10 @@ cam_ID = "20031616"
 
     [FLIRcamera.camera]
     adc_bit_depth = "Bit10" #"Bit10" is a good default
-    width = 300
-    height = 300
-    offset_x = 0
-    offset_y = 0
+    width = 500
+    height = 600
+    offset_x = 420
+    offset_y = 252
     gain = 1 #in dB
     black_level = 2 #in percent? ADU?
     exposure_time = 5000 # in microseconds
@@ -34,14 +34,14 @@ FI_port = "4100"
 IP = "192.168.1.3"
 
     [FibreInjection.Dextra]
-    target_x = 593
-    target_y = 431
+    target_x = 594
+    target_y = 430
     centre_x = 615
     centre_y = 450
 
     [FibreInjection.Sinistra]
-    target_x = 619
-    target_y = 629
+    target_x = 632
+    target_y = 628
     centre_x = 725
     centre_y = 695
 

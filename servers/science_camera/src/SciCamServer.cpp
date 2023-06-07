@@ -74,32 +74,29 @@ int GroupDelayCallback (unsigned short* data){
             cout << "HAVE NOT SAVED FLUX 1 YET" << endl; 
             return 1;
         }
-    } else {
-        if (GLOB_SC_STAGE == 4){
-            ret_val = calcGroupDelay(data);
-
-            if (GLOB_SC_SCAN_FLAG){
-                cout << GLOB_SC_V2SNR << endl;
-                if (GLOB_SC_V2SNR > GLOB_SC_V2SNR_THRESHOLD){
-                    pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-                    GLOB_SC_SCAN_FLAG = 0;
-                    pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
-                    // SEND STOP COMMAND and SET TO FAST FREQUENCY
-                    std::string result = CA_SOCKET->send<std::string>("moveSDC", 0, 1000);
-                    cout << "FOUND FRINGES" << endl;
-                    return 1;
-                }
-            } else{
-
-                cout << GLOB_SC_GD << endl;
-                int32_t num_steps = static_cast<int32_t>(GLOB_SC_GD*20); //
-                std::string result = CA_SOCKET->send<std::string>("moveSDC", num_steps, GLOB_SC_TRACK_PERIOD);
-                cout << result << endl;
-            }
-
-        } else {
+    } else if (GLOB_SC_STAGE == 3){
             cout << "HAVE NOT CREATED P2VM MATRIX YET" << endl; 
             return 1;  
+    } else if (GLOB_SC_STAGE == 4){
+        ret_val = calcGroupDelay(data);
+
+        if (GLOB_SC_SCAN_FLAG){
+            cout << GLOB_SC_V2SNR << endl;
+            if (GLOB_SC_V2SNR > GLOB_SC_V2SNR_THRESHOLD){
+                pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                GLOB_SC_SCAN_FLAG = 0;
+                pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                // SEND STOP COMMAND and SET TO FAST FREQUENCY
+                std::string result = CA_SOCKET->send<std::string>("moveSDC", 0, 1000);
+                cout << "FOUND FRINGES" << endl;
+                return 1;
+            }
+        } else{
+
+            cout << GLOB_SC_GD << endl;
+            int32_t num_steps = static_cast<int32_t>(GLOB_SC_GD*20); //
+            std::string result = CA_SOCKET->send<std::string>("moveSDC", num_steps, GLOB_SC_TRACK_PERIOD);
+            cout << result << endl;
         }
     }
 
