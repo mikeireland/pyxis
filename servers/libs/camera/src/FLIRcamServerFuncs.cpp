@@ -129,7 +129,7 @@ string FLIRCameraServer::reconfigure_exptime(float exptime){
 string FLIRCameraServer::reconfigure_width(int width){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    if (((unsigned)(width-GLOB_WIDTH_MIN) > (GLOB_WIDTH_MAX-GLOB_WIDTH_MIN)) || (width % 4 > 0)){
+    if (((unsigned)(width-GLOB_WIDTH_MIN) <= (GLOB_WIDTH_MAX-GLOB_WIDTH_MIN)) || (width % 4 > 0)){
         GLOB_CONFIG_PARAMS.width = width;
         GLOB_RECONFIGURE = 1;
         ret_msg = "Camera Reconfigured Width";
@@ -143,7 +143,7 @@ string FLIRCameraServer::reconfigure_width(int width){
 string FLIRCameraServer::reconfigure_height(int height){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    if (((unsigned)(height-GLOB_HEIGHT_MIN) > (GLOB_HEIGHT_MAX-GLOB_HEIGHT_MIN)) || (height % 4 > 0)){
+    if (((unsigned)(height-GLOB_HEIGHT_MIN) <= (GLOB_HEIGHT_MAX-GLOB_HEIGHT_MIN)) || (height % 4 > 0)){
         GLOB_CONFIG_PARAMS.height = height;
         GLOB_RECONFIGURE = 1;
         ret_msg = "Camera Reconfigured Height";

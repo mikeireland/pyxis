@@ -108,11 +108,11 @@ class DepAuxControlWidget(QWidget):
         self.PC.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
         Power_layout.addWidget(self.PC,0,0)
         
-        self.PCvoltage = QLabel("0.00 V")
+        self.PCvoltage = QLabel("0.00 mV")
         self.PCvoltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         Power_layout.addWidget(self.PCvoltage,0,1)
         
-        self.PCcurrent = QLabel("0.00 A")
+        self.PCcurrent = QLabel("0.00 mA")
         self.PCcurrent.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         Power_layout.addWidget(self.PCcurrent,0,2)
 
@@ -120,11 +120,11 @@ class DepAuxControlWidget(QWidget):
         self.Motor.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
         Power_layout.addWidget(self.Motor,1,0)
         
-        self.Motorvoltage = QLabel("0.00 V")
+        self.Motorvoltage = QLabel("0.00 mV")
         self.Motorvoltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         Power_layout.addWidget(self.Motorvoltage,1,1)
         
-        self.Motorcurrent = QLabel("0.00 A")
+        self.Motorcurrent = QLabel("0.00 mA")
         self.Motorcurrent.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         Power_layout.addWidget(self.Motorcurrent,1,2)
         
@@ -225,10 +225,10 @@ class DepAuxControlWidget(QWidget):
             power_dict = json.loads(power_str)
         except:
             return
-        self.PCvoltage.setText("{:.2f} V".format(power_dict["PC_voltage"]))
-        self.PCcurrent.setText("{:.2f} A".format(power_dict["PC_current"]))
-        self.Motorvoltage.setText("{:.2f} V".format(power_dict["Motor_voltage"]))
-        self.Motorcurrent.setText("{:.2f} A".format(power_dict["Motor_current"]))
+        self.PCvoltage.setText("{:.2f} mV".format(power_dict["PC_voltage"]))
+        self.PCcurrent.setText("{:.2f} mA".format(power_dict["PC_current"]))
+        self.Motorvoltage.setText("{:.2f} mV".format(power_dict["Motor_voltage"]))
+        self.Motorcurrent.setText("{:.2f} mA".format(power_dict["Motor_current"]))
         
         if power_dict["PC_voltage"] > self.voltage_limit:
             self.LED_status_light = "assets/green.svg"

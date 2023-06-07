@@ -6,9 +6,9 @@ IP = "127.0.0.1"#"192.168.1.4"
     readout_mode = 2 #0 is HDR mode, 1 is STD LGC mode, 2 is STD HGC mode. Use 2!
     width = 60
     height = 60
-    offset_x = 972
-    offset_y = 900
-    gain = 20
+    offset_x = 948
+    offset_y = 888
+    gain = 10
     gamma = 1.0
     black_level = 5 # Black level offset in ADU
     exposure_time = 5000 # in microseconds
@@ -25,3 +25,17 @@ IP = "127.0.0.1"#"192.168.1.4"
     [QHYcamera.fits]
     bitpix = 20 #USHORT_IMG = 20, not 16!
 	filename_prefix = "data/test" #Default "where to save" file prefix
+	
+[ScienceCamera]
+IP = "127.0.0.1"
+CA_port = "4100"
+TS_port = "4203"
+tracking_period = 100
+scanning_period = 500
+xref = 0
+yref = 0
+numDelays = 1000
+delaySize = 1
+SNRThreshold = 10
+signs = [1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0]
+wave_offsets = [0,-1,-2,-3,-4,-5]

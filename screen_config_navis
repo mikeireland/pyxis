@@ -11,6 +11,6 @@ zombie kr
 #screen -t Robot bash -c "cd ~/pyxis/linux_driver; bin/robot_driver; bash"
 #screen -t Shell bash -c "cd ~/pyxis/servers; bash"
 
-screen -t InjectionCamera bash -c "cd ~/pyxis/servers/fiber_injection; bin/FiberInjectionServer config/NavisFiberInjection.toml; exec bash"
-screen -t ScienceCamera bash -c "cd ~/pyxis/servers/science_camera; bin/SciCamServer config/NavisScienceCamera.toml; exec bash"
-screen -t Auxillary bash -c "su - pyxisuser2; cd ~/pyxis/servers/chief_actuator_control; bash"
+screen -t InjectionCamera bash -c "cd ~/pyxis/servers/fiber_injection; bin/FiberInjectionServer; exec bash"
+screen -t ScienceCamera bash -c "cd ~/pyxis/servers/science_camera; bin/SciCamServer; exec bash"
+screen -t Auxillary bash -c "cd ~/pyxis/servers/chief_actuator_control; echo pyx1steam | sudo -u pyxisuser2 bin/ChiefAuxServer; bash"

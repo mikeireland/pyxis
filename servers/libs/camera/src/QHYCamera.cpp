@@ -565,7 +565,7 @@ int QHYCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
 
     // Write starting time in UTC
     if ( fits_write_key(fptr, TSTRING, "STARTTIME", &timestamp[0],
-         "Timestamp of beginning of exposure UTC", &status) )
+         "Timestamp of Exposure UTC", &status) )
          return( status );
 
     // Write Target Name
@@ -590,7 +590,7 @@ int QHYCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
 
     // Write Datatype
     if ( fits_write_key(fptr, TSTRING, "DATATYPE", &GLOB_DATATYPE[0],
-         "Baseline (m)", &status) )
+         "Type of Data", &status) )
          return( status );
 
     // Write Pixel Format

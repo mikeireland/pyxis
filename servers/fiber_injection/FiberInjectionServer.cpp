@@ -91,15 +91,15 @@ ROI calcROI(){
 
     int xoffset, yoffset;
 
-    if (dCentroid.target_pos.x < dCentroid.target_pos.y){
-        xoffset = dCentroid.target_pos.x - c_fine.window_size;
+    if (dCentroid.target_pos.x < sCentroid.target_pos.x){
+        xoffset = dCentroid.target_pos.x - c_fine.window_size/2;
     } else {
-        xoffset = sCentroid.target_pos.x - c_fine.window_size;
+        xoffset = sCentroid.target_pos.x - c_fine.window_size/2;
     }
-    if (dCentroid.target_pos.y < dCentroid.target_pos.y){
-        yoffset = dCentroid.target_pos.y - c_fine.window_size;
+    if (dCentroid.target_pos.y < sCentroid.target_pos.x){
+        yoffset = dCentroid.target_pos.y - c_fine.window_size/2;
     } else {
-        yoffset = sCentroid.target_pos.y - c_fine.window_size;
+        yoffset = sCentroid.target_pos.y - c_fine.window_size/2;
     }
 
     ret_ROI.width = roundUp(width,4);
@@ -121,22 +121,25 @@ int FibreInjectionCallback (unsigned short* data){
         centroid_settings temp_settings;
         cv::Point2i DextraCentre, SinistraCentre;
         
+        cv::Point2i OffsetI = cv::Point2i(GLOB_CONFIG_PARAMS.offsetX, GLOB_CONFIG_PARAMS.offsetY);
+        
         pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
         if (GLOB_FI_TIPTILTSERVO_FLAG){  
             temp_settings = GLOB_FI_FINE_SETTINGS;
-            cv::Point2i DextraCentre(GLOB_FI_DEXTRA_CENTROIDS.target_pos.x, GLOB_FI_DEXTRA_CENTROIDS.target_pos.y);
-            cv::Point2i SinistraCentre(GLOB_FI_SINISTRA_CENTROIDS.target_pos.x, GLOB_FI_SINISTRA_CENTROIDS.target_pos.y);
+            DextraCentre = cv::Point2i(GLOB_FI_DEXTRA_CENTROIDS.target_pos.x, GLOB_FI_DEXTRA_CENTROIDS.target_pos.y) - OffsetI;
+            SinistraCentre = cv::Point2i(GLOB_FI_SINISTRA_CENTROIDS.target_pos.x, GLOB_FI_SINISTRA_CENTROIDS.target_pos.y) - OffsetI;
         } else {
             temp_settings = GLOB_FI_COARSE_SETTINGS;
-            cv::Point2i DextraCentre(GLOB_FI_DEXTRA_CENTROIDS.centre.x, GLOB_FI_DEXTRA_CENTROIDS.centre.y);
-            cv::Point2i SinistraCentre(GLOB_FI_SINISTRA_CENTROIDS.centre.x, GLOB_FI_SINISTRA_CENTROIDS.centre.y);
+            DextraCentre = cv::Point2i(GLOB_FI_DEXTRA_CENTROIDS.centre.x, GLOB_FI_DEXTRA_CENTROIDS.centre.y) - OffsetI;
+            SinistraCentre = cv::Point2i(GLOB_FI_SINISTRA_CENTROIDS.centre.x, GLOB_FI_SINISTRA_CENTROIDS.centre.y) - OffsetI;
         }
         pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
-
+        
+        cv::Point2d OffsetD = cv::Point2d(GLOB_CONFIG_PARAMS.offsetX, GLOB_CONFIG_PARAMS.offsetY);
         auto DextraP = centroid_funcs::windowCentroidWCOG(img, temp_settings.interp_size, temp_settings.gaussian_radius, DextraCentre, 
-                                        temp_settings.window_size, temp_settings.weights, temp_settings.gain);
+                                        temp_settings.window_size, temp_settings.weights, temp_settings.gain) + OffsetD;
         auto SinistraP = centroid_funcs::windowCentroidWCOG(img, temp_settings.interp_size, temp_settings.gaussian_radius, SinistraCentre, 
-                                        temp_settings.window_size, temp_settings.weights, temp_settings.gain);
+                                        temp_settings.window_size, temp_settings.weights, temp_settings.gain) + OffsetD;
 
         centroid DexP, SinP;
         DexP.x = DextraP.x;
@@ -154,9 +157,9 @@ int FibreInjectionCallback (unsigned short* data){
         pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
 
         if (GLOB_FI_TIPTILTSERVO_FLAG){  
-            int result = CA_SOCKET->send<int>("receiveRelativeTipTiltPos", GLOB_FI_DEXTRA_CENTROIDS.diff_pos, 
-                                                                                         GLOB_FI_SINISTRA_CENTROIDS.diff_pos);
+            string result = CA_SOCKET->send<string>("CA.receiveRelativeTipTiltPos", GLOB_FI_DEXTRA_CENTROIDS.diff_pos, GLOB_FI_SINISTRA_CENTROIDS.diff_pos);
             cout << result << endl;
+
         } else {
              if (GLOB_FI_SET_TARGET_FLAG){
                 pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
@@ -166,6 +169,29 @@ int FibreInjectionCallback (unsigned short* data){
                 pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
             }
         }
+            cout << "DcX: " <<  GLOB_FI_DEXTRA_CENTROIDS.current_pos.x << endl;
+            cout << "DcY: " <<  GLOB_FI_DEXTRA_CENTROIDS.current_pos.y  << endl;
+            cout << "ScX: " <<  GLOB_FI_SINISTRA_CENTROIDS.current_pos.x << endl;
+            cout << "ScY: " << GLOB_FI_SINISTRA_CENTROIDS.current_pos.y << endl;         
+            cout << "DtX: " <<  GLOB_FI_DEXTRA_CENTROIDS.target_pos.x << endl;
+            cout << "DtY: " <<  GLOB_FI_DEXTRA_CENTROIDS.target_pos.y  << endl;
+            cout << "StX: " <<  GLOB_FI_SINISTRA_CENTROIDS.target_pos.x << endl;
+            cout << "StY: " << GLOB_FI_SINISTRA_CENTROIDS.target_pos.y << endl;                   
+            cout << "DdX: " <<  GLOB_FI_DEXTRA_CENTROIDS.diff_pos.x << endl;
+            cout << "DdY: " <<  GLOB_FI_DEXTRA_CENTROIDS.diff_pos.y  << endl;
+            cout << "SdX: " <<  GLOB_FI_SINISTRA_CENTROIDS.diff_pos.x << endl;
+            cout << "SdY: " <<  GLOB_FI_SINISTRA_CENTROIDS.diff_pos.y << endl;
+            
+            double Dextra_angle = 1.5708;
+            double Sinistra_angle = 1.2217;
+                        
+            double Dx = cos(Dextra_angle)*GLOB_FI_DEXTRA_CENTROIDS.diff_pos.x - sin(Dextra_angle)*GLOB_FI_DEXTRA_CENTROIDS.diff_pos.y;
+            double Dy = -sin(Dextra_angle)*GLOB_FI_DEXTRA_CENTROIDS.diff_pos.x - cos(Dextra_angle)*GLOB_FI_DEXTRA_CENTROIDS.diff_pos.y;
+            double Sx = cos(Sinistra_angle)*GLOB_FI_SINISTRA_CENTROIDS.diff_pos.x  - sin(Sinistra_angle)*GLOB_FI_SINISTRA_CENTROIDS.diff_pos.y;
+            double Sy = sin(Sinistra_angle)*GLOB_FI_SINISTRA_CENTROIDS.diff_pos.x  + cos(Sinistra_angle)*GLOB_FI_SINISTRA_CENTROIDS.diff_pos.y;
+            
+            cout << " DX: " << Dx << " DY: " << Dy << " SX: " << Sx << " SY: " << Sy << endl;
+            
     }
     usleep(4000);
     std::chrono::time_point<std::chrono::system_clock> end;
@@ -220,10 +246,10 @@ struct FiberInjection: FLIRCameraServer{
         sigma = config["FibreInjection"]["FineCentroid"]["WCOG_sigma"].value_or(4);
         GLOB_FI_FINE_SETTINGS.weights = centroid_funcs::weightFunction(GLOB_FI_FINE_SETTINGS.interp_size, sigma);
 
-        GLOB_FI_COARSE_ROI.width = config["FLIRcamera"]["camera"]["width"].value_or(9);
-        GLOB_FI_COARSE_ROI.height = config["FLIRcamera"]["camera"]["height"].value_or(9); 
-        GLOB_FI_COARSE_ROI.offset_x = config["FLIRcamera"]["camera"]["offset_x"].value_or(9); 
-        GLOB_FI_COARSE_ROI.offset_y = config["FLIRcamera"]["camera"]["offset_y"].value_or(9);
+        GLOB_FI_COARSE_ROI.width = config["FLIRcamera"]["camera"]["width"].value_or(1000);
+        GLOB_FI_COARSE_ROI.height = config["FLIRcamera"]["camera"]["height"].value_or(1000); 
+        GLOB_FI_COARSE_ROI.offset_x = config["FLIRcamera"]["camera"]["offset_x"].value_or(0); 
+        GLOB_FI_COARSE_ROI.offset_y = config["FLIRcamera"]["camera"]["offset_y"].value_or(0);
 
     }
 
@@ -336,7 +362,7 @@ struct FiberInjection: FLIRCameraServer{
                     ret_msg = this->startcam(GLOB_NUMFRAMES,GLOB_COADD);
                     cout << ret_msg << endl;
                     
-                    ret_msg = "Changing enable flag to: " + to_string(flag);
+                    ret_msg = "Changing tip/tilt enable flag to: " + to_string(flag);
                 } 
             }else{
                 ret_msg = "Camera Busy!";

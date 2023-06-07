@@ -348,9 +348,9 @@ struct SciCam: QHYCameraServer{
 
     string setTargetandBaseline(){
         string ret_msg;
-        auto coords = TS_SOCKET->send<coord>("getCoordinates");
-        auto target_name = TS_SOCKET->send<std::string>("getTargetName");
-        auto baseline = TS_SOCKET->send<double>("getBaseline");
+        auto coords = TS_SOCKET->send<coord>("TS.getCoordinates");
+        auto target_name = TS_SOCKET->send<std::string>("TS.getTargetName");
+        auto baseline = TS_SOCKET->send<double>("TS.getBaseline");
         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
         GLOB_TARGET_NAME = target_name;
         GLOB_BASELINE = baseline;

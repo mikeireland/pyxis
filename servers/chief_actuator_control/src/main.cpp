@@ -52,6 +52,8 @@ int main(int argc, char* argv[]) {
     Dextra_angle *= 0.0174532925199;
     Sinistra_angle *= 0.0174532925199;
     
+    cout << Dextra_angle << endl;
+    
     // Turn into a TCPString
     string TCPString = "tcp://" + IP + ":" + port;
     char TCPCharArr[TCPString.length() + 1];

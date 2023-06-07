@@ -5,7 +5,7 @@ refresh_time = 0.5 #In seconds
     FSM = "192.168.1.2"
     FSM_port = "4000"
 	Navis = "127.0.0.1"
-	Dextra = "192.168.1.4"#"192.168.1.4"
+	Dextra = "127.0.0.1"#"192.168.1.4"
 	Sinistra = "192.168.1.5"
 	External = "150.203.91.206"
 
@@ -24,21 +24,21 @@ refresh_time = 0.5 #In seconds
     port = "4101"
     description = "Navis power system + actuator controls"
     module_type = "ChiefAuxControlWidget"
-    voltage_limit = 10
+    voltage_limit = 10000
     status_refresh_time = 2
     
         [Navis.ChiefAux.PiezoSteps]
-        dextra_X = 0.1
-        dextra_Y = 0.1
-        sinistra_X = 1
-        sinistra_Y = 1
+        dextra_X = 2
+        dextra_Y = 2
+        sinistra_X = 2
+        sinistra_Y = 2
         science = 2
                        
         [Navis.ChiefAux.PiezoStart]
-        dextra_X = 0.0
-        dextra_Y = 0.0
-        sinistra_X = 0.0
-        sinistra_Y = 0.0
+        dextra_X = 45
+        dextra_Y = 45
+        sinistra_X = 45
+        sinistra_Y = 45
         science = 50
 
     [Navis.StarTracker]
@@ -87,7 +87,7 @@ refresh_time = 0.5 #In seconds
     port = "4106"
     description = "Science Camera controls"
     module_type = "ScienceCameraWidget"
-    feed_refresh_time = 0.05
+    feed_refresh_time = 0.02
     compression_param = 1
     num_delays = 100
     GD_window_size = 50

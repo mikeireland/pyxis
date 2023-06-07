@@ -128,13 +128,13 @@ struct ChiefAuxServer {
         
         piezoStatus ps;
 
-        if (voltage < 100.0 && voltage >= -15.0){
+        if (voltage < 100.0 && voltage >= -12.0){
             
             //double um_to_V = 0.7614213197969543;
             //double voltage = um_to_V*um-15;
             double V_to_um = 1.313333333;
 
-            double um = V_to_um*(voltage + 15);
+            double um = V_to_um*(voltage + 12);
 
             string ret_msg_tmp; 
 
@@ -197,16 +197,22 @@ struct ChiefAuxServer {
         return to_string(voltage);
     }
     
-    int receiveRelativeTipTiltPos(centroid Dpos, centroid Spos){
+    string receiveRelativeTipTiltPos(centroid Dpos, centroid Spos){
 
+        string ret_msg;
+        cout << Dextra_angle << endl;
         double px_to_um = 1.725; 
         double um_to_V = 0.7614213197969543;
         double conversion = px_to_um*um_to_V;
         
-        double Dx = cos(Dextra_angle)*Dpos.x + sin(Dextra_angle)*Dpos.y;
-        double Dy = -sin(Dextra_angle)*Dpos.x + cos(Dextra_angle)*Dpos.y;
+        double Dx = cos(Dextra_angle)*Dpos.x - sin(Dextra_angle)*Dpos.y;
+        double Dy = -sin(Dextra_angle)*Dpos.x - cos(Dextra_angle)*Dpos.y;
         double Sx = cos(Sinistra_angle)*Spos.x - sin(Sinistra_angle)*Spos.y;
         double Sy = sin(Sinistra_angle)*Spos.x + cos(Sinistra_angle)*Spos.y;
+
+        cout << Dpos.x << endl;
+        cout << Dpos.y << endl;
+        cout << Dx << endl;
 
         PPV.DextraX_um += px_to_um*Dx;
         PPV.DextraY_um += px_to_um*Dy;
@@ -220,7 +226,9 @@ struct ChiefAuxServer {
         
         sendPiezoVals(PPV);
         
-        return 0;
+        ret_msg = to_string(conversion*Dx) + " dx, " + to_string(conversion*Dy) + " dy, " + to_string(conversion*Sx) + " sx, " + to_string(conversion*Sy) + " sy";
+        
+        return ret_msg;
     }
 
     piezoStatus moveSciPiezo(double voltage){
@@ -279,7 +287,7 @@ struct ChiefAuxServer {
     uint8_t roundPWM(double voltage){
         uint8_t ret_val;
         double V_to_PWM = 2.217391304347826;
-        long temp = lround(V_to_PWM*(voltage+15));
+        long temp = lround(V_to_PWM*(voltage+12));
         ret_val = (uint8_t) temp;
         return temp;
     }

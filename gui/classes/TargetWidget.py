@@ -226,7 +226,7 @@ class TargetWidget(QWidget):
         dec = str(table["DEC_d_D"][0])
         ra_str = "RA = "+ra
         dec_str = "DEC = "+dec
-        name = "Target = "+str(table["MAIN_ID"][0])
+        name = "Target = "+str(table["MAIN_ID"][0])#.split("*")[1]
         self.new_Target_Name.setText(name)
         self.new_RA.setText(ra_str)
         self.new_DEC.setText(dec_str)
@@ -243,7 +243,7 @@ class TargetWidget(QWidget):
 
     def set_target_func(self):
         self.send_to_server("TS.setCoordinates [%s,%s]"%(str(float(self.new_RA.text().split('=')[1])),str(float(self.new_DEC.text().split('=')[1]))))
-        self.send_to_server("TS.setTargetName [%s]"%self.new_Target_Name.text().split('=')[1])
+        self.send_to_server('TS.setTargetName ["%s"]'%self.new_Target_Name.text().split('=')[1])
         self.current_Target_Name.setText(str(self.new_Target_Name.text()))
         self.current_RA.setText(str(self.new_RA.text()))
         self.current_DEC.setText(str(self.new_DEC.text()))
