@@ -56,6 +56,6 @@ IP = "127.0.0.1"
     interp_size = 5
     gaussian_radius = 7
     gaussian_window_size = 100
-    WCOG_gain = 0.1
+    WCOG_gain = 1
     WCOG_sigma = 4.0
 

@@ -193,7 +193,7 @@ int FibreInjectionCallback (unsigned short* data){
             cout << " DX: " << Dx << " DY: " << Dy << " SX: " << Sx << " SY: " << Sy << endl;
             
     }
-    usleep(4000);
+    //usleep(200000);
     std::chrono::time_point<std::chrono::system_clock> end;
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - GLOB_FI_PREVIOUS;

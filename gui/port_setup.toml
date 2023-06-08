@@ -28,10 +28,10 @@ refresh_time = 0.5 #In seconds
     status_refresh_time = 2
     
         [Navis.ChiefAux.PiezoSteps]
-        dextra_X = 2
-        dextra_Y = 2
-        sinistra_X = 2
-        sinistra_Y = 2
+        dextra_X = 1
+        dextra_Y = 1
+        sinistra_X = 1
+        sinistra_Y = 1
         science = 2
                        
         [Navis.ChiefAux.PiezoStart]

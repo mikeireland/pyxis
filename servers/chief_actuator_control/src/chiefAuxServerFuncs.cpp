@@ -203,6 +203,69 @@ struct ChiefAuxServer {
         cout << Dextra_angle << endl;
         double px_to_um = 1.725; 
         double um_to_V = 0.7614213197969543;
+        double conversion = px_to_um*um_to_V*0.1;
+        
+        double Dx = cos(Dextra_angle)*Dpos.x - sin(Dextra_angle)*Dpos.y;
+        double Dy = -sin(Dextra_angle)*Dpos.x - cos(Dextra_angle)*Dpos.y;
+        double Sx = cos(Sinistra_angle)*Spos.x - sin(Sinistra_angle)*Spos.y;
+        double Sy = sin(Sinistra_angle)*Spos.x + cos(Sinistra_angle)*Spos.y;
+
+        cout << Dpos.x << endl;
+        cout << Dpos.y << endl;
+        cout << Dx << endl;
+
+        PPV.DextraX_um += px_to_um*Dx;
+        PPV.DextraY_um += px_to_um*Dy;
+        PPV.SinistraX_um += px_to_um*Sx;
+        PPV.SinistraY_um += px_to_um*Sy;
+
+        PPV.DextraX_V += conversion*Dx;
+        PPV.DextraY_V += conversion*Dy;
+        PPV.SinistraX_V += conversion*Sx;
+        PPV.SinistraY_V += conversion*Sy;
+        
+        if (PPV.DextraX_V > 100){
+            PPV.DextraX_V = 100;
+        } else if (PPV.DextraX_V < -12){
+            PPV.DextraX_V = -12;
+        }
+        
+        if (PPV.DextraY_V > 100){
+            PPV.DextraY_V = 100;
+        } else if (PPV.DextraY_V < -12){
+            PPV.DextraY_V = -12;
+        }
+        
+        if (PPV.SinistraX_V > 100){
+            PPV.SinistraX_V = 100;
+        } else if (PPV.SinistraX_V < -12){
+            PPV.SinistraX_V = -12;
+        }
+        
+        if (PPV.SinistraY_V > 100){
+            PPV.SinistraY_V = 100;
+        } else if (PPV.SinistraY_V < -12){
+            PPV.SinistraY_V = -12;
+        }
+        sendPiezoVals(PPV);
+        
+        ret_msg = to_string(conversion*Dx) + " dx, " + to_string(conversion*Dy) + " dy, " + to_string(conversion*Sx) + " sx, " + to_string(conversion*Sy) + " sy";
+        
+        return ret_msg;
+    }
+    
+    string testservo(double dx, double dy, double sx, double sy){
+
+        centroid Dpos, Spos;
+        Dpos.x = dx;
+        Dpos.y = dy;
+        Spos.x = sx;
+        Spos.y = sy;
+
+        string ret_msg;
+        cout << Dextra_angle << endl;
+        double px_to_um = 1.725; 
+        double um_to_V = 0.7614213197969543;
         double conversion = px_to_um*um_to_V;
         
         double Dx = cos(Dextra_angle)*Dpos.x - sin(Dextra_angle)*Dpos.y;
@@ -223,6 +286,30 @@ struct ChiefAuxServer {
         PPV.DextraY_V += conversion*Dy;
         PPV.SinistraX_V += conversion*Sx;
         PPV.SinistraY_V += conversion*Sy;
+        
+        if (PPV.DextraX_V > 100){
+            PPV.DextraX_V = 100;
+        } else if (PPV.DextraX_V < -12){
+            PPV.DextraX_V = -12;
+        }
+        
+        if (PPV.DextraY_V > 100){
+            PPV.DextraY_V = 100;
+        } else if (PPV.DextraY_V < -12){
+            PPV.DextraY_V = -12;
+        }
+        
+        if (PPV.SinistraX_V > 100){
+            PPV.SinistraX_V = 100;
+        } else if (PPV.SinistraX_V < -12){
+            PPV.SinistraX_V = -12;
+        }
+        
+        if (PPV.SinistraY_V > 100){
+            PPV.SinistraY_V = 100;
+        } else if (PPV.SinistraY_V < -12){
+            PPV.SinistraY_V = -12;
+        }
         
         sendPiezoVals(PPV);
         
@@ -382,6 +469,7 @@ COMMANDER_REGISTER(m)
         .def("requestStatus", &ChiefAuxServer::requestStatus, "Get information on all actuators and power")
 		.def("moveSDC", &ChiefAuxServer::moveSDC, "Move fine stage")
         .def("homeSDC", &ChiefAuxServer::homeSDC, "Home fine stage")
+        .def("test", &ChiefAuxServer::testservo, "Home fine stage")
 		.def("moveTipTiltPiezo", &ChiefAuxServer::moveTipTiltPiezo, "Set the tip/tilt piezos")
 		.def("receiveRelativeTipTiltPos", &ChiefAuxServer::receiveRelativeTipTiltPos, "Receive positions to move tip tilt piezos")
 		.def("moveHV", &ChiefAuxServer::moveHV, "Move piezos horizontally and vertically")
