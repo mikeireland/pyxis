@@ -52,6 +52,8 @@ centroid_settings GLOB_FI_FINE_SETTINGS;
 
 ROI GLOB_FI_COARSE_ROI;
 
+double GLOB_FI_SERVO_GAIN;
+
 using json = nlohmann::json;
 
 namespace nlohmann {
@@ -157,7 +159,7 @@ int FibreInjectionCallback (unsigned short* data){
         pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
 
         if (GLOB_FI_TIPTILTSERVO_FLAG){  
-            string result = CA_SOCKET->send<string>("CA.receiveRelativeTipTiltPos", GLOB_FI_DEXTRA_CENTROIDS.diff_pos, GLOB_FI_SINISTRA_CENTROIDS.diff_pos);
+            string result = CA_SOCKET->send<string>("CA.receiveRelativeTipTiltPos", GLOB_FI_DEXTRA_CENTROIDS.diff_pos, GLOB_FI_SINISTRA_CENTROIDS.diff_pos, GLOB_FI_SERVO_GAIN);
             cout << result << endl;
 
         } else {
@@ -250,6 +252,8 @@ struct FiberInjection: FLIRCameraServer{
         GLOB_FI_COARSE_ROI.height = config["FLIRcamera"]["camera"]["height"].value_or(1000); 
         GLOB_FI_COARSE_ROI.offset_x = config["FLIRcamera"]["camera"]["offset_x"].value_or(0); 
         GLOB_FI_COARSE_ROI.offset_y = config["FLIRcamera"]["camera"]["offset_y"].value_or(0);
+
+        GLOB_FI_SERVO_GAIN = config["FibreInjection"]["servo_gain"].value_or(0.1);
 
     }
 

@@ -62,6 +62,11 @@ powerStatus PS;
 double SDC_pos;
 int32_t SDC_step_count;
 
+double V_max = 100.0;
+double V_min = -12.0;
+double V_diff = V_max - V_min;
+
+
 // FLIR Camera Server
 struct ChiefAuxServer {
 
@@ -128,13 +133,13 @@ struct ChiefAuxServer {
         
         piezoStatus ps;
 
-        if (voltage < 100.0 && voltage >= -12.0){
+        if (voltage < V_max && voltage >= V_min){
             
             //double um_to_V = 0.7614213197969543;
             //double voltage = um_to_V*um-15;
             double V_to_um = 1.313333333;
 
-            double um = V_to_um*(voltage + 12);
+            double um = V_to_um*(voltage - V_min);
 
             string ret_msg_tmp; 
 
@@ -172,38 +177,14 @@ struct ChiefAuxServer {
         return ps;
     }
 
-    string moveHV(int flag, double voltageX, double voltageY){
-        
-        piezoStatus ps;
-        double voltageXd, voltageYd;
-        if (flag == 0){
-            voltageXd = cos(Dextra_angle)*voltageX + sin(Dextra_angle)*voltageY;
-            PPV.DextraX_V += voltageXd;
-            voltageYd = -sin(Dextra_angle)*voltageX + cos(Dextra_angle)*voltageY;
-            PPV.DextraY_V += voltageYd;
-        } else if (flag == 1){
-            voltageXd = cos(Sinistra_angle)*voltageX + sin(Sinistra_angle)*voltageY;
-            PPV.SinistraX_V += voltageXd;
-            voltageYd = sin(Sinistra_angle)*voltageX - cos(Sinistra_angle)*voltageY;
-            PPV.SinistraY_V += voltageYd;
-        }
-        
-        cout << voltageXd << ", " << voltageYd << endl;
-        cout << Dextra_angle << endl;
-        //sendPiezoVals(PPV);
-        
-        double voltage = sqrt(voltageXd*voltageXd + voltageYd*voltageYd);
-       
-        return to_string(voltage);
-    }
     
-    string receiveRelativeTipTiltPos(centroid Dpos, centroid Spos){
+    string receiveRelativeTipTiltPos(centroid Dpos, centroid Spos, double gain){
 
         string ret_msg;
         cout << Dextra_angle << endl;
         double px_to_um = 1.725; 
         double um_to_V = 0.7614213197969543;
-        double conversion = px_to_um*um_to_V*0.1;
+        double conversion = px_to_um*um_to_V*gain;
         
         double Dx = cos(Dextra_angle)*Dpos.x - sin(Dextra_angle)*Dpos.y;
         double Dy = -sin(Dextra_angle)*Dpos.x - cos(Dextra_angle)*Dpos.y;
@@ -224,93 +205,29 @@ struct ChiefAuxServer {
         PPV.SinistraX_V += conversion*Sx;
         PPV.SinistraY_V += conversion*Sy;
         
-        if (PPV.DextraX_V > 100){
-            PPV.DextraX_V = 100;
-        } else if (PPV.DextraX_V < -12){
-            PPV.DextraX_V = -12;
+        if (PPV.DextraX_V > V_max){
+            PPV.DextraX_V = V_max;
+        } else if (PPV.DextraX_V < V_min){
+            PPV.DextraX_V = V_min;
         }
         
-        if (PPV.DextraY_V > 100){
-            PPV.DextraY_V = 100;
-        } else if (PPV.DextraY_V < -12){
-            PPV.DextraY_V = -12;
+        if (PPV.DextraY_V > V_max){
+            PPV.DextraY_V = V_max;
+        } else if (PPV.DextraY_V < V_min){
+            PPV.DextraY_V = V_min;
         }
         
-        if (PPV.SinistraX_V > 100){
-            PPV.SinistraX_V = 100;
-        } else if (PPV.SinistraX_V < -12){
-            PPV.SinistraX_V = -12;
+        if (PPV.SinistraX_V > V_max){
+            PPV.SinistraX_V = V_max;
+        } else if (PPV.SinistraX_V < V_min){
+            PPV.SinistraX_V = V_min;
         }
         
-        if (PPV.SinistraY_V > 100){
-            PPV.SinistraY_V = 100;
-        } else if (PPV.SinistraY_V < -12){
-            PPV.SinistraY_V = -12;
+        if (PPV.SinistraY_V > V_max){
+            PPV.SinistraY_V = V_max;
+        } else if (PPV.SinistraY_V < V_min){
+            PPV.SinistraY_V = V_min;
         }
-        sendPiezoVals(PPV);
-        
-        ret_msg = to_string(conversion*Dx) + " dx, " + to_string(conversion*Dy) + " dy, " + to_string(conversion*Sx) + " sx, " + to_string(conversion*Sy) + " sy";
-        
-        return ret_msg;
-    }
-    
-    string testservo(double dx, double dy, double sx, double sy){
-
-        centroid Dpos, Spos;
-        Dpos.x = dx;
-        Dpos.y = dy;
-        Spos.x = sx;
-        Spos.y = sy;
-
-        string ret_msg;
-        cout << Dextra_angle << endl;
-        double px_to_um = 1.725; 
-        double um_to_V = 0.7614213197969543;
-        double conversion = px_to_um*um_to_V;
-        
-        double Dx = cos(Dextra_angle)*Dpos.x - sin(Dextra_angle)*Dpos.y;
-        double Dy = -sin(Dextra_angle)*Dpos.x - cos(Dextra_angle)*Dpos.y;
-        double Sx = cos(Sinistra_angle)*Spos.x - sin(Sinistra_angle)*Spos.y;
-        double Sy = sin(Sinistra_angle)*Spos.x + cos(Sinistra_angle)*Spos.y;
-
-        cout << Dpos.x << endl;
-        cout << Dpos.y << endl;
-        cout << Dx << endl;
-
-        PPV.DextraX_um += px_to_um*Dx;
-        PPV.DextraY_um += px_to_um*Dy;
-        PPV.SinistraX_um += px_to_um*Sx;
-        PPV.SinistraY_um += px_to_um*Sy;
-
-        PPV.DextraX_V += conversion*Dx;
-        PPV.DextraY_V += conversion*Dy;
-        PPV.SinistraX_V += conversion*Sx;
-        PPV.SinistraY_V += conversion*Sy;
-        
-        if (PPV.DextraX_V > 100){
-            PPV.DextraX_V = 100;
-        } else if (PPV.DextraX_V < -12){
-            PPV.DextraX_V = -12;
-        }
-        
-        if (PPV.DextraY_V > 100){
-            PPV.DextraY_V = 100;
-        } else if (PPV.DextraY_V < -12){
-            PPV.DextraY_V = -12;
-        }
-        
-        if (PPV.SinistraX_V > 100){
-            PPV.SinistraX_V = 100;
-        } else if (PPV.SinistraX_V < -12){
-            PPV.SinistraX_V = -12;
-        }
-        
-        if (PPV.SinistraY_V > 100){
-            PPV.SinistraY_V = 100;
-        } else if (PPV.SinistraY_V < -12){
-            PPV.SinistraY_V = -12;
-        }
-        
         sendPiezoVals(PPV);
         
         ret_msg = to_string(conversion*Dx) + " dx, " + to_string(conversion*Dy) + " dy, " + to_string(conversion*Sx) + " sx, " + to_string(conversion*Sy) + " sy";
@@ -322,7 +239,7 @@ struct ChiefAuxServer {
 
         piezoStatus ps;
 
-        if (voltage < 100.0 && voltage >= -15.0){
+        if (voltage < V_max && voltage >= V_min){
             //double img_px_to_img_um = 6.5;
             //double img_um_to_piezo_um = 0.8333333333;
             //double um_to_V = 6.428801028608165;
@@ -330,7 +247,7 @@ struct ChiefAuxServer {
             // double im_px_to_piezo_um = 5.41666666;
             double V_to_um = 0.15555;
             
-            double um = V_to_um*(voltage + 15.0);
+            double um = V_to_um*(voltage - V_min);
             PPV.Science_V = voltage;
             PPV.Science_um = um;
 
@@ -373,8 +290,8 @@ struct ChiefAuxServer {
 
     uint8_t roundPWM(double voltage){
         uint8_t ret_val;
-        double V_to_PWM = 2.217391304347826;
-        long temp = lround(V_to_PWM*(voltage+12));
+        double V_to_PWM = 256/(V_max - V_min);
+        long temp = lround(V_to_PWM*(voltage-V_min));
         ret_val = (uint8_t) temp;
         return temp;
     }
@@ -387,6 +304,95 @@ struct ChiefAuxServer {
         teensy_port.piezo_duties[4] = roundPWM(ppv.Science_V);
         teensy_port.Request(SETPWM);
         teensy_port.SendAllRequests();
+    }
+
+    string moveHV(int flag, double voltageX, double voltageY){
+        
+        piezoStatus ps;
+        double voltageXd, voltageYd;
+        if (flag == 0){
+            voltageXd = cos(Dextra_angle)*voltageX + sin(Dextra_angle)*voltageY;
+            PPV.DextraX_V += voltageXd;
+            voltageYd = -sin(Dextra_angle)*voltageX + cos(Dextra_angle)*voltageY;
+            PPV.DextraY_V += voltageYd;
+        } else if (flag == 1){
+            voltageXd = cos(Sinistra_angle)*voltageX + sin(Sinistra_angle)*voltageY;
+            PPV.SinistraX_V += voltageXd;
+            voltageYd = sin(Sinistra_angle)*voltageX - cos(Sinistra_angle)*voltageY;
+            PPV.SinistraY_V += voltageYd;
+        }
+        
+        cout << voltageXd << ", " << voltageYd << endl;
+        cout << Dextra_angle << endl;
+        //sendPiezoVals(PPV);
+        
+        double voltage = sqrt(voltageXd*voltageXd + voltageYd*voltageYd);
+       
+        return to_string(voltage);
+    }
+
+    string testservo(double dx, double dy, double sx, double sy){
+
+        centroid Dpos, Spos;
+        Dpos.x = dx;
+        Dpos.y = dy;
+        Spos.x = sx;
+        Spos.y = sy;
+
+        string ret_msg;
+        cout << Dextra_angle << endl;
+        double px_to_um = 1.725; 
+        double um_to_V = 0.7614213197969543;
+        double conversion = px_to_um*um_to_V;
+        
+        double Dx = cos(Dextra_angle)*Dpos.x - sin(Dextra_angle)*Dpos.y;
+        double Dy = -sin(Dextra_angle)*Dpos.x - cos(Dextra_angle)*Dpos.y;
+        double Sx = cos(Sinistra_angle)*Spos.x - sin(Sinistra_angle)*Spos.y;
+        double Sy = sin(Sinistra_angle)*Spos.x + cos(Sinistra_angle)*Spos.y;
+
+        cout << Dpos.x << endl;
+        cout << Dpos.y << endl;
+        cout << Dx << endl;
+
+        PPV.DextraX_um += px_to_um*Dx;
+        PPV.DextraY_um += px_to_um*Dy;
+        PPV.SinistraX_um += px_to_um*Sx;
+        PPV.SinistraY_um += px_to_um*Sy;
+
+        PPV.DextraX_V += conversion*Dx;
+        PPV.DextraY_V += conversion*Dy;
+        PPV.SinistraX_V += conversion*Sx;
+        PPV.SinistraY_V += conversion*Sy;
+        
+        if (PPV.DextraX_V > V_max){
+            PPV.DextraX_V = V_max;
+        } else if (PPV.DextraX_V < V_min){
+            PPV.DextraX_V = V_min;
+        }
+        
+        if (PPV.DextraY_V > V_max){
+            PPV.DextraY_V = V_max;
+        } else if (PPV.DextraY_V < V_min){
+            PPV.DextraY_V = V_min;
+        }
+        
+        if (PPV.SinistraX_V > V_max){
+            PPV.SinistraX_V = V_max;
+        } else if (PPV.SinistraX_V < V_min){
+            PPV.SinistraX_V = V_min;
+        }
+        
+        if (PPV.SinistraY_V > V_max){
+            PPV.SinistraY_V = V_max;
+        } else if (PPV.SinistraY_V < V_min){
+            PPV.SinistraY_V = V_min;
+        }
+        
+        sendPiezoVals(PPV);
+        
+        ret_msg = to_string(conversion*Dx) + " dx, " + to_string(conversion*Dy) + " dy, " + to_string(conversion*Sx) + " sx, " + to_string(conversion*Sy) + " sy";
+        
+        return ret_msg;
     }
 
 };
