@@ -5,38 +5,35 @@
 #include "toml.hpp"
 #include "ZaberActuator.h"
 #include <zaber/motion/binary.h>
+#include <commander/client/socket.h>
 
 namespace co = commander;
 using namespace std;
 using namespace zaber::motion;
-
-coord GLOB_TS_COORD;
-string GLOB_TS_NAME;
-double GLOB_TS_BASELINE;
 
 commander::client::Socket* SC_SOCKET;
 
 //config_file
 char* GLOB_CONFIGFILE = (char*)"./";
 
-ZaberActuator STAGE;
+ZaberActuator * stage;
 
 struct ZaberServer {
 
-    TargetServer()
+    ZaberServer()
     {
-        fmt::print("DeputyAuxServer\n");
+        fmt::print("ZaberServer\n");
     }
 
-    ~TargetServer()
+    ~ZaberServer()
     {
-        fmt::print("~DeputyAuxServer\n");
+        fmt::print("~ZaberServer\n");
     }
 
 string move(double distance){
     string ret_msg;
 
-    double position = stage.MoveRelative(distance, Units::VELOCITY_METRES_PER_SECOND);
+    double position = stage->MoveRelative(distance, Units::VELOCITY_METRES_PER_SECOND);
     cout << position << endl;
 
 	return ret_msg;
@@ -46,7 +43,7 @@ string move_loop(double distance){
     string ret_msg;
     
     for (int k=0; k<100; k++){
-        double position = stage.MoveRelative(distance, Units::VELOCITY_METRES_PER_SECOND);
+        double position = stage->MoveRelative(distance, Units::VELOCITY_METRES_PER_SECOND);
         cout << position << endl;
         string FFTdata = SC_SOCKET->send<std::string>("getSNRarray");
         cout << FFTdata << endl;
@@ -60,15 +57,10 @@ string move_loop(double distance){
 // Register as commander server
 COMMANDER_REGISTER(m)
 {
-    m.instance<TargetServer>("TS")
+    m.instance<ZaberServer>("ZS")
         // To insterface a class method, you can use the `def` method.
-        .def("getCoordinates", &TargetServer::getCoordinates, "Get Ra and Dec")
-        .def("getTargetName", &TargetServer::getTargetName, "Get Target Name")
-        .def("getBaseline", &TargetServer::getBaseline, "Get Baseline")
-        .def("setCoordinates", &TargetServer::setCoordinates, "Set Ra and Dec")
-        .def("setTargetName", &TargetServer::setTargetName, "Set Target Name")
-        .def("setBaseline", &TargetServer::setBaseline, "Set Baseline")
-        .def("status", &TargetServer::status, "Check status");
+        .def("move", &ZaberServer::move, "Get Ra and Dec")
+        .def("move_loop", &ZaberServer::move_loop, "Get Target Name");
 }
 
 
@@ -111,20 +103,20 @@ int main(int argc, char* argv[]) {
     string port = config["port"].value_or("4000");
     string IP = config["IP"].value_or("192.168.1.4");
     
-    std::string SC_port = config["ScienceCamera"]["CA_port"].value_or("4100");
+    std::string SC_port = config["ScienceCamera"]["SC_port"].value_or("4100");
 
     // Turn into a TCPString
-    std::string SC_TCP = "tcp://" + IP + ":" + CA_port;
+    std::string SC_TCP = "tcp://" + IP + ":" + SC_port;
     
-    SC_SOCKET = new commander::client::Socket(CA_TCP);
-    GLOB_TS_COORD.RA = 0.0;
-    GLOB_TS_COORD.DEC = 0.0;
-    
+    SC_SOCKET = new commander::client::Socket(SC_TCP);
+
     // Get the settings for the particular actuator
     toml::table stage_config = *config.get("testZaberActuator")->as_table();
 
     // Initialise ZaberActuator instance for the stage at the port in the config file
-    stage (stage_config);
+    ZaberActuator STAGE (stage_config);
+    
+    stage = &STAGE;
     
     // Turn into a TCPString
     string TCPString = "tcp://" + IP + ":" + port;

@@ -1,13 +1,19 @@
 #include <zaber/motion/binary.h>
 #include "toml.hpp"
 #include "ZaberActuator.h"
-#include "helperFunc.h"
+//#include "helperFunc.h"
 
 using namespace zaber::motion;
 using namespace zaber::motion::binary;
 using namespace std;
 
-
+std::string Label(std::string str, const size_t num = 25, const char padding_char = ' ') {
+    if(num > str.size()){
+        str.insert(str.end(), num - str.size(), padding_char);
+        }
+        return str + ": ";
+    }\
+    
 /* Constructor: Takes the config table, connects to the actuator,
    adjusts settings, homes the device and then disconnects.
    INPUTS:

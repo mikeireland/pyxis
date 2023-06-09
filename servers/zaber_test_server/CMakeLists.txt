@@ -4,7 +4,7 @@ project(TargetServer VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
 
 add_executable(ZaberServer
-    main.cpp
+    main.cpp ZaberActuator.cpp
 )
 
 target_compile_features(ZaberServer PUBLIC cxx_std_17)
@@ -14,4 +14,5 @@ find_package(commander REQUIRED)
 
 target_link_libraries(ZaberServer PUBLIC
     commander::commander
+    zml
 )

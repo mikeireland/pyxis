@@ -99,7 +99,7 @@ int GroupDelayCallback (unsigned short* data){
             int32_t num_steps = static_cast<int32_t>(GLOB_SC_GD*20); //
             std::string result = CA_SOCKET->send<std::string>("moveSDC", num_steps, GLOB_SC_TRACK_PERIOD);
             cout << result << endl;
-        }
+        //}
     }
 
     return 0;

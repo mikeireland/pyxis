@@ -22,6 +22,11 @@ extern Eigen::Array<double,20,3> GLOB_SC_FLUX_A;
 extern Eigen::Array<double,20,3> GLOB_SC_FLUX_B;
 extern double GLOB_SC_DARK_VAL;
 
+extern double GLOB_SC_SCAN_SNR_LS[60];
+extern int GLOB_SC_SCAN_WINDOW_SIZE;
+extern int GLOB_SC_SCAN_SIGNAL_WIDTH;
+extern double GLOB_SC_SCAN_PER_FRAME;
+
 struct SC_calibration {
 
     double wavelengths[10];
@@ -45,5 +50,7 @@ int measureDark(unsigned short* data);
 int addToFlux(unsigned short* data, int flux_flag);
 void extractToMatrix(unsigned short* data, Eigen::Matrix<double, 20, 3> & O);
 int setPixelPositions(int xref, int yref);
+int init_fringe_scan();
+int fringeScan(unsigned short* data);
 
 #endif // _SC_SETUP_
