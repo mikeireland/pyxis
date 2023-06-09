@@ -11,6 +11,9 @@
 
 using Cd = std::complex<double>;
 
+
+extern pthread_mutex_t GLOB_SC_FLAG_LOCK;
+
 extern const Cd I;
 
 extern Eigen::Matrix<Cd,3,3> GLOB_SC_P2VM_l[20];

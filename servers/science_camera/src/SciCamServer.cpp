@@ -44,12 +44,14 @@ int GLOB_SC_TRACK_PERIOD;
 int GLOB_SC_SCAN_PERIOD;
 double GLOB_SC_V2SNR_THRESHOLD;
 
-pthread_mutex_t GLOB_SC_FLAG_LOCK;
 
 // Return 1 if error!
 int GroupDelayCallback (unsigned short* data){
     int ret_val;
-    if (GLOB_SC_DARK_FLAG){
+    if (GLOB_SC_SCAN_FLAG){
+        ret_val = fringeScan(data);
+
+    } else if (GLOB_SC_DARK_FLAG){
         ret_val = measureDark(data);
         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
         GLOB_SC_STAGE = 1;
@@ -79,7 +81,7 @@ int GroupDelayCallback (unsigned short* data){
             return 1;  
     } else if (GLOB_SC_STAGE == 4){
         ret_val = calcGroupDelay(data);
-
+        /*
         if (GLOB_SC_SCAN_FLAG){
             cout << GLOB_SC_V2SNR << endl;
             if (GLOB_SC_V2SNR > GLOB_SC_V2SNR_THRESHOLD){
@@ -91,7 +93,7 @@ int GroupDelayCallback (unsigned short* data){
                 cout << "FOUND FRINGES" << endl;
                 return 1;
             }
-        } else{
+        } else{*/
 
             cout << GLOB_SC_GD << endl;
             int32_t num_steps = static_cast<int32_t>(GLOB_SC_GD*20); //
@@ -232,6 +234,7 @@ struct SciCam: QHYCameraServer{
                     if (flag == 1){
                         ret_msg = "Enabling Fringe Scanning";
                         cout << ret_msg << endl;
+                        /*
                         ret_msg = this->stopcam();
                         while (GLOB_RUNNING == 1){
                             usleep(1000);
@@ -251,7 +254,7 @@ struct SciCam: QHYCameraServer{
 
                         // Start scan
                         std::string ret_msg = CA_SOCKET->send<std::string>("moveSDC", -400000, GLOB_SC_TRACK_PERIOD);
-                        cout << ret_msg << endl;
+                        cout << ret_msg << endl;*/
 
                         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                         GLOB_SC_SCAN_FLAG = 1;
@@ -259,7 +262,7 @@ struct SciCam: QHYCameraServer{
                     } else {
 
                         ret_msg = "Disabling Fringe Scanning";
-                        cout << ret_msg << endl;
+                        cout << ret_msg << endl;/*
                         ret_msg = this->stopcam();
                         while (GLOB_RUNNING == 1){
                             usleep(1000);
@@ -268,11 +271,10 @@ struct SciCam: QHYCameraServer{
 
                         // Start scan
                         std::string ret_msg = CA_SOCKET->send<std::string>("moveSDC", 0, GLOB_SC_TRACK_PERIOD);
-                        cout << ret_msg << endl;
-
+                        cout << ret_msg << endl; */
                         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                         GLOB_SC_SCAN_FLAG = 0;
-                        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK); 
 
                     }
                     
@@ -333,6 +335,19 @@ struct SciCam: QHYCameraServer{
         ret_msg = s;
         return ret_msg;
     }
+    
+    string getSNRarray(){
+        string ret_msg;
+        json j;
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        vector<double> vec (GLOB_SC_SCAN_SNR_LS, GLOB_SC_SCAN_SNR_LS+60);
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        j["V2"] = vec;
+        std::string s = j.dump();
+        ret_msg = s;
+        return ret_msg;
+    }
+
 
     string getGDarray(){
         string ret_msg;

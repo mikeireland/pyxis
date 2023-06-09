@@ -8,6 +8,12 @@
 #include "setup.hpp"
 #include "brent.hpp"
 #include "globals.h"
+#include <vector>
+#include <deque>
+#include <iostream>
+#include <complex>
+#include <fftw3.h>
+#include <pthread.h>
 
 extern const Cd I(0.0,1.0);
 
@@ -18,6 +24,8 @@ Eigen::Array<double,20,3> GLOB_SC_FLUX_B = Eigen::Array<double,20,3>::Zero();
 double GLOB_SC_DARK_VAL = 0;
 
 SC_calibration GLOB_SC_CAL;
+
+pthread_mutex_t GLOB_SC_FLAG_LOCK = PTHREAD_MUTEX_INITIALIZER;
 
 int addToFlux(unsigned short* data, int flux_flag){
 
@@ -46,11 +54,122 @@ int measureDark(unsigned short* data){
     return 0;
 }
 
+double GLOB_SC_SCAN_SNR_LS[60];
+int GLOB_SC_SCAN_WINDOW_SIZE;
+int GLOB_SC_SCAN_SIGNAL_WIDTH;
+double GLOB_SC_SCAN_PER_FRAME;
+
+std::deque<int> scan_flux_window[60] ;
+int scan_fft_signal_idx[60]; //Indexes for frequency
+static double * scan_fft_in;
+static fftw_complex * scan_fft_out;
+static fftw_plan scan_fft_plan;
+
+int init_fringe_scan(){
+
+    scan_fft_in = (double*) fftw_malloc(sizeof(double) * GLOB_SC_SCAN_WINDOW_SIZE);
+    scan_fft_out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (GLOB_SC_SCAN_WINDOW_SIZE/2+1));
+    scan_fft_plan = fftw_plan_dft_r2c_1d(GLOB_SC_SCAN_WINDOW_SIZE, scan_fft_in, scan_fft_out, FFTW_MEASURE);
+
+    double period = GLOB_SC_SCAN_WINDOW_SIZE*GLOB_SC_SCAN_PER_FRAME;
+    std::vector<double> values = arange<double>(0,GLOB_SC_SCAN_WINDOW_SIZE/2+1);
+    
+    for (int k=0; k<10; k++){
+        double wavenumber = 1/GLOB_SC_CAL.wavelengths[k];
+        // Identify the index of the frequency that should peak if we have fringes
+        double min_residual = 100;
+        int min_arg;
+        for(int j=0; j<(GLOB_SC_SCAN_WINDOW_SIZE/2+1); j++){
+            double residual = values[j]/period - wavenumber;
+            if (residual < min_residual){
+                min_residual = min_residual;
+                min_arg = j;
+            }
+        }
+        scan_fft_signal_idx[k] = min_arg;
+        scan_fft_signal_idx[k+10] = min_arg;
+        scan_fft_signal_idx[k+20] = min_arg;
+        scan_fft_signal_idx[k+30] = min_arg;
+        scan_fft_signal_idx[k+40] = min_arg;
+        scan_fft_signal_idx[k+50] = min_arg;
+
+    }
+    return 0;
+}
+
+
+
+int fringeScan(unsigned short* data){
+
+    Eigen::Matrix<double, 20, 3> O;
+    
+    extractToMatrix(data,O);
+    
+    double temp_snr_ls[60];
+    
+    for (int k=0;k<60;k++){
+        
+        int px = O(k/20,k%20);
+    
+        scan_flux_window[k].pop_front();
+        scan_flux_window[k].push_back(px);
+        
+        std::copy(scan_flux_window[k].begin(), scan_flux_window[k].end(), scan_fft_in);
+        fftw_execute(scan_fft_plan);
+        
+        double data, mean, sum=0., signal = 0., std = 0., snr = 0.;
+        std::complex<double> temp;
+
+        // Loop through the FFT to calculate SNR
+        for (int i=1;i<(GLOB_SC_SCAN_WINDOW_SIZE/2+1);i++){
+            temp = std::complex<double>(scan_fft_out[i][0], scan_fft_out[i][1]);
+            data = std::abs( std::pow(temp, 2) );
+
+            // Find the maximum peak of the FFT within the "signal" window
+            if (std::abs(i-scan_fft_signal_idx[k]) < GLOB_SC_SCAN_SIGNAL_WIDTH){
+                if (data > signal){
+                    signal = data;
+                }
+            }
+            // Otherwise, add all the "noisy" frequencies
+            else {
+                sum += data;
+            }
+        }
+
+        // Find the mean of the noisy values
+        mean = sum/(GLOB_SC_SCAN_WINDOW_SIZE/2 - (2*GLOB_SC_SCAN_SIGNAL_WIDTH-1));
+
+        // Calculate standard deviation of the noise
+        for (int i=1;i<(GLOB_SC_SCAN_WINDOW_SIZE/2+1);i++){
+            if (std::abs(i-scan_fft_signal_idx[k]) > GLOB_SC_SCAN_SIGNAL_WIDTH){
+                data = sqrt(scan_fft_out[i][0]*scan_fft_out[i][0] + scan_fft_out[i][1]*scan_fft_out[i][1]);
+                std += pow(data - mean, 2);
+            }
+        } 
+        std = sqrt(std/(GLOB_SC_SCAN_WINDOW_SIZE/2 - (2*GLOB_SC_SCAN_SIGNAL_WIDTH-1)));
+        
+        snr = signal/std;
+        temp_snr_ls[k] = snr;
+        
+    //CALC FFT OVER 
+    }
+    pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+    for (int k=0;k<60;k++){
+       GLOB_SC_SCAN_SNR_LS[k] = temp_snr_ls[k];
+    }
+    pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+    return 0;
+}
+
+
 double delta_func(double a, double b, double t1, double t2, double t3, double x){
     double delta_2 = a - abs(cos(t1)*cos(t2)*sin(t3) + sin(t2)*cos(t3)*exp(I*x));
     double delta_4 = b - abs(cos(t1)*sin(t2)*sin(t3) - cos(t2)*cos(t3)*exp(I*x));
     return delta_2*delta_2 + delta_4*delta_4;
 }
+
+
 
 class delta_functor : public brent::func_base   //create functor
 {

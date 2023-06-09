@@ -191,10 +191,12 @@ cv::Point2d windowCentroidWCOG(const cv::Mat &image, int interp_size, int gauss_
 
     cv::Point2i p_est;
     cv::Point2d p_ret;
+    
+    auto safe_bounds = cv::Rect((interp_size-1)/2, (interp_size-1)/2, window_size-(interp_size-1), window_size-(interp_size-1));
 
-    cv::minMaxLoc(gauss_img, nullptr, nullptr, nullptr, &p_est);
+    cv::minMaxLoc(gauss_img(safe_bounds), nullptr, nullptr, nullptr, &p_est);
 
-    p_est += static_cast<cv::Point2i>(window.tl());
+    p_est += static_cast<cv::Point2i>(window.tl()) + static_cast<cv::Point2i>(safe_bounds.tl());
 
     p_ret = getCentroidWCOG(image, p_est, weights, interp_size, gain);
 

@@ -21,5 +21,6 @@ target_link_libraries(SciCamServer PUBLIC
     qhyccd
     cfitsio
     pthread
+    fftw3
    ${OpenCV_LIBS}
 )
