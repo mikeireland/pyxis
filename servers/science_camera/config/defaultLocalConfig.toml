@@ -39,3 +39,7 @@ delaySize = 1
 SNRThreshold = 10
 signs = [1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0]
 wave_offsets = [0,-1,-2,-3,-4,-5]
+    
+    [ScienceCamera.FringeScanning]
+    window_size = 20 #Number of frames to FFT over
+    signal_width = 2 #How wide should the "signal" be in wavenumber steps

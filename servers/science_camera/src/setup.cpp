@@ -57,7 +57,6 @@ int measureDark(unsigned short* data){
 double GLOB_SC_SCAN_SNR_LS[60];
 int GLOB_SC_SCAN_WINDOW_SIZE;
 int GLOB_SC_SCAN_SIGNAL_WIDTH;
-double GLOB_SC_SCAN_PER_FRAME;
 
 std::deque<int> scan_flux_window[60] ;
 int scan_fft_signal_idx[60]; //Indexes for frequency
@@ -65,17 +64,17 @@ static double * scan_fft_in;
 static fftw_complex * scan_fft_out;
 static fftw_plan scan_fft_plan;
 
-int init_fringe_scan(){
+int init_fringe_scan(double scan_per_frame){
 
     scan_fft_in = (double*) fftw_malloc(sizeof(double) * GLOB_SC_SCAN_WINDOW_SIZE);
     scan_fft_out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (GLOB_SC_SCAN_WINDOW_SIZE/2+1));
     scan_fft_plan = fftw_plan_dft_r2c_1d(GLOB_SC_SCAN_WINDOW_SIZE, scan_fft_in, scan_fft_out, FFTW_MEASURE);
 
-    double period = GLOB_SC_SCAN_WINDOW_SIZE*GLOB_SC_SCAN_PER_FRAME;
+    double period = GLOB_SC_SCAN_WINDOW_SIZE*scan_per_frame;
     std::vector<double> values = arange<double>(0,GLOB_SC_SCAN_WINDOW_SIZE/2+1);
     
     for (int k=0; k<10; k++){
-        double wavenumber = 1/GLOB_SC_CAL.wavelengths[k];
+        double wavenumber = 1/(0.000001*GLOB_SC_CAL.wavelengths[k]); // wavelengths in m
         // Identify the index of the frequency that should peak if we have fringes
         double min_residual = 100;
         int min_arg;

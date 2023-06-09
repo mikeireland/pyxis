@@ -10,6 +10,7 @@
 namespace co = commander;
 using namespace std;
 using namespace zaber::motion;
+using json = nlohmann::json;
 
 commander::client::Socket* SC_SOCKET;
 
@@ -39,15 +40,26 @@ string move(double distance){
 	return ret_msg;
 }
 
-string move_loop(double distance){
+//distance in m/frame
+string move_loop(double distance_per_frame){
     string ret_msg;
-    
+    string ret_msg = SC_SOCKET->send<std::string>("setupZaber", distance_per_frame);
+    cout << ret_msg << endl;
+    ofstream myfile;
+    myfile.open ("example.txt");
     for (int k=0; k<100; k++){
-        double position = stage->MoveRelative(distance, Units::VELOCITY_METRES_PER_SECOND);
+        double position = stage->MoveRelative(distance/2, Units::METRES);
         cout << position << endl;
-        string FFTdata = SC_SOCKET->send<std::string>("getSNRarray");
+        string FFTdata = SC_SOCKET->send<std::string>("zaberFunc");
         cout << FFTdata << endl;
+        
+        json j = json::parse(FFTdata)
+        vector<double> vec = j.at["SNR"];
+        cout << vec[0] << endl;
+        myfile << FFTdata + "\n";
+        
     }
+    myfile.close();
 	return ret_msg;
 }
 

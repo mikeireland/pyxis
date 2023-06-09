@@ -70,9 +70,26 @@ void FLIRCamera::InitCamera(){
     pCam->Init();
 
     INodeMap& node_map = pCam->GetNodeMap();
+    
+    // Configure Buffer Mode to only return the newest frame ("NewestOnly"). Can set to "NewestFirst" if things are breaking.
+    // Default is "OldestFirst" for some reason, hence a few bugs!
+    // Retrieve Stream Parameters device nodemap
+    Spinnaker::GenApi::INodeMap& sNodeMap = pCam->GetTLStreamNodeMap();
+    // Retrieve Buffer Handling Mode Information
+    CEnumerationPtr ptrHandlingMode = sNodeMap.GetNode("StreamBufferHandlingMode");
+    if (!IsReadable(ptrHandlingMode) || !IsWritable(ptrHandlingMode)){
+        cout << "Unable to set Buffer Handling mode (node retrieval). Aborting..." << endl << endl;
+    }
+    CEnumEntryPtr ptrHandlingModeEntry = ptrHandlingMode->GetCurrentEntry();
+    if (!IsReadable(ptrHandlingModeEntry)){
+        cout << "Unable to get Buffer Handling mode (Entry retrieval). Aborting..." << endl << endl;
+    }
+    ptrHandlingModeEntry = ptrHandlingMode->GetEntryByName("NewestOnly");
+    ptrHandlingMode->SetIntValue(ptrHandlingModeEntry->GetValue());
+    cout << "Buffer Handling Mode has been set to " << ptrHandlingModeEntry->GetDisplayName() << endl;
 
     //Configure Camera
-    
+
     // Set width
     CIntegerPtr ptr_width = node_map.GetNode("Width");
     ptr_width->SetValue(width);

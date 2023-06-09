@@ -39,6 +39,7 @@ commander::client::Socket* TS_SOCKET;
 int GLOB_SC_DARK_FLAG;
 int GLOB_SC_FLUX_FLAG;
 int GLOB_SC_SCAN_FLAG;
+int GLOB_SC_NEXT_SCAN_FLAG;
 int GLOB_SC_STAGE = 0;
 int GLOB_SC_TRACK_PERIOD;
 int GLOB_SC_SCAN_PERIOD;
@@ -49,8 +50,12 @@ double GLOB_SC_V2SNR_THRESHOLD;
 int GroupDelayCallback (unsigned short* data){
     int ret_val;
     if (GLOB_SC_SCAN_FLAG){
-        ret_val = fringeScan(data);
-
+        if (GLOB_SC_NEXT_SCAN_FLAG){
+            ret_val = fringeScan(data);
+            pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+            GLOB_SC_NEXT_SCAN_FLAG = 0;
+            pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        }
     } else if (GLOB_SC_DARK_FLAG){
         ret_val = measureDark(data);
         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
@@ -149,6 +154,11 @@ struct SciCam: QHYCameraServer{
 
         GLOB_SC_V2 = Eigen::MatrixXd::Zero(20,1);
         GLOB_SC_DELAY_AVE = Eigen::MatrixXd::Zero(numDelays,1);
+        
+        // Fringe Scanning funcs
+        int GLOB_SC_SCAN_WINDOW_SIZE = config["ScienceCamera"]["FringeScanning"]["window_size"].value_or(0);
+        int GLOB_SC_SCAN_SIGNAL_WIDTH = config["ScienceCamera"]["FringeScanning"]["signal_width"].value_or(0);
+        double GLOB_SC_SCAN_PER_FRAME = config["ScienceCamera"]["FringeScanning"]["scan_distance_per_frame"].value_or(0);
     }
 
     ~SciCam(){
@@ -253,7 +263,7 @@ struct SciCam: QHYCameraServer{
                         cout << ret_msg << endl;
 
                         // Start scan
-                        std::string ret_msg = CA_SOCKET->send<std::string>("moveSDC", -400000, GLOB_SC_TRACK_PERIOD);
+                        std::string ret_msg = CA_SOCKET->send<std::string>("moveSDC", -400000, GLOB_SC_SCAN_PERIOD);
                         cout << ret_msg << endl;*/
 
                         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
@@ -270,7 +280,7 @@ struct SciCam: QHYCameraServer{
                         cout << ret_msg << endl;
 
                         // Start scan
-                        std::string ret_msg = CA_SOCKET->send<std::string>("moveSDC", 0, GLOB_SC_TRACK_PERIOD);
+                        std::string ret_msg = CA_SOCKET->send<std::string>("moveSDC", 0, GLOB_SC_SCAN_PERIOD);
                         cout << ret_msg << endl; */
                         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                         GLOB_SC_SCAN_FLAG = 0;
@@ -335,18 +345,6 @@ struct SciCam: QHYCameraServer{
         ret_msg = s;
         return ret_msg;
     }
-    
-    string getSNRarray(){
-        string ret_msg;
-        json j;
-        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-        vector<double> vec (GLOB_SC_SCAN_SNR_LS, GLOB_SC_SCAN_SNR_LS+60);
-        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
-        j["V2"] = vec;
-        std::string s = j.dump();
-        ret_msg = s;
-        return ret_msg;
-    }
 
 
     string getGDarray(){
@@ -373,6 +371,44 @@ struct SciCam: QHYCameraServer{
         GLOB_DEC = coords.DEC;
         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
         ret_msg = "Science Camera: Set Baseline to " + to_string(baseline) + " and target to " + target_name;
+        return ret_msg;
+    }
+    
+    string nextZaber(){
+        string ret_msg;
+        json j;
+        
+        if (GLOB_SC_SCAN_FLAG){
+            // Get next FFT
+            pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+            GLOB_SC_NEXT_SCAN_FLAG = 1;
+            pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+            
+            // Wait until complete
+            while (GLOB_SC_NEXT_SCAN_FLAG){
+                usleep(1000);
+            }
+                    
+            pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+            vector<double> vec (GLOB_SC_SCAN_SNR_LS, GLOB_SC_SCAN_SNR_LS+60);
+            pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+            j["SNR"] = vec;
+            std::string s = j.dump();
+            ret_msg = s;
+        
+        } else {
+        
+            ret_msg = "No Fringe Scanning Running";
+        
+        }
+
+        return ret_msg;
+    }
+    
+    string setupZaber(double scan_per_frame){
+        string ret_msg;
+        int ret_val = init_fringe_scan(scan_per_frame);
+        ret_msg = "Successfully inited fringe scan";
         return ret_msg;
     }
 
@@ -411,6 +447,8 @@ COMMANDER_REGISTER(m)
         .def("getGDestimate", &SciCam::getGDestimate, "Get current group delay estimate")
         .def("getV2array", &SciCam::getV2array, "Get V2 array per pixel")
         .def("getV2SNRestimate", &SciCam::getV2SNRestimate, "Get V2 SNR estimate")
-        .def("setTargetandBaseline", &SciCam::setTargetandBaseline, "Set target and baseline info for FITS");
+        .def("setTargetandBaseline", &SciCam::setTargetandBaseline, "Set target and baseline info for FITS")
+        .def("zaberFunc", &SciCam::nextZaber, "Request and get new SNR estimate from fringe scanning")
+        .def("setupZaber", &SciCam::setupZaber, "Request and get new SNR estimate from fringe scanning");
 
 }

@@ -122,8 +122,6 @@ void *runCam(void*) {
 	    // Initialise FLIRCamera instance from the serial number
         FLIRCamera Fcam (cam_list.GetBySerial(serialNum), cam_config);
         
-        
-        
 	    // Setup and start the camera
         Fcam.InitCamera();
         
