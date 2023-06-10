@@ -22,10 +22,10 @@ extern Eigen::Array<double,20,3> GLOB_SC_FLUX_A;
 extern Eigen::Array<double,20,3> GLOB_SC_FLUX_B;
 extern double GLOB_SC_DARK_VAL;
 
-extern double GLOB_SC_SCAN_SNR_LS[60];
-extern int GLOB_SC_SCAN_WINDOW_SIZE;
-extern int GLOB_SC_SCAN_SIGNAL_WIDTH;
-extern double GLOB_SC_SCAN_PER_FRAME;
+extern double GLOB_SC_SCAN_FFT_LS[6][5];
+//extern double GLOB_SC_SCAN_SNR_LS[60];
+//extern int GLOB_SC_SCAN_WINDOW_SIZE;
+//extern int GLOB_SC_SCAN_SIGNAL_WIDTH;
 
 struct SC_calibration {
 

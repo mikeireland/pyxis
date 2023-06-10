@@ -54,6 +54,7 @@ int measureDark(unsigned short* data){
     return 0;
 }
 
+/*
 double GLOB_SC_SCAN_SNR_LS[60];
 int GLOB_SC_SCAN_WINDOW_SIZE;
 int GLOB_SC_SCAN_SIGNAL_WIDTH;
@@ -72,7 +73,7 @@ int init_fringe_scan(double scan_per_frame){
 
     double period = GLOB_SC_SCAN_WINDOW_SIZE*scan_per_frame;
     std::vector<double> values = arange<double>(0,GLOB_SC_SCAN_WINDOW_SIZE/2+1);
-    
+   
     for (int k=0; k<10; k++){
         double wavenumber = 1/(0.000001*GLOB_SC_CAL.wavelengths[k]); // wavelengths in m
         // Identify the index of the frequency that should peak if we have fringes
@@ -101,21 +102,21 @@ int init_fringe_scan(double scan_per_frame){
 int fringeScan(unsigned short* data){
 
     Eigen::Matrix<double, 20, 3> O;
-    
+   
     extractToMatrix(data,O);
-    
+   
     double temp_snr_ls[60];
-    
+   
     for (int k=0;k<60;k++){
-        
+       
         int px = O(k/20,k%20);
-    
+   
         scan_flux_window[k].pop_front();
         scan_flux_window[k].push_back(px);
-        
+       
         std::copy(scan_flux_window[k].begin(), scan_flux_window[k].end(), scan_fft_in);
         fftw_execute(scan_fft_plan);
-        
+       
         double data, mean, sum=0., signal = 0., std = 0., snr = 0.;
         std::complex<double> temp;
 
@@ -145,19 +146,70 @@ int fringeScan(unsigned short* data){
                 data = sqrt(scan_fft_out[i][0]*scan_fft_out[i][0] + scan_fft_out[i][1]*scan_fft_out[i][1]);
                 std += pow(data - mean, 2);
             }
-        } 
+        }
         std = sqrt(std/(GLOB_SC_SCAN_WINDOW_SIZE/2 - (2*GLOB_SC_SCAN_SIGNAL_WIDTH-1)));
-        
+       
         snr = signal/std;
         temp_snr_ls[k] = snr;
-        
-    //CALC FFT OVER 
+       
+    //CALC FFT OVER
     }
     pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
     for (int k=0;k<60;k++){
        GLOB_SC_SCAN_SNR_LS[k] = temp_snr_ls[k];
     }
     pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+    return 0;
+}
+*/
+
+double GLOB_SC_SCAN_FFT_LS[6][5];
+
+static double * scan_fft_in;
+static fftw_complex * scan_fft_out;
+static fftw_plan scan_fft_plan;
+
+int init_fringe_scan(double scan_per_frame){
+
+    scan_fft_in = (double*) fftw_malloc(sizeof(double) * 10);
+    scan_fft_out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (6));
+    scan_fft_plan = fftw_plan_dft_r2c_1d(10, scan_fft_in, scan_fft_out, FFTW_MEASURE);
+
+    return 0;
+}
+
+
+
+int fringeScan(unsigned short* data){
+
+    Eigen::Matrix<double, 20, 3> O;
+   
+    extractToMatrix(data,O);
+    std::cout << O << std::endl;
+    double power_spec;
+    std::complex<double> temp;    
+   
+    for (int k=0;k<6;k++){
+        std::vector<double> temp_data(O.col(k/2).data()+(10*k%2), O.col(k/2).data()+(10*k%2)+10);
+
+        for (int j=0; j<10; j++){
+            std::cout << temp_data[j] << std::endl;
+        }
+
+        std::copy(temp_data.begin(), temp_data.end(), scan_fft_in);
+        fftw_execute(scan_fft_plan);    
+               
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        for (int l=0;l<5;l++){
+            temp = std::complex<double>(scan_fft_out[l+1][0], scan_fft_out[l+1][1]);
+            power_spec = std::abs( std::pow(temp, 2) );
+            GLOB_SC_SCAN_FFT_LS[k][l] = power_spec;
+        }
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+    }
+   
+    //CALC FFT OVER
+
     return 0;
 }
 
@@ -253,33 +305,34 @@ int calcP2VMmain(){
 }
 
 void extractToMatrix(unsigned short* data, Eigen::Matrix<double, 20, 3> & O) {
-    
+     
      // From the frame, extract pixel positions into O(utput) matrix
      for(int k=0;k<10;k++){
-        O.row(k) << data[GLOB_SC_CAL.pos_p1_A,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[0]+k]+
-                    data[GLOB_SC_CAL.pos_p1_A+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[0]+k]- 
+        O.row(k) << data[GLOB_SC_CAL.pos_p1_A*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[0]+k]+
+                    data[(GLOB_SC_CAL.pos_p1_A+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[0]+k]- 
                     GLOB_SC_DARK_VAL,
 
-                    data[GLOB_SC_CAL.pos_p1_B,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[1]+k]+
-                    data[GLOB_SC_CAL.pos_p1_B+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[1]+k]-
+                    data[GLOB_SC_CAL.pos_p1_B*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[1]+k]+
+                    data[(GLOB_SC_CAL.pos_p1_B+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[1]+k]-
                     GLOB_SC_DARK_VAL,
 
-                    data[GLOB_SC_CAL.pos_p1_C,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[2]+k]+
-                    data[GLOB_SC_CAL.pos_p1_C+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[2]+k]-
+                    data[GLOB_SC_CAL.pos_p1_C*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[2]+k]+
+                    data[(GLOB_SC_CAL.pos_p1_C+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[2]+k]-
                     GLOB_SC_DARK_VAL;
 
-        O.row(k+10) << data[GLOB_SC_CAL.pos_p2_A,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[3]+k]+
-                       data[GLOB_SC_CAL.pos_p2_A+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[3]+k]-
+        O.row(k+10) << data[GLOB_SC_CAL.pos_p2_A*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[3]+k]+
+                       data[(GLOB_SC_CAL.pos_p2_A+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[3]+k]-
                        GLOB_SC_DARK_VAL,
 
-                       data[GLOB_SC_CAL.pos_p2_B,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[4]+k]+
-                       data[GLOB_SC_CAL.pos_p2_B+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[4]+k]-
+                       data[GLOB_SC_CAL.pos_p2_B*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[4]+k]+
+                       data[(GLOB_SC_CAL.pos_p2_B+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[4]+k]-
                        GLOB_SC_DARK_VAL,
 
-                       data[GLOB_SC_CAL.pos_p2_C,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[5]+k]+
-                       data[GLOB_SC_CAL.pos_p2_C+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[5]+k]-
+                       data[GLOB_SC_CAL.pos_p2_C*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[5]+k]+
+                       data[(GLOB_SC_CAL.pos_p2_C+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[5]+k]-
                        GLOB_SC_DARK_VAL;
-    }   
+    }
+      
 }
 
 // WAVELENGTHS: 0.6063 0.6186 0.6316 0.6454 0.66 0.6755 0.6918 0.7092 0.7277 0.7473

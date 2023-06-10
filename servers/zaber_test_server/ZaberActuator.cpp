@@ -62,7 +62,7 @@ ZaberActuator::ZaberActuator(toml::table config_init){
     cout << Label("Firmware version") << device.getFirmwareVersion().getMajor() << "." << device.getFirmwareVersion().getMinor() << endl;
     cout << Label("Serial number") << device.getSerialNumber() << endl;
     cout << Label("Device Mode") << settings.get(BinarySettings::DEVICE_MODE) << endl;
-    //cout << Label("Home Speed (um/s)") << settings.get(BinarySettings::HOME_SPEED,Units::VELOCITY_MICROMETRES_PER_SECOND) << endl;
+    cout << Label("Home Speed (um/s)") << settings.get(BinarySettings::HOME_SPEED,Units::VELOCITY_MICROMETRES_PER_SECOND) << endl;
     cout << Label("Target Speed (um/s)") << settings.get(BinarySettings::TARGET_SPEED,Units::VELOCITY_MICROMETRES_PER_SECOND) << endl;
     cout << Label("Acceleration (um/s/s)") << settings.get(BinarySettings::ACCELERATION,Units::ACCELERATION_MICROMETRES_PER_SECOND_SQUARED) << endl;
     cout << Label("Microstep resolution") << settings.get(BinarySettings::MICROSTEP_RESOLUTION) << endl;

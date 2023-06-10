@@ -19,11 +19,11 @@ using namespace std;
 Comms::SerialPort teensy_port(128);
 
 struct piezoPWMvals{
-    double DextraX_V = -15.0;
-    double DextraY_V = -15.0;
-    double SinistraX_V = -15.0;
-    double SinistraY_V = -15.0;
-    double Science_V = -15.0;
+    double DextraX_V = 45.0;
+    double DextraY_V = 45.0;
+    double SinistraX_V = 45.0;
+    double SinistraY_V = 45.0;
+    double Science_V =  45.0;
     
     double DextraX_um = 0.0;
     double DextraY_um = 0.0;

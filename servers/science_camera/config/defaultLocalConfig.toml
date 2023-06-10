@@ -4,16 +4,16 @@ IP = "127.0.0.1"#"192.168.1.4"
 [QHYCamera]
     [QHYcamera.camera]
     readout_mode = 2 #0 is HDR mode, 1 is STD LGC mode, 2 is STD HGC mode. Use 2!
-    width = 60
-    height = 60
+    width = 64
+    height = 128
     offset_x = 1000
-    offset_y = 912
-    gain = 10
+    offset_y = 880
+    gain = 5
     gamma = 1.0
     black_level = 5 # Black level offset in ADU
-    exposure_time = 5000 # in microseconds
+    exposure_time = 3000 # in microseconds
     num_frames = 500 #Default number of frames to save per FITS file; 0 is continuous with no saving
-    buffer_size = 10000 #Size of circular buffer
+    buffer_size = 50000 #Size of circular buffer
 
     [QHYcamera.bounds]
     width = [32,2048]
@@ -32,13 +32,13 @@ CA_port = "4100"
 TS_port = "4203"
 tracking_period = 100
 scanning_period = 500
-xref = 0
-yref = 0
+xref = 40
+yref = 33
 numDelays = 1000
 delaySize = 1
 SNRThreshold = 10
 signs = [1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0]
-wave_offsets = [0,-1,-2,-3,-4,-5]
+wave_offsets = [0,0,0,-1,-1,-1]
     
     [ScienceCamera.FringeScanning]
     window_size = 20 #Number of frames to FFT over

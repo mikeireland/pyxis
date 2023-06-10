@@ -34,8 +34,19 @@ struct ZaberServer {
 string move(double distance){
     string ret_msg;
 
-    double position = stage->MoveRelative(distance, Units::VELOCITY_METRES_PER_SECOND);
+    double position = stage->MoveRelative(distance, Units::LENGTH_MICROMETRES);
     cout << position << endl;
+    ret_msg = to_string(position);
+	return ret_msg;
+}
+
+string moveAb(double distance){
+    string ret_msg;
+
+    double position = stage->MoveAbsolute(distance, Units::LENGTH_MICROMETRES);
+    cout << position << endl;
+    
+    ret_msg = to_string(position);
 
 	return ret_msg;
 }
@@ -43,19 +54,20 @@ string move(double distance){
 //distance in m/frame
 string move_loop(double distance_per_frame){
     string ret_msg;
-    string ret_msg = SC_SOCKET->send<std::string>("setupZaber", distance_per_frame);
+    ret_msg = SC_SOCKET->send<std::string>("SC.setupZaber", distance_per_frame);
     cout << ret_msg << endl;
+    int loops = 25000/distance_per_frame;
     ofstream myfile;
     myfile.open ("example.txt");
-    for (int k=0; k<100; k++){
-        double position = stage->MoveRelative(distance/2, Units::METRES);
+    for (int k=0; k<loops; k++){
+        double position = stage->MoveRelative(distance_per_frame/2, Units::LENGTH_MICROMETRES);
         cout << position << endl;
-        string FFTdata = SC_SOCKET->send<std::string>("zaberFunc");
-        cout << FFTdata << endl;
+        string FFTdata = SC_SOCKET->send<std::string>("SC.zaberFunc");
+        //cout << FFTdata << endl;
         
-        json j = json::parse(FFTdata)
-        vector<double> vec = j.at["SNR"];
-        cout << vec[0] << endl;
+        //json j = json::parse(FFTdata);
+        //vector<double> vec = j.at["SNR"];
+        //cout << vec[0] << endl;
         myfile << FFTdata + "\n";
         
     }
@@ -72,6 +84,7 @@ COMMANDER_REGISTER(m)
     m.instance<ZaberServer>("ZS")
         // To insterface a class method, you can use the `def` method.
         .def("move", &ZaberServer::move, "Get Ra and Dec")
+        .def("moveAb", &ZaberServer::move, "Get Ra and Dec")
         .def("move_loop", &ZaberServer::move_loop, "Get Target Name");
 }
 
@@ -115,7 +128,7 @@ int main(int argc, char* argv[]) {
     string port = config["port"].value_or("4000");
     string IP = config["IP"].value_or("192.168.1.4");
     
-    std::string SC_port = config["ScienceCamera"]["SC_port"].value_or("4100");
+    std::string SC_port = config["SC_port"].value_or("4100");
 
     // Turn into a TCPString
     std::string SC_TCP = "tcp://" + IP + ":" + SC_port;

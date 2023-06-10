@@ -49,13 +49,14 @@ double GLOB_SC_V2SNR_THRESHOLD;
 // Return 1 if error!
 int GroupDelayCallback (unsigned short* data){
     int ret_val;
-    if (GLOB_SC_SCAN_FLAG){
-        if (GLOB_SC_NEXT_SCAN_FLAG){
-            ret_val = fringeScan(data);
-            pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-            GLOB_SC_NEXT_SCAN_FLAG = 0;
-            pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
-        }
+    if (GLOB_SC_NEXT_SCAN_FLAG){
+        ret_val = fringeScan(data);
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        GLOB_SC_NEXT_SCAN_FLAG = 0;
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+    }
+    else if (GLOB_SC_SCAN_FLAG){
+
     } else if (GLOB_SC_DARK_FLAG){
         ret_val = measureDark(data);
         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
@@ -156,9 +157,8 @@ struct SciCam: QHYCameraServer{
         GLOB_SC_DELAY_AVE = Eigen::MatrixXd::Zero(numDelays,1);
         
         // Fringe Scanning funcs
-        int GLOB_SC_SCAN_WINDOW_SIZE = config["ScienceCamera"]["FringeScanning"]["window_size"].value_or(0);
-        int GLOB_SC_SCAN_SIGNAL_WIDTH = config["ScienceCamera"]["FringeScanning"]["signal_width"].value_or(0);
-        double GLOB_SC_SCAN_PER_FRAME = config["ScienceCamera"]["FringeScanning"]["scan_distance_per_frame"].value_or(0);
+        //GLOB_SC_SCAN_WINDOW_SIZE = config["ScienceCamera"]["FringeScanning"]["window_size"].value_or(0);
+        //GLOB_SC_SCAN_SIGNAL_WIDTH = config["ScienceCamera"]["FringeScanning"]["signal_width"].value_or(0);
     }
 
     ~SciCam(){
@@ -377,30 +377,25 @@ struct SciCam: QHYCameraServer{
     string nextZaber(){
         string ret_msg;
         json j;
+
+        // Get next FFT
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        GLOB_SC_NEXT_SCAN_FLAG = 1;
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
         
-        if (GLOB_SC_SCAN_FLAG){
-            // Get next FFT
-            pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-            GLOB_SC_NEXT_SCAN_FLAG = 1;
-            pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
-            
-            // Wait until complete
-            while (GLOB_SC_NEXT_SCAN_FLAG){
-                usleep(1000);
-            }
-                    
-            pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-            vector<double> vec (GLOB_SC_SCAN_SNR_LS, GLOB_SC_SCAN_SNR_LS+60);
-            pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
-            j["SNR"] = vec;
-            std::string s = j.dump();
-            ret_msg = s;
-        
-        } else {
-        
-            ret_msg = "No Fringe Scanning Running";
-        
+        // Wait until complete
+        while (GLOB_SC_NEXT_SCAN_FLAG){
+            usleep(500);
         }
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        for (int k=0;k<6;k++){
+            vector<double> vec (GLOB_SC_SCAN_FFT_LS[k], GLOB_SC_SCAN_FFT_LS[k]+5);
+            j["FFT"][k] = vec;
+        }
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        
+        std::string s = j.dump();
+        ret_msg = s;
 
         return ret_msg;
     }
