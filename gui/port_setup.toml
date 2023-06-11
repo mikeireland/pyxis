@@ -1,5 +1,5 @@
 [Pyxis]
-refresh_time = 0.5 #In seconds
+refresh_time = 1 #In seconds
 
 	[Pyxis.IP]
     FSM = "192.168.1.2"
@@ -14,6 +14,7 @@ refresh_time = 0.5 #In seconds
     [Navis.RobotControl]
     tab_name = "Robot Control"
     name = "NavisRobotControl"
+    prefix = "RC"
     port = "4100"
     description = "Motor/Actuator control for the chief Navis"
     module_type = "RobotControlWidget"
@@ -21,18 +22,18 @@ refresh_time = 0.5 #In seconds
     [Navis.ChiefAux]
     tab_name = "Navis Auxilliary"
     name = "NavisDeputyAux"
+    prefix = "CA"
     port = "4101"
     description = "Navis power system + actuator controls"
     module_type = "ChiefAuxControlWidget"
-    voltage_limit = 10000
-    status_refresh_time = 2
+    voltage_limit = 10
     
         [Navis.ChiefAux.PiezoSteps]
         dextra_X = 1
         dextra_Y = 1
         sinistra_X = 1
         sinistra_Y = 1
-        science = 2
+        science = 5
                        
         [Navis.ChiefAux.PiezoStart]
         dextra_X = 45
@@ -84,6 +85,7 @@ refresh_time = 0.5 #In seconds
     [Navis.ScienceCamera]
     tab_name = "Science Camera"
     name = "NavisScienceCam"
+    prefix = "SC"
     port = "4106"
     description = "Science Camera controls"
     module_type = "ScienceCameraWidget"
@@ -98,6 +100,7 @@ refresh_time = 0.5 #In seconds
     [Dextra.RobotControl]
     tab_name = "Robot Control"
     name = "DextraRobotControl"
+    prefix = "RC"
     port = "4200"
     description = "Motor/Actuator control for the deputy Dextra"
     module_type = "RobotControlWidget"
@@ -105,11 +108,11 @@ refresh_time = 0.5 #In seconds
     [Dextra.DeputyAux]
     tab_name = "Deputy Auxilliary"
     name = "DextraDeputyAux"
+    prefix = "DA"
     port = "4201"
     description = "Dextra power system + LED controls"
     module_type = "DepAuxControlWidget"
     voltage_limit = 10
-    power_refresh_time = 2
 
     [Dextra.StarTracker]
     tab_name = "Star Tracker Camera"
@@ -135,6 +138,7 @@ refresh_time = 0.5 #In seconds
     [Sinistra.RobotControl]
     tab_name = "Robot Control"
     name = "SinistraRobotControl"
+    prefix = "RC"
     port = "4300"
     description = "Motor/Actuator control for the deputy Sinistra"
     module_type = "RobotControlWidget"
@@ -142,6 +146,7 @@ refresh_time = 0.5 #In seconds
     [Sinistra.DeputyAux]
     tab_name = "Deputy Auxilliary"
     name = "SinistraDeputyAux"
+    prefix = "DA"
     port = "4301"
     description = "Sinistra power system + LED controls"
     module_type = "DepAuxControlWidget"

@@ -1,11 +1,18 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
+from client_socket import ClientSocket
 import time
+import random
 import json
 import numpy as np
 import cv2
 import pyqtgraph as pg
-from RawWidget import RawWidget
+
+try:
+    import astropy.io.fits as pyfits
+    FITS_SAVING=True
+except:
+    FITS_SAVING=False
 
 #Import only what we need from PyQt5, or everything from PyQt4. In any case, we'll try
 #to keep this back-compatible. Although this floods the namespace somewhat, everything
@@ -13,9 +20,10 @@ from RawWidget import RawWidget
 
 try:
     from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, \
-        QVBoxLayout, QGridLayout, QLabel, QLineEdit
+        QVBoxLayout, QGridLayout, QLabel, QLineEdit, QTextEdit, QProgressBar
     from PyQt5.QtCore import QTimer, QPoint, Qt
-    from PyQt5.QtGui import QPixmap, QImage, QPainter
+    from PyQt5.QtGui import QPixmap, QFont, QImage, QPainter
+    from PyQt5.QtSvg import QSvgWidget
 except:
     print("Please install PyQt5.")
     raise UserWarning
@@ -159,16 +167,66 @@ class V2PlotWindow(QWidget):
         self.setLayout(hbox)
 
 
-class ScienceCameraWidget(RawWidget):
+class ScienceCameraWidget(QWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
 
-        super(ScienceCameraWidget,self).__init__(config,IP,parent)
+        super(ScienceCameraWidget,self).__init__(parent)
 
+        self.name = config["name"]
+        self.port = config["port"]
+        self.socket = ClientSocket(IP=IP, Port=self.port)
         self.feed_refresh_time = int(config["feed_refresh_time"]*1000)
         self.compression_param = config["compression_param"]
 
         self.GD_array = np.zeros((config["GD_window_size"],config["num_delays"]),dtype="uint16")
         self.GD_scale = config["GD_scale"]
+
+        #Layout the common elements
+        vBoxlayout = QVBoxLayout()
+        vBoxlayout.setSpacing(3)
+
+        desc = QLabel('Port: %s    Description: %s'%(config["port"],config["description"]), self)
+        desc.setStyleSheet("font-weight: bold")
+
+        #First, the command entry box
+        lbl1 = QLabel('Command: ', self)
+        self.line_edit = QLineEdit("SC.")
+        self.line_edit.returnPressed.connect(self.command_enter)
+
+        #Next, the info button
+        self.info_button = QPushButton("Refresh", self)
+        self.info_button.clicked.connect(self.info_click)
+
+        hbox2 = QHBoxLayout()
+        vbox1 = QVBoxLayout()
+        vbox2 = QVBoxLayout()
+
+        hbox1 = QHBoxLayout()
+        hbox1.setContentsMargins(0, 0, 0, 0)
+        desc.setFixedHeight(40)
+        #desc.adjustSize()
+        hbox1.addWidget(desc)
+        vBoxlayout.addLayout(hbox1)
+
+        hbox1 = QHBoxLayout()
+        hbox1.addWidget(lbl1)
+        hbox1.addWidget(self.line_edit)
+        hbox1.addWidget(self.info_button)
+        vbox1.addLayout(hbox1)
+
+        #Next, the response box
+        self.response_label = QTextEdit('[No Server Response Yet]', self)
+        self.response_label.setReadOnly(True)
+        self.response_label.setStyleSheet("QTextEdit { background-color : black; }")
+        self.response_label.setFixedHeight(150)
+        vbox1.addWidget(self.response_label)
+
+        self.timeout = 0
+        self.fnum = 0
+
+        bigfont = QFont("Times", 20, QFont.Bold)
+
+        vbox1.addSpacing(20)
 
         hbox4 = QHBoxLayout()
         vbox4 = QVBoxLayout()
@@ -284,9 +342,9 @@ class ScienceCameraWidget(RawWidget):
         vbox4.addLayout(hbox1)
 
         hbox4.addLayout(vbox4)
-        self.mainPanel.addLayout(hbox4)
+        vbox1.addLayout(hbox4)
 
-        self.mainPanel.addSpacing(15)
+        vbox1.addSpacing(15)
         #################################
 
         SC_button_grid = QGridLayout()
@@ -327,7 +385,7 @@ class ScienceCameraWidget(RawWidget):
         self.fringe_scan_button.clicked.connect(self.fringe_scan_func)
         SC_button_grid.addWidget(self.fringe_scan_button,1,2)
 
-        self.mainPanel.addLayout(SC_button_grid)
+        vbox1.addLayout(SC_button_grid)
 
         ####################################
 
@@ -339,7 +397,7 @@ class ScienceCameraWidget(RawWidget):
         self.Connect_button.clicked.connect(self.connect_camera)
         hbox3.addWidget(self.Connect_button)
         hbox3.addSpacing(50)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
 
         hbox3 = QHBoxLayout()
         self.run_button = QPushButton("Start Camera", self)
@@ -347,7 +405,7 @@ class ScienceCameraWidget(RawWidget):
         self.run_button.setFixedWidth(200)
         self.run_button.clicked.connect(self.run_camera)
         hbox3.addWidget(self.run_button)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
 
         #vbox2 things
         hbox3 = QHBoxLayout()
@@ -355,7 +413,7 @@ class ScienceCameraWidget(RawWidget):
         self.Reconfigure_button.setFixedWidth(200)
         self.Reconfigure_button.clicked.connect(self.reconfigure_camera)
         hbox3.addWidget(self.Reconfigure_button)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
 
         self.feed_window = FeedWindow(self.name)
 
@@ -365,7 +423,7 @@ class ScienceCameraWidget(RawWidget):
         self.Camera_button.setFixedWidth(200)
         self.Camera_button.clicked.connect(self.camera_feed)
         hbox3.addWidget(self.Camera_button)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
 
         self.GD_window = GDPlotWindow()
 
@@ -375,7 +433,7 @@ class ScienceCameraWidget(RawWidget):
         self.GD_button.setFixedWidth(200)
         self.GD_button.clicked.connect(self.GD_plot_func)
         hbox3.addWidget(self.GD_button)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
         
         self.V2_window = V2PlotWindow()
 
@@ -385,9 +443,30 @@ class ScienceCameraWidget(RawWidget):
         self.V2_button.setFixedWidth(200)
         self.V2_button.clicked.connect(self.V2_plot_func)
         hbox3.addWidget(self.V2_button)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
 
-        self.feedtimer = QTimer()
+        hbox2.addLayout(vbox1)
+        hbox2.addLayout(vbox2)
+        vBoxlayout.addLayout(hbox2)
+
+        status_layout = QHBoxLayout()
+        self.status_light = 'assets/red.svg'
+        self.status_text = 'Socket Not Connected'
+        self.svgWidget = QSvgWidget(self.status_light)
+        self.svgWidget.setFixedSize(20,20)
+        self.status_label = QLabel(self.status_text, self)
+        status_layout.addWidget(self.svgWidget)
+        status_layout.addWidget(self.status_label)
+
+        vBoxlayout.addLayout(status_layout)
+
+        self.setLayout(vBoxlayout)
+        self.stimer = QTimer()
+        self.auto_updater()
+        self.ask_for_status()
+
+    def change_ip(self,IP):
+        self.socket = ClientSocket(IP=IP, Port=self.port)
 
     def ask_for_status(self):
         """Ask for status for the server that applies to the current tab (as we can
@@ -431,7 +510,6 @@ class ScienceCameraWidget(RawWidget):
             self.get_params()
 
         else:
-            self.response_label.append(response)
             self.status_light = "assets/red.svg"
             self.status_text = "Socket Not Connected"
             self.status_label.setText(self.status_text)
@@ -460,6 +538,15 @@ class ScienceCameraWidget(RawWidget):
                 self.buffersize_edit.setText(str(response_dict["buffersize"]))
                 self.save_dir_line_edit.setText(str(response_dict["savedir"]))
 
+    #Function to auto update at a given rate
+    def auto_updater(self):
+        self.refresh_camera_feed()
+        #self.refresh_V2_func()
+        #self.refresh_GD_func()
+        #if self.fringe_scan_button.isChecked():
+        #    self.check_fringe_scan_mode()
+        self.stimer.singleShot(self.feed_refresh_time, self.auto_updater)
+        return
 
     def connect_camera(self):
 
@@ -753,3 +840,30 @@ class ScienceCameraWidget(RawWidget):
         qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Grayscale8)
         ##########
         self.feed_window.cam_feed.changePixmap(qimg)
+
+    def info_click(self):
+        print(self.name)
+        self.ask_for_status()
+
+
+    def command_enter(self):
+        """Parse the LineEdit string and send_to_server
+        """
+        self.send_to_server(str(self.line_edit.text()))
+
+
+    def send_to_server(self, text):
+        """Send a command to the server, dependent on the current tab.
+        """
+        try:
+            response = self.socket.send_command(text)
+        except:
+            response = "*** Connection Error ***"
+        if type(response)==str or type(response)==unicode:
+            self.response_label.append(response)
+        elif type(response)==bool:
+            if response:
+                self.response_label.append("Success!")
+            else:
+                self.response_label.append("Failure!")
+        self.line_edit.setText("SC.")

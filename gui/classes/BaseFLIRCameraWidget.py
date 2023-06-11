@@ -1,20 +1,10 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
-from client_socket import ClientSocket
 import time
-import random
 import json
 import numpy as np
 import cv2
-
-try:
-    try:
-        import astropy.io.fits as pyfits
-    except:
-        import pyfits
-    FITS_SAVING=True
-except:
-    FITS_SAVING=False
+from RawWidget import RawWidget
 
 #Import only what we need from PyQt5, or everything from PyQt4. In any case, we'll try
 #to keep this back-compatible. Although this floods the namespace somewhat, everything
@@ -22,10 +12,9 @@ except:
 
 try:
     from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, \
-        QVBoxLayout, QGridLayout, QLabel, QLineEdit, QTextEdit, QProgressBar
+        QVBoxLayout, QGridLayout, QLabel, QLineEdit
     from PyQt5.QtCore import QTimer, QPoint, Qt
-    from PyQt5.QtGui import QPixmap, QFont, QImage, QPainter
-    from PyQt5.QtSvg import QSvgWidget
+    from PyQt5.QtGui import QPixmap, QImage, QPainter
 except:
     print("Please install PyQt5.")
     raise UserWarning
@@ -122,66 +111,13 @@ class FeedWindow(QWidget):
         return image
 
 
-
-
-class BaseFLIRCameraWidget(QWidget):
+class BaseFLIRCameraWidget(RawWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
 
-        super(BaseFLIRCameraWidget,self).__init__(parent)
+        super(BaseFLIRCameraWidget,self).__init__(config,IP,parent)
 
-        self.name = config["name"]
-        self.port = config["port"]
-        self.prefix = config["prefix"]
-        self.socket = ClientSocket(IP=IP, Port=self.port)
         self.feed_refresh_time = int(config["feed_refresh_time"]*1000)
         self.compression_param = config["compression_param"]
-
-        #Layout the common elements
-        vBoxlayout = QVBoxLayout()
-        vBoxlayout.setSpacing(3)
-
-        desc = QLabel('Port: %s    Description: %s'%(config["port"],config["description"]), self)
-        desc.setStyleSheet("font-weight: bold")
-
-        #First, the command entry box
-        lbl1 = QLabel('Command: ', self)
-        self.line_edit = QLineEdit("%s."%self.prefix)
-        self.line_edit.returnPressed.connect(self.command_enter)
-
-        #Next, the info button
-        self.info_button = QPushButton("Refresh", self)
-        self.info_button.clicked.connect(self.info_click)
-
-        hbox2 = QHBoxLayout()
-        vbox1 = QVBoxLayout()
-        vbox2 = QVBoxLayout()
-
-        hbox1 = QHBoxLayout()
-        hbox1.setContentsMargins(0, 0, 0, 0)
-        desc.setFixedHeight(40)
-        #desc.adjustSize()
-        hbox1.addWidget(desc)
-        vBoxlayout.addLayout(hbox1)
-
-        hbox1 = QHBoxLayout()
-        hbox1.addWidget(lbl1)
-        hbox1.addWidget(self.line_edit)
-        hbox1.addWidget(self.info_button)
-        vbox1.addLayout(hbox1)
-
-        #Next, the response box
-        self.response_label = QTextEdit('[No Server Response Yet]', self)
-        self.response_label.setReadOnly(True)
-        self.response_label.setStyleSheet("QTextEdit { background-color : black; }")
-        self.response_label.setFixedHeight(150)
-        vbox1.addWidget(self.response_label)
-
-        self.timeout = 0
-        self.fnum = 0
-
-        bigfont = QFont("Times", 20, QFont.Bold)
-
-        vbox1.addSpacing(20)
 
         hbox4 = QHBoxLayout()
         vbox4 = QVBoxLayout()
@@ -212,7 +148,6 @@ class BaseFLIRCameraWidget(QWidget):
         hbox3.addWidget(self.xoffset_edit)
         hbox3.addSpacing(20)
         config_grid.addLayout(hbox3,1,0)
-
 
         hbox3 = QHBoxLayout()
         lbl1 = QLabel('Exposure Time: ', self)
@@ -303,6 +238,9 @@ class BaseFLIRCameraWidget(QWidget):
         vbox4.addLayout(hbox1)
 
         hbox4.addLayout(vbox4)
+        self.mainPanel.addLayout(hbox4)
+
+        ############ SIDE PANEL ####################
 
         hbox3 = QHBoxLayout()
         hbox3.addSpacing(50)
@@ -312,7 +250,7 @@ class BaseFLIRCameraWidget(QWidget):
         self.Connect_button.clicked.connect(self.connect_camera)
         hbox3.addWidget(self.Connect_button)
         hbox3.addSpacing(50)
-        vbox2.addLayout(hbox3)
+        self.sidePanel.addLayout(hbox3)
 
         hbox3 = QHBoxLayout()
         self.run_button = QPushButton("Start Camera", self)
@@ -320,9 +258,7 @@ class BaseFLIRCameraWidget(QWidget):
         self.run_button.setFixedWidth(200)
         self.run_button.clicked.connect(self.run_camera)
         hbox3.addWidget(self.run_button)
-        vbox2.addLayout(hbox3)
-
-        vbox1.addLayout(hbox4)
+        self.sidePanel.addLayout(hbox3)
 
         #vbox2 things
         hbox3 = QHBoxLayout()
@@ -330,7 +266,7 @@ class BaseFLIRCameraWidget(QWidget):
         self.Reconfigure_button.setFixedWidth(200)
         self.Reconfigure_button.clicked.connect(self.reconfigure_camera)
         hbox3.addWidget(self.Reconfigure_button)
-        vbox2.addLayout(hbox3)
+        self.sidePanel.addLayout(hbox3)
 
         self.feed_window = FeedWindow(self.name)
 
@@ -340,30 +276,9 @@ class BaseFLIRCameraWidget(QWidget):
         self.Camera_button.setFixedWidth(200)
         self.Camera_button.clicked.connect(self.camera_feed)
         hbox3.addWidget(self.Camera_button)
-        vbox2.addLayout(hbox3)
+        self.sidePanel.addLayout(hbox3)
 
-        hbox2.addLayout(vbox1)
-        hbox2.addLayout(vbox2)
-        vBoxlayout.addLayout(hbox2)
-
-        status_layout = QHBoxLayout()
-        self.status_light = 'assets/red.svg'
-        self.status_text = 'Socket Not Connected'
-        self.svgWidget = QSvgWidget(self.status_light)
-        self.svgWidget.setFixedSize(20,20)
-        self.status_label = QLabel(self.status_text, self)
-        status_layout.addWidget(self.svgWidget)
-        status_layout.addWidget(self.status_label)
-
-        vBoxlayout.addLayout(status_layout)
-
-        self.setLayout(vBoxlayout)
-        self.stimer = QTimer()
-        self.auto_updater()
-        self.ask_for_status()
-
-    def change_ip(self,IP):
-        self.socket = ClientSocket(IP=IP, Port=self.port)
+        self.feedtimer = QTimer()
 
     def ask_for_status(self):
         """Ask for status for the server that applies to the current tab (as we can
@@ -436,11 +351,6 @@ class BaseFLIRCameraWidget(QWidget):
                 self.buffersize_edit.setText(str(response_dict["buffersize"]))
                 self.save_dir_line_edit.setText(str(response_dict["savedir"]))
 
-    #Function to auto update at a given rate
-    def auto_updater(self):
-        self.refresh_camera_feed()
-        self.stimer.singleShot(self.feed_refresh_time, self.auto_updater)
-        return
 
     def connect_camera(self):
 
@@ -511,7 +421,13 @@ class BaseFLIRCameraWidget(QWidget):
 
     def camera_feed(self):
         time.sleep(1)
+        self.auto_feed_updater()
+        return
+
+    #Function to update feed at a given rate
+    def auto_feed_updater(self):
         self.refresh_camera_feed()
+        self.feedtimer.singleShot(self.feed_refresh_time, self.auto_feed_updater)
         return
 
     def refresh_camera_feed(self):
@@ -557,29 +473,3 @@ class BaseFLIRCameraWidget(QWidget):
         else:
             self.coadd_flag = 0
 
-    def info_click(self):
-        print(self.name)
-        self.ask_for_status()
-
-
-    def command_enter(self):
-        """Parse the LineEdit string and send_to_server
-        """
-        self.send_to_server(str(self.line_edit.text()))
-
-
-    def send_to_server(self, text):
-        """Send a command to the server, dependent on the current tab.
-        """
-        try:
-            response = self.socket.send_command(text)
-        except:
-            response = "*** Connection Error ***"
-        if type(response)==str or type(response)==unicode:
-            self.response_label.append(response)
-        elif type(response)==bool:
-            if response:
-                self.response_label.append("Success!")
-            else:
-                self.response_label.append("Failure!")
-        self.line_edit.setText("%s."%self.prefix)

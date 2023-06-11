@@ -1,73 +1,25 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
-from client_socket import ClientSocket
-import random
 import json
+from RawWidget import RawWidget
 #Import only what we need from PyQt5, or everything from PyQt4. In any case, we'll try
 #to keep this back-compatible. Although this floods the namespace somewhat, everything
 #starts with a "Q" so there is little chance of getting mixed up.
 
 try:
-    from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, \
-        QVBoxLayout, QLabel, QLineEdit, QTextEdit, QGridLayout
+    from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QLabel, QGridLayout
     from PyQt5.QtSvg import QSvgWidget
-    from PyQt5.QtCore import QTimer
 except:
     print("Please install PyQt5.")
     raise UserWarning
 
 
-class DepAuxControlWidget(QWidget):
+class DepAuxControlWidget(RawWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
 
-        super(DepAuxControlWidget,self).__init__(parent)
+        super(DepAuxControlWidget,self).__init__(config,IP,parent)
 
-        self.name = config["name"]
-        self.port = config["port"]
-        self.socket = ClientSocket(IP=IP, Port=self.port)
         self.voltage_limit = config["voltage_limit"]
-        self.power_refresh_time = int(config["power_refresh_time"]*1000)
-
-        #Layout the common elements
-        vBoxlayout = QVBoxLayout()
-        vBoxlayout.setSpacing(3)
-
-        #Description
-        desc = QLabel('Port: %s    Description: %s'%(config["port"],config["description"]), self)
-        desc.setStyleSheet("font-weight: bold")
-        desc.setFixedHeight(40)
-        hbox1 = QHBoxLayout()
-        hbox1.addWidget(desc)
-        vBoxlayout.addLayout(hbox1)
-
-        #First, the command entry box
-        lbl1 = QLabel('Command: ', self)
-        self.line_edit = QLineEdit("DA.")
-        self.line_edit.returnPressed.connect(self.command_enter)
-
-        #Next, the info button
-        self.info_button = QPushButton("INFO", self)
-        self.info_button.clicked.connect(self.info_click)
-        
-        self.Connect_button = QPushButton("Connect", self)
-        self.Connect_button.setCheckable(True)
-        self.Connect_button.clicked.connect(self.connect_server)
-
-        hbox1 = QHBoxLayout()
-        hbox1.addWidget(lbl1)
-        hbox1.addWidget(self.line_edit)
-        hbox1.addWidget(self.info_button)
-        hbox1.addWidget(self.Connect_button)
-        vBoxlayout.addLayout(hbox1)
-
-        #Next, the response box
-        self.response_label = QTextEdit('[No Server Response Yet]', self)
-        self.response_label.setReadOnly(True)
-        self.response_label.setStyleSheet("QTextEdit { background-color : black; }")
-        self.response_label.setFixedHeight(150)
-        vBoxlayout.addWidget(self.response_label)
-
-        vBoxlayout.addSpacing(30)
 
         LED_layout = QHBoxLayout()
         lbl = QLabel("LED Controls:",self)
@@ -84,9 +36,9 @@ class DepAuxControlWidget(QWidget):
         self.LEDOff_button.clicked.connect(self.LEDOff_button_func)
         LED_layout.addWidget(self.LEDOff_button)
         LED_layout.addStretch()
-        vBoxlayout.addLayout(LED_layout)
+        self.full_window.addLayout(LED_layout)
 
-        vBoxlayout.addSpacing(20)
+        self.full_window.addSpacing(20)
 
         LED_layout = QHBoxLayout()
         lbl = QLabel("Power System Controls:",self)
@@ -108,11 +60,11 @@ class DepAuxControlWidget(QWidget):
         self.PC.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
         Power_layout.addWidget(self.PC,0,0)
         
-        self.PCvoltage = QLabel("0.00 mV")
+        self.PCvoltage = QLabel("0.00 V")
         self.PCvoltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         Power_layout.addWidget(self.PCvoltage,0,1)
         
-        self.PCcurrent = QLabel("0.00 mA")
+        self.PCcurrent = QLabel("0.00 A")
         self.PCcurrent.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         Power_layout.addWidget(self.PCcurrent,0,2)
 
@@ -120,11 +72,11 @@ class DepAuxControlWidget(QWidget):
         self.Motor.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
         Power_layout.addWidget(self.Motor,1,0)
         
-        self.Motorvoltage = QLabel("0.00 mV")
+        self.Motorvoltage = QLabel("0.00 V")
         self.Motorvoltage.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         Power_layout.addWidget(self.Motorvoltage,1,1)
         
-        self.Motorcurrent = QLabel("0.00 mA")
+        self.Motorcurrent = QLabel("0.00 A")
         self.Motorcurrent.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         Power_layout.addWidget(self.Motorcurrent,1,2)
         
@@ -140,27 +92,8 @@ class DepAuxControlWidget(QWidget):
         LED_layout.addWidget(self.LED_status_label)
         LED_layout.addStretch()
         
-        vBoxlayout.addLayout(LED_layout)
+        self.full_window.addLayout(LED_layout)
 
-        # Complete setup, add status labels and indicators
-        status_layout = QHBoxLayout()
-        self.status_light = 'assets/red.svg'
-        self.status_text = 'Socket Not Connected'
-        self.svgWidget = QSvgWidget(self.status_light)
-        self.svgWidget.setFixedSize(20,20)
-        self.status_label = QLabel(self.status_text, self)
-        status_layout.addWidget(self.svgWidget)
-        status_layout.addWidget(self.status_label)
-
-        vBoxlayout.addLayout(status_layout)
-
-        self.setLayout(vBoxlayout)
-        self.stimer = QTimer()
-        self.auto_updater()
-        self.ask_for_status()
-
-    def change_ip(self,IP):
-        self.socket = ClientSocket(IP=IP, Port=self.port)
 
     def ask_for_status(self):
         """Ask for status for the server that applies to the current tab (as we can
@@ -171,7 +104,6 @@ class DepAuxControlWidget(QWidget):
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
-            self.response_label.append(response)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
 
@@ -181,34 +113,6 @@ class DepAuxControlWidget(QWidget):
             self.status_label.setText(self.status_text)
             self.svgWidget.load(self.status_light)
 
-    #What happens when you click the info button
-    def info_click(self):
-        print(self.name)
-        self.ask_for_status()
-
-    #Function to auto update at a given rate
-    def auto_updater(self):
-        self.ask_for_status()
-        self.stimer.singleShot(self.power_refresh_time, self.auto_updater)
-        return
-        
-    def command_enter(self):
-        """Parse the LineEdit string and send_to_server
-        """
-        self.send_to_server(str(self.line_edit.text()))
-        
-    def connect_server(self):
-
-        if self.Connect_button.isChecked():
-            # Refresh camera
-            self.Connect_button.setText("Disconnect")
-            print("Server is now Connected")
-            self.send_to_server("DA.connect")
-
-        else:
-            self.Connect_button.setText("Connect")
-            print("Disconnecting Server")
-            self.send_to_server("DA.disconnect")
 
     def LEDOn_button_func(self):
         self.send_to_server("DA.LEDOn")
@@ -225,12 +129,12 @@ class DepAuxControlWidget(QWidget):
             power_dict = json.loads(power_str)
         except:
             return
-        self.PCvoltage.setText("{:.2f} mV".format(power_dict["PC_voltage"]))
-        self.PCcurrent.setText("{:.2f} mA".format(power_dict["PC_current"]))
-        self.Motorvoltage.setText("{:.2f} mV".format(power_dict["Motor_voltage"]))
-        self.Motorcurrent.setText("{:.2f} mA".format(power_dict["Motor_current"]))
+        self.PCvoltage.setText("{:.2f} V".format(power_dict["PC_voltage"]/1000))
+        self.PCcurrent.setText("{:.2f} A".format(power_dict["PC_current"]/1000))
+        self.Motorvoltage.setText("{:.2f} V".format(power_dict["Motor_voltage"]/1000))
+        self.Motorcurrent.setText("{:.2f} A".format(power_dict["Motor_current"]/1000))
         
-        if power_dict["PC_voltage"] > self.voltage_limit:
+        if power_dict["PC_voltage"]/1000 > self.voltage_limit:
             self.LED_status_light = "assets/green.svg"
             self.LED_svgWidget.load(self.LED_status_light)
             self.LED_status_text = "Voltage good"
@@ -240,45 +144,3 @@ class DepAuxControlWidget(QWidget):
             self.LED_status_text = "Voltage getting low"
             self.LED_status_label.setText(self.LED_status_text)
             self.LED_svgWidget.load(self.LED_status_light)            
-
-
-    def send_to_server_with_response(self, text):
-        """Send a command to the server, dependent on the current tab.
-        """
-        try:
-            response = self.socket.send_command(text)
-        except:
-            response = "*** Connection Error ***"
-        if type(response)==str or type(response)==unicode:
-            try:
-                response_dict = json.loads(response)
-                if "message" in response_dict.keys():
-                    self.response_label.append(response_dict["message"])
-                else:
-                    self.response_label.append(response)
-            except:
-                self.response_label.append(response)
-        elif type(response)==bool:
-            if response:
-                self.response_label.setText("Success!")
-            else:
-                self.response_label.setText("Failure!")
-        self.line_edit.setText("DA.")
-
-        return response
-
-    def send_to_server(self, text):
-        """Send a command to the server, dependent on the current tab.
-        """
-        try:
-            response = self.socket.send_command(text)
-        except:
-            response = "*** Connection Error ***"
-        if type(response)==str or type(response)==unicode:
-            self.response_label.append(response)
-        elif type(response)==bool:
-            if response:
-                self.response_label.setText("Success!")
-            else:
-                self.response_label.setText("Failure!")
-        self.line_edit.setText("DA.")

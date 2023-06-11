@@ -385,11 +385,11 @@ struct SciCam: QHYCameraServer{
         
         // Wait until complete
         while (GLOB_SC_NEXT_SCAN_FLAG){
-            usleep(500);
+            usleep(100);
         }
         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
         for (int k=0;k<6;k++){
-            vector<double> vec (GLOB_SC_SCAN_FFT_LS[k], GLOB_SC_SCAN_FFT_LS[k]+5);
+            vector<double> vec (GLOB_SC_SCAN_FFT_LS[k], GLOB_SC_SCAN_FFT_LS[k]+6);
             j["FFT"][k] = vec;
         }
         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);

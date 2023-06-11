@@ -1,0 +1,26 @@
+[Pyxis]
+refresh_time = 0.5 #In seconds
+
+	[Pyxis.IP]
+    FSM = "192.168.1.2"
+    FSM_port = "42000"
+		Navis = "192.168.1.3"
+		Dextra = "127.0.0.1"#"192.168.1.4"
+		Sinistra = "192.168.1.5"
+		External = "150.203.91.206"
+
+[Navis]
+
+[Dextra]
+
+    [Dextra.TargetControl]
+    tab_name = "Target"
+    name = "TargetControl"
+    prefix = "TS"
+    port = "4000"
+    description = "Dextra Target selector (move to FSM?)"
+    module_type = "RobotControlWidget"
+    feed_refresh_time = 0.05
+    compression_param = 1
+
+[Sinistra]

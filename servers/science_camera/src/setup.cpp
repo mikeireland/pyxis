@@ -163,7 +163,7 @@ int fringeScan(unsigned short* data){
 }
 */
 
-double GLOB_SC_SCAN_FFT_LS[6][5];
+double GLOB_SC_SCAN_FFT_LS[6][6];
 
 static double * scan_fft_in;
 static fftw_complex * scan_fft_out;
@@ -192,16 +192,12 @@ int fringeScan(unsigned short* data){
     for (int k=0;k<6;k++){
         std::vector<double> temp_data(O.col(k/2).data()+(10*k%2), O.col(k/2).data()+(10*k%2)+10);
 
-        for (int j=0; j<10; j++){
-            std::cout << temp_data[j] << std::endl;
-        }
-
         std::copy(temp_data.begin(), temp_data.end(), scan_fft_in);
         fftw_execute(scan_fft_plan);    
                
         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-        for (int l=0;l<5;l++){
-            temp = std::complex<double>(scan_fft_out[l+1][0], scan_fft_out[l+1][1]);
+        for (int l=0;l<6;l++){
+            temp = std::complex<double>(scan_fft_out[l][0], scan_fft_out[l][1]);
             power_spec = std::abs( std::pow(temp, 2) );
             GLOB_SC_SCAN_FFT_LS[k][l] = power_spec;
         }

@@ -49,10 +49,7 @@ def debug_trace():
   '''Set a tracepoint in the Python debugger that works with Qt.
 
   This is useful for bugshooting in a Gui environment.'''
-  try:
-    from PyQt4.QtCore import pyqtRemoveInputHook
-  except:
-    from PyQt5.QtCore import pyqtRemoveInputHook
+  from PyQt5.QtCore import pyqtRemoveInputHook
   from pdb import set_trace
   pyqtRemoveInputHook()
   set_trace()
@@ -236,7 +233,7 @@ class PyxisGui(QTabWidget):
 
         self.stimer = QTimer()
 
-        #self.auto_updater()
+        self.auto_updater()
 
     def change_IPs(self, new_IPs):
         self.fsm_socket = ClientSocket(new_IPs["FSM"], self.FSM_port)
@@ -253,7 +250,6 @@ class PyxisGui(QTabWidget):
         if tab_index == 0:
             #ASK TO REFRESH FINITE STATE MACHINE STATUS HERE
             print("NEED TO ASK FOR STATUS TO FSM")
-
             self.dashboard_mainStatus.setText("PYXIS STATUS: "+random_string(25))
 
         else:
@@ -266,7 +262,7 @@ class PyxisGui(QTabWidget):
             self.status_lights[tab][name].load(self.sub_tab_widgets[tab][name].status_light)
             self.status_texts[tab][name].setText(self.sub_tab_widgets[tab][name].status_text)
 
-
+    """
     #Function to refresh the camera feeds of each relevant client
     def refresh_camera_feeds(self):
         tab_index = self.currentIndex()
@@ -278,11 +274,11 @@ class PyxisGui(QTabWidget):
             if sub_config["module_type"] == "CameraWidget" or sub_config["module_type"] == "StarTrackerCameraWidget":
                 name = sub_config["name"]
                 self.sub_tab_widgets[tab][name].refresh_camera_feed()
-
+    """
 
     #Function to auto update at a given rate
     def auto_updater(self):
-        #self.refresh_status()
+        self.refresh_status()
         self.stimer.singleShot(refresh_time, self.auto_updater)
         return
 
