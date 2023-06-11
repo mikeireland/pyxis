@@ -10,6 +10,8 @@
 #include "group_delay.hpp"
 #include <Eigen/Dense>
 
+#include <chrono>
+#include <ctime>
 
 using json = nlohmann::json;
 
@@ -46,6 +48,7 @@ int GLOB_SC_SCAN_PERIOD;
 double GLOB_SC_V2SNR_THRESHOLD;
 
 
+std::chrono::time_point<std::chrono::system_clock> GLOB_FI_PREVIOUS = std::chrono::system_clock::now();
 // Return 1 if error!
 int GroupDelayCallback (unsigned short* data){
     int ret_val;
@@ -107,6 +110,12 @@ int GroupDelayCallback (unsigned short* data){
             cout << result << endl;
         //}
     }
+    //usleep(200000);
+    std::chrono::time_point<std::chrono::system_clock> end;
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - GLOB_FI_PREVIOUS;
+    GLOB_FI_PREVIOUS = end;
+    cout << "FPS: " << 1/elapsed_seconds.count() << endl;
 
     return 0;
 }
