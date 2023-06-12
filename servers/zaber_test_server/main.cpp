@@ -51,10 +51,33 @@ string moveAb(double distance){
 	return ret_msg;
 }
 
+string moveVel_loop(double vel){
+    string ret_msg;
+    ret_msg = SC_SOCKET->send<std::string>("SC.setupZaber");
+    cout << ret_msg << endl;
+    int seconds = 25000/vel;
+
+    ret_msg = SC_SOCKET->send<std::string>("SC.zaberStart");
+    cout << ret_msg << endl;
+    double position = stage->MoveAtVelocity(vel/2, Units::VELOCITY_MICROMETRES_PER_SECOND);
+    cout << position << endl;
+    int i = 0;
+    while (i < seconds){
+        std::cout << i << std::endl;
+        sleep(1);
+    }
+    double position = stage->Stop();
+    cout << position << endl;
+    ret_msg = SC_SOCKET->send<std::string>("SC.zaberStop");
+    cout << ret_msg << endl;
+    ret_msg = "Finished test";
+	return ret_msg;
+}
+
 //distance in m/frame
 string move_loop(double distance_per_frame){
     string ret_msg;
-    ret_msg = SC_SOCKET->send<std::string>("SC.setupZaber", distance_per_frame);
+    ret_msg = SC_SOCKET->send<std::string>("SC.setupZaber");
     cout << ret_msg << endl;
     int loops = 25000/distance_per_frame;
     ofstream myfile;
@@ -72,6 +95,7 @@ string move_loop(double distance_per_frame){
         
     }
     myfile.close();
+    ret_msg = "Finished test";
 	return ret_msg;
 }
 

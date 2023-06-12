@@ -42,6 +42,8 @@ int GLOB_FI_ENABLECENTROID_FLAG;
 int GLOB_FI_TIPTILTSERVO_FLAG;
 int GLOB_FI_SET_TARGET_FLAG;
 
+int GLOB_FI_PRINT_COUNTER = 0;
+
 std::chrono::time_point<std::chrono::system_clock> GLOB_FI_PREVIOUS = std::chrono::system_clock::now();
 
 injection_centroids GLOB_FI_DEXTRA_CENTROIDS;
@@ -171,6 +173,7 @@ int FibreInjectionCallback (unsigned short* data){
                 pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
             }
         }
+        if (GLOB_FI_PRINT_COUNTER > 5){
             cout << "DcX: " <<  GLOB_FI_DEXTRA_CENTROIDS.current_pos.x << endl;
             cout << "DcY: " <<  GLOB_FI_DEXTRA_CENTROIDS.current_pos.y  << endl;
             cout << "ScX: " <<  GLOB_FI_SINISTRA_CENTROIDS.current_pos.x << endl;
@@ -193,14 +196,17 @@ int FibreInjectionCallback (unsigned short* data){
             double Sy = sin(Sinistra_angle)*GLOB_FI_SINISTRA_CENTROIDS.diff_pos.x  + cos(Sinistra_angle)*GLOB_FI_SINISTRA_CENTROIDS.diff_pos.y;
             
             cout << " DX: " << Dx << " DY: " << Dy << " SX: " << Sx << " SY: " << Sy << endl;
-            
+        }
     }
-    //usleep(200000);
-    std::chrono::time_point<std::chrono::system_clock> end;
-    end = std::chrono::system_clock::now();
-    std::chrono::duration<double> elapsed_seconds = end - GLOB_FI_PREVIOUS;
-    GLOB_FI_PREVIOUS = end;
-    cout << "FPS: " << 1/elapsed_seconds.count() << endl;
+    if (GLOB_FI_PRINT_COUNTER > 5){
+        GLOB_FI_PRINT_COUNTER = 0;
+        std::chrono::time_point<std::chrono::system_clock> end;
+        end = std::chrono::system_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end - GLOB_FI_PREVIOUS;
+        GLOB_FI_PREVIOUS = end;
+        cout << "FPS: " << 1/elapsed_seconds.count() << endl;
+    }
+    GLOB_FI_PRINT_COUNTER++;
     return 0;
 }
 

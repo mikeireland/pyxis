@@ -50,7 +50,7 @@ int measureDark(unsigned short* data);
 int addToFlux(unsigned short* data, int flux_flag);
 void extractToMatrix(unsigned short* data, Eigen::Matrix<double, 20, 3> & O);
 int setPixelPositions(int xref, int yref);
-int init_fringe_scan(double scan_per_frame);
+int init_fringe_scan();
 int fringeScan(unsigned short* data);
 
 #endif // _SC_SETUP_

@@ -53,10 +53,11 @@ std::chrono::time_point<std::chrono::system_clock> GLOB_FI_PREVIOUS = std::chron
 int GroupDelayCallback (unsigned short* data){
     int ret_val;
     if (GLOB_SC_NEXT_SCAN_FLAG){
-        ret_val = fringeScan(data);
-        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-        GLOB_SC_NEXT_SCAN_FLAG = 0;
-        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        //ret_val = fringeScan(data);
+        //pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        //GLOB_SC_NEXT_SCAN_FLAG = 0;
+        //pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        ret_val = fringeScan2(data);
     }
     else if (GLOB_SC_SCAN_FLAG){
 
@@ -408,10 +409,36 @@ struct SciCam: QHYCameraServer{
 
         return ret_msg;
     }
-    
-    string setupZaber(double scan_per_frame){
+
+    string zaberStart(){
         string ret_msg;
-        int ret_val = init_fringe_scan(scan_per_frame);
+
+        // Get next FFT
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        GLOB_SC_NEXT_SCAN_FLAG = 1;
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+
+        ret_msg = "Starting FFTs";
+
+        return ret_msg;
+    }
+
+    string zaberStop(){
+        string ret_msg;
+
+        // Get next FFT
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        GLOB_SC_NEXT_SCAN_FLAG = 0;
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+
+        ret_msg = "Stopping FFTs";
+
+        return ret_msg;
+    }
+    
+    string setupZaber(){
+        string ret_msg;
+        int ret_val = init_fringe_scan();
         ret_msg = "Successfully inited fringe scan";
         return ret_msg;
     }
@@ -453,6 +480,8 @@ COMMANDER_REGISTER(m)
         .def("getV2SNRestimate", &SciCam::getV2SNRestimate, "Get V2 SNR estimate")
         .def("setTargetandBaseline", &SciCam::setTargetandBaseline, "Set target and baseline info for FITS")
         .def("zaberFunc", &SciCam::nextZaber, "Request and get new SNR estimate from fringe scanning")
-        .def("setupZaber", &SciCam::setupZaber, "Request and get new SNR estimate from fringe scanning");
+        .def("setupZaber", &SciCam::setupZaber, "Request and get new SNR estimate from fringe scanning")
+        .def("zaberStart", &SciCam::zaberStart, "Request and get new SNR estimate from fringe scanning")
+        .def("zaberStop", &SciCam::zaberStop, "Request and get new SNR estimate from fringe scanning");
 
 }

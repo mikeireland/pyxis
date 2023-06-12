@@ -11,9 +11,12 @@
 #include <vector>
 #include <deque>
 #include <iostream>
+#include <fstream>
 #include <complex>
 #include <fftw3.h>
 #include <pthread.h>
+
+using json = nlohmann::json;
 
 extern const Cd I(0.0,1.0);
 
@@ -169,7 +172,7 @@ static double * scan_fft_in;
 static fftw_complex * scan_fft_out;
 static fftw_plan scan_fft_plan;
 
-int init_fringe_scan(double scan_per_frame){
+int init_fringe_scan(){
 
     scan_fft_in = (double*) fftw_malloc(sizeof(double) * 10);
     scan_fft_out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (6));
@@ -203,6 +206,42 @@ int fringeScan(unsigned short* data){
         }
         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
     }
+   
+    //CALC FFT OVER
+
+    return 0;
+}
+
+int fringeScan2(unsigned short* data){
+
+    Eigen::Matrix<double, 20, 3> O;
+    json j;
+    extractToMatrix(data,O);
+    std::cout << O << std::endl;
+    double power_spec;
+    std::complex<double> temp;    
+   
+    for (int k=0;k<6;k++){
+        std::vector<double> temp_data(O.col(k/2).data()+(10*k%2), O.col(k/2).data()+(10*k%2)+10);
+
+        std::copy(temp_data.begin(), temp_data.end(), scan_fft_in);
+        fftw_execute(scan_fft_plan);    
+               
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        for (int l=0;l<6;l++){
+            temp = std::complex<double>(scan_fft_out[l][0], scan_fft_out[l][1]);
+            power_spec = std::abs( std::pow(temp, 2) );
+            GLOB_SC_SCAN_FFT_LS[k][l] = power_spec;
+        }
+        vector<double> vec (GLOB_SC_SCAN_FFT_LS[k], GLOB_SC_SCAN_FFT_LS[k]+6);
+        j["FFT"][k] = vec;
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+    }
+    std::string s = j.dump();
+    ofstream myfile;
+    myfile.open ("fringe_scan.txt",std::ios_base::app);
+    myfile << s << "\n";
+    myfile.close();
    
     //CALC FFT OVER
 
