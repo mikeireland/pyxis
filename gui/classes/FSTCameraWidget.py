@@ -16,6 +16,7 @@ class FSTCameraWidget(BaseFLIRCameraWidget):
         self.state_button.clicked.connect(self.switch_state_button_func)
         hbox3.addWidget(self.state_button)
         self.sidePanel.addLayout(hbox3)
+        
 
 
     def run_camera(self):

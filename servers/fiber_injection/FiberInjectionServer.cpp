@@ -104,8 +104,8 @@ ROI calcROI(){
         yoffset = sCentroid.target_pos.y - c_fine.window_size/2;
     }
 
-    ret_ROI.width = roundUp(width,4);
-    ret_ROI.height = roundUp(height,4);
+    ret_ROI.width = roundUp(width,4)+4;
+    ret_ROI.height = roundUp(height,4)+4;
     ret_ROI.offset_x = roundDown(xoffset,4);
     ret_ROI.offset_y = roundDown(yoffset,4);
 

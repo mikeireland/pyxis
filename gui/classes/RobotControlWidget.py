@@ -232,6 +232,8 @@ class RobotControlWidget(RawWidget):
         hbox1.addWidget(self.file_line_edit)
         hbox1.addWidget(self.file_submit_button)
         self.full_window.addLayout(hbox1)
+        
+        self.ask_for_status()
 
 
     def ask_for_status(self):

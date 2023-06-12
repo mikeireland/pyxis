@@ -80,7 +80,6 @@ class RawWidget(QWidget):
         self.full_window.addLayout(status_layout)
 
         self.setLayout(self.full_window)
-        self.ask_for_status()
 
 
     def ask_for_status(self):

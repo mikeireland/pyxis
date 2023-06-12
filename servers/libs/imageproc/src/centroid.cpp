@@ -133,7 +133,7 @@ cv::Point2d windowCentroidCOG(const cv::Mat &image, int interp_size, int gauss_r
     assert(image.channels() == 1 &&
            "CentroidInterp only defined for grey scale image");
 
-    auto window = cv::Rect(center.x - (window_size-1)/2, center.y - (window_size-1)/2, window_size, window_size);
+    auto window = cv::Rect(center.x - (window_size)/2, center.y - (window_size)/2, window_size, window_size);
     cv::Mat window_img = image(window);
 
     cv::Mat gauss_img = window_img.clone();
@@ -184,7 +184,7 @@ cv::Point2d windowCentroidWCOG(const cv::Mat &image, int interp_size, int gauss_
 
     std::cout << center << std::endl;    
 
-    auto window = cv::Rect(center.x - (window_size-1)/2, center.y - (window_size-1)/2, window_size, window_size);
+    auto window = cv::Rect(center.x - (window_size)/2, center.y - (window_size)/2, window_size, window_size);
     cv::Mat window_img = image(window);
 
     cv::Mat gauss_img = window_img.clone();
@@ -194,13 +194,15 @@ cv::Point2d windowCentroidWCOG(const cv::Mat &image, int interp_size, int gauss_
     cv::Point2i p_est;
     cv::Point2d p_ret;
     
-    //auto safe_bounds = cv::Rect((interp_size-1)/2, (interp_size-1)/2, window_size-(interp_size-1), window_size-(interp_size-1));
+    auto safe_bounds = cv::Rect((interp_size-1)/2, (interp_size-1)/2, window_size-(interp_size-1), window_size-(interp_size-1));
 
-    cv::minMaxLoc(gauss_img, nullptr, nullptr, nullptr, &p_est);
+    cv::Mat safe_img = gauss_img(safe_bounds);
+
+    cv::minMaxLoc(safe_img, nullptr, nullptr, nullptr, &p_est);
 
     std::cout << p_est << std::endl;
 
-    p_est += static_cast<cv::Point2i>(window.tl());// + static_cast<cv::Point2i>(safe_bounds.tl());
+    p_est += static_cast<cv::Point2i>(window.tl()) + static_cast<cv::Point2i>(safe_bounds.tl());
 
     p_ret = getCentroidWCOG(image, p_est, weights, interp_size, gain);
 

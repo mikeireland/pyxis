@@ -3,7 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include "toml.hpp"
-#include "chiefAuxGlobals2.hpp"
+#include "chiefAuxGlobals.hpp"
 
 namespace co = commander;
 using namespace std;

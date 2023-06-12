@@ -39,6 +39,7 @@ QHYCameraServer::~QHYCameraServer(){
 //Get status of camera
 string QHYCameraServer::status(){
 	string ret_msg;
+	pthread_mutex_lock(&GLOB_FLAG_LOCK);
 	if(GLOB_CAM_STATUS == 0){
 		ret_msg = "Camera Not Connected!";
 	}else if(GLOB_CAM_STATUS == 1){
@@ -52,6 +53,7 @@ string QHYCameraServer::status(){
 	}else{
 		ret_msg = "Camera Waiting";
 	}
+	pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 
 	return ret_msg;
 

@@ -35,7 +35,7 @@ class FeedLabel(QLabel):
         point.setX((size.width() - scaledPix.width())/2)
         point.setY((size.height() - scaledPix.height())/2)
         painter.drawPixmap(point, scaledPix)
-        grid_spacing = 44
+        grid_spacing = 5
         x = point.x()
         y = point.y()
         width = scaledPix.width()
@@ -388,6 +388,14 @@ class ScienceCameraWidget(RawWidget):
         self.sidePanel.addLayout(hbox3)
 
         self.feedtimer = QTimer()
+        
+        self.ask_for_status()
+        self.get_params()
+
+    def info_click(self):
+        print(self.name)
+        self.ask_for_status()
+        self.get_params()
 
     def ask_for_status(self):
         """Ask for status for the server that applies to the current tab (as we can
@@ -428,7 +436,7 @@ class ScienceCameraWidget(RawWidget):
             self.response_label.append(response)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
-            self.get_params()
+            #self.get_params()
 
         else:
             self.response_label.append(response)

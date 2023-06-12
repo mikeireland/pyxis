@@ -279,6 +279,14 @@ class BaseFLIRCameraWidget(RawWidget):
         self.sidePanel.addLayout(hbox3)
 
         self.feedtimer = QTimer()
+        self.ask_for_status()
+        self.get_params()
+
+        
+    def info_click(self):
+        print(self.name)
+        self.ask_for_status()
+        self.get_params()
 
     def ask_for_status(self):
         """Ask for status for the server that applies to the current tab (as we can
@@ -319,8 +327,7 @@ class BaseFLIRCameraWidget(RawWidget):
             self.response_label.append(response)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
-            self.get_params()
-
+            
         else:
             self.response_label.append(response)
             self.status_light = "assets/red.svg"

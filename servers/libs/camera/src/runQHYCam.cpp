@@ -194,7 +194,7 @@ void *runCam(void*) {
 		    // No saving if num_frames = 0; continuous acquisition
 		    if(num_frames == 0){
 			    SAVE_FLAG = 0;
-			    num_frames = 100000;
+			    num_frames = 10000000;
 		    };
 
 		    unsigned long buffer_no = 0;

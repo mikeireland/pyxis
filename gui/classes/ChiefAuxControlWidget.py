@@ -314,7 +314,7 @@ class ChiefAuxControlWidget(RawWidget):
         #content_layout.setAlignment(Qt.AlignTop)
 
         self.full_window.addLayout(content_layout)
-
+        self.ask_for_status()
         #self.Piezo_click(0, self.Dextra_X_V)
         #self.Piezo_click(1, self.Dextra_Y_V)
         #self.Piezo_click(2, self.Sinistra_X_V)

@@ -5,7 +5,7 @@
 #include <time.h>
 #include <cstdlib>
 #include "SerialPort.h"
-#include "chiefAuxGlobals2.hpp"
+#include "chiefAuxGlobals.hpp"
 
 using json = nlohmann::json;
 

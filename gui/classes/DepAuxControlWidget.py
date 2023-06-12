@@ -93,6 +93,7 @@ class DepAuxControlWidget(RawWidget):
         LED_layout.addStretch()
         
         self.full_window.addLayout(LED_layout)
+        self.ask_for_status()
 
 
     def ask_for_status(self):
