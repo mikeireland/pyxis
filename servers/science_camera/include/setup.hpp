@@ -52,5 +52,6 @@ void extractToMatrix(unsigned short* data, Eigen::Matrix<double, 20, 3> & O);
 int setPixelPositions(int xref, int yref);
 int init_fringe_scan();
 int fringeScan(unsigned short* data);
+int fringeScan2(unsigned short* data);
 
 #endif // _SC_SETUP_

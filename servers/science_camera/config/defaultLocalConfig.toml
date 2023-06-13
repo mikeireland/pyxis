@@ -28,12 +28,12 @@ IP = "127.0.0.1"#"192.168.1.4"
 	
 [ScienceCamera]
 IP = "127.0.0.1"
-CA_port = "4100"
+CA_port = "4101"
 TS_port = "4203"
 tracking_period = 100
 scanning_period = 500
 xref = 48
-yref = 39
+yref = 40
 numDelays = 1000
 delaySize = 1
 SNRThreshold = 10

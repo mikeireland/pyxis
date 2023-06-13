@@ -13,6 +13,7 @@
 #include <iostream>
 #include <fstream>
 #include <complex>
+#include <commander/commander.h>
 #include <fftw3.h>
 #include <pthread.h>
 
@@ -233,12 +234,12 @@ int fringeScan2(unsigned short* data){
             power_spec = std::abs( std::pow(temp, 2) );
             GLOB_SC_SCAN_FFT_LS[k][l] = power_spec;
         }
-        vector<double> vec (GLOB_SC_SCAN_FFT_LS[k], GLOB_SC_SCAN_FFT_LS[k]+6);
+        std::vector<double> vec (GLOB_SC_SCAN_FFT_LS[k], GLOB_SC_SCAN_FFT_LS[k]+6);
         j["FFT"][k] = vec;
         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
     }
     std::string s = j.dump();
-    ofstream myfile;
+    std::ofstream myfile;
     myfile.open ("fringe_scan.txt",std::ios_base::app);
     myfile << s << "\n";
     myfile.close();

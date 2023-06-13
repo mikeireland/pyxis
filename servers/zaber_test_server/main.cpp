@@ -65,8 +65,9 @@ string moveVel_loop(double vel){
     while (i < seconds){
         std::cout << i << std::endl;
         sleep(1);
+        i++;
     }
-    double position = stage->Stop();
+    position = stage->Stop();
     cout << position << endl;
     ret_msg = SC_SOCKET->send<std::string>("SC.zaberStop");
     cout << ret_msg << endl;
@@ -109,7 +110,8 @@ COMMANDER_REGISTER(m)
         // To insterface a class method, you can use the `def` method.
         .def("move", &ZaberServer::move, "Get Ra and Dec")
         .def("moveAb", &ZaberServer::move, "Get Ra and Dec")
-        .def("move_loop", &ZaberServer::move_loop, "Get Target Name");
+        .def("move_loop", &ZaberServer::move_loop, "Get Target Name")
+        .def("moveVel_loop", &ZaberServer::moveVel_loop, "Get Target Name");
 }
 
 

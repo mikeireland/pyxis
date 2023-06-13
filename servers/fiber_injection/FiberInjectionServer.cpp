@@ -198,12 +198,12 @@ int FibreInjectionCallback (unsigned short* data){
             cout << " DX: " << Dx << " DY: " << Dy << " SX: " << Sx << " SY: " << Sy << endl;
         }
     }
+    std::chrono::time_point<std::chrono::system_clock> end;
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - GLOB_FI_PREVIOUS;
+    GLOB_FI_PREVIOUS = end;
     if (GLOB_FI_PRINT_COUNTER > 5){
         GLOB_FI_PRINT_COUNTER = 0;
-        std::chrono::time_point<std::chrono::system_clock> end;
-        end = std::chrono::system_clock::now();
-        std::chrono::duration<double> elapsed_seconds = end - GLOB_FI_PREVIOUS;
-        GLOB_FI_PREVIOUS = end;
         cout << "FPS: " << 1/elapsed_seconds.count() << endl;
     }
     GLOB_FI_PRINT_COUNTER++;

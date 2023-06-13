@@ -414,6 +414,7 @@ struct SciCam: QHYCameraServer{
         string ret_msg;
 
         // Get next FFT
+        //std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", -400000, 5000);
         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
         GLOB_SC_NEXT_SCAN_FLAG = 1;
         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
