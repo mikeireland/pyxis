@@ -27,6 +27,8 @@ Eigen::Array<double,20,3> GLOB_SC_FLUX_A = Eigen::Array<double,20,3>::Zero();
 Eigen::Array<double,20,3> GLOB_SC_FLUX_B = Eigen::Array<double,20,3>::Zero();
 double GLOB_SC_DARK_VAL = 0;
 
+double GLOB_SC_TOTAL_FLUX = 0;
+
 SC_calibration GLOB_SC_CAL;
 
 pthread_mutex_t GLOB_SC_FLAG_LOCK = PTHREAD_MUTEX_INITIALIZER;
@@ -368,7 +370,10 @@ void extractToMatrix(unsigned short* data, Eigen::Matrix<double, 20, 3> & O) {
                        data[(GLOB_SC_CAL.pos_p2_C+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[5]+k]-
                        GLOB_SC_DARK_VAL;
     }
-      
+    pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+    GLOB_SC_TOTAL_FLUX = O.sum();
+    pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+    
 }
 
 // WAVELENGTHS: 0.6063 0.6186 0.6316 0.6454 0.66 0.6755 0.6918 0.7092 0.7277 0.7473

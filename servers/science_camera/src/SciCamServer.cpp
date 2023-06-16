@@ -111,6 +111,9 @@ int GroupDelayCallback (unsigned short* data){
             cout << result << endl;
         //}
     }
+    
+    Eigen::Matrix<double, 20, 3> O;
+    std::cout << O << std::endl;
     //usleep(200000);
     std::chrono::time_point<std::chrono::system_clock> end;
     end = std::chrono::system_clock::now();
@@ -323,7 +326,7 @@ struct SciCam: QHYCameraServer{
         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
         a = GLOB_SC_V2SNR;
         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
-        string ret_msg = "V2 SNR Estimate is " + to_string(a);
+        string ret_msg = "V2 SNR Estimate is: " + to_string(a);
         return ret_msg;
     }
 
@@ -332,7 +335,16 @@ struct SciCam: QHYCameraServer{
         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
         a = GLOB_SC_GD;
         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
-        string ret_msg = "Group Delay Estimate is " + to_string(a);
+        string ret_msg = "Group Delay Estimate is: " + to_string(a);
+        return ret_msg;
+    }
+    
+    string getFlux(){
+        double a;
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        a = GLOB_SC_TOTAL_FLUX;
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        string ret_msg = "Total Flux is: " + to_string(a);
         return ret_msg;
     }
 
@@ -477,6 +489,7 @@ COMMANDER_REGISTER(m)
         .def("fringeScanStatus", &SciCam::fringeScanStatus, "Are we still fringe scanning?")
         .def("getGDarray", &SciCam::getGDarray, "Get current group delay envelope")
         .def("getGDestimate", &SciCam::getGDestimate, "Get current group delay estimate")
+        .def("getFlux", &SciCam::getFlux, "Get current total flux")
         .def("getV2array", &SciCam::getV2array, "Get V2 array per pixel")
         .def("getV2SNRestimate", &SciCam::getV2SNRestimate, "Get V2 SNR estimate")
         .def("setTargetandBaseline", &SciCam::setTargetandBaseline, "Set target and baseline info for FITS")

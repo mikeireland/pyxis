@@ -139,32 +139,123 @@ class GDPlotWindow(QWidget):
         hbox.addWidget(self.cam_feed)
         self.setLayout(hbox)
 
-class V2PlotWindow(QWidget):
+class PlotWindow(QWidget):
     def __init__(self):
-        super(V2PlotWindow, self).__init__()
+        super(PlotWindow, self).__init__()
 
         # Label
         self.resize(900, 500)
         self.setWindowTitle("V2 Plot Feed")
         hbox = QHBoxLayout()
         self.graphWidget = pg.PlotWidget()
-        self.x = np.arange(20)
-        self.y = np.zeros(20)
+        
+        hbox.addSpacing(50)
 
-        pen = pg.mkPen(width=15)
-        self.data_line =  self.graphWidget.plot(self.x, self.y, pen=pen, symbol='+', symbolSize=30)
-        self.graphWidget.setLabel('left', 'V^2 Estimate')
-        self.graphWidget.setLabel('bottom', 'Channel No.')
+        vbox = QVBoxLayout()
+        hbox2 = QHBoxLayout()
+        self.V2_button = QPushButton("V2 per channel", self)
+        self.V2_button.setCheckable(True)
+        self.V2_button.setFixedWidth(200)
+        self.V2_button.clicked.connect(self.set_V2_plot)
+        hbox2.addWidget(self.V2_button)
+        vbox.addLayout(hbox2)
+
+        hbox2 = QHBoxLayout()
+        self.flux_button = QPushButton("Flux", self)
+        self.flux_button.setCheckable(True)
+        self.flux_button.setFixedWidth(200)
+        self.flux_button.clicked.connect(self.set_flux_plot)
+        hbox2.addWidget(self.flux_button)
+        vbox.addLayout(hbox2)
+        
+        hbox2 = QHBoxLayout()
+        self.V2SNR_button = QPushButton("V2 Total SNR", self)
+        self.V2SNR_button.setCheckable(True)
+        self.V2SNR_button.setFixedWidth(200)
+        self.V2SNR_button.clicked.connect(self.set_V2SNR_plot)
+        hbox2.addWidget(self.V2SNR_button)
+        vbox.addLayout(hbox2)
+
+        hbox2 = QHBoxLayout()
+        self.GD_button = QPushButton("Group Delay", self)
+        self.GD_button.setCheckable(True)
+        self.GD_button.setFixedWidth(200)
+        self.GD_button.clicked.connect(self.set_GD_plot)
+        hbox2.addWidget(self.GD_button)
+        vbox.addLayout(hbox2)
+
+        hbox.addLayout(vbox)
+        
+        #Initial plot
+        self.set_flux_plot()
+
+        pen = pg.mkPen(width=4)
+        self.data_line =  self.graphWidget.plot(self.x, self.y, pen=pen)
         hbox.addWidget(self.graphWidget)
         self.setLayout(hbox)
 
+        
+    def set_V2_plot(self):
+        self.V2_button.setChecked(True)
+        self.flux_button.setChecked(False)
+        self.V2SNR_button.setChecked(False)
+        self.GD_button.setChecked(False)
+        self.func = "getV2array"
+        self.funcxlabel = "Channel No."
+        self.funcylabel = "V2 Estimate"
+        self.graphWidget.setLabel('left', self.funcylabel)
+        self.graphWidget.setLabel('bottom', self.funcxlabel)
+        self.x = np.arange(20)+1
+        self.y = np.zeros(0)
+        
 
+    def set_flux_plot(self):
+        self.V2_button.setChecked(False)
+        self.flux_button.setChecked(True)
+        self.V2SNR_button.setChecked(False)
+        self.GD_button.setChecked(False)
+        self.func = "SC.getFlux"
+        self.funcxlabel = "Time"
+        self.funcylabel = "Flux"
+        self.graphWidget.setLabel('left', self.funcylabel)
+        self.graphWidget.setLabel('bottom', self.funcxlabel)
+        self.x = np.arange(100)
+        self.y = np.zeros(100)
+
+    def set_V2SNR_plot(self):
+        self.V2_button.setChecked(False)
+        self.flux_button.setChecked(False)
+        self.V2SNR_button.setChecked(True)
+        self.GD_button.setChecked(False)
+        self.func = "SC.getV2SNRestimate"
+        self.funcxlabel = "Time"
+        self.funcylabel = "V2 SNR"
+        self.graphWidget.setLabel('left', self.funcylabel)
+        self.graphWidget.setLabel('bottom', self.funcxlabel)
+        self.x = np.arange(100)
+        self.y = np.zeros(100)
+
+    def set_GD_plot(self):
+        self.V2_button.setChecked(False)
+        self.flux_button.setChecked(False)
+        self.V2SNR_button.setChecked(False)
+        self.GD_button.setChecked(True)
+        self.func = "SC.getGDestimate"
+        self.funcxlabel = "Time"
+        self.funcylabel = "Group Delay Estimate"
+        self.graphWidget.setLabel('left', self.funcylabel)
+        self.graphWidget.setLabel('bottom', self.funcxlabel)
+        self.x = np.arange(100)
+        self.y = np.zeros(100)
+        
+ 
 class ScienceCameraWidget(RawWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
 
         super(ScienceCameraWidget,self).__init__(config,IP,parent)
 
         self.feed_refresh_time = int(config["feed_refresh_time"]*1000)
+        self.plot_refresh_time = int(config["plot_refresh_time"]*1000)
         self.compression_param = config["compression_param"]
 
         self.GD_array = np.zeros((config["GD_window_size"],config["num_delays"]),dtype="uint16")
@@ -373,21 +464,23 @@ class ScienceCameraWidget(RawWidget):
         self.GD_button = QPushButton("Start GD plotter", self)
         self.GD_button.setCheckable(True)
         self.GD_button.setFixedWidth(200)
-        self.GD_button.clicked.connect(self.GD_plot_func)
+        self.GD_button.clicked.connect(self.plot_func)
         hbox3.addWidget(self.GD_button)
         self.sidePanel.addLayout(hbox3)
         
-        self.V2_window = V2PlotWindow()
+        self.plot_window = PlotWindow()
 
         hbox3 = QHBoxLayout()
-        self.V2_button = QPushButton("Start V2 plotter", self)
-        self.V2_button.setCheckable(True)
-        self.V2_button.setFixedWidth(200)
-        self.V2_button.clicked.connect(self.V2_plot_func)
-        hbox3.addWidget(self.V2_button)
+        self.plot_button = QPushButton("Start General plotter", self)
+        self.plot_button.setCheckable(True)
+        self.plot_button.setFixedWidth(200)
+        self.plot_button.clicked.connect(self.plot_func)
+        hbox3.addWidget(self.plot_button)
         self.sidePanel.addLayout(hbox3)
 
         self.feedtimer = QTimer()
+        self.GDtimer = QTimer()
+        self.plottimer = QTimer()        
         
         self.ask_for_status()
         self.get_params()
@@ -676,11 +769,7 @@ class ScienceCameraWidget(RawWidget):
             self.Camera_button.setText("Start Feed")
             #print("CAMERA NOT CONNECTED")
 
-    def GD_plot_func(self):
-        time.sleep(1)
-        self.refresh_GD_func()
-        return
-    
+
     def refresh_GD_func(self):
         if self.Connect_button.isChecked():
             if self.run_button.isChecked():
@@ -703,32 +792,43 @@ class ScienceCameraWidget(RawWidget):
             #print("CAMERA NOT CONNECTED")
         return
     
-    def V2_plot_func(self):
+
+    def plot_func(self):
         time.sleep(1)
-        self.refresh_V2_func()
+        self.auto_plot_updater()
+        return
+
+    #Function to update feed at a given rate
+    def auto_plot_updater(self):
+        self.refresh_plot_func()
+        self.refresh_GD_func()
+        self.plottimer.singleShot(self.plot_refresh_time, self.auto_plot_updater)
         return
     
-    def refresh_V2_func(self):
-        if self.Connect_button.isChecked():
+    def refresh_plot_func(self):
+        self.plot_window.show()
+        self.get_new_plot()
+        """if self.Connect_button.isChecked():
             if self.run_button.isChecked():
-                if self.V2_button.isChecked():
+                if self.plot_button.isChecked():
                     # Refresh camera
-                    self.V2_window.show()
-                    self.V2_button.setText("Stop V2 plotter")
+                    self.plot_window.show()
+                    self.plot_button.setText("Stop general plotter")
                     print("v2")
 
-                    self.get_new_v2()
+                    self.get_new_plot()
 
                 else:
-                    self.V2_button.setText("Start V2 plotter")
+                    self.plot_button.setText("Start general plotter")
             else:
-                self.V2_button.setChecked(False)
-                self.V2_button.setText("Start V2 plotter")
+                self.plot_button.setChecked(False)
+                self.plot_button.setText("Start general plotter")
                 #print("CAMERA NOT RUNNING")
         else:
-            self.V2_button.setChecked(False)
-            self.V2_button.setText("Start V2 plotter")
+            self.plot_button.setChecked(False)
+            self.plot_button.setText("Start general plotter")
             #print("CAMERA NOT CONNECTED")
+        """
         return
 
     def get_new_GD(self):
@@ -742,12 +842,23 @@ class ScienceCameraWidget(RawWidget):
         qimg = QImage(self.GD_array, self.GD_array.shape(0), self.GD_array.shape(1), QImage.Format_Grayscale16)
         ##########
         self.GD_window.cam_feed.changePixmap(qimg)
+
         
-    def get_new_V2(self):
-        response = self.socket.send_command("SC.getV2array")
-        data = json.loads(json.loads(response))
-        V2_data = np.array(data["V2"], np.double)
-        self.V2_window.data_line.setData(self.V2_window.x, V2_data)
+    def get_new_plot(self):
+        response = self.socket.send_command(self.plot_window.func)
+        if self.plot_window.func == "SC.getV2array":
+            data = json.loads(json.loads(response))
+            data = np.array(data["V2"], np.double)
+            self.plot_window.y = data
+        else:
+            data = float(response.split[":"][1])
+            self.plot_window.x = self.plot_window.x[1:]  # Remove the first y element.
+            self.plot_window.x = np.append(self.plot_window.x, self.plot_window.x[-1] + 1)  # Add a new value 1 higher than the last.
+
+            self.plot_window.y = self.plot_window.y[1:]  # Remove the first
+            self.plot_window.y = np.append(self.plot_window.y,data)
+  
+        self.plot_window.data_line.setData(self.plot_window.x, self.plot_window.y)
 
     def get_new_frame(self):
         #j = random.randint(1, 6)

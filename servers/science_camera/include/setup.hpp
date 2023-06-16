@@ -23,6 +23,7 @@ extern Eigen::Array<double,20,3> GLOB_SC_FLUX_B;
 extern double GLOB_SC_DARK_VAL;
 
 extern double GLOB_SC_SCAN_FFT_LS[6][6];
+extern double GLOB_SC_TOTAL_FLUX;
 //extern double GLOB_SC_SCAN_SNR_LS[60];
 //extern int GLOB_SC_SCAN_WINDOW_SIZE;
 //extern int GLOB_SC_SCAN_SIGNAL_WIDTH;

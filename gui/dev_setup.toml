@@ -19,8 +19,12 @@ refresh_time = 0.5 #In seconds
     prefix = "TS"
     port = "4000"
     description = "Dextra Target selector (move to FSM?)"
-    module_type = "RobotControlWidget"
+    module_type = "ScienceCameraWidget"
     feed_refresh_time = 0.05
+    plot_refresh_time = 0.2
     compression_param = 1
+    num_delays = 100
+    GD_window_size = 50
+    GD_scale = 0.5
 
 [Sinistra]
