@@ -97,10 +97,8 @@ cv::Point2d getCentroidWCOG(const cv::Mat &image, const cv::Point &center, const
     
     x = double(cv::sum(XX.mul(weighted_image))[0]) / cv::sum(weighted_image)[0];
     y = double(cv::sum(YY.mul(weighted_image))[0]) / cv::sum(weighted_image)[0];
-    
-    x*=gain;
-    y*=gain;
-    return cv::Point2d(x, y) + static_cast<cv::Point2d>(sub_rect.tl());
+ 
+    return (cv::Point2d(x, y) + static_cast<cv::Point2d>(sub_rect.tl()))*gain;
 }
 
 
@@ -199,8 +197,6 @@ cv::Point2d windowCentroidWCOG(const cv::Mat &image, int interp_size, int gauss_
     cv::Mat safe_img = gauss_img(safe_bounds);
 
     cv::minMaxLoc(safe_img, nullptr, nullptr, nullptr, &p_est);
-
-    std::cout << p_est << std::endl;
 
     p_est += static_cast<cv::Point2i>(window.tl()) + static_cast<cv::Point2i>(safe_bounds.tl());
 

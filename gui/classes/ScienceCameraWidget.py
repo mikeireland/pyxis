@@ -21,10 +21,11 @@ except:
     raise UserWarning
 
 class FeedLabel(QLabel):
-    def __init__(self, img):
+    def __init__(self, img, grid_spacing):
         super(FeedLabel, self).__init__()
         self.pixmap = QPixmap(img)
         self.dims = (100,100)
+        self.grid_spacing = 1000
 
     def paintEvent(self, event):
         size = self.size()
@@ -35,13 +36,12 @@ class FeedLabel(QLabel):
         point.setX((size.width() - scaledPix.width())/2)
         point.setY((size.height() - scaledPix.height())/2)
         painter.drawPixmap(point, scaledPix)
-        grid_spacing = 1000
         x = point.x()
         y = point.y()
         width = scaledPix.width()
         height = scaledPix.height()
-        gridSize_x = grid_spacing*width/self.dims.width()
-        gridSize_y = grid_spacing*height/self.dims.height()
+        gridSize_x = self.grid_spacing*width/self.dims.width()
+        gridSize_y = self.grid_spacing*height/self.dims.height()
         while y <= height+point.y():
             # draw horizontal lines
             painter.drawLine(point.x(), y, width+point.x(), y)
@@ -57,14 +57,14 @@ class FeedLabel(QLabel):
         self.repaint()
 
 class FeedWindow(QWidget):
-    def __init__(self, name):
+    def __init__(self, name, grid_spacing):
         super(FeedWindow, self).__init__()
 
         # Label
         self.resize(900, 500)
         self.setWindowTitle("%s Camera Feed"%name)
         hbox = QHBoxLayout()
-        self.cam_feed = FeedLabel("assets/camtest1.png")
+        self.cam_feed = FeedLabel("assets/camtest1.png", grid_spacing)
         self.binning_flag = 0
 
         hbox.addWidget(self.cam_feed)
@@ -279,6 +279,7 @@ class ScienceCameraWidget(RawWidget):
 
         self.GD_array = np.zeros((config["GD_window_size"],config["GD_window_size"]),dtype="uint16")
         self.GD_scale = config["GD_scale"]
+        grid_spacing = config["grid_spacing"]
 
         hbox4 = QHBoxLayout()
         vbox4 = QVBoxLayout()
@@ -467,7 +468,7 @@ class ScienceCameraWidget(RawWidget):
         hbox3.addWidget(self.Reconfigure_button)
         self.sidePanel.addLayout(hbox3)
 
-        self.feed_window = FeedWindow(self.name)
+        self.feed_window = FeedWindow(self.name, grid_spacing)
 
         hbox3 = QHBoxLayout()
         self.Camera_button = QPushButton("Start Feed", self)

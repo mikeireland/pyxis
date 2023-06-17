@@ -173,7 +173,7 @@ int FibreInjectionCallback (unsigned short* data){
                 pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
             }
         }
-        if (GLOB_FI_PRINT_COUNTER > 5){
+        if (GLOB_FI_PRINT_COUNTER > 10){
             cout << "DcX: " <<  GLOB_FI_DEXTRA_CENTROIDS.current_pos.x << endl;
             cout << "DcY: " <<  GLOB_FI_DEXTRA_CENTROIDS.current_pos.y  << endl;
             cout << "ScX: " <<  GLOB_FI_SINISTRA_CENTROIDS.current_pos.x << endl;
@@ -202,7 +202,7 @@ int FibreInjectionCallback (unsigned short* data){
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - GLOB_FI_PREVIOUS;
     GLOB_FI_PREVIOUS = end;
-    if (GLOB_FI_PRINT_COUNTER > 5){
+    if (GLOB_FI_PRINT_COUNTER > 10){
         GLOB_FI_PRINT_COUNTER = 0;
         cout << "FPS: " << 1/elapsed_seconds.count() << endl;
     }

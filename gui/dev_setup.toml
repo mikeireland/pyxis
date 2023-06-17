@@ -25,5 +25,6 @@ refresh_time = 0.5 #In seconds
     compression_param = 1
     GD_window_size = 300
     GD_scale = 1000
+    grid_spacing = 10
 
 [Sinistra]

@@ -47,8 +47,9 @@ int GLOB_SC_TRACK_PERIOD;
 int GLOB_SC_SCAN_PERIOD;
 double GLOB_SC_V2SNR_THRESHOLD;
 
+int GLOB_SC_PRINT_COUNTER = 0;
 
-std::chrono::time_point<std::chrono::system_clock> GLOB_FI_PREVIOUS = std::chrono::system_clock::now();
+std::chrono::time_point<std::chrono::system_clock> GLOB_SC_PREVIOUS = std::chrono::system_clock::now();
 // Return 1 if error!
 int GroupDelayCallback (unsigned short* data){
     int ret_val;
@@ -104,24 +105,27 @@ int GroupDelayCallback (unsigned short* data){
                 return 1;
             }
         } else{*/
-
-            cout << GLOB_SC_GD << endl;
-            int32_t num_steps = static_cast<int32_t>(GLOB_SC_GD*20); //
-            std::string result = CA_SOCKET->send<std::string>("moveSDC", num_steps, GLOB_SC_TRACK_PERIOD);
-            cout << result << endl;
+        if (GLOB_SC_PRINT_COUNTER > 10){
+            cout << << GLOB_SC_GD << endl;
+            cout << << GLOB_SC_V2SNR << endl;
+        }
+            //int32_t num_steps = static_cast<int32_t>(GLOB_SC_GD*20); //
+            //std::string result = CA_SOCKET->send<std::string>("moveSDC", num_steps, GLOB_SC_TRACK_PERIOD);
+            //cout << result << endl;
         //}
+    } else {
+        Eigen::Matrix<double, 20, 3> O;
+        extractToMatrix(data,O);
     }
-    
-    Eigen::Matrix<double, 20, 3> O;
-    extractToMatrix(data,O);
-    std::cout << O << std::endl;
-    //usleep(200000);
     std::chrono::time_point<std::chrono::system_clock> end;
     end = std::chrono::system_clock::now();
-    std::chrono::duration<double> elapsed_seconds = end - GLOB_FI_PREVIOUS;
-    GLOB_FI_PREVIOUS = end;
-    cout << "FPS: " << 1/elapsed_seconds.count() << endl;
-
+    std::chrono::duration<double> elapsed_seconds = end - GLOB_SC_PREVIOUS;
+    GLOB_SC_PREVIOUS = end;
+    if (GLOB_SC_PRINT_COUNTER > 10){
+        GLOB_SC_PRINT_COUNTER = 0;
+        cout << "FPS: " << 1/elapsed_seconds.count() << endl;
+    }
+    GLOB_SC_PRINT_COUNTER++;
     return 0;
 }
 
@@ -152,16 +156,12 @@ struct SciCam: QHYCameraServer{
 
         setPixelPositions(xref,yref);
 
-        int numDelays = config["ScienceCamera"]["numDelays"].value_or(1000);
-        double delaySize = config["ScienceCamera"]["delaySize"].value_or(1);    
+        int numDelays = config["ScienceCamera"]["numDelays"].value_or(6000);
+        double delaySize = config["ScienceCamera"]["delaySize"].value_or(0.01);    
 
         GLOB_SC_V2SNR_THRESHOLD = config["ScienceCamera"]["SNRThreshold"].value_or(10);
 
         calcTrialDelayMat(numDelays,delaySize);
-
-        for(int k=0;k<20;k++){
-            GLOB_SC_P2VM_SIGNS[k] = config["ScienceCamera"]["signs"][k].value_or(1); 
-        }
 
         for(int k=0;k<6;k++){
             GLOB_SC_CAL.wave_offset[k] = config["ScienceCamera"]["wave_offsets"][k].value_or(0); 

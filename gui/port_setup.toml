@@ -93,6 +93,7 @@ refresh_time = 1 #In seconds
     plot_refresh_time = 0.2
     GD_window_size = 300
     GD_scale = 1000
+    grid_spacing = 10
 
 [Dextra]
 

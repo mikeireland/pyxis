@@ -19,11 +19,11 @@ using namespace std;
 Comms::SerialPort teensy_port(128);
 
 struct piezoPWMvals{
-    double DextraX_V = 45.0;
-    double DextraY_V = 45.0;
-    double SinistraX_V = 45.0;
-    double SinistraY_V = 45.0;
-    double Science_V =  45.0;
+    double DextraX_V = -12.0;
+    double DextraY_V = -12.0;
+    double SinistraX_V = -12.0;
+    double SinistraY_V = -12.0;
+    double Science_V =  -12.0;
     
     double DextraX_um = 0.0;
     double DextraY_um = 0.0;
@@ -306,6 +306,7 @@ struct ChiefAuxServer {
         teensy_port.SendAllRequests();
     }
 
+/*
     string moveHV(int flag, double voltageX, double voltageY){
         
         piezoStatus ps;
@@ -393,7 +394,7 @@ struct ChiefAuxServer {
         ret_msg = to_string(conversion*Dx) + " dx, " + to_string(conversion*Dy) + " dy, " + to_string(conversion*Sx) + " sx, " + to_string(conversion*Sy) + " sy";
         
         return ret_msg;
-    }
+    }*/
 
 };
 
@@ -475,9 +476,9 @@ COMMANDER_REGISTER(m)
         .def("requestStatus", &ChiefAuxServer::requestStatus, "Get information on all actuators and power")
 		.def("moveSDC", &ChiefAuxServer::moveSDC, "Move fine stage")
         .def("homeSDC", &ChiefAuxServer::homeSDC, "Home fine stage")
-        .def("test", &ChiefAuxServer::testservo, "Home fine stage")
+        //.def("test", &ChiefAuxServer::testservo, "Home fine stage")
 		.def("moveTipTiltPiezo", &ChiefAuxServer::moveTipTiltPiezo, "Set the tip/tilt piezos")
 		.def("receiveRelativeTipTiltPos", &ChiefAuxServer::receiveRelativeTipTiltPos, "Receive positions to move tip tilt piezos")
-		.def("moveHV", &ChiefAuxServer::moveHV, "Move piezos horizontally and vertically")
+		//.def("moveHV", &ChiefAuxServer::moveHV, "Move piezos horizontally and vertically")
 		.def("moveSciPiezo", &ChiefAuxServer::moveSciPiezo, "Set the science piezos");
 }
