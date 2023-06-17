@@ -12,7 +12,7 @@ dark = get_array("dark_0.fits")
 d = np.mean(dark)
 
 def extract(array,xref,yref):
-    pos_wave = xref - 4
+    pos_wave = xref - 5
 
     pos_p1_A = yref
     pos_p2_A = yref + 8
@@ -38,14 +38,14 @@ def extract(array,xref,yref):
 flux1 = np.sum(get_array("flux1_0.fits")-d,axis=0)
 flux2 = np.sum(get_array("flux2_0.fits")-d,axis=0)
 
-f1 = extract(flux1,46,40)
-f2 = extract(flux2,46,40)
+f1 = extract(flux1,48,40)
+f2 = extract(flux2,48,40)
 
 fringes1 = get_array("fringes1_0.fits")[50]-d
 fringes2 = get_array("fringes2_n4_0.fits")[50]-d
 
-fr1 = extract(fringes1,46,40)
-fr2 = extract(fringes2,46,40)
+fr1 = extract(fringes1,48,40)
+fr2 = extract(fringes2,48,40)
 
 nf1 = (f1.T/np.sum(f1,axis=1)).T
 nf2 = (f2.T/np.sum(f2,axis=1)).T

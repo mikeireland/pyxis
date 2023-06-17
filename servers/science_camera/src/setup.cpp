@@ -51,7 +51,7 @@ int addToFlux(unsigned short* data, int flux_flag){
 
 int measureDark(unsigned short* data){
     int size = GLOB_IMSIZE;
-    float total;
+    float total = 0;
     for(int i=0;i<size; i++){
         total += data[i];
     }
@@ -293,7 +293,7 @@ int calcP2VMMat(Eigen::Array<double,3,2>& IMat, int sign, Eigen::Matrix<Cd,3,3>&
     double delta;
     brent::local_min(0.0, 2*kPi, 1e-12, myfunc, delta);
 
-    delta *= sign;
+    //delta *= sign;
 
     Eigen::Matrix<Cd,3,3> CKM;
 
@@ -325,7 +325,7 @@ int calcP2VMMat(Eigen::Array<double,3,2>& IMat, int sign, Eigen::Matrix<Cd,3,3>&
 
     V2PM << r, i, f;
 
-    P2VM = V2PM.transpose().inverse();
+    P2VM = V2PM.inverse();
 
     return 0;
 
@@ -370,8 +370,7 @@ void extractToMatrix(unsigned short* data, Eigen::Matrix<double, 20, 3> & O) {
                        data[(GLOB_SC_CAL.pos_p2_C+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[5]+k]-
                        GLOB_SC_DARK_VAL;
     }
-    
-    O /= 16;
+
     pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
     GLOB_SC_TOTAL_FLUX = O.sum();
     pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
@@ -387,7 +386,7 @@ void extractToMatrix(unsigned short* data, Eigen::Matrix<double, 20, 3> & O) {
 
 int setPixelPositions(int xref, int yref) {
 
-    GLOB_SC_CAL.pos_wave = xref - 4;
+    GLOB_SC_CAL.pos_wave = xref - 5;
 
     GLOB_SC_CAL.pos_p1_A = yref;
     GLOB_SC_CAL.pos_p2_A = yref + 8;
@@ -396,7 +395,8 @@ int setPixelPositions(int xref, int yref) {
     GLOB_SC_CAL.pos_p1_C = yref + 28;
     GLOB_SC_CAL.pos_p2_C = yref + 36;
 
-    double temp_waves [] = {0.6063, 0.6186, 0.6316, 0.6454, 0.66, 0.6755, 0.6918, 0.7092, 0.7277, 0.7473};
+    //double temp_waves [] = {0.6063, 0.6186, 0.6316, 0.6454, 0.66, 0.6755, 0.6918, 0.7092, 0.7277, 0.7473};
+    double temp_waves [] = {0.7473, 0.7277, 0.7092, 0.6918, 0.6755, 0.66, 0.6454, 0.6316, 0.6186, 0.6063};
 
     for(int k=0;k<10;k++){
         GLOB_SC_CAL.wavelengths[k] = temp_waves[k];

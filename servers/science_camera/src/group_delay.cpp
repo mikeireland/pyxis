@@ -66,7 +66,7 @@ int calcGroupDelay(unsigned short* data) {
     g = g.array()*((V.col(2)).array().inverse());
 
     GLOB_SC_V2 = g.array().abs2().real();
-    SNR = GLOB_SC_V2.array()*(V.col(2)).array();
+    SNR = GLOB_SC_V2.array()*((V.col(2)).array()).sqrt()/20;
 
     GLOB_SC_V2SNR = SNR.norm();
 
@@ -84,6 +84,7 @@ int calcGroupDelay(unsigned short* data) {
     // Extract group delay from maximum of the fourier transform
     Eigen::Index maxRow, maxCol;
     double maxAmp = GLOB_SC_DELAY_AVE.maxCoeff(&maxRow,&maxCol);
+    //std::cout << maxAmp << std::endl;
     GLOB_SC_GD = delays(maxRow,maxCol).real();
 
     return 0;

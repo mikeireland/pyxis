@@ -89,4 +89,5 @@ def make_P2VM_CKM(ckm_mat):
     f = 1/4.*(g(0) + g(np.pi/2) + g(np.pi) + g(3*np.pi/2))
 
     V2PM = np.array([r,i,f]).T
+    print(V2PM)
     return np.linalg.inv(V2PM)

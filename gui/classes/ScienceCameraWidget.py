@@ -277,7 +277,7 @@ class ScienceCameraWidget(RawWidget):
         self.plot_refresh_time = int(config["plot_refresh_time"]*1000)
         self.compression_param = config["compression_param"]
 
-        self.GD_array = np.zeros((config["GD_window_size"],config["num_delays"]),dtype="uint16")
+        self.GD_array = np.zeros((config["GD_window_size"],config["GD_window_size"]),dtype="uint16")
         self.GD_scale = config["GD_scale"]
 
         hbox4 = QHBoxLayout()
@@ -588,7 +588,6 @@ class ScienceCameraWidget(RawWidget):
             self.Connect_button.setText("Disconnect")
             print("Camera is now Connected")
             self.send_to_server("SC.connect")
-            time.sleep(2)
             self.get_params()
 
         elif self.run_button.isChecked():
@@ -790,6 +789,10 @@ class ScienceCameraWidget(RawWidget):
 
 
     def refresh_GD_func(self):
+        """
+        self.GD_window.show()
+        self.get_new_GD()
+        """
         if self.Connect_button.isChecked():
             if self.run_button.isChecked():
                 if self.GD_button.isChecked():
@@ -809,6 +812,7 @@ class ScienceCameraWidget(RawWidget):
             self.GD_button.setChecked(False)
             self.GD_button.setText("Start GD plotter")
             #print("CAMERA NOT CONNECTED")
+        
         return
     
 
@@ -849,11 +853,13 @@ class ScienceCameraWidget(RawWidget):
         response = self.socket.send_command("SC.getGDarray")
         data = json.loads(json.loads(response))
         GD_data = np.array(data["GroupDelay"], np.double)
+        #GD_data = np.random.rand(6000)*80
         GD_data = (GD_data*self.GD_scale).astype("uint16")
+        GD_data_binned = GD_data[:(GD_data.size // 20) * 20].reshape(-1, 20).mean(axis=1)
         temp = np.roll(self.GD_array,1,axis=0)
-        temp[0] = GD_data
+        temp[0] = GD_data_binned
         self.GD_array = temp
-        qimg = QImage(self.GD_array, self.GD_array.shape(0), self.GD_array.shape(1), QImage.Format_Grayscale16)
+        qimg = QImage(self.GD_array, self.GD_array.shape[0], self.GD_array.shape[1], QImage.Format_Grayscale16)
         ##########
         self.GD_window.cam_feed.changePixmap(qimg)
 
