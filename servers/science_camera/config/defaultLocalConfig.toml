@@ -4,9 +4,9 @@ IP = "127.0.0.1"#"192.168.1.4"
 [QHYCamera]
     [QHYcamera.camera]
     readout_mode = 2 #0 is HDR mode, 1 is STD LGC mode, 2 is STD HGC mode. Use 2!
-    width = 80
-    height = 128
-    offset_x = 1000
+    width = 100
+    height = 120
+    offset_x = 920
     offset_y = 940
     gain = 5
     gamma = 1.0
@@ -34,11 +34,10 @@ tracking_period = 100
 scanning_period = 500
 xref = 48
 yref = 40
-numDelays = 1000
-delaySize = 1
+numDelays = 6000
+delaySize = 0.01
 SNRThreshold = 10
-signs = [1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0]
-wave_offsets = [0,-1,-1,-1,-1,-1]
+wave_offsets = [0,0,0,0,0,0]
     
     [ScienceCamera.FringeScanning]
     window_size = 20 #Number of frames to FFT over
