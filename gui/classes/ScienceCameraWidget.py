@@ -35,7 +35,7 @@ class FeedLabel(QLabel):
         point.setX((size.width() - scaledPix.width())/2)
         point.setY((size.height() - scaledPix.height())/2)
         painter.drawPixmap(point, scaledPix)
-        grid_spacing = 5
+        grid_spacing = 1000
         x = point.x()
         y = point.y()
         width = scaledPix.width()
@@ -127,6 +127,25 @@ class FeedWindow(QWidget):
     def linear_func(self,image):
         return image
 
+class GDPlotLabel(QLabel):
+    def __init__(self, img):
+        super(GDPlotLabel, self).__init__()
+        self.pixmap = QPixmap(img)
+
+    def paintEvent(self, event):
+        size = self.size()
+        painter = QPainter(self)
+        point = QPoint(0,0)
+        scaledPix = self.pixmap.scaled(size, Qt.KeepAspectRatio, transformMode = Qt.FastTransformation)
+        # start painting the label from left upper corner
+        point.setX((size.width() - scaledPix.width())/2)
+        point.setY((size.height() - scaledPix.height())/2)
+        painter.drawPixmap(point, scaledPix)
+
+    def changePixmap(self, img):
+        self.pixmap = QPixmap(img)
+        self.repaint()
+
 class GDPlotWindow(QWidget):
     def __init__(self):
         super(GDPlotWindow, self).__init__()
@@ -135,7 +154,7 @@ class GDPlotWindow(QWidget):
         self.resize(900, 500)
         self.setWindowTitle("Group Delay Plot Feed")
         hbox = QHBoxLayout()
-        self.cam_feed = FeedLabel("assets/camtest1.png")
+        self.cam_feed = GDPlotLabel("assets/camtest1.png")
         hbox.addWidget(self.cam_feed)
         self.setLayout(hbox)
 
@@ -200,7 +219,7 @@ class PlotWindow(QWidget):
         self.flux_button.setChecked(False)
         self.V2SNR_button.setChecked(False)
         self.GD_button.setChecked(False)
-        self.func = "getV2array"
+        self.func = "SC.getV2array"
         self.funcxlabel = "Channel No."
         self.funcylabel = "V2 Estimate"
         self.graphWidget.setLabel('left', self.funcylabel)
@@ -806,16 +825,12 @@ class ScienceCameraWidget(RawWidget):
         return
     
     def refresh_plot_func(self):
-        self.plot_window.show()
-        self.get_new_plot()
-        """if self.Connect_button.isChecked():
+        if self.Connect_button.isChecked():
             if self.run_button.isChecked():
                 if self.plot_button.isChecked():
                     # Refresh camera
                     self.plot_window.show()
                     self.plot_button.setText("Stop general plotter")
-                    print("v2")
-
                     self.get_new_plot()
 
                 else:
@@ -828,7 +843,6 @@ class ScienceCameraWidget(RawWidget):
             self.plot_button.setChecked(False)
             self.plot_button.setText("Start general plotter")
             #print("CAMERA NOT CONNECTED")
-        """
         return
 
     def get_new_GD(self):
@@ -851,7 +865,7 @@ class ScienceCameraWidget(RawWidget):
             data = np.array(data["V2"], np.double)
             self.plot_window.y = data
         else:
-            data = float(response.split[":"][1])
+            data = float((response.split(":")[1]).split('"')[0])
             self.plot_window.x = self.plot_window.x[1:]  # Remove the first y element.
             self.plot_window.x = np.append(self.plot_window.x, self.plot_window.x[-1] + 1)  # Add a new value 1 higher than the last.
 

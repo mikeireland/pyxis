@@ -370,6 +370,8 @@ void extractToMatrix(unsigned short* data, Eigen::Matrix<double, 20, 3> & O) {
                        data[(GLOB_SC_CAL.pos_p2_C+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[5]+k]-
                        GLOB_SC_DARK_VAL;
     }
+    
+    O /= 16;
     pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
     GLOB_SC_TOTAL_FLUX = O.sum();
     pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);

@@ -113,6 +113,7 @@ int GroupDelayCallback (unsigned short* data){
     }
     
     Eigen::Matrix<double, 20, 3> O;
+    extractToMatrix(data,O);
     std::cout << O << std::endl;
     //usleep(200000);
     std::chrono::time_point<std::chrono::system_clock> end;

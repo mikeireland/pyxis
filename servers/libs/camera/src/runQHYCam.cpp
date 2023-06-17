@@ -214,7 +214,7 @@ void *runCam(void*) {
 			    finish = Qcam.GrabFrames(num_frames, buffer_no, CallbackFunc);
 			    
 			    // Check if grabFrames returned an error
-			    if (finish == 2){
+			    if (finish == 1){
 			        printf("Error in Grab Frames");
     	            break;
 			    }
