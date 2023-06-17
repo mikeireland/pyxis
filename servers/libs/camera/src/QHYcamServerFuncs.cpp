@@ -90,6 +90,9 @@ string QHYCameraServer::reconfigure_all(configuration c){
         GLOB_CONFIG_PARAMS = c; // Set global variable from the input configuration (JSON) struct
         GLOB_RECONFIGURE = 1;
         ret_msg = "Camera Reconfigured";
+        while (GLOB_RECONFIGURE == 1){
+            usleep(1000);
+        }
     }
 
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
@@ -107,6 +110,9 @@ string QHYCameraServer::reconfigure_gain(float gain){
         GLOB_CONFIG_PARAMS.gain = gain;
         GLOB_RECONFIGURE = 1;
         ret_msg = "Camera Reconfigured Gain";
+        while (GLOB_RECONFIGURE == 1){
+            usleep(1000);
+        }
     } else{
         ret_msg = "Gain out of bounds! Gain should be between "+ std::to_string(GLOB_GAIN_MIN) + " and " + std::to_string(GLOB_GAIN_MAX);
     }
@@ -122,6 +128,9 @@ string QHYCameraServer::reconfigure_exptime(float exptime){
         GLOB_CONFIG_PARAMS.exptime = exptime;
         GLOB_RECONFIGURE = 1;
         ret_msg = "Camera Reconfigured Exposure Time";
+        while (GLOB_RECONFIGURE == 1){
+            usleep(1000);
+        }
     } else{
         ret_msg = "Exposure Time out of bounds! Exposure Time should be between "+ std::to_string(GLOB_EXPTIME_MIN) + " and " + std::to_string(GLOB_EXPTIME_MAX);
     }
@@ -136,6 +145,9 @@ string QHYCameraServer::reconfigure_width(int width){
         GLOB_CONFIG_PARAMS.width = width;
         GLOB_RECONFIGURE = 1;
         ret_msg = "Camera Reconfigured Width";
+        while (GLOB_RECONFIGURE == 1){
+            usleep(1000);
+        }
     } else{
         ret_msg = "Width out of bounds! Width should be between "+ std::to_string(GLOB_WIDTH_MIN) + " and " + std::to_string(GLOB_WIDTH_MAX);
     }
@@ -150,6 +162,9 @@ string QHYCameraServer::reconfigure_height(int height){
         GLOB_CONFIG_PARAMS.height = height;
         GLOB_RECONFIGURE = 1;
         ret_msg = "Camera Reconfigured Height";
+        while (GLOB_RECONFIGURE == 1){
+            usleep(1000);
+        }
     } else{
         ret_msg = "Height out of bounds! Height should be between "+ std::to_string(GLOB_HEIGHT_MIN) + " and " + std::to_string(GLOB_HEIGHT_MAX);
     }
@@ -164,6 +179,9 @@ string QHYCameraServer::reconfigure_offsetX(int offsetX){
         GLOB_CONFIG_PARAMS.offsetX = offsetX;
         GLOB_RECONFIGURE = 1;
         ret_msg = "Camera Reconfigured X offset";
+        while (GLOB_RECONFIGURE == 1){
+            usleep(1000);
+        }
     } else{
         ret_msg = "X offset out of bounds! Offset X should be a multiple of 4 and between 0 and " + std::to_string(GLOB_WIDTH_MAX-GLOB_CONFIG_PARAMS.width);
     }
@@ -178,6 +196,9 @@ string QHYCameraServer::reconfigure_offsetY(int offsetY){
         GLOB_CONFIG_PARAMS.offsetY = offsetY;
         GLOB_RECONFIGURE = 1;
         ret_msg = "Camera Reconfigured Y offset";
+        while (GLOB_RECONFIGURE == 1){
+            usleep(1000);
+        }
     } else{
         ret_msg = "Y offset out of bounds! Offset Y should be a multiple of 4 and between 0 and " + std::to_string(GLOB_HEIGHT_MAX-GLOB_CONFIG_PARAMS.height);
     }
@@ -192,6 +213,9 @@ string QHYCameraServer::reconfigure_blacklevel(int blacklevel){
         GLOB_CONFIG_PARAMS.blacklevel = static_cast<float>(blacklevel);
         GLOB_RECONFIGURE = 1;
         ret_msg = "Camera Reconfigured Black Level";
+        while (GLOB_RECONFIGURE == 1){
+            usleep(1000);
+        }
     } else{
         ret_msg = "Black Level out of bounds! Black level should be between "+ std::to_string(GLOB_BLACKLEVEL_MIN) + " and " + std::to_string(GLOB_BLACKLEVEL_MAX);
     }
@@ -206,6 +230,9 @@ string QHYCameraServer::reconfigure_buffersize(float buffersize){
     GLOB_RECONFIGURE = 1;
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 	ret_msg = "Camera Reconfigured Buffer Size";
+	while (GLOB_RECONFIGURE == 1){
+        usleep(1000);
+    }
     return ret_msg;
 }
 
@@ -216,6 +243,9 @@ string QHYCameraServer::reconfigure_savedir(float savedir){
     GLOB_RECONFIGURE = 1;
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 	ret_msg = "Camera Reconfigured Save Directory";
+	while (GLOB_RECONFIGURE == 1){
+        usleep(1000);
+    }
     return ret_msg;
 }
 /* ##################################################### */
@@ -225,8 +255,10 @@ string QHYCameraServer::connectcam(){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 0){
 		pthread_create(&GLOB_CAMTHREAD, NULL, runCam, NULL);
-
 		ret_msg = "Connecting Camera";
+	    while (GLOB_CAM_STATUS!=2){
+            usleep(1000);
+        }
 	}else{
 		ret_msg = "Camera Already Connecting/Connected!";
 	}
@@ -288,6 +320,9 @@ string QHYCameraServer::stopcam(){
 				GLOB_STOPPING = 1;
 				pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 				ret_msg = "Stopping Camera Exposures";
+				while (GLOB_RUNNING == 1){
+                    usleep(1000);
+                }
 			}else{
 				ret_msg = "Camera Busy!";
 			}

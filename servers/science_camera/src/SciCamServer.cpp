@@ -260,9 +260,6 @@ struct SciCam: QHYCameraServer{
                         cout << ret_msg << endl;
                         /*
                         ret_msg = this->stopcam();
-                        while (GLOB_RUNNING == 1){
-                            usleep(1000);
-                        }
                         cout << ret_msg << endl;
 
                         // MAY NEED TO WAIT FOR HOME TO COMPLETE
@@ -288,9 +285,6 @@ struct SciCam: QHYCameraServer{
                         ret_msg = "Disabling Fringe Scanning";
                         cout << ret_msg << endl;/*
                         ret_msg = this->stopcam();
-                        while (GLOB_RUNNING == 1){
-                            usleep(1000);
-                        }
                         cout << ret_msg << endl;
 
                         // Start scan

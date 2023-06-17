@@ -349,9 +349,6 @@ struct FiberInjection: FLIRCameraServer{
                 } else{
                     // First, stop the camera if running
                     ret_msg = this->stopcam();
-                    while (GLOB_RUNNING == 1){
-                        usleep(1000);
-                    }
                     cout << ret_msg << endl;
 
                     if (flag == 1){
@@ -363,9 +360,6 @@ struct FiberInjection: FLIRCameraServer{
                         this->change_ROI(GLOB_FI_COARSE_ROI);    
                     }
 
-                    while (GLOB_RECONFIGURE == 1){
-                        usleep(1000);
-                    }
                     pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
                     GLOB_FI_TIPTILTSERVO_FLAG = flag;
                     pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
