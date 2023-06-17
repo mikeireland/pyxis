@@ -174,6 +174,12 @@ int QHYCamera::InitCamera(){
         printf("GetQHYCCDChipInfo failure, error: %d\n", retVal);
         return 1;
     }
+    
+    retVal = SetQHYCCDParam(pCamHandle,CONTROL_USBTRAFFIC,5);
+    if(retVal == QHYCCD_SUCCESS)
+    printf("Set USB Traffic success.\n");
+    else
+    printf("Set USB Traffic failed.\n");
 
     //Configure Camera
 
