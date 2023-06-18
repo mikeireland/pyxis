@@ -5,6 +5,7 @@ import json
 import numpy as np
 import cv2
 from RawWidget import RawWidget
+from sliders import FloatSlider
 
 #Import only what we need from PyQt5, or everything from PyQt4. In any case, we'll try
 #to keep this back-compatible. Although this floods the namespace somewhat, everything
@@ -39,7 +40,7 @@ class FeedLabel(QLabel):
         self.repaint()
 
 class FeedWindow(QWidget):
-    def __init__(self, name):
+    def __init__(self, name, contrast_min, contrast_max):
         super(FeedWindow, self).__init__()
 
         # Label
@@ -49,11 +50,13 @@ class FeedWindow(QWidget):
         self.cam_feed = FeedLabel("assets/camtest1.png")
         self.binning_flag = 0
 
+        mainvbox = QVBoxLayout()
 
         hbox.addWidget(self.cam_feed)
         hbox.addSpacing(50)
 
         vbox = QVBoxLayout()
+        vbox.addStretch()
         hbox2 = QHBoxLayout()
         self.binning_button = QPushButton("Binning", self)
         self.binning_button.setCheckable(True)
@@ -61,6 +64,7 @@ class FeedWindow(QWidget):
         self.binning_button.clicked.connect(self.set_binning)
         hbox2.addWidget(self.binning_button)
         vbox.addLayout(hbox2)
+        vbox.addStretch()
 
 
         hbox2 = QHBoxLayout()
@@ -70,7 +74,7 @@ class FeedWindow(QWidget):
         self.linear_button.clicked.connect(self.set_linear_func)
         hbox2.addWidget(self.linear_button)
         vbox.addLayout(hbox2)
-
+        vbox.addStretch()
         hbox2 = QHBoxLayout()
         self.asinh_button = QPushButton("Asinh Scaling", self)
         self.asinh_button.setCheckable(True)
@@ -78,9 +82,15 @@ class FeedWindow(QWidget):
         self.asinh_button.clicked.connect(self.set_asinh_func)
         hbox2.addWidget(self.asinh_button)
         vbox.addLayout(hbox2)
+        vbox.addStretch()
 
         hbox.addLayout(vbox)
-        self.setLayout(hbox)
+
+        mainvbox.addLayout(hbox)
+        mainvbox.addSpacing(20)
+        self.contrast = FloatSlider("Contrast", contrast_min, contrast_max, 1.0, mainvbox, label_widt=40)
+
+        self.setLayout(mainvbox)
         self.image_func = self.linear_func
 
     def set_binning(self):
@@ -118,6 +128,8 @@ class BaseFLIRCameraWidget(RawWidget):
 
         self.feed_refresh_time = int(config["feed_refresh_time"]*1000)
         self.compression_param = config["compression_param"]
+        contrast_min = config["contrast_limits"][0]
+        contrast_max = config["contrast_limits"][1]
 
         hbox4 = QHBoxLayout()
         vbox4 = QVBoxLayout()
@@ -268,7 +280,7 @@ class BaseFLIRCameraWidget(RawWidget):
         hbox3.addWidget(self.Reconfigure_button)
         self.sidePanel.addLayout(hbox3)
 
-        self.feed_window = FeedWindow(self.name)
+        self.feed_window = FeedWindow(self.name, contrast_min, contrast_max)
 
         hbox3 = QHBoxLayout()
         self.Camera_button = QPushButton("Start Feed", self)
@@ -469,7 +481,7 @@ class BaseFLIRCameraWidget(RawWidget):
         print(len(compressed_data))
         img_data = cv2.imdecode(compressed_data, cv2.IMREAD_UNCHANGED)
         print(img_data.dtype)
-        img_data = self.feed_window.image_func(img_data)
+        img_data = self.feed_window.image_func(img_data)*self.feed_window.contrast.getValue()
         qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Grayscale8)
         ##########
         self.feed_window.cam_feed.changePixmap(qimg)

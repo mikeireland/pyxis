@@ -51,6 +51,7 @@ refresh_time = 1 #In seconds
     module_type = "FSTCameraWidget"
     feed_refresh_time = 0.05
     compression_param = 1
+    contrast_limits = [0.2,4.0]
 
     [Navis.DextraCoarseMet]
     tab_name = "Dextra Coarse Met Camera"
@@ -61,6 +62,7 @@ refresh_time = 1 #In seconds
     module_type = "CoarseMetCameraWidget"
     feed_refresh_time = 0.05
     compression_param = 1
+    contrast_limits = [0.2,4.0]
 
     [Navis.SinistraCoarseMet]
     tab_name = "Sinistra Coarse Met Camera"
@@ -71,6 +73,7 @@ refresh_time = 1 #In seconds
     module_type = "CoarseMetCameraWidget"
     feed_refresh_time = 0.05
     compression_param = 1
+    contrast_limits = [0.2,4.0]
 
     [Navis.FiberInjection]
     tab_name = "Fiber Injection Camera"
@@ -81,6 +84,7 @@ refresh_time = 1 #In seconds
     feed_refresh_time = 0.05
     module_type = "FICameraWidget"
     compression_param = 1
+    contrast_limits = [0.2,4.0]
 
     [Navis.ScienceCamera]
     tab_name = "Science Camera"
@@ -94,6 +98,7 @@ refresh_time = 1 #In seconds
     GD_window_size = 300
     GD_scale = 1000
     grid_spacing = 10
+    contrast_limits = [0.2,4.0]
 
 [Dextra]
 
@@ -123,6 +128,7 @@ refresh_time = 1 #In seconds
     module_type = "BaseFLIRCameraWidget"
     feed_refresh_time = 0.05
     compression_param = 1
+    contrast_limits = [0.2,4.0]
     
     [Dextra.TargetControl]
     tab_name = "Target"
@@ -162,3 +168,4 @@ refresh_time = 1 #In seconds
     module_type = "BaseFLIRCameraWidget"
     feed_refresh_time = 0.05
     compression_param = 1
+    contrast_limits = [0.2,4.0]

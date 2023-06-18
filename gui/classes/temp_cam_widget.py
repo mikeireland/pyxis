@@ -3,6 +3,7 @@ from __future__ import print_function, division
 import random
 import numpy as np
 from BaseFLIRCameraWidget import BaseFLIRCameraWidget
+from sliders import FloatSlider
 
 #Import only what we need from PyQt5, or everything from PyQt4. In any case, we'll try
 #to keep this back-compatible. Although this floods the namespace somewhat, everything
@@ -53,7 +54,7 @@ class FeedLabel(QLabel):
         self.repaint()
 
 class FeedWindow(QWidget):
-    def __init__(self, name):
+    def __init__(self, name, contrast_min, contrast_max):
         super(FeedWindow, self).__init__()
 
         # Label
@@ -63,11 +64,13 @@ class FeedWindow(QWidget):
         self.cam_feed = FeedLabel("assets/camtest1.png")
         self.binning_flag = 0
 
+        mainvbox = QVBoxLayout()
 
         hbox.addWidget(self.cam_feed)
         hbox.addSpacing(50)
 
         vbox = QVBoxLayout()
+        vbox.addStretch()
         hbox2 = QHBoxLayout()
         self.binning_button = QPushButton("Binning", self)
         self.binning_button.setCheckable(True)
@@ -75,6 +78,7 @@ class FeedWindow(QWidget):
         self.binning_button.clicked.connect(self.set_binning)
         hbox2.addWidget(self.binning_button)
         vbox.addLayout(hbox2)
+        vbox.addStretch()
 
 
         hbox2 = QHBoxLayout()
@@ -84,7 +88,7 @@ class FeedWindow(QWidget):
         self.linear_button.clicked.connect(self.set_linear_func)
         hbox2.addWidget(self.linear_button)
         vbox.addLayout(hbox2)
-
+        vbox.addStretch()
         hbox2 = QHBoxLayout()
         self.asinh_button = QPushButton("Asinh Scaling", self)
         self.asinh_button.setCheckable(True)
@@ -92,9 +96,15 @@ class FeedWindow(QWidget):
         self.asinh_button.clicked.connect(self.set_asinh_func)
         hbox2.addWidget(self.asinh_button)
         vbox.addLayout(hbox2)
+        vbox.addStretch()
 
         hbox.addLayout(vbox)
-        self.setLayout(hbox)
+
+        mainvbox.addLayout(hbox)
+        mainvbox.addSpacing(20)
+        self.contrast = FloatSlider("Contrast", contrast_min, contrast_max, 1.0, mainvbox, label_widt=40)
+
+        self.setLayout(mainvbox)
         self.image_func = self.linear_func
 
     def set_binning(self):
