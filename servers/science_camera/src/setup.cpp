@@ -18,6 +18,7 @@
 #include <pthread.h>
 
 using json = nlohmann::json;
+using namespace Eigen;
 
 extern const Cd I(0.0,1.0);
 
@@ -32,6 +33,96 @@ double GLOB_SC_TOTAL_FLUX = 0;
 SC_calibration GLOB_SC_CAL;
 
 pthread_mutex_t GLOB_SC_FLAG_LOCK = PTHREAD_MUTEX_INITIALIZER;
+
+
+void saveData(std::string fileName)
+{
+	//https://eigen.tuxfamily.org/dox/structEigen_1_1IOFormat.html
+	const static IOFormat CSVFormat(FullPrecision, DontAlignCols, "; ", "\n");
+
+	std::ofstream file(fileName);
+	if (file.is_open())
+	{
+	    file << GLOB_SC_DARK_VAL;
+	    file << "\n";
+		file << GLOB_SC_FLUX_A.format(CSVFormat);
+		file << "\n";
+		file << GLOB_SC_FLUX_B.format(CSVFormat);
+		file.close();
+	}
+}
+
+void readData(std::string fileToOpen)
+{
+
+	// the inspiration for creating this function was drawn from here (I did NOT copy and paste the code)
+	// https://stackoverflow.com/questions/34247057/how-to-read-csv-file-and-assign-to-eigen-matrix
+	
+	// the input is the file: "fileToOpen.csv":
+	// a,b,c
+	// d,e,f
+	// This function converts input file data into the Eigen matrix format
+
+
+
+	// the matrix entries are stored in this variable row-wise. For example if we have the matrix:
+	// M=[a b c 
+	//	  d e f]
+	// the entries are stored as matrixEntries=[a,b,c,d,e,f], that is the variable "matrixEntries" is a row vector
+	// later on, this vector is mapped into the Eigen matrix format
+	std::vector<double> matrixEntries;
+
+	// in this object we store the data from the matrix
+	std::ifstream matrixDataFile(fileToOpen);
+
+	// this variable is used to store the row of the matrix that contains commas 
+	std::string matrixRowString;
+
+	// this variable is used to store the matrix entry;
+	std::string matrixEntry;
+
+    getline(matrixDataFile, matrixRowString);
+    GLOB_SC_DARK_VAL = stod(matrixRowString);
+    
+    // this variable is used to track the number of rows
+	int matrixRowNumber = 0;
+
+	while (matrixRowNumber < 20) // here we read a row by row of matrixDataFile and store every line into the string variable matrixRowString
+	{
+	    getline(matrixDataFile, matrixRowString);
+		std::stringstream matrixRowStringStream(matrixRowString); //convert matrixRowString that is a string to a stream variable.
+
+		while (getline(matrixRowStringStream, matrixEntry, ';')) // here we read pieces of the stream matrixRowStringStream until every comma, and store the resulting character into the matrixEntry
+		{
+		    matrixEntries.push_back(stod(matrixEntry));   //here we convert the string to complex double and fill in the row vector storing all the matrix entries
+		}
+		matrixRowNumber++; //update the column numbers
+	}
+
+    GLOB_SC_FLUX_A = Eigen::Map<Eigen::Matrix<double,20,3, RowMajor>>(matrixEntries.data(), matrixRowNumber, matrixEntries.size() / matrixRowNumber);
+
+        // this variable is used to track the number of rows
+	matrixRowNumber = 0;
+	matrixEntries.clear();
+
+	while (matrixRowNumber < 20) // here we read a row by row of matrixDataFile and store every line into the string variable matrixRowString
+	{
+	    getline(matrixDataFile, matrixRowString);
+		std::stringstream matrixRowStringStream(matrixRowString); //convert matrixRowString that is a string to a stream variable.
+
+		while (getline(matrixRowStringStream, matrixEntry, ';')) // here we read pieces of the stream matrixRowStringStream until every comma, and store the resulting character into the matrixEntry
+		{
+		    matrixEntries.push_back(stod(matrixEntry));   //here we convert the string to complex double and fill in the row vector storing all the matrix entries
+		}
+		matrixRowNumber++; //update the column numbers
+	}
+    GLOB_SC_FLUX_B = Eigen::Map<Eigen::Matrix<double,20,3, RowMajor>>(matrixEntries.data(), matrixRowNumber, matrixEntries.size() / matrixRowNumber);
+
+	// here we convet the vector variable into the matrix and return the resulting object, 
+	// note that matrixEntries.data() is the pointer to the first memory location at which the entries of the vector matrixEntries are stored;
+	return;
+
+}
 
 int addToFlux(unsigned short* data, int flux_flag){
 
@@ -278,7 +369,7 @@ class delta_functor : public brent::func_base   //create functor
 
 
 // Temp function to create P2VM matrix. In reality, need a proper calibration function to do this.
-int calcP2VMMat(Eigen::Array<double,3,2>& IMat, int sign, Eigen::Matrix<Cd,3,3>& P2VM) {
+int calcP2VMMat(Eigen::Array<double,3,2>& IMat, Eigen::Matrix<Cd,3,3>& P2VM) {
 
     Eigen::Array<double,3,2> MagE = IMat.sqrt();
     double t1 = acos(MagE(0,0));
@@ -330,6 +421,7 @@ int calcP2VMMat(Eigen::Array<double,3,2>& IMat, int sign, Eigen::Matrix<Cd,3,3>&
     return 0;
 
 }
+std::string filename = "config/P2VM_calibration.csv";
 
 int calcP2VMmain(){
     int ret_val;
@@ -337,8 +429,16 @@ int calcP2VMmain(){
         Eigen::Array<double,3,2> Imat;
         Imat.col(0) = (GLOB_SC_FLUX_A.row(k)/(GLOB_SC_FLUX_A.row(k)).sum()).transpose();
         Imat.col(1) = (GLOB_SC_FLUX_B.row(k)/(GLOB_SC_FLUX_B.row(k)).sum()).transpose();
-        ret_val = calcP2VMMat(Imat, GLOB_SC_P2VM_SIGNS[k], GLOB_SC_P2VM_l[k]);
+        ret_val = calcP2VMMat(Imat, GLOB_SC_P2VM_l[k]);
     }
+    saveData(filename);
+    return 0;
+}
+
+int readP2VMmain(){
+    int ret_val;
+    readData(filename);
+    calcP2VMmain();
     return 0;
 }
 

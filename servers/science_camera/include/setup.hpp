@@ -47,6 +47,7 @@ struct SC_calibration {
 extern SC_calibration GLOB_SC_CAL;
 
 int calcP2VMmain();
+int readP2VMmain();
 int measureDark(unsigned short* data);
 int addToFlux(unsigned short* data, int flux_flag);
 void extractToMatrix(unsigned short* data, Eigen::Matrix<double, 20, 3> & O);

@@ -67,10 +67,12 @@ int main(int argc, char* argv[]) {
     GLOB_SC_DELAY_AVE = Eigen::MatrixXd::Zero(numDelays,1);
 
     cv::Mat img;
-    img = cv::imread("dark.png",cv::IMREAD_UNCHANGED);
     std::vector<uint16_t>array;
+    uint16_t* img2;
+    /*
+    img = cv::imread("dark.png",cv::IMREAD_UNCHANGED);
     array.assign((uint16_t*)img.datastart, (uint16_t*)img.dataend);
-    uint16_t* img2 = &array[0];
+    img2 = &array[0];
     GLOB_SC_DARK_FLAG = 1;
     FST_Callback(img2);
     
@@ -124,19 +126,22 @@ int main(int argc, char* argv[]) {
     img2 = &array[0];
     FST_Callback(img2);
     
-    img = cv::imread("f25.png",cv::IMREAD_UNCHANGED);
-    array.assign((uint16_t*)img.datastart, (uint16_t*)img.dataend);
-    img2 = &array[0];
-    FST_Callback(img2);
+    //img = cv::imread("f25.png",cv::IMREAD_UNCHANGED);
+    //array.assign((uint16_t*)img.datastart, (uint16_t*)img.dataend);
+    //img2 = &array[0];
+    //FST_Callback(img2);
     
     //cout << GLOB_SC_FLUX_B << endl;
-    
-    calcP2VMmain();
+    */
+    //calcP2VMmain();
+    readP2VMmain();
     
     //cout << GLOB_SC_P2VM_l[0] << endl;
     //cout << GLOB_SC_P2VM_l[6] << endl;
+    cout << GLOB_SC_FLUX_A << endl;
+    cout << GLOB_SC_FLUX_B << endl;
     
-    img = cv::imread("fringe2.png",cv::IMREAD_UNCHANGED);
+    img = cv::imread("fringe1.png",cv::IMREAD_UNCHANGED);
     array.assign((uint16_t*)img.datastart, (uint16_t*)img.dataend);
     img2 = &array[0];
     GLOB_SC_FLUX_FLAG=0;

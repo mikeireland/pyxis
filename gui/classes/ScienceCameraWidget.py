@@ -158,16 +158,21 @@ class GDPlotLabel(QLabel):
         self.repaint()
 
 class GDPlotWindow(QWidget):
-    def __init__(self):
+    def __init__(self, contrast_min, contrast_max, contrast_init):
         super(GDPlotWindow, self).__init__()
 
         # Label
         self.resize(900, 500)
         self.setWindowTitle("Group Delay Plot Feed")
         hbox = QHBoxLayout()
+        mainvbox = QVBoxLayout()
         self.cam_feed = GDPlotLabel("assets/camtest1.png")
         hbox.addWidget(self.cam_feed)
-        self.setLayout(hbox)
+        mainvbox.addLayout(hbox)
+        mainvbox.addSpacing(20)
+        self.contrast = FloatSlider("Contrast", contrast_min, contrast_max, contrast_init, mainvbox)
+
+        self.setLayout(mainvbox)
 
 class PlotWindow(QWidget):
     def __init__(self):
@@ -286,12 +291,17 @@ class ScienceCameraWidget(RawWidget):
 
         self.feed_refresh_time = int(config["feed_refresh_time"]*1000)
         self.plot_refresh_time = int(config["plot_refresh_time"]*1000)
+        self.compression_param = config["compression_param"]
 
         self.GD_array = np.zeros((config["GD_window_size"],config["GD_window_size"]),dtype="uint16")
         self.GD_scale = config["GD_scale"]
         grid_spacing = config["grid_spacing"]
         contrast_min = config["contrast_limits"][0]
         contrast_max = config["contrast_limits"][1]
+        
+        GD_contrast_min = config["GD_contrast_limits"][0]
+        GD_contrast_max = config["GD_contrast_limits"][1]
+        GD_contrast_init = 50
 
         hbox4 = QHBoxLayout()
         vbox4 = QVBoxLayout()
@@ -437,18 +447,29 @@ class ScienceCameraWidget(RawWidget):
         self.target_baseline_button = QPushButton("Target/Baseline Calc", self)
         self.target_baseline_button.setFixedWidth(200)
         self.target_baseline_button.clicked.connect(self.target_baseline_func)
-        SC_button_grid.addWidget(self.target_baseline_button,1,0)
+        SC_button_grid.addWidget(self.target_baseline_button,0,3)
 
-        self.p2vm_button = QPushButton("Calc P2VM", self)
-        self.p2vm_button.setFixedWidth(200)
-        self.p2vm_button.clicked.connect(self.p2vm_func)
-        SC_button_grid.addWidget(self.p2vm_button,1,1)
+        self.calc_p2vm_button = QPushButton("Calc P2VM", self)
+        self.calc_p2vm_button.setFixedWidth(200)
+        self.calc_p2vm_button.clicked.connect(self.calc_p2vm_func)
+        SC_button_grid.addWidget(self.calc_p2vm_button,1,0)
+        
+        self.read_p2vm_button = QPushButton("Read P2VM", self)
+        self.read_p2vm_button.setFixedWidth(200)
+        self.read_p2vm_button.clicked.connect(self.read_p2vm_func)
+        SC_button_grid.addWidget(self.read_p2vm_button,1,1)
 
         self.fringe_scan_button = QPushButton("Start Fringe Scan", self)
         self.fringe_scan_button.setCheckable(True)
         self.fringe_scan_button.setFixedWidth(200)
         self.fringe_scan_button.clicked.connect(self.fringe_scan_func)
         SC_button_grid.addWidget(self.fringe_scan_button,1,2)
+        
+        self.GD_servo_button = QPushButton("Start GD Servo", self)
+        self.GD_servo_button.setCheckable(True)
+        self.GD_servo_button.setFixedWidth(200)
+        self.GD_servo_button.clicked.connect(self.GD_servo_func)
+        SC_button_grid.addWidget(self.GD_servo_button,1,3)
 
         self.mainPanel.addLayout(SC_button_grid)
 
@@ -490,7 +511,7 @@ class ScienceCameraWidget(RawWidget):
         hbox3.addWidget(self.Camera_button)
         self.sidePanel.addLayout(hbox3)
 
-        self.GD_window = GDPlotWindow()
+        self.GD_window = GDPlotWindow(GD_contrast_min, GD_contrast_max, GD_contrast_init)
 
         hbox3 = QHBoxLayout()
         self.GD_button = QPushButton("Start GD plotter", self)
@@ -561,6 +582,7 @@ class ScienceCameraWidget(RawWidget):
             self.response_label.append(response)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
+            self.check_fringe_scan_mode()
             #self.get_params()
 
         else:
@@ -738,13 +760,32 @@ class ScienceCameraWidget(RawWidget):
             print("CAMERA NOT CONNECTED")        
         return
 
+    def GD_servo_func(self):
+        if self.Connect_button.isChecked():
+            if self.run_button.isChecked():     
+                if self.state_button.isChecked():
+                    self.send_to_server("SC.enable_GD_servo [1]")
+                    print("Beginning Servo Mode")
+                else:
+                    self.send_to_server("SC.enable_GD_servo [0]")
+                    print("Beginning Acquisition Mode")
+            else:
+                self.state_button.setChecked(False)
+                print("CAMERA NOT RUNNING")
+        else:
+            self.state_button.setChecked(False)
+            print("CAMERA NOT CONNECTED")
 
     def target_baseline_func(self):
         self.send_to_server("SC.setTargetandBaseline")
         return
     
-    def p2vm_func(self):
+    def calc_p2vm_func(self):
         self.send_to_server("SC.calcP2VM")
+        return
+        
+    def read_p2vm_func(self):
+        self.send_to_server("SC.readP2VM")
         return
 
     def run_camera(self):
@@ -867,7 +908,8 @@ class ScienceCameraWidget(RawWidget):
         data = json.loads(json.loads(response))
         GD_data = np.array(data["GroupDelay"], np.double)
         #GD_data = np.random.rand(6000)*80
-        GD_data = (GD_data*self.GD_scale).astype("uint16")
+        GD_data = np.clip(GD_data*self.GD_window.contrast.getValue(), 0, 65535, GD_data)
+        GD_data = GD_data.astype("uint16")
         GD_data_binned = GD_data[:(GD_data.size // 20) * 20].reshape(-1, 20).mean(axis=1)
         temp = np.roll(self.GD_array,1,axis=0)
         temp[0] = GD_data_binned
