@@ -51,6 +51,28 @@ string moveAb(double distance){
 	return ret_msg;
 }
 
+string moveVel(double vel){
+    string ret_msg;
+
+    double position = stage->MoveAtVelocity(vel, Units::VELOCITY_MICROMETRES_PER_SECOND);
+    cout << position << endl;
+    
+    ret_msg = to_string(position);
+
+	return ret_msg;
+}
+
+string stop(){
+    string ret_msg;
+
+    double position = stage->Stop();
+    cout << position << endl;
+    
+    ret_msg = to_string(position);
+
+	return ret_msg;
+}
+
 string moveVel_loop(double vel){
     string ret_msg;
     ret_msg = SC_SOCKET->send<std::string>("SC.setupZaber");
@@ -108,10 +130,12 @@ COMMANDER_REGISTER(m)
 {
     m.instance<ZaberServer>("ZS")
         // To insterface a class method, you can use the `def` method.
-        .def("move", &ZaberServer::move, "Get Ra and Dec")
-        .def("moveAb", &ZaberServer::move, "Get Ra and Dec")
-        .def("move_loop", &ZaberServer::move_loop, "Get Target Name")
-        .def("moveVel_loop", &ZaberServer::moveVel_loop, "Get Target Name");
+        .def("move", &ZaberServer::move, "Move relative")
+        .def("moveAb", &ZaberServer::move, "Move Absolute")
+        .def("moveVel", &ZaberServer::moveVel, "Move at velocity")
+        .def("stop", &ZaberServer::stop, "Stop")
+        .def("move_loop", &ZaberServer::move_loop, "Sci cam fringe scan, stop start version")
+        .def("moveVel_loop", &ZaberServer::moveVel_loop, "Sci cam fringe scan, at velocity version");
 }
 
 

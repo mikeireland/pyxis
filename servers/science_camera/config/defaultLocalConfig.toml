@@ -36,8 +36,9 @@ xref = 71
 yref = 45
 numDelays = 3000
 delaySize = 0.01
-window_alpha = 1.0
-SNRThreshold = 10
+window_alpha = 0.6
+gain = 0.2
+SNRThreshold = 50
 wave_offsets = [0,0,0,0,0,0]
     
     [ScienceCamera.FringeScanning]

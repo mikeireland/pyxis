@@ -233,7 +233,7 @@ class PyxisGui(QTabWidget):
 
         self.stimer = QTimer()
 
-        #self.auto_updater()
+        self.auto_updater()
 
     def change_IPs(self, new_IPs):
         self.fsm_socket = ClientSocket(new_IPs["FSM"], self.FSM_port)

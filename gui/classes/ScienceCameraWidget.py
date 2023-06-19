@@ -734,7 +734,9 @@ class ScienceCameraWidget(RawWidget):
                 print("TURN OFF DARK MODE!")  
             else:  
                 if self.fringe_scan_button.isChecked():
+                    self.socket.client.RCVTIMEO = 60000
                     self.send_to_server("SC.enableFringeScan [1]")
+                    self.socket.client.RCVTIMEO = 3000
                     print("Starting Fringe Scanning")                 
                 else:
                     print("Stopping Fringe Scanning")
@@ -749,7 +751,8 @@ class ScienceCameraWidget(RawWidget):
         if self.Connect_button.isChecked():
             if self.fringe_scan_button.isChecked():
                 response = self.socket.send_command("SC.fringeScanStatus")
-                if not response:
+                scan_flag = bool(response)
+                if not scan_flag:
                     self.fringe_scan_button.setChecked(False)
                     print("Fringe scan ended")
                 else:
@@ -761,18 +764,14 @@ class ScienceCameraWidget(RawWidget):
 
     def GD_servo_func(self):
         if self.Connect_button.isChecked():
-            if self.run_button.isChecked():     
-                if self.state_button.isChecked():
-                    self.send_to_server("SC.enable_GD_servo [1]")
-                    print("Beginning Servo Mode")
-                else:
-                    self.send_to_server("SC.enable_GD_servo [0]")
-                    print("Beginning Acquisition Mode")
+            if self.GD_servo_button.isChecked():
+                self.send_to_server("SC.enableGDservo [1]")
+                print("Beginning Servo Mode")
             else:
-                self.state_button.setChecked(False)
-                print("CAMERA NOT RUNNING")
+                self.send_to_server("SC.enableGDservo [0]")
+                print("Beginning Acquisition Mode")
         else:
-            self.state_button.setChecked(False)
+            self.GD_servo_button.setChecked(False)
             print("CAMERA NOT CONNECTED")
 
     def target_baseline_func(self):
@@ -852,7 +851,6 @@ class ScienceCameraWidget(RawWidget):
                     # Refresh camera
                     self.GD_window.show()
                     self.GD_button.setText("Stop GD plotter")
-                    print("gd")
                     self.get_new_GD()
 
                 else:

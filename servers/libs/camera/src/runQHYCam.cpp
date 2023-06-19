@@ -38,7 +38,7 @@ int CallbackFunc (unsigned short* data){
 	}
 	
     if (GLOB_CALLBACK(data)){
-        cerr << "Callback function error. Stopping Camera" << endl;
+        cerr << "Callback function return. Stopping Camera" << endl;
         pthread_mutex_lock(&GLOB_FLAG_LOCK);
     	GLOB_STOPPING = 0;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);

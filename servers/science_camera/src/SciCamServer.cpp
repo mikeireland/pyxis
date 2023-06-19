@@ -47,7 +47,7 @@ int GLOB_SC_STAGE = 0;
 int GLOB_SC_TRACK_PERIOD;
 int GLOB_SC_SCAN_PERIOD;
 double GLOB_SC_V2SNR_THRESHOLD;
-
+double GLOB_SC_GAIN;
 int GLOB_SC_PRINT_COUNTER = 0;
 
 std::chrono::time_point<std::chrono::system_clock> GLOB_SC_PREVIOUS = std::chrono::system_clock::now();
@@ -90,22 +90,19 @@ int GroupDelayCallback (unsigned short* data){
             return 1;  
     } else if (GLOB_SC_STAGE == 4){
         ret_val = calcGroupDelay(data);
-        /*
         if (GLOB_SC_SCAN_FLAG){
-            cout << GLOB_SC_V2SNR << endl;
             if (GLOB_SC_V2SNR > GLOB_SC_V2SNR_THRESHOLD){
                 pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                 GLOB_SC_SCAN_FLAG = 0;
                 pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
                 // SEND STOP COMMAND and SET TO FAST FREQUENCY
-                std::string result = CA_SOCKET->send<std::string>("moveSDC", 0, 1000);
+                std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", 0, 1000);
                 cout << "FOUND FRINGES" << endl;
                 return 1;
             }
-        } else{*/
-        if (GLOB_SC_SERVO_FLAG){
-            int32_t num_steps = static_cast<int32_t>(GLOB_SC_GD*50); //
-            std::string result = CA_SOCKET->send<std::string>("moveSDC", num_steps, GLOB_SC_TRACK_PERIOD);
+        } else if (GLOB_SC_SERVO_FLAG){
+            int32_t num_steps = static_cast<int32_t>(GLOB_SC_GAIN*GLOB_SC_GD*50); //
+            std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, GLOB_SC_TRACK_PERIOD);
             cout << result << endl;
         }
    
@@ -113,8 +110,11 @@ int GroupDelayCallback (unsigned short* data){
             cout << "GD: " << GLOB_SC_GD << endl;
             cout << "V2SNR: " << GLOB_SC_V2SNR << endl;
         }
-
-        //}
+        std::ofstream myfile;
+        myfile.open ("GD_plot.txt",std::ios_base::app);
+        myfile << GLOB_SC_GD << ",\n";
+        myfile.close();
+        //TO FILE
     } else {
         Eigen::Matrix<double, 20, 3> O;
         extractToMatrix(data,O);
@@ -160,6 +160,7 @@ struct SciCam: QHYCameraServer{
         setPixelPositions(xref,yref);
         
         GLOB_SC_WINDOW_ALPHA = config["ScienceCamera"]["window_alpha"].value_or(1.0);
+        GLOB_SC_GAIN = config["ScienceCamera"]["gain"].value_or(1.0);
         int numDelays = config["ScienceCamera"]["numDelays"].value_or(6000);
         double delaySize = config["ScienceCamera"]["delaySize"].value_or(0.01);    
 
@@ -297,7 +298,7 @@ struct SciCam: QHYCameraServer{
                         cout << ret_msg << endl;
 
                         // MAY NEED TO WAIT FOR HOME TO COMPLETE
-                        std::string result = CA_SOCKET->send<std::string>("homeSDC");
+                        std::string result = CA_SOCKET->send<std::string>("CA.homeSDC");
                         cout << result << endl;
 
                         // Start Camera with no frames
@@ -308,7 +309,7 @@ struct SciCam: QHYCameraServer{
                         cout << ret_msg << endl;
 
                         // Start scan
-                        std::string ret_msg = CA_SOCKET->send<std::string>("moveSDC", -400000, GLOB_SC_SCAN_PERIOD);
+                        std::string ret_msg = CA_SOCKET->send<std::string>("CA.moveSDC", -400000, GLOB_SC_SCAN_PERIOD);
                         cout << ret_msg << endl;
 
                         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
@@ -322,7 +323,7 @@ struct SciCam: QHYCameraServer{
                         cout << ret_msg << endl;
 
                         // Stop scan
-                        std::string ret_msg = CA_SOCKET->send<std::string>("moveSDC", 0, GLOB_SC_SCAN_PERIOD);
+                        std::string ret_msg = CA_SOCKET->send<std::string>("CA.moveSDC", 0, GLOB_SC_SCAN_PERIOD);
                         cout << ret_msg << endl; 
                         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                         GLOB_SC_SCAN_FLAG = 0;
