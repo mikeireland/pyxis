@@ -88,7 +88,7 @@ class FeedWindow(QWidget):
 
         mainvbox.addLayout(hbox)
         mainvbox.addSpacing(20)
-        self.contrast = FloatSlider("Contrast", contrast_min, contrast_max, 1.0, mainvbox, label_widt=40)
+        self.contrast = FloatSlider("Contrast", contrast_min, contrast_max, 1.0, mainvbox)
 
         self.setLayout(mainvbox)
         self.image_func = self.linear_func
@@ -478,10 +478,10 @@ class BaseFLIRCameraWidget(RawWidget):
         response = self.socket.send_command("%s.getlatestimage [%s,%s]"%(self.prefix,self.compression_param,self.feed_window.binning_flag))
         data = json.loads(json.loads(response))
         compressed_data = np.array(data["Image"]["data"], dtype=np.uint8)
-        print(len(compressed_data))
         img_data = cv2.imdecode(compressed_data, cv2.IMREAD_UNCHANGED)
-        print(img_data.dtype)
-        img_data = self.feed_window.image_func(img_data)*self.feed_window.contrast.getValue()
+        img_data = np.clip(img_data.astype("float")*self.feed_window.contrast.getValue(), 0, 255, img_data)
+        img_data = img_data.astype("uint8")
+        img_data = self.feed_window.image_func(img_data)
         qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Grayscale8)
         ##########
         self.feed_window.cam_feed.changePixmap(qimg)
