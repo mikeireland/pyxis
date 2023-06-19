@@ -4,7 +4,7 @@ project(SciCamServer VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
 
 add_executable(SciCamServer
-    test_main.cpp ../libs/camera/src/runQHYCam.cpp ../libs/camera/src/QHYCamera.cpp ../libs/camera/src/globals.cpp ../libs/camera/src/QHYcamServerFuncs.cpp ../libs/brent/brent.cpp src/setup.cpp src/group_delay.cpp
+    ../libs/camera/src/main.cpp ../libs/camera/src/runQHYCam.cpp ../libs/camera/src/QHYCamera.cpp ../libs/camera/src/globals.cpp ../libs/camera/src/QHYcamServerFuncs.cpp ../libs/brent/brent.cpp src/SciCamServer.cpp src/setup.cpp src/group_delay.cpp
 )
 
 target_include_directories(SciCamServer PUBLIC ../libs/camera/include ../libs/brent include ../libs)

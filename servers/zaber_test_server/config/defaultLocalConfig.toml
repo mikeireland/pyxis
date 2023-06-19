@@ -6,7 +6,7 @@ SC_port = "4106"
     serial_port = "/dev/ttyUSB0"
     device_number = 1
     home_speed = 1000 #um/s
-    target_speed = 50 #um/s
+    target_speed = 500 #um/s
     microstep_resolution = 128
     device_mode = [11]
     #Device Mode values (add value to table to set mode (https://www.zaber.com/w/Manuals/T-NA)):

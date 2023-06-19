@@ -13,7 +13,7 @@ Eigen::MatrixXd GLOB_SC_DELAY_AVE;
 Eigen::MatrixXd GLOB_SC_V2;
 
 int GLOB_SC_WINDOW_INDEX = 0;
-double GLOB_SC_WINDOW_ALPHA;
+double GLOB_SC_WINDOW_ALPHA = 1.0;
 
 double GLOB_SC_GD = 0.0;
 double GLOB_SC_V2SNR = 0.0;

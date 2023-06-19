@@ -26,7 +26,7 @@ class FeedLabel(QLabel):
         super(FeedLabel, self).__init__()
         self.pixmap = QPixmap(img)
         self.dims = (100,100)
-        self.grid_spacing = 1000
+        self.grid_spacing = grid_spacing
 
     def paintEvent(self, event):
         size = self.size()
@@ -294,7 +294,6 @@ class ScienceCameraWidget(RawWidget):
         self.compression_param = config["compression_param"]
 
         self.GD_array = np.zeros((config["GD_window_size"],config["GD_window_size"]),dtype="uint16")
-        self.GD_scale = config["GD_scale"]
         grid_spacing = config["grid_spacing"]
         contrast_min = config["contrast_limits"][0]
         contrast_max = config["contrast_limits"][1]
@@ -910,7 +909,7 @@ class ScienceCameraWidget(RawWidget):
         #GD_data = np.random.rand(6000)*80
         GD_data = np.clip(GD_data*self.GD_window.contrast.getValue(), 0, 65535, GD_data)
         GD_data = GD_data.astype("uint16")
-        GD_data_binned = GD_data[:(GD_data.size // 20) * 20].reshape(-1, 20).mean(axis=1)
+        GD_data_binned = GD_data[:(GD_data.size // 15) * 15].reshape(-1, 15).mean(axis=1)
         temp = np.roll(self.GD_array,1,axis=0)
         temp[0] = GD_data_binned
         self.GD_array = temp

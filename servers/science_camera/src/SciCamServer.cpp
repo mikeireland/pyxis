@@ -66,7 +66,7 @@ int GroupDelayCallback (unsigned short* data){
         GLOB_SC_STAGE = 1;
         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
     } else if (GLOB_SC_FLUX_FLAG == 1){
-        if (GLOB_SC_STAGE == 1){
+        if (GLOB_SC_STAGE > 0){
             ret_val = addToFlux(data,1);
             pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
             GLOB_SC_STAGE = 2;
@@ -76,7 +76,7 @@ int GroupDelayCallback (unsigned short* data){
             return 1;
         }
     } else if (GLOB_SC_FLUX_FLAG == 2){
-        if (GLOB_SC_STAGE == 2){
+        if (GLOB_SC_STAGE > 1){
             ret_val = addToFlux(data,2);
             pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
             GLOB_SC_STAGE = 3;
@@ -109,7 +109,7 @@ int GroupDelayCallback (unsigned short* data){
             cout << result << endl;
         }
    
-        if (GLOB_SC_PRINT_COUNTER > 10){
+        if (GLOB_SC_PRINT_COUNTER > 20){
             cout << "GD: " << GLOB_SC_GD << endl;
             cout << "V2SNR: " << GLOB_SC_V2SNR << endl;
         }
@@ -123,7 +123,7 @@ int GroupDelayCallback (unsigned short* data){
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - GLOB_SC_PREVIOUS;
     GLOB_SC_PREVIOUS = end;
-    if (GLOB_SC_PRINT_COUNTER > 10){
+    if (GLOB_SC_PRINT_COUNTER > 20){
         GLOB_SC_PRINT_COUNTER = 0;
         cout << "FPS: " << 1/elapsed_seconds.count() << endl;
     }
@@ -153,11 +153,13 @@ struct SciCam: QHYCameraServer{
         GLOB_SC_TRACK_PERIOD = config["ScienceCamera"]["tracking_period"].value_or(100);
         GLOB_SC_SCAN_PERIOD = config["ScienceCamera"]["scanning_period"].value_or(500);
 
+
         int xref = config["ScienceCamera"]["xref"].value_or(500);
         int yref = config["ScienceCamera"]["yref"].value_or(500);
 
         setPixelPositions(xref,yref);
-
+        
+        GLOB_SC_WINDOW_ALPHA = config["ScienceCamera"]["window_alpha"].value_or(1.0);
         int numDelays = config["ScienceCamera"]["numDelays"].value_or(6000);
         double delaySize = config["ScienceCamera"]["delaySize"].value_or(0.01);    
 
@@ -275,7 +277,7 @@ struct SciCam: QHYCameraServer{
     string readP2VM(){
         string ret_msg;
         readP2VMmain();
-        ret_msg = "Read in P2VM Mats"
+        ret_msg = "Read in P2VM Mats";
         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
         GLOB_SC_STAGE = 4;
         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
