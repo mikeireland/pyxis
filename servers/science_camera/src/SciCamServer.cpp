@@ -38,17 +38,24 @@ namespace nlohmann {
 commander::client::Socket* CA_SOCKET;
 commander::client::Socket* TS_SOCKET;
 
-int GLOB_SC_DARK_FLAG;
-int GLOB_SC_FLUX_FLAG;
-int GLOB_SC_SCAN_FLAG;
-int GLOB_SC_SERVO_FLAG;
-int GLOB_SC_NEXT_SCAN_FLAG;
+int GLOB_SC_DARK_FLAG=0;
+int GLOB_SC_FLUX_FLAG=0;
+int GLOB_SC_SCAN_FLAG=0;
+int GLOB_SC_SERVO_FLAG =0;
+int GLOB_SC_NEXT_SCAN_FLAG=0;
 int GLOB_SC_STAGE = 0;
 int GLOB_SC_TRACK_PERIOD;
 int GLOB_SC_SCAN_PERIOD;
 double GLOB_SC_V2SNR_THRESHOLD;
 double GLOB_SC_GAIN;
 int GLOB_SC_PRINT_COUNTER = 0;
+
+int GLOB_SC_REACQ_FLAG = 0;
+int GLOB_SC_REACQ_STAGE = 0;
+int GLOB_SC_REACQ_CUR_STEP;
+int GLOB_SC_REACQ_PRE_STEP = 0;
+int GLOB_SC_REACQ_STEPSIZE;
+double GLOB_SC_REAQC_THRESHOLD;
 
 std::chrono::time_point<std::chrono::system_clock> GLOB_SC_PREVIOUS = std::chrono::system_clock::now();
 // Return 1 if error!
@@ -62,15 +69,19 @@ int GroupDelayCallback (unsigned short* data){
         ret_val = fringeScan2(data);
     } else if (GLOB_SC_DARK_FLAG){
         ret_val = measureDark(data);
-        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-        GLOB_SC_STAGE = 1;
-        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        if (GLOB_SC_STAGE == 0){
+            pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+            GLOB_SC_STAGE = 1;
+            pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        }
     } else if (GLOB_SC_FLUX_FLAG == 1){
         if (GLOB_SC_STAGE > 0){
             ret_val = addToFlux(data,1);
-            pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-            GLOB_SC_STAGE = 2;
-            pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+            if (GLOB_SC_STAGE == 1){
+                pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                GLOB_SC_STAGE = 2;
+                pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+            }
         } else {
             cout << "HAVE NOT SAVED DARKS YET" << endl;
             return 1;
@@ -78,9 +89,11 @@ int GroupDelayCallback (unsigned short* data){
     } else if (GLOB_SC_FLUX_FLAG == 2){
         if (GLOB_SC_STAGE > 1){
             ret_val = addToFlux(data,2);
-            pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-            GLOB_SC_STAGE = 3;
-            pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+            if (GLOB_SC_STAGE == 2){
+                pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                GLOB_SC_STAGE = 3;
+                pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+            }
         } else {
             cout << "HAVE NOT SAVED FLUX 1 YET" << endl; 
             return 1;
@@ -88,7 +101,19 @@ int GroupDelayCallback (unsigned short* data){
     } else if (GLOB_SC_STAGE == 3){
             cout << "HAVE NOT CREATED P2VM MATRIX YET" << endl; 
             return 1;  
-    } else if (GLOB_SC_STAGE == 4){
+    } else if (GLOB_SC_FOREGROUND_FLAG){
+        if (GLOB_SC_STAGE > 3){
+            ret_val = calcForeground(data);
+            if (GLOB_SC_STAGE == 4){
+                pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                GLOB_SC_STAGE = 5;
+                pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+            }
+        } else {
+            cout << "HAVE NOT CREATED P2VM MATRIX YET" << endl; 
+            return 1;
+        }
+    }  else if (GLOB_SC_STAGE == 5){
         ret_val = calcGroupDelay(data);
         if (GLOB_SC_SCAN_FLAG){
             if (GLOB_SC_V2SNR > GLOB_SC_V2SNR_THRESHOLD){
@@ -101,19 +126,92 @@ int GroupDelayCallback (unsigned short* data){
                 return 1;
             }
         } else if (GLOB_SC_SERVO_FLAG){
-            int32_t num_steps = static_cast<int32_t>(GLOB_SC_GAIN*GLOB_SC_GD*50); //
-            std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, GLOB_SC_TRACK_PERIOD);
-            cout << result << endl;
+            if (GLOB_SC_V2SNR2 > GLOB_SC_REAQC_THRESHOLD){
+                /////////////////// REACQUISITION /////////////////////////
+                if (GLOB_SC_REACQ_FLAG){
+                    if (GLOB_SC_V2SNR2 > GLOB_SC_V2SNR_THRESHOLD){
+                        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                        GLOB_SC_REACQ_FLAG = 0;
+                        GLOB_SC_REACQ_STAGE = 0;
+                        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                    } else {
+                        GLOB_SC_REACQ_CUR_STEP = CA_SOCKET->send<int32_t>("CA.SDCpos"); // Get position
+                        if (GLOB_SC_REACQ_CUR_STEP == GLOB_SC_REACQ_PRE_STEP){
+                            pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                            GLOB_SC_REACQ_STAGE += 1;
+                            pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                            if (GLOB_SC_REACQ_STAGE%2 == 0){
+                                // Move N steps forward
+                                int32_t num_steps = static_cast<int32_t>((GLOB_SC_REACQ_STAGE+1)*GLOB_SC_REACQ_STEPSIZE);
+                                std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, 100);
+                                cout << result << endl;
+                            } else {
+                                // Scan N steps backwards
+                                int32_t num_steps = static_cast<int32_t>(-(GLOB_SC_REACQ_STAGE+1)*GLOB_SC_REACQ_STEPSIZE);
+                                std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, GLOB_SC_SCAN_PERIOD);
+                                cout << result << endl;                            
+                            }
+                        }
+                        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                        GLOB_SC_REACQ_PRE_STEP = GLOB_SC_REACQ_CUR_STEP;
+                        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                    }
+                 /////////////////// END REACQUISITION /////////////////////////
+                } else {     
+                    int32_t num_steps = static_cast<int32_t>(GLOB_SC_GAIN*GLOB_SC_GD*50); //
+                    std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, GLOB_SC_TRACK_PERIOD);
+                    cout << result << endl;
+                }
+                
+            } else if (GLOB_SC_V2SNR2 < GLOB_SC_REAQC_THRESHOLD){
+                /////////////////// REACQUISITION /////////////////////////
+                if (GLOB_SC_REACQ_FLAG){
+                    GLOB_SC_REACQ_CUR_STEP = CA_SOCKET->send<int32_t>("CA.SDCpos"); // Get position
+                    if (GLOB_SC_REACQ_CUR_STEP == GLOB_SC_REACQ_PRE_STEP){
+                        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                        GLOB_SC_REACQ_STAGE += 1;
+                        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                        if (GLOB_SC_REACQ_STAGE%2 == 0){
+                            // Move N steps forward
+                            int32_t num_steps = static_cast<int32_t>((GLOB_SC_REACQ_STAGE+1)*GLOB_SC_REACQ_STEPSIZE);
+                            std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, 100);
+                            cout << result << endl;
+                        } else {
+                            // Scan N steps backwards
+                            int32_t num_steps = static_cast<int32_t>(-(GLOB_SC_REACQ_STAGE+1)*GLOB_SC_REACQ_STEPSIZE);
+                            std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, GLOB_SC_SCAN_PERIOD);
+                            cout << result << endl;                            
+                        }
+                    }
+                    pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                    GLOB_SC_REACQ_PRE_STEP = GLOB_SC_REACQ_CUR_STEP;
+                    pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                } else{
+                    pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                    GLOB_SC_REACQ_FLAG = 1;
+                    GLOB_SC_REACQ_STAGE = 0;
+                    pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                    // Move N steps forward
+                    int32_t num_steps = static_cast<int32_t>((GLOB_SC_REACQ_STAGE+1)*GLOB_SC_REACQ_STEPSIZE);
+                    std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, 100);
+                    cout << result << endl;
+                }
+                /////////////////// END REACQUISITION /////////////////////////
+
+            }
+            
+            std::ofstream myfile;
+            myfile.open ("GD_plot.txt",std::ios_base::app);
+            myfile << GLOB_SC_GD << "," << num_steps << ",";
+            myfile.close();
         }
    
         if (GLOB_SC_PRINT_COUNTER > 20){
             cout << "GD: " << GLOB_SC_GD << endl;
             cout << "V2SNR: " << GLOB_SC_V2SNR << endl;
+            cout << "V2SNR2: " << GLOB_SC_V2SNR2 << endl;
         }
-        std::ofstream myfile;
-        myfile.open ("GD_plot.txt",std::ios_base::app);
-        myfile << GLOB_SC_GD << ",\n";
-        myfile.close();
+
         //TO FILE
     } else {
         Eigen::Matrix<double, 20, 3> O;
@@ -164,7 +262,9 @@ struct SciCam: QHYCameraServer{
         int numDelays = config["ScienceCamera"]["numDelays"].value_or(6000);
         double delaySize = config["ScienceCamera"]["delaySize"].value_or(0.01);    
 
-        GLOB_SC_V2SNR_THRESHOLD = config["ScienceCamera"]["SNRThreshold"].value_or(10);
+        GLOB_SC_V2SNR_THRESHOLD = config["ScienceCamera"]["SNRThreshold"].value_or(20.0);
+        GLOB_SC_REACQ_THRESHOLD = config["ScienceCamera"]["SNRReacqThreshold"].value_or(10.0);
+        GLOB_SC_REACQ_STEPSIZE = config["ScienceCamera"]["reacq_stepsize"].value_or(100);
 
         calcTrialDelayMat(numDelays,delaySize);
 
@@ -174,6 +274,7 @@ struct SciCam: QHYCameraServer{
 
         GLOB_SC_V2 = Eigen::MatrixXd::Zero(20,1);
         GLOB_SC_DELAY_AVE = Eigen::MatrixXd::Zero(numDelays,1);
+        GLOB_SC_DELAY_FOREGROUND_AMP = Eigen::MatrixXd::Zero(numDelays,1);
         
         // Fringe Scanning funcs
         //GLOB_SC_SCAN_WINDOW_SIZE = config["ScienceCamera"]["FringeScanning"]["window_size"].value_or(0);
@@ -240,13 +341,18 @@ struct SciCam: QHYCameraServer{
         return ret_msg;
     }
     
-    string enableGDservo(int flag){
+    string enableForeground(int flag){
         string ret_msg;
         if(GLOB_CAM_STATUS == 2){
-            if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
-                ret_msg = "Changing GD servo flag to: " + to_string(flag);
+            if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0 and GLOB_RUNNING == 0){
+                ret_msg = "Changing Foreground flag to: " + to_string(flag);
                 pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-                GLOB_SC_SERVO_FLAG = flag;
+                GLOB_SC_FOREGROUND_FLAG = flag;
+                if (flag){
+                    GLOB_DATATYPE = "FOREGROUND";
+                } else {
+                    GLOB_DATATYPE = "INTERFEROMETRIC";
+                }
                 pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
             }else{
                 ret_msg = "Camera Busy!";
@@ -262,9 +368,11 @@ struct SciCam: QHYCameraServer{
         if (GLOB_SC_STAGE > 2){
             ret_msg = "Setting up P2VM Matrix";
             calcP2VMmain();
-            pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-            GLOB_SC_STAGE = 4;
-            pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+            if (GLOB_SC_STAGE == 3){
+                pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                GLOB_SC_STAGE = 4;
+                pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+            }
         } else if (GLOB_SC_STAGE == 0){
             ret_msg = "Please save Darks first";
         } else if (GLOB_SC_STAGE == 1){
@@ -340,6 +448,57 @@ struct SciCam: QHYCameraServer{
                 } else if (GLOB_SC_STAGE == 3){
                     ret_msg = "Please make P2VM matrices first";
                 }
+            }else{
+                ret_msg = "Camera Busy!";
+            }
+	    }else{
+		    ret_msg = "Camera Not Connected or Currently Connecting!";
+	    }
+        return ret_msg;
+    }
+
+    string enableGDservo(int flag){
+        string ret_msg;
+        if(GLOB_CAM_STATUS == 2){
+            if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
+                ret_msg = "Changing GD servo flag to: " + to_string(flag);
+                pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                GLOB_SC_SERVO_FLAG = flag;
+                pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+            }else{
+                ret_msg = "Camera Busy!";
+            }
+	    }else{
+		    ret_msg = "Camera Not Connected or Currently Connecting!";
+	    }
+        return ret_msg;
+    }
+
+    string purge(){
+        string ret_msg;
+        if(GLOB_CAM_STATUS == 2){
+            if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
+                pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                GLOB_SC_STAGE = 0;
+                
+                GLOB_SC_WINDOW_INDEX = 0;
+                GLOB_SC_GD = 0.0;
+                GLOB_SC_V2SNR = 0.0;
+                GLOB_SC_V2SNR2 = 0.0;
+                GLOB_SC_DARK_VAL = 0.0;
+                GLOB_SC_TOTAL_FLUX = 0.0;
+
+                GLOB_SC_DELAY_FOREGROUND_AMP.setZero();
+                GLOB_SC_DELAY_AVE.setZero();
+                GLOB_SC_V2.setZero();
+                GLOB_SC_FLUX_A.setZero();
+                GLOB_SC_FLUX_B.setZero();
+
+                for (int k=0; k<20; k++){
+                    GLOB_SC_P2VM_l[k].setZero();
+                }
+                pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                ret_msg = "Purged global parameters";
             }else{
                 ret_msg = "Camera Busy!";
             }
@@ -512,7 +671,9 @@ COMMANDER_REGISTER(m)
         .def("getparams", &SciCam::getparams, "Get all parameters")
         .def("enableDarks", &SciCam::enableDarks, "Enable darks")
         .def("enableFluxes", &SciCam::enableFluxes, "Enable fluxes")
+        .def("enableForeground", &SciCam::enableForeground, "Enable foreground")
         .def("enableGDservo", &SciCam::enableGDservo, "Start/Stop GD servo")
+        .def("purge", &SciCam::purge, "Purge saved P2VM related arrays")
         .def("calcP2VM", &SciCam::calcP2VM, "Calculate P2VM matrices")
         .def("readP2VM", &SciCam::readP2VM, "Read P2VM matrices")
         .def("enableFringeScan", &SciCam::enableFringeScan, "Enable fringe scanning")

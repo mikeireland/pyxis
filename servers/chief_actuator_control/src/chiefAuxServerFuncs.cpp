@@ -267,6 +267,15 @@ struct ChiefAuxServer {
         return ps;
     }
 
+    int32_t getSDCpos(){
+        teensy_port.Request(GETSDC);
+        teensy_port.SendAllRequests();
+        usleep(150);
+        teensy_port.ReadMessage();
+        SDC_step_count = -teensy_port.current_step;
+        return SDC_step_count;
+    }
+
     void readWattmeterAndSDC() {
         teensy_port.Request(WATTMETER);
         teensy_port.Request(GETSDC);
@@ -476,6 +485,7 @@ COMMANDER_REGISTER(m)
         .def("requestStatus", &ChiefAuxServer::requestStatus, "Get information on all actuators and power")
 		.def("moveSDC", &ChiefAuxServer::moveSDC, "Move fine stage")
         .def("homeSDC", &ChiefAuxServer::homeSDC, "Home fine stage")
+        .def("SDCpos", &ChiefAuxServer::getSDCpos, "Get fine stage position")
         //.def("test", &ChiefAuxServer::testservo, "Home fine stage")
 		.def("moveTipTiltPiezo", &ChiefAuxServer::moveTipTiltPiezo, "Set the tip/tilt piezos")
 		.def("receiveRelativeTipTiltPos", &ChiefAuxServer::receiveRelativeTipTiltPos, "Receive positions to move tip tilt piezos")

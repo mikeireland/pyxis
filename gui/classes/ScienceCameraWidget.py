@@ -427,48 +427,59 @@ class ScienceCameraWidget(RawWidget):
 
         self.darks_button = QPushButton("Dark", self)
         self.darks_button.setCheckable(True)
-        self.darks_button.setFixedWidth(200)
+        self.darks_button.setFixedWidth(150)
         self.darks_button.clicked.connect(self.darks_func)
         SC_button_grid.addWidget(self.darks_button,0,0)
 
         self.flux1_button = QPushButton("Flux 1", self)
         self.flux1_button.setCheckable(True)
-        self.flux1_button.setFixedWidth(200)
+        self.flux1_button.setFixedWidth(150)
         self.flux1_button.clicked.connect(self.flux1_func)
         SC_button_grid.addWidget(self.flux1_button,0,1)
 
         self.flux2_button = QPushButton("Flux 2", self)
         self.flux2_button.setCheckable(True)
-        self.flux2_button.setFixedWidth(200)
+        self.flux2_button.setFixedWidth(150)
         self.flux2_button.clicked.connect(self.flux2_func)
         SC_button_grid.addWidget(self.flux2_button,0,2)
 
+        self.foreground_button = QPushButton("Foreground", self)
+        self.foreground_button.setCheckable(True)
+        self.foreground_button.setFixedWidth(150)
+        self.foreground_button.clicked.connect(self.foreground_func)
+        SC_button_grid.addWidget(self.foreground_button,0,3)
+
         self.target_baseline_button = QPushButton("Target/Baseline Calc", self)
-        self.target_baseline_button.setFixedWidth(200)
+        self.target_baseline_button.setFixedWidth(150)
         self.target_baseline_button.clicked.connect(self.target_baseline_func)
-        SC_button_grid.addWidget(self.target_baseline_button,0,3)
+        SC_button_grid.addWidget(self.target_baseline_button,0,4)
 
         self.calc_p2vm_button = QPushButton("Calc P2VM", self)
-        self.calc_p2vm_button.setFixedWidth(200)
+        self.calc_p2vm_button.setFixedWidth(150)
         self.calc_p2vm_button.clicked.connect(self.calc_p2vm_func)
         SC_button_grid.addWidget(self.calc_p2vm_button,1,0)
         
         self.read_p2vm_button = QPushButton("Read P2VM", self)
-        self.read_p2vm_button.setFixedWidth(200)
+        self.read_p2vm_button.setFixedWidth(150)
         self.read_p2vm_button.clicked.connect(self.read_p2vm_func)
         SC_button_grid.addWidget(self.read_p2vm_button,1,1)
 
+        self.purge_p2vm_button = QPushButton("Purge P2VM", self)
+        self.purge_p2vm_button.setFixedWidth(150)
+        self.purge_p2vm_button.clicked.connect(self.purge_p2vm_func)
+        SC_button_grid.addWidget(self.purge_p2vm_button,1,2)
+
         self.fringe_scan_button = QPushButton("Start Fringe Scan", self)
         self.fringe_scan_button.setCheckable(True)
-        self.fringe_scan_button.setFixedWidth(200)
+        self.fringe_scan_button.setFixedWidth(150)
         self.fringe_scan_button.clicked.connect(self.fringe_scan_func)
-        SC_button_grid.addWidget(self.fringe_scan_button,1,2)
+        SC_button_grid.addWidget(self.fringe_scan_button,1,3)
         
         self.GD_servo_button = QPushButton("Start GD Servo", self)
         self.GD_servo_button.setCheckable(True)
-        self.GD_servo_button.setFixedWidth(200)
+        self.GD_servo_button.setFixedWidth(150)
         self.GD_servo_button.clicked.connect(self.GD_servo_func)
-        SC_button_grid.addWidget(self.GD_servo_button,1,3)
+        SC_button_grid.addWidget(self.GD_servo_button,1,4)
 
         self.mainPanel.addLayout(SC_button_grid)
 
@@ -667,7 +678,10 @@ class ScienceCameraWidget(RawWidget):
                 print("TURN OFF FLUX1 MODE!")                 
             elif self.flux2_button.isChecked():
                 self.darks_button.setChecked(False)
-                print("TURN OFF FLUX2 MODE!") 
+                print("TURN OFF FLUX2 MODE!")
+            elif self.foreground_button.isChecked():
+                self.darks_button.setChecked(False)
+                print("TURN OFF FOREGROUND MODE!")  
             elif self.fringe_scan_button.isChecked():
                 self.darks_button.setChecked(False)
                 print("CURRENTLY FRINGE SCANNING!")                  
@@ -688,6 +702,9 @@ class ScienceCameraWidget(RawWidget):
             elif self.flux2_button.isChecked():
                 self.flux1_button.setChecked(False)
                 print("TURN OFF FLUX2 MODE!") 
+            elif self.foreground_button.isChecked():
+                self.flux1_button.setChecked(False)
+                print("TURN OFF FOREGROUND MODE!")  
             elif self.fringe_scan_button.isChecked():
                 self.flux1_button.setChecked(False)
                 print("CURRENTLY FRINGE SCANNING!")     
@@ -709,6 +726,9 @@ class ScienceCameraWidget(RawWidget):
             elif self.darks_button.isChecked():
                 self.flux2_button.setChecked(False)
                 print("TURN OFF DARK MODE!") 
+            elif self.foreground_button.isChecked():
+                self.flux2_button.setChecked(False)
+                print("TURN OFF FOREGROUND MODE!")  
             elif self.fringe_scan_button.isChecked():
                 self.flux2_button.setChecked(False)
                 print("CURRENTLY FRINGE SCANNING!")     
@@ -718,6 +738,29 @@ class ScienceCameraWidget(RawWidget):
                 print(int(self.flux2_button.isChecked()*2))  
         else:
             self.flux2_button.setChecked(False)
+            print("CAMERA NOT CONNECTED")        
+        return
+    
+    def foreground_func(self):       
+        if self.Connect_button.isChecked():
+            if self.flux1_button.isChecked():
+                self.foreground_button.setChecked(False)
+                print("TURN OFF FLUX1 MODE!")
+            elif self.flux2_button.isChecked():
+                self.foreground_button.setChecked(False)
+                print("TURN OFF FLUX2 MODE!")               
+            elif self.darks_button.isChecked():
+                self.foreground_button.setChecked(False)
+                print("TURN OFF DARK MODE!") 
+            elif self.fringe_scan_button.isChecked():
+                self.foreground_button.setChecked(False)
+                print("CURRENTLY FRINGE SCANNING!")     
+            else:
+                print("SETTING FOREGROUND MODE")
+                self.send_to_server("SC.enableForeground [%s]" %int(self.foreground_button.isChecked()))
+                print(int(self.foreground_button.isChecked()))  
+        else:
+            self.foreground_button.setChecked(False)
             print("CAMERA NOT CONNECTED")        
         return
     
@@ -774,6 +817,8 @@ class ScienceCameraWidget(RawWidget):
             self.GD_servo_button.setChecked(False)
             print("CAMERA NOT CONNECTED")
 
+            
+
     def target_baseline_func(self):
         self.send_to_server("SC.setTargetandBaseline")
         return
@@ -784,6 +829,10 @@ class ScienceCameraWidget(RawWidget):
         
     def read_p2vm_func(self):
         self.send_to_server("SC.readP2VM")
+        return
+    
+    def purge_p2vm_func(self):
+        self.send_to_server("SC.purge")
         return
 
     def run_camera(self):

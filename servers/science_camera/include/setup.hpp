@@ -17,7 +17,6 @@ extern pthread_mutex_t GLOB_SC_FLAG_LOCK;
 extern const Cd I;
 
 extern Eigen::Matrix<Cd,3,3> GLOB_SC_P2VM_l[20];
-extern int GLOB_SC_P2VM_SIGNS[20];
 extern Eigen::Array<double,20,3> GLOB_SC_FLUX_A;
 extern Eigen::Array<double,20,3> GLOB_SC_FLUX_B;
 extern double GLOB_SC_DARK_VAL;
