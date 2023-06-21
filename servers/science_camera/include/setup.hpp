@@ -17,15 +17,15 @@ extern pthread_mutex_t GLOB_SC_FLAG_LOCK;
 extern const Cd I;
 
 extern Eigen::Matrix<Cd,3,3> GLOB_SC_P2VM_l[20];
-extern int GLOB_SC_P2VM_SIGNS[20];
 extern Eigen::Array<double,20,3> GLOB_SC_FLUX_A;
 extern Eigen::Array<double,20,3> GLOB_SC_FLUX_B;
 extern double GLOB_SC_DARK_VAL;
 
-extern double GLOB_SC_SCAN_SNR_LS[60];
-extern int GLOB_SC_SCAN_WINDOW_SIZE;
-extern int GLOB_SC_SCAN_SIGNAL_WIDTH;
-extern double GLOB_SC_SCAN_PER_FRAME;
+extern double GLOB_SC_SCAN_FFT_LS[6][6];
+extern double GLOB_SC_TOTAL_FLUX;
+//extern double GLOB_SC_SCAN_SNR_LS[60];
+//extern int GLOB_SC_SCAN_WINDOW_SIZE;
+//extern int GLOB_SC_SCAN_SIGNAL_WIDTH;
 
 struct SC_calibration {
 
@@ -46,11 +46,13 @@ struct SC_calibration {
 extern SC_calibration GLOB_SC_CAL;
 
 int calcP2VMmain();
+int readP2VMmain();
 int measureDark(unsigned short* data);
 int addToFlux(unsigned short* data, int flux_flag);
 void extractToMatrix(unsigned short* data, Eigen::Matrix<double, 20, 3> & O);
 int setPixelPositions(int xref, int yref);
-int init_fringe_scan(double scan_per_frame);
+int init_fringe_scan();
 int fringeScan(unsigned short* data);
+int fringeScan2(unsigned short* data);
 
 #endif // _SC_SETUP_

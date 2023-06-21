@@ -134,15 +134,9 @@ struct FineStarTracker: FLIRCameraServer{
             if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
                 // First, stop the camera if running
                 ret_msg = this->stopcam();
-                while (GLOB_RUNNING == 1){
-                    usleep(1000);
-                }
                 cout << ret_msg << endl;
                 // Reconfigure the exposure time to be lower
                 ret_msg = this->reconfigure_exptime(GLOB_FST_CENTROID_EXPTIME);
-                while (GLOB_RECONFIGURE == 1){
-                    usleep(1000);
-                }
                 cout << ret_msg << endl;
                 // Start the camera to not save images
                 pthread_mutex_lock(&GLOB_FLAG_LOCK);
@@ -167,15 +161,9 @@ struct FineStarTracker: FLIRCameraServer{
             if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
                 // First, stop the camera if running
                 ret_msg = this->stopcam();
-                while (GLOB_RUNNING == 1){
-                    usleep(1000);
-                }
                 cout << ret_msg << endl;
                 // Reconfigure the exposure time to be higher
                 ret_msg = this->reconfigure_exptime(GLOB_FST_PLATESOLVE_EXPTIME);
-                while (GLOB_RECONFIGURE == 1){
-                    usleep(1000);
-                }
                 cout << ret_msg << endl;
                 // Start the camera and save images
                 pthread_mutex_lock(&GLOB_FLAG_LOCK);

@@ -11,9 +11,14 @@
 #include <vector>
 #include <deque>
 #include <iostream>
+#include <fstream>
 #include <complex>
+#include <commander/commander.h>
 #include <fftw3.h>
 #include <pthread.h>
+
+using json = nlohmann::json;
+using namespace Eigen;
 
 extern const Cd I(0.0,1.0);
 
@@ -23,9 +28,101 @@ Eigen::Array<double,20,3> GLOB_SC_FLUX_A = Eigen::Array<double,20,3>::Zero();
 Eigen::Array<double,20,3> GLOB_SC_FLUX_B = Eigen::Array<double,20,3>::Zero();
 double GLOB_SC_DARK_VAL = 0;
 
+double GLOB_SC_TOTAL_FLUX = 0;
+
 SC_calibration GLOB_SC_CAL;
 
 pthread_mutex_t GLOB_SC_FLAG_LOCK = PTHREAD_MUTEX_INITIALIZER;
+
+
+void saveData(std::string fileName)
+{
+	//https://eigen.tuxfamily.org/dox/structEigen_1_1IOFormat.html
+	const static IOFormat CSVFormat(FullPrecision, DontAlignCols, "; ", "\n");
+
+	std::ofstream file(fileName);
+	if (file.is_open())
+	{
+	    file << GLOB_SC_DARK_VAL;
+	    file << "\n";
+		file << GLOB_SC_FLUX_A.format(CSVFormat);
+		file << "\n";
+		file << GLOB_SC_FLUX_B.format(CSVFormat);
+		file.close();
+	}
+}
+
+void readData(std::string fileToOpen)
+{
+
+	// the inspiration for creating this function was drawn from here (I did NOT copy and paste the code)
+	// https://stackoverflow.com/questions/34247057/how-to-read-csv-file-and-assign-to-eigen-matrix
+	
+	// the input is the file: "fileToOpen.csv":
+	// a,b,c
+	// d,e,f
+	// This function converts input file data into the Eigen matrix format
+
+
+
+	// the matrix entries are stored in this variable row-wise. For example if we have the matrix:
+	// M=[a b c 
+	//	  d e f]
+	// the entries are stored as matrixEntries=[a,b,c,d,e,f], that is the variable "matrixEntries" is a row vector
+	// later on, this vector is mapped into the Eigen matrix format
+	std::vector<double> matrixEntries;
+
+	// in this object we store the data from the matrix
+	std::ifstream matrixDataFile(fileToOpen);
+
+	// this variable is used to store the row of the matrix that contains commas 
+	std::string matrixRowString;
+
+	// this variable is used to store the matrix entry;
+	std::string matrixEntry;
+
+    getline(matrixDataFile, matrixRowString);
+    GLOB_SC_DARK_VAL = stod(matrixRowString);
+    
+    // this variable is used to track the number of rows
+	int matrixRowNumber = 0;
+
+	while (matrixRowNumber < 20) // here we read a row by row of matrixDataFile and store every line into the string variable matrixRowString
+	{
+	    getline(matrixDataFile, matrixRowString);
+		std::stringstream matrixRowStringStream(matrixRowString); //convert matrixRowString that is a string to a stream variable.
+
+		while (getline(matrixRowStringStream, matrixEntry, ';')) // here we read pieces of the stream matrixRowStringStream until every comma, and store the resulting character into the matrixEntry
+		{
+		    matrixEntries.push_back(stod(matrixEntry));   //here we convert the string to complex double and fill in the row vector storing all the matrix entries
+		}
+		matrixRowNumber++; //update the column numbers
+	}
+
+    GLOB_SC_FLUX_A = Eigen::Map<Eigen::Matrix<double,20,3, RowMajor>>(matrixEntries.data(), matrixRowNumber, matrixEntries.size() / matrixRowNumber);
+
+        // this variable is used to track the number of rows
+	matrixRowNumber = 0;
+	matrixEntries.clear();
+
+	while (matrixRowNumber < 20) // here we read a row by row of matrixDataFile and store every line into the string variable matrixRowString
+	{
+	    getline(matrixDataFile, matrixRowString);
+		std::stringstream matrixRowStringStream(matrixRowString); //convert matrixRowString that is a string to a stream variable.
+
+		while (getline(matrixRowStringStream, matrixEntry, ';')) // here we read pieces of the stream matrixRowStringStream until every comma, and store the resulting character into the matrixEntry
+		{
+		    matrixEntries.push_back(stod(matrixEntry));   //here we convert the string to complex double and fill in the row vector storing all the matrix entries
+		}
+		matrixRowNumber++; //update the column numbers
+	}
+    GLOB_SC_FLUX_B = Eigen::Map<Eigen::Matrix<double,20,3, RowMajor>>(matrixEntries.data(), matrixRowNumber, matrixEntries.size() / matrixRowNumber);
+
+	// here we convet the vector variable into the matrix and return the resulting object, 
+	// note that matrixEntries.data() is the pointer to the first memory location at which the entries of the vector matrixEntries are stored;
+	return;
+
+}
 
 int addToFlux(unsigned short* data, int flux_flag){
 
@@ -45,7 +142,7 @@ int addToFlux(unsigned short* data, int flux_flag){
 
 int measureDark(unsigned short* data){
     int size = GLOB_IMSIZE;
-    float total;
+    float total = 0;
     for(int i=0;i<size; i++){
         total += data[i];
     }
@@ -54,6 +151,7 @@ int measureDark(unsigned short* data){
     return 0;
 }
 
+/*
 double GLOB_SC_SCAN_SNR_LS[60];
 int GLOB_SC_SCAN_WINDOW_SIZE;
 int GLOB_SC_SCAN_SIGNAL_WIDTH;
@@ -72,7 +170,7 @@ int init_fringe_scan(double scan_per_frame){
 
     double period = GLOB_SC_SCAN_WINDOW_SIZE*scan_per_frame;
     std::vector<double> values = arange<double>(0,GLOB_SC_SCAN_WINDOW_SIZE/2+1);
-    
+   
     for (int k=0; k<10; k++){
         double wavenumber = 1/(0.000001*GLOB_SC_CAL.wavelengths[k]); // wavelengths in m
         // Identify the index of the frequency that should peak if we have fringes
@@ -101,21 +199,21 @@ int init_fringe_scan(double scan_per_frame){
 int fringeScan(unsigned short* data){
 
     Eigen::Matrix<double, 20, 3> O;
-    
+   
     extractToMatrix(data,O);
-    
+   
     double temp_snr_ls[60];
-    
+   
     for (int k=0;k<60;k++){
-        
+       
         int px = O(k/20,k%20);
-    
+   
         scan_flux_window[k].pop_front();
         scan_flux_window[k].push_back(px);
-        
+       
         std::copy(scan_flux_window[k].begin(), scan_flux_window[k].end(), scan_fft_in);
         fftw_execute(scan_fft_plan);
-        
+       
         double data, mean, sum=0., signal = 0., std = 0., snr = 0.;
         std::complex<double> temp;
 
@@ -145,19 +243,102 @@ int fringeScan(unsigned short* data){
                 data = sqrt(scan_fft_out[i][0]*scan_fft_out[i][0] + scan_fft_out[i][1]*scan_fft_out[i][1]);
                 std += pow(data - mean, 2);
             }
-        } 
+        }
         std = sqrt(std/(GLOB_SC_SCAN_WINDOW_SIZE/2 - (2*GLOB_SC_SCAN_SIGNAL_WIDTH-1)));
-        
+       
         snr = signal/std;
         temp_snr_ls[k] = snr;
-        
-    //CALC FFT OVER 
+       
+    //CALC FFT OVER
     }
     pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
     for (int k=0;k<60;k++){
        GLOB_SC_SCAN_SNR_LS[k] = temp_snr_ls[k];
     }
     pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+    return 0;
+}
+*/
+
+double GLOB_SC_SCAN_FFT_LS[6][6];
+
+static double * scan_fft_in;
+static fftw_complex * scan_fft_out;
+static fftw_plan scan_fft_plan;
+
+int init_fringe_scan(){
+
+    scan_fft_in = (double*) fftw_malloc(sizeof(double) * 10);
+    scan_fft_out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (6));
+    scan_fft_plan = fftw_plan_dft_r2c_1d(10, scan_fft_in, scan_fft_out, FFTW_MEASURE);
+
+    return 0;
+}
+
+
+
+int fringeScan(unsigned short* data){
+
+    Eigen::Matrix<double, 20, 3> O;
+   
+    extractToMatrix(data,O);
+    std::cout << O << std::endl;
+    double power_spec;
+    std::complex<double> temp;    
+   
+    for (int k=0;k<6;k++){
+        std::vector<double> temp_data(O.col(k/2).data()+(10*k%2), O.col(k/2).data()+(10*k%2)+10);
+
+        std::copy(temp_data.begin(), temp_data.end(), scan_fft_in);
+        fftw_execute(scan_fft_plan);    
+               
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        for (int l=0;l<6;l++){
+            temp = std::complex<double>(scan_fft_out[l][0], scan_fft_out[l][1]);
+            power_spec = std::abs( std::pow(temp, 2) );
+            GLOB_SC_SCAN_FFT_LS[k][l] = power_spec;
+        }
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+    }
+   
+    //CALC FFT OVER
+
+    return 0;
+}
+
+int fringeScan2(unsigned short* data){
+
+    Eigen::Matrix<double, 20, 3> O;
+    json j;
+    extractToMatrix(data,O);
+    std::cout << O << std::endl;
+    double power_spec;
+    std::complex<double> temp;    
+   
+    for (int k=0;k<6;k++){
+        std::vector<double> temp_data(O.col(k/2).data()+(10*k%2), O.col(k/2).data()+(10*k%2)+10);
+
+        std::copy(temp_data.begin(), temp_data.end(), scan_fft_in);
+        fftw_execute(scan_fft_plan);    
+               
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        for (int l=0;l<6;l++){
+            temp = std::complex<double>(scan_fft_out[l][0], scan_fft_out[l][1]);
+            power_spec = std::abs( std::pow(temp, 2) );
+            GLOB_SC_SCAN_FFT_LS[k][l] = power_spec;
+        }
+        std::vector<double> vec (GLOB_SC_SCAN_FFT_LS[k], GLOB_SC_SCAN_FFT_LS[k]+6);
+        j["FFT"][k] = vec;
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+    }
+    std::string s = j.dump();
+    std::ofstream myfile;
+    myfile.open ("fringe_scan.txt",std::ios_base::app);
+    myfile << s << "\n";
+    myfile.close();
+   
+    //CALC FFT OVER
+
     return 0;
 }
 
@@ -188,7 +369,7 @@ class delta_functor : public brent::func_base   //create functor
 
 
 // Temp function to create P2VM matrix. In reality, need a proper calibration function to do this.
-int calcP2VMMat(Eigen::Array<double,3,2>& IMat, int sign, Eigen::Matrix<Cd,3,3>& P2VM) {
+int calcP2VMMat(Eigen::Array<double,3,2>& IMat, Eigen::Matrix<Cd,3,3>& P2VM) {
 
     Eigen::Array<double,3,2> MagE = IMat.sqrt();
     double t1 = acos(MagE(0,0));
@@ -203,7 +384,7 @@ int calcP2VMMat(Eigen::Array<double,3,2>& IMat, int sign, Eigen::Matrix<Cd,3,3>&
     double delta;
     brent::local_min(0.0, 2*kPi, 1e-12, myfunc, delta);
 
-    delta *= sign;
+    //delta *= sign;
 
     Eigen::Matrix<Cd,3,3> CKM;
 
@@ -235,11 +416,12 @@ int calcP2VMMat(Eigen::Array<double,3,2>& IMat, int sign, Eigen::Matrix<Cd,3,3>&
 
     V2PM << r, i, f;
 
-    P2VM = V2PM.transpose().inverse();
+    P2VM = V2PM.inverse();
 
     return 0;
 
 }
+std::string filename = "config/P2VM_calibration.csv";
 
 int calcP2VMmain(){
     int ret_val;
@@ -247,39 +429,52 @@ int calcP2VMmain(){
         Eigen::Array<double,3,2> Imat;
         Imat.col(0) = (GLOB_SC_FLUX_A.row(k)/(GLOB_SC_FLUX_A.row(k)).sum()).transpose();
         Imat.col(1) = (GLOB_SC_FLUX_B.row(k)/(GLOB_SC_FLUX_B.row(k)).sum()).transpose();
-        ret_val = calcP2VMMat(Imat, GLOB_SC_P2VM_SIGNS[k], GLOB_SC_P2VM_l[k]);
+        ret_val = calcP2VMMat(Imat, GLOB_SC_P2VM_l[k]);
     }
+    saveData(filename);
+    return 0;
+}
+
+int readP2VMmain(){
+    int ret_val;
+    readData(filename);
+    calcP2VMmain();
     return 0;
 }
 
 void extractToMatrix(unsigned short* data, Eigen::Matrix<double, 20, 3> & O) {
-    
+     
      // From the frame, extract pixel positions into O(utput) matrix
      for(int k=0;k<10;k++){
-        O.row(k) << data[GLOB_SC_CAL.pos_p1_A,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[0]+k]+
-                    data[GLOB_SC_CAL.pos_p1_A+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[0]+k]- 
+        O.row(k) << data[GLOB_SC_CAL.pos_p1_A*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[0]+k]+
+                    data[(GLOB_SC_CAL.pos_p1_A+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[0]+k]- 
                     GLOB_SC_DARK_VAL,
 
-                    data[GLOB_SC_CAL.pos_p1_B,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[1]+k]+
-                    data[GLOB_SC_CAL.pos_p1_B+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[1]+k]-
+                    data[GLOB_SC_CAL.pos_p1_B*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[1]+k]+
+                    data[(GLOB_SC_CAL.pos_p1_B+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[1]+k]-
                     GLOB_SC_DARK_VAL,
 
-                    data[GLOB_SC_CAL.pos_p1_C,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[2]+k]+
-                    data[GLOB_SC_CAL.pos_p1_C+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[2]+k]-
+                    data[GLOB_SC_CAL.pos_p1_C*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[2]+k]+
+                    data[(GLOB_SC_CAL.pos_p1_C+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[2]+k]-
                     GLOB_SC_DARK_VAL;
 
-        O.row(k+10) << data[GLOB_SC_CAL.pos_p2_A,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[3]+k]+
-                       data[GLOB_SC_CAL.pos_p2_A+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[3]+k]-
+        O.row(k+10) << data[GLOB_SC_CAL.pos_p2_A*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[3]+k]+
+                       data[(GLOB_SC_CAL.pos_p2_A+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[3]+k]-
                        GLOB_SC_DARK_VAL,
 
-                       data[GLOB_SC_CAL.pos_p2_B,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[4]+k]+
-                       data[GLOB_SC_CAL.pos_p2_B+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[4]+k]-
+                       data[GLOB_SC_CAL.pos_p2_B*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[4]+k]+
+                       data[(GLOB_SC_CAL.pos_p2_B+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[4]+k]-
                        GLOB_SC_DARK_VAL,
 
-                       data[GLOB_SC_CAL.pos_p2_C,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[5]+k]+
-                       data[GLOB_SC_CAL.pos_p2_C+1,GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[5]+k]-
+                       data[GLOB_SC_CAL.pos_p2_C*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[5]+k]+
+                       data[(GLOB_SC_CAL.pos_p2_C+1)*GLOB_WIDTH+GLOB_SC_CAL.pos_wave+GLOB_SC_CAL.wave_offset[5]+k]-
                        GLOB_SC_DARK_VAL;
-    }   
+    }
+
+    pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+    GLOB_SC_TOTAL_FLUX = O.sum();
+    pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+    
 }
 
 // WAVELENGTHS: 0.6063 0.6186 0.6316 0.6454 0.66 0.6755 0.6918 0.7092 0.7277 0.7473
@@ -291,7 +486,7 @@ void extractToMatrix(unsigned short* data, Eigen::Matrix<double, 20, 3> & O) {
 
 int setPixelPositions(int xref, int yref) {
 
-    GLOB_SC_CAL.pos_wave = xref - 4;
+    GLOB_SC_CAL.pos_wave = xref - 5;
 
     GLOB_SC_CAL.pos_p1_A = yref;
     GLOB_SC_CAL.pos_p2_A = yref + 8;
@@ -300,7 +495,8 @@ int setPixelPositions(int xref, int yref) {
     GLOB_SC_CAL.pos_p1_C = yref + 28;
     GLOB_SC_CAL.pos_p2_C = yref + 36;
 
-    double temp_waves [] = {0.6063, 0.6186, 0.6316, 0.6454, 0.66, 0.6755, 0.6918, 0.7092, 0.7277, 0.7473};
+    //double temp_waves [] = {0.6063, 0.6186, 0.6316, 0.6454, 0.66, 0.6755, 0.6918, 0.7092, 0.7277, 0.7473};
+    double temp_waves [] = {0.7473, 0.7277, 0.7092, 0.6918, 0.6755, 0.66, 0.6454, 0.6316, 0.6186, 0.6063};
 
     for(int k=0;k<10;k++){
         GLOB_SC_CAL.wavelengths[k] = temp_waves[k];

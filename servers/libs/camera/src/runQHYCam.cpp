@@ -38,7 +38,7 @@ int CallbackFunc (unsigned short* data){
 	}
 	
     if (GLOB_CALLBACK(data)){
-        cerr << "Callback function error. Stopping Camera" << endl;
+        cerr << "Callback function return. Stopping Camera" << endl;
         pthread_mutex_lock(&GLOB_FLAG_LOCK);
     	GLOB_STOPPING = 0;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
@@ -194,7 +194,7 @@ void *runCam(void*) {
 		    // No saving if num_frames = 0; continuous acquisition
 		    if(num_frames == 0){
 			    SAVE_FLAG = 0;
-			    num_frames = 100000;
+			    num_frames = 10000000;
 		    };
 
 		    unsigned long buffer_no = 0;
@@ -214,7 +214,7 @@ void *runCam(void*) {
 			    finish = Qcam.GrabFrames(num_frames, buffer_no, CallbackFunc);
 			    
 			    // Check if grabFrames returned an error
-			    if (finish == 2){
+			    if (finish == 1){
 			        printf("Error in Grab Frames");
     	            break;
 			    }

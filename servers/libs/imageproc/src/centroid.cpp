@@ -97,10 +97,8 @@ cv::Point2d getCentroidWCOG(const cv::Mat &image, const cv::Point &center, const
     
     x = double(cv::sum(XX.mul(weighted_image))[0]) / cv::sum(weighted_image)[0];
     y = double(cv::sum(YY.mul(weighted_image))[0]) / cv::sum(weighted_image)[0];
-    
-    x*=gain;
-    y*=gain;
-    return cv::Point2d(x, y) + static_cast<cv::Point2d>(sub_rect.tl());
+ 
+    return (cv::Point2d(x, y) + static_cast<cv::Point2d>(sub_rect.tl()))*gain;
 }
 
 
@@ -133,7 +131,7 @@ cv::Point2d windowCentroidCOG(const cv::Mat &image, int interp_size, int gauss_r
     assert(image.channels() == 1 &&
            "CentroidInterp only defined for grey scale image");
 
-    auto window = cv::Rect(center.x - (window_size-1)/2, center.y - (window_size-1)/2, window_size, window_size);
+    auto window = cv::Rect(center.x - (window_size)/2, center.y - (window_size)/2, window_size, window_size);
     cv::Mat window_img = image(window);
 
     cv::Mat gauss_img = window_img.clone();
@@ -182,7 +180,9 @@ cv::Point2d windowCentroidWCOG(const cv::Mat &image, int interp_size, int gauss_
     assert(image.channels() == 1 &&
            "CentroidInterp only defined for grey scale image");
 
-    auto window = cv::Rect(center.x - (window_size-1)/2, center.y - (window_size-1)/2, window_size, window_size);
+    std::cout << center << std::endl;    
+
+    auto window = cv::Rect(center.x - (window_size)/2, center.y - (window_size)/2, window_size, window_size);
     cv::Mat window_img = image(window);
 
     cv::Mat gauss_img = window_img.clone();
@@ -194,7 +194,9 @@ cv::Point2d windowCentroidWCOG(const cv::Mat &image, int interp_size, int gauss_
     
     auto safe_bounds = cv::Rect((interp_size-1)/2, (interp_size-1)/2, window_size-(interp_size-1), window_size-(interp_size-1));
 
-    cv::minMaxLoc(gauss_img(safe_bounds), nullptr, nullptr, nullptr, &p_est);
+    cv::Mat safe_img = gauss_img(safe_bounds);
+
+    cv::minMaxLoc(safe_img, nullptr, nullptr, nullptr, &p_est);
 
     p_est += static_cast<cv::Point2i>(window.tl()) + static_cast<cv::Point2i>(safe_bounds.tl());
 

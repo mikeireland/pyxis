@@ -1,12 +1,18 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
+from client_socket import ClientSocket
 import time
+import random
 import json
 import numpy as np
 import cv2
 import pyqtgraph as pg
-from RawWidget import RawWidget
-from sliders import FloatSlider
+
+try:
+    import astropy.io.fits as pyfits
+    FITS_SAVING=True
+except:
+    FITS_SAVING=False
 
 #Import only what we need from PyQt5, or everything from PyQt4. In any case, we'll try
 #to keep this back-compatible. Although this floods the namespace somewhat, everything
@@ -14,19 +20,19 @@ from sliders import FloatSlider
 
 try:
     from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, \
-        QVBoxLayout, QGridLayout, QLabel, QLineEdit
+        QVBoxLayout, QGridLayout, QLabel, QLineEdit, QTextEdit, QProgressBar
     from PyQt5.QtCore import QTimer, QPoint, Qt
-    from PyQt5.QtGui import QPixmap, QImage, QPainter
+    from PyQt5.QtGui import QPixmap, QFont, QImage, QPainter
+    from PyQt5.QtSvg import QSvgWidget
 except:
     print("Please install PyQt5.")
     raise UserWarning
 
 class FeedLabel(QLabel):
-    def __init__(self, img, grid_spacing):
+    def __init__(self, img):
         super(FeedLabel, self).__init__()
         self.pixmap = QPixmap(img)
         self.dims = (100,100)
-        self.grid_spacing = grid_spacing
 
     def paintEvent(self, event):
         size = self.size()
@@ -37,12 +43,13 @@ class FeedLabel(QLabel):
         point.setX((size.width() - scaledPix.width())/2)
         point.setY((size.height() - scaledPix.height())/2)
         painter.drawPixmap(point, scaledPix)
+        grid_spacing = 44
         x = point.x()
         y = point.y()
         width = scaledPix.width()
         height = scaledPix.height()
-        gridSize_x = self.grid_spacing*width/self.dims.width()
-        gridSize_y = self.grid_spacing*height/self.dims.height()
+        gridSize_x = grid_spacing*width/self.dims.width()
+        gridSize_y = grid_spacing*height/self.dims.height()
         while y <= height+point.y():
             # draw horizontal lines
             painter.drawLine(point.x(), y, width+point.x(), y)
@@ -58,23 +65,20 @@ class FeedLabel(QLabel):
         self.repaint()
 
 class FeedWindow(QWidget):
-    def __init__(self, name, grid_spacing, contrast_min, contrast_max):
+    def __init__(self, name):
         super(FeedWindow, self).__init__()
 
         # Label
         self.resize(900, 500)
         self.setWindowTitle("%s Camera Feed"%name)
         hbox = QHBoxLayout()
-        self.cam_feed = FeedLabel("assets/camtest1.png", grid_spacing)
+        self.cam_feed = FeedLabel("assets/camtest1.png")
         self.binning_flag = 0
-
-        mainvbox = QVBoxLayout()
 
         hbox.addWidget(self.cam_feed)
         hbox.addSpacing(50)
 
         vbox = QVBoxLayout()
-        vbox.addStretch()
         hbox2 = QHBoxLayout()
         self.binning_button = QPushButton("Binning", self)
         self.binning_button.setCheckable(True)
@@ -82,7 +86,6 @@ class FeedWindow(QWidget):
         self.binning_button.clicked.connect(self.set_binning)
         hbox2.addWidget(self.binning_button)
         vbox.addLayout(hbox2)
-        vbox.addStretch()
 
 
         hbox2 = QHBoxLayout()
@@ -92,7 +95,7 @@ class FeedWindow(QWidget):
         self.linear_button.clicked.connect(self.set_linear_func)
         hbox2.addWidget(self.linear_button)
         vbox.addLayout(hbox2)
-        vbox.addStretch()
+
         hbox2 = QHBoxLayout()
         self.asinh_button = QPushButton("Asinh Scaling", self)
         self.asinh_button.setCheckable(True)
@@ -100,15 +103,9 @@ class FeedWindow(QWidget):
         self.asinh_button.clicked.connect(self.set_asinh_func)
         hbox2.addWidget(self.asinh_button)
         vbox.addLayout(hbox2)
-        vbox.addStretch()
 
         hbox.addLayout(vbox)
-
-        mainvbox.addLayout(hbox)
-        mainvbox.addSpacing(20)
-        self.contrast = FloatSlider("Contrast", contrast_min, contrast_max, 1.0, mainvbox)
-
-        self.setLayout(mainvbox)
+        self.setLayout(hbox)
         self.image_func = self.linear_func
 
     def set_binning(self):
@@ -138,169 +135,98 @@ class FeedWindow(QWidget):
     def linear_func(self,image):
         return image
 
-class GDPlotLabel(QLabel):
-    def __init__(self, img):
-        super(GDPlotLabel, self).__init__()
-        self.pixmap = QPixmap(img)
-
-    def paintEvent(self, event):
-        size = self.size()
-        painter = QPainter(self)
-        point = QPoint(0,0)
-        scaledPix = self.pixmap.scaled(size, Qt.KeepAspectRatio, transformMode = Qt.FastTransformation)
-        # start painting the label from left upper corner
-        point.setX((size.width() - scaledPix.width())/2)
-        point.setY((size.height() - scaledPix.height())/2)
-        painter.drawPixmap(point, scaledPix)
-
-    def changePixmap(self, img):
-        self.pixmap = QPixmap(img)
-        self.repaint()
-
 class GDPlotWindow(QWidget):
-    def __init__(self, contrast_min, contrast_max, contrast_init):
+    def __init__(self):
         super(GDPlotWindow, self).__init__()
 
         # Label
         self.resize(900, 500)
         self.setWindowTitle("Group Delay Plot Feed")
         hbox = QHBoxLayout()
-        mainvbox = QVBoxLayout()
-        self.cam_feed = GDPlotLabel("assets/camtest1.png")
+        self.cam_feed = FeedLabel("assets/camtest1.png")
         hbox.addWidget(self.cam_feed)
-        mainvbox.addLayout(hbox)
-        mainvbox.addSpacing(20)
-        self.contrast = FloatSlider("Contrast", contrast_min, contrast_max, contrast_init, mainvbox)
+        self.setLayout(hbox)
 
-        self.setLayout(mainvbox)
-
-class PlotWindow(QWidget):
+class V2PlotWindow(QWidget):
     def __init__(self):
-        super(PlotWindow, self).__init__()
+        super(V2PlotWindow, self).__init__()
 
         # Label
         self.resize(900, 500)
         self.setWindowTitle("V2 Plot Feed")
         hbox = QHBoxLayout()
         self.graphWidget = pg.PlotWidget()
-        
-        hbox.addSpacing(50)
+        self.x = np.arange(20)
+        self.y = np.zeros(20)
 
-        vbox = QVBoxLayout()
-        hbox2 = QHBoxLayout()
-        self.V2_button = QPushButton("V2 per channel", self)
-        self.V2_button.setCheckable(True)
-        self.V2_button.setFixedWidth(200)
-        self.V2_button.clicked.connect(self.set_V2_plot)
-        hbox2.addWidget(self.V2_button)
-        vbox.addLayout(hbox2)
-
-        hbox2 = QHBoxLayout()
-        self.flux_button = QPushButton("Flux", self)
-        self.flux_button.setCheckable(True)
-        self.flux_button.setFixedWidth(200)
-        self.flux_button.clicked.connect(self.set_flux_plot)
-        hbox2.addWidget(self.flux_button)
-        vbox.addLayout(hbox2)
-        
-        hbox2 = QHBoxLayout()
-        self.V2SNR_button = QPushButton("V2 Total SNR", self)
-        self.V2SNR_button.setCheckable(True)
-        self.V2SNR_button.setFixedWidth(200)
-        self.V2SNR_button.clicked.connect(self.set_V2SNR_plot)
-        hbox2.addWidget(self.V2SNR_button)
-        vbox.addLayout(hbox2)
-
-        hbox2 = QHBoxLayout()
-        self.GD_button = QPushButton("Group Delay", self)
-        self.GD_button.setCheckable(True)
-        self.GD_button.setFixedWidth(200)
-        self.GD_button.clicked.connect(self.set_GD_plot)
-        hbox2.addWidget(self.GD_button)
-        vbox.addLayout(hbox2)
-
-        hbox.addLayout(vbox)
-        
-        #Initial plot
-        self.set_flux_plot()
-
-        pen = pg.mkPen(width=4)
-        self.data_line =  self.graphWidget.plot(self.x, self.y, pen=pen)
+        pen = pg.mkPen(width=15)
+        self.data_line =  self.graphWidget.plot(self.x, self.y, pen=pen, symbol='+', symbolSize=30)
+        self.graphWidget.setLabel('left', 'V^2 Estimate')
+        self.graphWidget.setLabel('bottom', 'Channel No.')
         hbox.addWidget(self.graphWidget)
         self.setLayout(hbox)
 
-        
-    def set_V2_plot(self):
-        self.V2_button.setChecked(True)
-        self.flux_button.setChecked(False)
-        self.V2SNR_button.setChecked(False)
-        self.GD_button.setChecked(False)
-        self.func = "SC.getV2array"
-        self.funcxlabel = "Channel No."
-        self.funcylabel = "V2 Estimate"
-        self.graphWidget.setLabel('left', self.funcylabel)
-        self.graphWidget.setLabel('bottom', self.funcxlabel)
-        self.x = np.arange(20)+1
-        self.y = np.zeros(0)
-        
 
-    def set_flux_plot(self):
-        self.V2_button.setChecked(False)
-        self.flux_button.setChecked(True)
-        self.V2SNR_button.setChecked(False)
-        self.GD_button.setChecked(False)
-        self.func = "SC.getFlux"
-        self.funcxlabel = "Time"
-        self.funcylabel = "Flux"
-        self.graphWidget.setLabel('left', self.funcylabel)
-        self.graphWidget.setLabel('bottom', self.funcxlabel)
-        self.x = np.arange(100)
-        self.y = np.zeros(100)
-
-    def set_V2SNR_plot(self):
-        self.V2_button.setChecked(False)
-        self.flux_button.setChecked(False)
-        self.V2SNR_button.setChecked(True)
-        self.GD_button.setChecked(False)
-        self.func = "SC.getV2SNRestimate"
-        self.funcxlabel = "Time"
-        self.funcylabel = "V2 SNR"
-        self.graphWidget.setLabel('left', self.funcylabel)
-        self.graphWidget.setLabel('bottom', self.funcxlabel)
-        self.x = np.arange(100)
-        self.y = np.zeros(100)
-
-    def set_GD_plot(self):
-        self.V2_button.setChecked(False)
-        self.flux_button.setChecked(False)
-        self.V2SNR_button.setChecked(False)
-        self.GD_button.setChecked(True)
-        self.func = "SC.getGDestimate"
-        self.funcxlabel = "Time"
-        self.funcylabel = "Group Delay Estimate"
-        self.graphWidget.setLabel('left', self.funcylabel)
-        self.graphWidget.setLabel('bottom', self.funcxlabel)
-        self.x = np.arange(100)
-        self.y = np.zeros(100)
-        
- 
-class ScienceCameraWidget(RawWidget):
+class ScienceCameraWidget(QWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
 
-        super(ScienceCameraWidget,self).__init__(config,IP,parent)
+        super(ScienceCameraWidget,self).__init__(parent)
 
+        self.name = config["name"]
+        self.port = config["port"]
+        self.socket = ClientSocket(IP=IP, Port=self.port)
         self.feed_refresh_time = int(config["feed_refresh_time"]*1000)
-        self.plot_refresh_time = int(config["plot_refresh_time"]*1000)
         self.compression_param = config["compression_param"]
 
-        self.GD_array = np.zeros((config["GD_window_size"],config["GD_window_size"]),dtype="uint16")
-        grid_spacing = config["grid_spacing"]
-        contrast_min = config["contrast_limits"][0]
-        contrast_max = config["contrast_limits"][1]
-        
-        GD_contrast_min = config["GD_contrast_limits"][0]
-        GD_contrast_max = config["GD_contrast_limits"][1]
-        GD_contrast_init = 50
+        self.GD_array = np.zeros((config["GD_window_size"],config["num_delays"]),dtype="uint16")
+        self.GD_scale = config["GD_scale"]
+
+        #Layout the common elements
+        vBoxlayout = QVBoxLayout()
+        vBoxlayout.setSpacing(3)
+
+        desc = QLabel('Port: %s    Description: %s'%(config["port"],config["description"]), self)
+        desc.setStyleSheet("font-weight: bold")
+
+        #First, the command entry box
+        lbl1 = QLabel('Command: ', self)
+        self.line_edit = QLineEdit("SC.")
+        self.line_edit.returnPressed.connect(self.command_enter)
+
+        #Next, the info button
+        self.info_button = QPushButton("Refresh", self)
+        self.info_button.clicked.connect(self.info_click)
+
+        hbox2 = QHBoxLayout()
+        vbox1 = QVBoxLayout()
+        vbox2 = QVBoxLayout()
+
+        hbox1 = QHBoxLayout()
+        hbox1.setContentsMargins(0, 0, 0, 0)
+        desc.setFixedHeight(40)
+        #desc.adjustSize()
+        hbox1.addWidget(desc)
+        vBoxlayout.addLayout(hbox1)
+
+        hbox1 = QHBoxLayout()
+        hbox1.addWidget(lbl1)
+        hbox1.addWidget(self.line_edit)
+        hbox1.addWidget(self.info_button)
+        vbox1.addLayout(hbox1)
+
+        #Next, the response box
+        self.response_label = QTextEdit('[No Server Response Yet]', self)
+        self.response_label.setReadOnly(True)
+        self.response_label.setStyleSheet("QTextEdit { background-color : black; }")
+        self.response_label.setFixedHeight(150)
+        vbox1.addWidget(self.response_label)
+
+        self.timeout = 0
+        self.fnum = 0
+
+        bigfont = QFont("Times", 20, QFont.Bold)
+
+        vbox1.addSpacing(20)
 
         hbox4 = QHBoxLayout()
         vbox4 = QVBoxLayout()
@@ -416,9 +342,9 @@ class ScienceCameraWidget(RawWidget):
         vbox4.addLayout(hbox1)
 
         hbox4.addLayout(vbox4)
-        self.mainPanel.addLayout(hbox4)
+        vbox1.addLayout(hbox4)
 
-        self.mainPanel.addSpacing(15)
+        vbox1.addSpacing(15)
         #################################
 
         SC_button_grid = QGridLayout()
@@ -427,61 +353,39 @@ class ScienceCameraWidget(RawWidget):
 
         self.darks_button = QPushButton("Dark", self)
         self.darks_button.setCheckable(True)
-        self.darks_button.setFixedWidth(150)
+        self.darks_button.setFixedWidth(200)
         self.darks_button.clicked.connect(self.darks_func)
         SC_button_grid.addWidget(self.darks_button,0,0)
 
         self.flux1_button = QPushButton("Flux 1", self)
         self.flux1_button.setCheckable(True)
-        self.flux1_button.setFixedWidth(150)
+        self.flux1_button.setFixedWidth(200)
         self.flux1_button.clicked.connect(self.flux1_func)
         SC_button_grid.addWidget(self.flux1_button,0,1)
 
         self.flux2_button = QPushButton("Flux 2", self)
         self.flux2_button.setCheckable(True)
-        self.flux2_button.setFixedWidth(150)
+        self.flux2_button.setFixedWidth(200)
         self.flux2_button.clicked.connect(self.flux2_func)
         SC_button_grid.addWidget(self.flux2_button,0,2)
 
-        self.foreground_button = QPushButton("Foreground", self)
-        self.foreground_button.setCheckable(True)
-        self.foreground_button.setFixedWidth(150)
-        self.foreground_button.clicked.connect(self.foreground_func)
-        SC_button_grid.addWidget(self.foreground_button,0,3)
-
         self.target_baseline_button = QPushButton("Target/Baseline Calc", self)
-        self.target_baseline_button.setFixedWidth(150)
+        self.target_baseline_button.setFixedWidth(200)
         self.target_baseline_button.clicked.connect(self.target_baseline_func)
-        SC_button_grid.addWidget(self.target_baseline_button,0,4)
+        SC_button_grid.addWidget(self.target_baseline_button,1,0)
 
-        self.calc_p2vm_button = QPushButton("Calc P2VM", self)
-        self.calc_p2vm_button.setFixedWidth(150)
-        self.calc_p2vm_button.clicked.connect(self.calc_p2vm_func)
-        SC_button_grid.addWidget(self.calc_p2vm_button,1,0)
-        
-        self.read_p2vm_button = QPushButton("Read P2VM", self)
-        self.read_p2vm_button.setFixedWidth(150)
-        self.read_p2vm_button.clicked.connect(self.read_p2vm_func)
-        SC_button_grid.addWidget(self.read_p2vm_button,1,1)
-
-        self.purge_p2vm_button = QPushButton("Purge P2VM", self)
-        self.purge_p2vm_button.setFixedWidth(150)
-        self.purge_p2vm_button.clicked.connect(self.purge_p2vm_func)
-        SC_button_grid.addWidget(self.purge_p2vm_button,1,2)
+        self.p2vm_button = QPushButton("Calc P2VM", self)
+        self.p2vm_button.setFixedWidth(200)
+        self.p2vm_button.clicked.connect(self.p2vm_func)
+        SC_button_grid.addWidget(self.p2vm_button,1,1)
 
         self.fringe_scan_button = QPushButton("Start Fringe Scan", self)
         self.fringe_scan_button.setCheckable(True)
-        self.fringe_scan_button.setFixedWidth(150)
+        self.fringe_scan_button.setFixedWidth(200)
         self.fringe_scan_button.clicked.connect(self.fringe_scan_func)
-        SC_button_grid.addWidget(self.fringe_scan_button,1,3)
-        
-        self.GD_servo_button = QPushButton("Start GD Servo", self)
-        self.GD_servo_button.setCheckable(True)
-        self.GD_servo_button.setFixedWidth(150)
-        self.GD_servo_button.clicked.connect(self.GD_servo_func)
-        SC_button_grid.addWidget(self.GD_servo_button,1,4)
+        SC_button_grid.addWidget(self.fringe_scan_button,1,2)
 
-        self.mainPanel.addLayout(SC_button_grid)
+        vbox1.addLayout(SC_button_grid)
 
         ####################################
 
@@ -493,7 +397,7 @@ class ScienceCameraWidget(RawWidget):
         self.Connect_button.clicked.connect(self.connect_camera)
         hbox3.addWidget(self.Connect_button)
         hbox3.addSpacing(50)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
 
         hbox3 = QHBoxLayout()
         self.run_button = QPushButton("Start Camera", self)
@@ -501,7 +405,7 @@ class ScienceCameraWidget(RawWidget):
         self.run_button.setFixedWidth(200)
         self.run_button.clicked.connect(self.run_camera)
         hbox3.addWidget(self.run_button)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
 
         #vbox2 things
         hbox3 = QHBoxLayout()
@@ -509,9 +413,9 @@ class ScienceCameraWidget(RawWidget):
         self.Reconfigure_button.setFixedWidth(200)
         self.Reconfigure_button.clicked.connect(self.reconfigure_camera)
         hbox3.addWidget(self.Reconfigure_button)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
 
-        self.feed_window = FeedWindow(self.name, grid_spacing, contrast_min, contrast_max)
+        self.feed_window = FeedWindow(self.name)
 
         hbox3 = QHBoxLayout()
         self.Camera_button = QPushButton("Start Feed", self)
@@ -519,39 +423,50 @@ class ScienceCameraWidget(RawWidget):
         self.Camera_button.setFixedWidth(200)
         self.Camera_button.clicked.connect(self.camera_feed)
         hbox3.addWidget(self.Camera_button)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
 
-        self.GD_window = GDPlotWindow(GD_contrast_min, GD_contrast_max, GD_contrast_init)
+        self.GD_window = GDPlotWindow()
 
         hbox3 = QHBoxLayout()
         self.GD_button = QPushButton("Start GD plotter", self)
         self.GD_button.setCheckable(True)
         self.GD_button.setFixedWidth(200)
-        self.GD_button.clicked.connect(self.plot_func)
+        self.GD_button.clicked.connect(self.GD_plot_func)
         hbox3.addWidget(self.GD_button)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
         
-        self.plot_window = PlotWindow()
+        self.V2_window = V2PlotWindow()
 
         hbox3 = QHBoxLayout()
-        self.plot_button = QPushButton("Start General plotter", self)
-        self.plot_button.setCheckable(True)
-        self.plot_button.setFixedWidth(200)
-        self.plot_button.clicked.connect(self.plot_func)
-        hbox3.addWidget(self.plot_button)
-        self.sidePanel.addLayout(hbox3)
+        self.V2_button = QPushButton("Start V2 plotter", self)
+        self.V2_button.setCheckable(True)
+        self.V2_button.setFixedWidth(200)
+        self.V2_button.clicked.connect(self.V2_plot_func)
+        hbox3.addWidget(self.V2_button)
+        vbox2.addLayout(hbox3)
 
-        self.feedtimer = QTimer()
-        self.GDtimer = QTimer()
-        self.plottimer = QTimer()        
-        
-        self.ask_for_status()
-        self.get_params()
+        hbox2.addLayout(vbox1)
+        hbox2.addLayout(vbox2)
+        vBoxlayout.addLayout(hbox2)
 
-    def info_click(self):
-        print(self.name)
+        status_layout = QHBoxLayout()
+        self.status_light = 'assets/red.svg'
+        self.status_text = 'Socket Not Connected'
+        self.svgWidget = QSvgWidget(self.status_light)
+        self.svgWidget.setFixedSize(20,20)
+        self.status_label = QLabel(self.status_text, self)
+        status_layout.addWidget(self.svgWidget)
+        status_layout.addWidget(self.status_label)
+
+        vBoxlayout.addLayout(status_layout)
+
+        self.setLayout(vBoxlayout)
+        self.stimer = QTimer()
+        self.auto_updater()
         self.ask_for_status()
-        self.get_params()
+
+    def change_ip(self,IP):
+        self.socket = ClientSocket(IP=IP, Port=self.port)
 
     def ask_for_status(self):
         """Ask for status for the server that applies to the current tab (as we can
@@ -592,11 +507,9 @@ class ScienceCameraWidget(RawWidget):
             self.response_label.append(response)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
-            self.check_fringe_scan_mode()
-            #self.get_params()
+            self.get_params()
 
         else:
-            self.response_label.append(response)
             self.status_light = "assets/red.svg"
             self.status_text = "Socket Not Connected"
             self.status_label.setText(self.status_text)
@@ -625,6 +538,15 @@ class ScienceCameraWidget(RawWidget):
                 self.buffersize_edit.setText(str(response_dict["buffersize"]))
                 self.save_dir_line_edit.setText(str(response_dict["savedir"]))
 
+    #Function to auto update at a given rate
+    def auto_updater(self):
+        self.refresh_camera_feed()
+        #self.refresh_V2_func()
+        #self.refresh_GD_func()
+        #if self.fringe_scan_button.isChecked():
+        #    self.check_fringe_scan_mode()
+        self.stimer.singleShot(self.feed_refresh_time, self.auto_updater)
+        return
 
     def connect_camera(self):
 
@@ -633,6 +555,7 @@ class ScienceCameraWidget(RawWidget):
             self.Connect_button.setText("Disconnect")
             print("Camera is now Connected")
             self.send_to_server("SC.connect")
+            time.sleep(2)
             self.get_params()
 
         elif self.run_button.isChecked():
@@ -678,10 +601,7 @@ class ScienceCameraWidget(RawWidget):
                 print("TURN OFF FLUX1 MODE!")                 
             elif self.flux2_button.isChecked():
                 self.darks_button.setChecked(False)
-                print("TURN OFF FLUX2 MODE!")
-            elif self.foreground_button.isChecked():
-                self.darks_button.setChecked(False)
-                print("TURN OFF FOREGROUND MODE!")  
+                print("TURN OFF FLUX2 MODE!") 
             elif self.fringe_scan_button.isChecked():
                 self.darks_button.setChecked(False)
                 print("CURRENTLY FRINGE SCANNING!")                  
@@ -702,9 +622,6 @@ class ScienceCameraWidget(RawWidget):
             elif self.flux2_button.isChecked():
                 self.flux1_button.setChecked(False)
                 print("TURN OFF FLUX2 MODE!") 
-            elif self.foreground_button.isChecked():
-                self.flux1_button.setChecked(False)
-                print("TURN OFF FOREGROUND MODE!")  
             elif self.fringe_scan_button.isChecked():
                 self.flux1_button.setChecked(False)
                 print("CURRENTLY FRINGE SCANNING!")     
@@ -726,9 +643,6 @@ class ScienceCameraWidget(RawWidget):
             elif self.darks_button.isChecked():
                 self.flux2_button.setChecked(False)
                 print("TURN OFF DARK MODE!") 
-            elif self.foreground_button.isChecked():
-                self.flux2_button.setChecked(False)
-                print("TURN OFF FOREGROUND MODE!")  
             elif self.fringe_scan_button.isChecked():
                 self.flux2_button.setChecked(False)
                 print("CURRENTLY FRINGE SCANNING!")     
@@ -738,29 +652,6 @@ class ScienceCameraWidget(RawWidget):
                 print(int(self.flux2_button.isChecked()*2))  
         else:
             self.flux2_button.setChecked(False)
-            print("CAMERA NOT CONNECTED")        
-        return
-    
-    def foreground_func(self):       
-        if self.Connect_button.isChecked():
-            if self.flux1_button.isChecked():
-                self.foreground_button.setChecked(False)
-                print("TURN OFF FLUX1 MODE!")
-            elif self.flux2_button.isChecked():
-                self.foreground_button.setChecked(False)
-                print("TURN OFF FLUX2 MODE!")               
-            elif self.darks_button.isChecked():
-                self.foreground_button.setChecked(False)
-                print("TURN OFF DARK MODE!") 
-            elif self.fringe_scan_button.isChecked():
-                self.foreground_button.setChecked(False)
-                print("CURRENTLY FRINGE SCANNING!")     
-            else:
-                print("SETTING FOREGROUND MODE")
-                self.send_to_server("SC.enableForeground [%s]" %int(self.foreground_button.isChecked()))
-                print(int(self.foreground_button.isChecked()))  
-        else:
-            self.foreground_button.setChecked(False)
             print("CAMERA NOT CONNECTED")        
         return
     
@@ -777,9 +668,7 @@ class ScienceCameraWidget(RawWidget):
                 print("TURN OFF DARK MODE!")  
             else:  
                 if self.fringe_scan_button.isChecked():
-                    self.socket.client.RCVTIMEO = 60000
                     self.send_to_server("SC.enableFringeScan [1]")
-                    self.socket.client.RCVTIMEO = 3000
                     print("Starting Fringe Scanning")                 
                 else:
                     print("Stopping Fringe Scanning")
@@ -794,8 +683,7 @@ class ScienceCameraWidget(RawWidget):
         if self.Connect_button.isChecked():
             if self.fringe_scan_button.isChecked():
                 response = self.socket.send_command("SC.fringeScanStatus")
-                scan_flag = bool(response)
-                if not scan_flag:
+                if not response:
                     self.fringe_scan_button.setChecked(False)
                     print("Fringe scan ended")
                 else:
@@ -805,34 +693,13 @@ class ScienceCameraWidget(RawWidget):
             print("CAMERA NOT CONNECTED")        
         return
 
-    def GD_servo_func(self):
-        if self.Connect_button.isChecked():
-            if self.GD_servo_button.isChecked():
-                self.send_to_server("SC.enableGDservo [1]")
-                print("Beginning Servo Mode")
-            else:
-                self.send_to_server("SC.enableGDservo [0]")
-                print("Beginning Acquisition Mode")
-        else:
-            self.GD_servo_button.setChecked(False)
-            print("CAMERA NOT CONNECTED")
-
-            
 
     def target_baseline_func(self):
         self.send_to_server("SC.setTargetandBaseline")
         return
     
-    def calc_p2vm_func(self):
+    def p2vm_func(self):
         self.send_to_server("SC.calcP2VM")
-        return
-        
-    def read_p2vm_func(self):
-        self.send_to_server("SC.readP2VM")
-        return
-    
-    def purge_p2vm_func(self):
-        self.send_to_server("SC.purge")
         return
 
     def run_camera(self):
@@ -888,18 +755,19 @@ class ScienceCameraWidget(RawWidget):
             self.Camera_button.setText("Start Feed")
             #print("CAMERA NOT CONNECTED")
 
-
+    def GD_plot_func(self):
+        time.sleep(1)
+        self.refresh_GD_func()
+        return
+    
     def refresh_GD_func(self):
-        """
-        self.GD_window.show()
-        self.get_new_GD()
-        """
         if self.Connect_button.isChecked():
             if self.run_button.isChecked():
                 if self.GD_button.isChecked():
                     # Refresh camera
                     self.GD_window.show()
                     self.GD_button.setText("Stop GD plotter")
+                    print("gd")
                     self.get_new_GD()
 
                 else:
@@ -912,40 +780,33 @@ class ScienceCameraWidget(RawWidget):
             self.GD_button.setChecked(False)
             self.GD_button.setText("Start GD plotter")
             #print("CAMERA NOT CONNECTED")
-        
         return
     
-
-    def plot_func(self):
+    def V2_plot_func(self):
         time.sleep(1)
-        self.auto_plot_updater()
-        return
-
-    #Function to update feed at a given rate
-    def auto_plot_updater(self):
-        self.refresh_plot_func()
-        self.refresh_GD_func()
-        self.plottimer.singleShot(self.plot_refresh_time, self.auto_plot_updater)
+        self.refresh_V2_func()
         return
     
-    def refresh_plot_func(self):
+    def refresh_V2_func(self):
         if self.Connect_button.isChecked():
             if self.run_button.isChecked():
-                if self.plot_button.isChecked():
+                if self.V2_button.isChecked():
                     # Refresh camera
-                    self.plot_window.show()
-                    self.plot_button.setText("Stop general plotter")
-                    self.get_new_plot()
+                    self.V2_window.show()
+                    self.V2_button.setText("Stop V2 plotter")
+                    print("v2")
+
+                    self.get_new_v2()
 
                 else:
-                    self.plot_button.setText("Start general plotter")
+                    self.V2_button.setText("Start V2 plotter")
             else:
-                self.plot_button.setChecked(False)
-                self.plot_button.setText("Start general plotter")
+                self.V2_button.setChecked(False)
+                self.V2_button.setText("Start V2 plotter")
                 #print("CAMERA NOT RUNNING")
         else:
-            self.plot_button.setChecked(False)
-            self.plot_button.setText("Start general plotter")
+            self.V2_button.setChecked(False)
+            self.V2_button.setText("Start V2 plotter")
             #print("CAMERA NOT CONNECTED")
         return
 
@@ -953,33 +814,19 @@ class ScienceCameraWidget(RawWidget):
         response = self.socket.send_command("SC.getGDarray")
         data = json.loads(json.loads(response))
         GD_data = np.array(data["GroupDelay"], np.double)
-        #GD_data = np.random.rand(6000)*80
-        GD_data = np.clip(GD_data*self.GD_window.contrast.getValue(), 0, 65535, GD_data)
-        GD_data = GD_data.astype("uint16")
-        GD_data_binned = GD_data[:(GD_data.size // 15) * 15].reshape(-1, 15).mean(axis=1)
+        GD_data = (GD_data*self.GD_scale).astype("uint16")
         temp = np.roll(self.GD_array,1,axis=0)
-        temp[0] = GD_data_binned
+        temp[0] = GD_data
         self.GD_array = temp
-        qimg = QImage(self.GD_array, self.GD_array.shape[0], self.GD_array.shape[1], QImage.Format_Grayscale16)
+        qimg = QImage(self.GD_array, self.GD_array.shape(0), self.GD_array.shape(1), QImage.Format_Grayscale16)
         ##########
         self.GD_window.cam_feed.changePixmap(qimg)
-
         
-    def get_new_plot(self):
-        response = self.socket.send_command(self.plot_window.func)
-        if self.plot_window.func == "SC.getV2array":
-            data = json.loads(json.loads(response))
-            data = np.array(data["V2"], np.double)
-            self.plot_window.y = data
-        else:
-            data = float((response.split(":")[1]).split('"')[0])
-            self.plot_window.x = self.plot_window.x[1:]  # Remove the first y element.
-            self.plot_window.x = np.append(self.plot_window.x, self.plot_window.x[-1] + 1)  # Add a new value 1 higher than the last.
-
-            self.plot_window.y = self.plot_window.y[1:]  # Remove the first
-            self.plot_window.y = np.append(self.plot_window.y,data)
-  
-        self.plot_window.data_line.setData(self.plot_window.x, self.plot_window.y)
+    def get_new_V2(self):
+        response = self.socket.send_command("SC.getV2array")
+        data = json.loads(json.loads(response))
+        V2_data = np.array(data["V2"], np.double)
+        self.V2_window.data_line.setData(self.V2_window.x, V2_data)
 
     def get_new_frame(self):
         #j = random.randint(1, 6)
@@ -987,10 +834,36 @@ class ScienceCameraWidget(RawWidget):
         response = self.socket.send_command("SC.getlatestimage [%s,%s]"%(self.compression_param,self.feed_window.binning_flag))
         data = json.loads(json.loads(response))
         compressed_data = np.array(data["Image"]["data"], dtype=np.uint8)
+        print(len(compressed_data))
         img_data = cv2.imdecode(compressed_data, cv2.IMREAD_UNCHANGED)
-        img_data = np.clip(img_data.astype("float")*self.feed_window.contrast.getValue(), 0, 255, img_data)
-        img_data = img_data.astype("uint8")
         img_data = self.feed_window.image_func(img_data)
         qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Grayscale8)
         ##########
         self.feed_window.cam_feed.changePixmap(qimg)
+
+    def info_click(self):
+        print(self.name)
+        self.ask_for_status()
+
+
+    def command_enter(self):
+        """Parse the LineEdit string and send_to_server
+        """
+        self.send_to_server(str(self.line_edit.text()))
+
+
+    def send_to_server(self, text):
+        """Send a command to the server, dependent on the current tab.
+        """
+        try:
+            response = self.socket.send_command(text)
+        except:
+            response = "*** Connection Error ***"
+        if type(response)==str or type(response)==unicode:
+            self.response_label.append(response)
+        elif type(response)==bool:
+            if response:
+                self.response_label.append("Success!")
+            else:
+                self.response_label.append("Failure!")
+        self.line_edit.setText("SC.")

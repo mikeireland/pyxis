@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
+from client_socket import ClientSocket
 import time
+import random
 import json
 import numpy as np
 import cv2
-from RawWidget import RawWidget
-from sliders import FloatSlider
+
+try:
+    import astropy.io.fits as pyfits
+    FITS_SAVING=True
+except:
+    FITS_SAVING=False
 
 #Import only what we need from PyQt5, or everything from PyQt4. In any case, we'll try
 #to keep this back-compatible. Although this floods the namespace somewhat, everything
@@ -13,9 +19,10 @@ from sliders import FloatSlider
 
 try:
     from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, \
-        QVBoxLayout, QGridLayout, QLabel, QLineEdit
+        QVBoxLayout, QGridLayout, QLabel, QLineEdit, QTextEdit, QProgressBar
     from PyQt5.QtCore import QTimer, QPoint, Qt
-    from PyQt5.QtGui import QPixmap, QImage, QPainter
+    from PyQt5.QtGui import QPixmap, QFont, QImage, QPainter
+    from PyQt5.QtSvg import QSvgWidget
 except:
     print("Please install PyQt5.")
     raise UserWarning
@@ -24,6 +31,7 @@ class FeedLabel(QLabel):
     def __init__(self, img):
         super(FeedLabel, self).__init__()
         self.pixmap = QPixmap(img)
+        self.dims = (100,100)
 
     def paintEvent(self, event):
         size = self.size()
@@ -34,13 +42,29 @@ class FeedLabel(QLabel):
         point.setX((size.width() - scaledPix.width())/2)
         point.setY((size.height() - scaledPix.height())/2)
         painter.drawPixmap(point, scaledPix)
+        grid_spacing = 44
+        x = point.x()
+        y = point.y()
+        width = scaledPix.width()
+        height = scaledPix.height()
+        gridSize_x = grid_spacing*width/self.dims.width()
+        gridSize_y = grid_spacing*height/self.dims.height()
+        while y <= height+point.y():
+            # draw horizontal lines
+            painter.drawLine(point.x(), y, width+point.x(), y)
+            y += gridSize_y
+        while x <= width+point.x():
+            # draw vertical lines
+            painter.drawLine(x, point.y(), x, height+point.y())
+            x += gridSize_x
 
     def changePixmap(self, img):
+        self.dims = img.size()
         self.pixmap = QPixmap(img)
         self.repaint()
 
 class FeedWindow(QWidget):
-    def __init__(self, name, contrast_min, contrast_max):
+    def __init__(self, name):
         super(FeedWindow, self).__init__()
 
         # Label
@@ -50,13 +74,11 @@ class FeedWindow(QWidget):
         self.cam_feed = FeedLabel("assets/camtest1.png")
         self.binning_flag = 0
 
-        mainvbox = QVBoxLayout()
 
         hbox.addWidget(self.cam_feed)
         hbox.addSpacing(50)
 
         vbox = QVBoxLayout()
-        vbox.addStretch()
         hbox2 = QHBoxLayout()
         self.binning_button = QPushButton("Binning", self)
         self.binning_button.setCheckable(True)
@@ -64,7 +86,6 @@ class FeedWindow(QWidget):
         self.binning_button.clicked.connect(self.set_binning)
         hbox2.addWidget(self.binning_button)
         vbox.addLayout(hbox2)
-        vbox.addStretch()
 
 
         hbox2 = QHBoxLayout()
@@ -74,7 +95,7 @@ class FeedWindow(QWidget):
         self.linear_button.clicked.connect(self.set_linear_func)
         hbox2.addWidget(self.linear_button)
         vbox.addLayout(hbox2)
-        vbox.addStretch()
+
         hbox2 = QHBoxLayout()
         self.asinh_button = QPushButton("Asinh Scaling", self)
         self.asinh_button.setCheckable(True)
@@ -82,15 +103,9 @@ class FeedWindow(QWidget):
         self.asinh_button.clicked.connect(self.set_asinh_func)
         hbox2.addWidget(self.asinh_button)
         vbox.addLayout(hbox2)
-        vbox.addStretch()
 
         hbox.addLayout(vbox)
-
-        mainvbox.addLayout(hbox)
-        mainvbox.addSpacing(20)
-        self.contrast = FloatSlider("Contrast", contrast_min, contrast_max, 1.0, mainvbox)
-
-        self.setLayout(mainvbox)
+        self.setLayout(hbox)
         self.image_func = self.linear_func
 
     def set_binning(self):
@@ -121,15 +136,66 @@ class FeedWindow(QWidget):
         return image
 
 
-class BaseFLIRCameraWidget(RawWidget):
+
+
+class temp_cam_widget(QWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
 
-        super(BaseFLIRCameraWidget,self).__init__(config,IP,parent)
+        super(temp_cam_widget,self).__init__(parent)
 
+        self.name = config["name"]
+        self.port = config["port"]
+        self.prefix = config["prefix"]
+        self.socket = ClientSocket(IP=IP, Port=self.port)
         self.feed_refresh_time = int(config["feed_refresh_time"]*1000)
         self.compression_param = config["compression_param"]
-        contrast_min = config["contrast_limits"][0]
-        contrast_max = config["contrast_limits"][1]
+
+        #Layout the common elements
+        vBoxlayout = QVBoxLayout()
+        vBoxlayout.setSpacing(3)
+
+        desc = QLabel('Port: %s    Description: %s'%(config["port"],config["description"]), self)
+        desc.setStyleSheet("font-weight: bold")
+
+        #First, the command entry box
+        lbl1 = QLabel('Command: ', self)
+        self.line_edit = QLineEdit("%s."%self.prefix)
+        self.line_edit.returnPressed.connect(self.command_enter)
+
+        #Next, the info button
+        self.info_button = QPushButton("Refresh", self)
+        self.info_button.clicked.connect(self.info_click)
+
+        hbox2 = QHBoxLayout()
+        vbox1 = QVBoxLayout()
+        vbox2 = QVBoxLayout()
+
+        hbox1 = QHBoxLayout()
+        hbox1.setContentsMargins(0, 0, 0, 0)
+        desc.setFixedHeight(40)
+        #desc.adjustSize()
+        hbox1.addWidget(desc)
+        vBoxlayout.addLayout(hbox1)
+
+        hbox1 = QHBoxLayout()
+        hbox1.addWidget(lbl1)
+        hbox1.addWidget(self.line_edit)
+        hbox1.addWidget(self.info_button)
+        vbox1.addLayout(hbox1)
+
+        #Next, the response box
+        self.response_label = QTextEdit('[No Server Response Yet]', self)
+        self.response_label.setReadOnly(True)
+        self.response_label.setStyleSheet("QTextEdit { background-color : black; }")
+        self.response_label.setFixedHeight(150)
+        vbox1.addWidget(self.response_label)
+
+        self.timeout = 0
+        self.fnum = 0
+
+        bigfont = QFont("Times", 20, QFont.Bold)
+
+        vbox1.addSpacing(20)
 
         hbox4 = QHBoxLayout()
         vbox4 = QVBoxLayout()
@@ -160,6 +226,7 @@ class BaseFLIRCameraWidget(RawWidget):
         hbox3.addWidget(self.xoffset_edit)
         hbox3.addSpacing(20)
         config_grid.addLayout(hbox3,1,0)
+
 
         hbox3 = QHBoxLayout()
         lbl1 = QLabel('Exposure Time: ', self)
@@ -250,9 +317,6 @@ class BaseFLIRCameraWidget(RawWidget):
         vbox4.addLayout(hbox1)
 
         hbox4.addLayout(vbox4)
-        self.mainPanel.addLayout(hbox4)
-
-        ############ SIDE PANEL ####################
 
         hbox3 = QHBoxLayout()
         hbox3.addSpacing(50)
@@ -262,7 +326,7 @@ class BaseFLIRCameraWidget(RawWidget):
         self.Connect_button.clicked.connect(self.connect_camera)
         hbox3.addWidget(self.Connect_button)
         hbox3.addSpacing(50)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
 
         hbox3 = QHBoxLayout()
         self.run_button = QPushButton("Start Camera", self)
@@ -270,7 +334,9 @@ class BaseFLIRCameraWidget(RawWidget):
         self.run_button.setFixedWidth(200)
         self.run_button.clicked.connect(self.run_camera)
         hbox3.addWidget(self.run_button)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
+
+        vbox1.addLayout(hbox4)
 
         #vbox2 things
         hbox3 = QHBoxLayout()
@@ -278,9 +344,9 @@ class BaseFLIRCameraWidget(RawWidget):
         self.Reconfigure_button.setFixedWidth(200)
         self.Reconfigure_button.clicked.connect(self.reconfigure_camera)
         hbox3.addWidget(self.Reconfigure_button)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
 
-        self.feed_window = FeedWindow(self.name, contrast_min, contrast_max)
+        self.feed_window = FeedWindow(self.name)
 
         hbox3 = QHBoxLayout()
         self.Camera_button = QPushButton("Start Feed", self)
@@ -288,17 +354,29 @@ class BaseFLIRCameraWidget(RawWidget):
         self.Camera_button.setFixedWidth(200)
         self.Camera_button.clicked.connect(self.camera_feed)
         hbox3.addWidget(self.Camera_button)
-        self.sidePanel.addLayout(hbox3)
+        vbox2.addLayout(hbox3)
 
+        hbox2.addLayout(vbox1)
+        hbox2.addLayout(vbox2)
+        vBoxlayout.addLayout(hbox2)
+
+        status_layout = QHBoxLayout()
+        self.status_light = 'assets/red.svg'
+        self.status_text = 'Socket Not Connected'
+        self.svgWidget = QSvgWidget(self.status_light)
+        self.svgWidget.setFixedSize(20,20)
+        self.status_label = QLabel(self.status_text, self)
+        status_layout.addWidget(self.svgWidget)
+        status_layout.addWidget(self.status_label)
+
+        vBoxlayout.addLayout(status_layout)
+
+        self.setLayout(vBoxlayout)
         self.feedtimer = QTimer()
         self.ask_for_status()
-        self.get_params()
 
-        
-    def info_click(self):
-        print(self.name)
-        self.ask_for_status()
-        self.get_params()
+    def change_ip(self,IP):
+        self.socket = ClientSocket(IP=IP, Port=self.port)
 
     def ask_for_status(self):
         """Ask for status for the server that applies to the current tab (as we can
@@ -339,7 +417,8 @@ class BaseFLIRCameraWidget(RawWidget):
             self.response_label.append(response)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
-            
+            self.get_params()
+
         else:
             self.response_label.append(response)
             self.status_light = "assets/red.svg"
@@ -370,6 +449,11 @@ class BaseFLIRCameraWidget(RawWidget):
                 self.buffersize_edit.setText(str(response_dict["buffersize"]))
                 self.save_dir_line_edit.setText(str(response_dict["savedir"]))
 
+    #Function to auto update at a given rate
+    def auto_updater(self):
+        self.refresh_camera_feed()
+        self.stimer.singleShot(self.feed_refresh_time, self.auto_updater)
+        return
 
     def connect_camera(self):
 
@@ -440,51 +524,24 @@ class BaseFLIRCameraWidget(RawWidget):
 
     def camera_feed(self):
         time.sleep(1)
-        self.auto_feed_updater()
-        return
-
-    #Function to update feed at a given rate
-    def auto_feed_updater(self):
         self.refresh_camera_feed()
-        self.feedtimer.singleShot(self.feed_refresh_time, self.auto_feed_updater)
         return
 
     def refresh_camera_feed(self):
 
-        if self.Connect_button.isChecked():
-            if self.run_button.isChecked():
-                if self.Camera_button.isChecked():
-                    # Refresh camera
-                    self.feed_window.show()
-                    self.Camera_button.setText("Stop Feed")
+        # Refresh camera
+        self.feed_window.show()
+        self.Camera_button.setText("Stop Feed")
 
-                    self.get_new_frame()
+        self.get_new_frame()
 
-                else:
-                    self.Camera_button.setText("Start Feed")
-            else:
-                self.Camera_button.setChecked(False)
-                self.Camera_button.setText("Start Feed")
-                #print("CAMERA NOT RUNNING")
-        else:
-            self.Camera_button.setChecked(False)
-            self.Camera_button.setText("Start Feed")
-            #print("CAMERA NOT CONNECTED")
 
 
     def get_new_frame(self):
-        #j = random.randint(1, 6)
-        #self.feed_window.cam_feed.changePixmap("assets/camtest%s.png"%j)
-        response = self.socket.send_command("%s.getlatestimage [%s,%s]"%(self.prefix,self.compression_param,self.feed_window.binning_flag))
-        data = json.loads(json.loads(response))
-        compressed_data = np.array(data["Image"]["data"], dtype=np.uint8)
-        img_data = cv2.imdecode(compressed_data, cv2.IMREAD_UNCHANGED)
-        img_data = np.clip(img_data.astype("float")*self.feed_window.contrast.getValue(), 0, 255, img_data)
-        img_data = img_data.astype("uint8")
-        img_data = self.feed_window.image_func(img_data)
-        qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Grayscale8)
-        ##########
-        self.feed_window.cam_feed.changePixmap(qimg)
+        j = random.randint(1, 6)
+        qImg = QImage("assets/camtest%s.png"%j)
+        self.feed_window.cam_feed.changePixmap(qImg)
+
 
     def set_coadd(self):
         if self.coadd_button.isChecked():
@@ -492,3 +549,29 @@ class BaseFLIRCameraWidget(RawWidget):
         else:
             self.coadd_flag = 0
 
+    def info_click(self):
+        print(self.name)
+        self.ask_for_status()
+
+
+    def command_enter(self):
+        """Parse the LineEdit string and send_to_server
+        """
+        self.send_to_server(str(self.line_edit.text()))
+
+
+    def send_to_server(self, text):
+        """Send a command to the server, dependent on the current tab.
+        """
+        try:
+            response = self.socket.send_command(text)
+        except:
+            response = "*** Connection Error ***"
+        if type(response)==str or type(response)==unicode:
+            self.response_label.append(response)
+        elif type(response)==bool:
+            if response:
+                self.response_label.append("Success!")
+            else:
+                self.response_label.append("Failure!")
+        self.line_edit.setText("%s."%self.prefix)

@@ -32,6 +32,7 @@ cam_ID = "20031616"
 [FibreInjection]
 CA_port = "4101"
 IP = "127.0.0.1"
+servo_gain = 0.5
 
     [FibreInjection.Dextra]
     target_x = 594
@@ -46,16 +47,16 @@ IP = "127.0.0.1"
     centre_y = 695
 
     [FibreInjection.CoarseCentroid]
-    interp_size = 5
-    gaussian_radius = 15
-    gaussian_window_size = 300
+    interp_size = 5 #must be odd
+    gaussian_radius = 15 #must be odd
+    gaussian_window_size = 300 #must be even
     WCOG_gain = 1.0
     WCOG_sigma = 4.0
 
     [FibreInjection.FineCentroid]
-    interp_size = 5
-    gaussian_radius = 7
-    gaussian_window_size = 100
-    WCOG_gain = 1
+    interp_size = 5 #must be odd
+    gaussian_radius = 7 #must be odd
+    gaussian_window_size = 100 #must be even
+    WCOG_gain = 1.0
     WCOG_sigma = 4.0
 

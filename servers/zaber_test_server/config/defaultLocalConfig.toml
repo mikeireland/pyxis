@@ -1,12 +1,12 @@
-port = "4203"
+port = "4400"
 IP = "127.0.0.1"
-
+SC_port = "4106"
 
 [testZaberActuator]
-    serial_port = "/dev/ttyS2"
+    serial_port = "/dev/ttyUSB0"
     device_number = 1
     home_speed = 1000 #um/s
-    target_speed = 1000 #um/s
+    target_speed = 500 #um/s
     microstep_resolution = 128
     device_mode = [11]
     #Device Mode values (add value to table to set mode (https://www.zaber.com/w/Manuals/T-NA)):

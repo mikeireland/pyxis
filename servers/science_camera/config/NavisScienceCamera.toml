@@ -28,14 +28,17 @@ IP = "192.168.1.3"#"192.168.1.4"
 
 [ScienceCamera]
 IP = "192.168.1.3"
-CA_port = "4100"
-TS_port = "4100"
+CA_port = "4101"
+TS_port = "4203"
 tracking_period = 100
 scanning_period = 500
-xref = 
-yref = 
-numDelays = 1000
-delaySize = 1
+xref = 48
+yref = 40
+numDelays = 6000
+delaySize = 0.01
 SNRThreshold = 10
-signs = [1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0]
-wave_offsets = [0,-1,-2,-3,-4,-5]
+wave_offsets = [0,0,0,0,0,0]
+    
+    [ScienceCamera.FringeScanning]
+    window_size = 20 #Number of frames to FFT over
+    signal_width = 2 #How wide should the "signal" be in wavenumber steps
