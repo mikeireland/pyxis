@@ -16,7 +16,9 @@ SerialPort::SerialPort(int device_id_target) {
 
     //ID the opened teensy
     Request(ID);
-	PacketManager();
+    SendAllRequests();
+    usleep(1500);
+    ReadMessage();
 	printf("Device ID: %u\n",device_id_);
 	printf("Device Firmware Version: %u\n",device_firmware_v_);
 
@@ -27,7 +29,9 @@ SerialPort::SerialPort(int device_id_target) {
 		teensy_ = -1;
 		OpenPort();
 		Request(ID);
-		PacketManager();
+		SendAllRequests();
+        usleep(1500);
+        ReadMessage();
 		printf("Device ID: %u\n",device_id_);
 		printf("Device Firmware Version: %u\n",device_firmware_v_);
 	}
@@ -41,14 +45,16 @@ SerialPort::SerialPort(int device_id_target) {
 		teensy_ = -1;
 		OpenPort();
 		Request(ID);
-		PacketManager();
+		SendAllRequests();
+        usleep(1500);
+        ReadMessage();
 		printf("Device ID: %u\n",device_id_);
 		printf("Device Firmware Version: %u\n",device_firmware_v_);
 	}
 	init = false;
-	serial_read_thread = std::thread(&SerialPort::ReadMessageAsync, this);
-    sch_params.sched_priority = 97;
-    pthread_setschedparam(serial_read_thread.native_handle(), SCHED_RR, &sch_params);
+	//serial_read_thread = std::thread(&SerialPort::ReadMessageAsync, this);
+    //sch_params.sched_priority = 97;
+    //pthread_setschedparam(serial_read_thread.native_handle(), SCHED_RR, &sch_params);
 }
 
 void SerialPort::OpenPort() {
@@ -134,7 +140,6 @@ void SerialPort::OpenPort() {
 //Closes the communication with the teensy
 void SerialPort::ClosePort() {
     init = true;
-    serial_read_thread.join();
     sleep(1);
     close(teensy_);
     printf("Comms Closed\n");
