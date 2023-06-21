@@ -293,7 +293,10 @@ class ScienceCameraWidget(RawWidget):
         self.plot_refresh_time = int(config["plot_refresh_time"]*1000)
         self.compression_param = config["compression_param"]
 
-        self.GD_array = np.zeros((config["GD_window_size"],config["GD_window_size"]),dtype="uint16")
+        window_size = config["GD_window_size"]
+        num_delays = config["num_delays"]
+        self.GD_array = np.zeros((window_size,window_size),dtype="uint16")
+        self.bin_param = num_delays//window_size
         grid_spacing = config["grid_spacing"]
         contrast_min = config["contrast_limits"][0]
         contrast_max = config["contrast_limits"][1]
@@ -449,7 +452,7 @@ class ScienceCameraWidget(RawWidget):
         self.foreground_button.clicked.connect(self.foreground_func)
         SC_button_grid.addWidget(self.foreground_button,0,3)
 
-        self.target_baseline_button = QPushButton("Target/Baseline Calc", self)
+        self.target_baseline_button = QPushButton("Target/Baseline", self)
         self.target_baseline_button.setFixedWidth(150)
         self.target_baseline_button.clicked.connect(self.target_baseline_func)
         SC_button_grid.addWidget(self.target_baseline_button,0,4)
@@ -469,7 +472,7 @@ class ScienceCameraWidget(RawWidget):
         self.purge_p2vm_button.clicked.connect(self.purge_p2vm_func)
         SC_button_grid.addWidget(self.purge_p2vm_button,1,2)
 
-        self.fringe_scan_button = QPushButton("Start Fringe Scan", self)
+        self.fringe_scan_button = QPushButton("Fringe Scan", self)
         self.fringe_scan_button.setCheckable(True)
         self.fringe_scan_button.setFixedWidth(150)
         self.fringe_scan_button.clicked.connect(self.fringe_scan_func)
@@ -567,22 +570,27 @@ class ScienceCameraWidget(RawWidget):
                 self.Connect_button.setChecked(False)
                 self.Connect_button.setText("Connect")
                 self.run_button.setChecked(False)
+                self.run_button.setText("Start Camera")
             elif response == '"Camera Connecting"':
                 self.Connect_button.setChecked(True)
                 self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
+                self.run_button.setText("Start Camera")
             elif response == '"Camera Reconfiguring"':
                 self.Connect_button.setChecked(True)
                 self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
+                self.run_button.setText("Start Camera")
             elif response == '"Camera Stopping"':
                 self.Connect_button.setChecked(True)
                 self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
+                self.run_button.setText("Start Camera")
             elif response == '"Camera Waiting"':
                 self.Connect_button.setChecked(True)
                 self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
+                self.run_button.setText("Start Camera")
             else:
                 self.Connect_button.setChecked(True)
                 self.Connect_button.setText("Disconnect")
@@ -775,6 +783,9 @@ class ScienceCameraWidget(RawWidget):
             elif self.darks_button.isChecked():
                 self.fringe_scan_button.setChecked(False)
                 print("TURN OFF DARK MODE!")  
+            elif self.foreground_button.isChecked():
+                self.fringe_scan_button.setChecked(False)
+                print("TURN OFF FOREGROUND MODE!")  
             else:  
                 if self.fringe_scan_button.isChecked():
                     self.socket.client.RCVTIMEO = 60000
@@ -794,8 +805,7 @@ class ScienceCameraWidget(RawWidget):
         if self.Connect_button.isChecked():
             if self.fringe_scan_button.isChecked():
                 response = self.socket.send_command("SC.fringeScanStatus")
-                scan_flag = bool(response)
-                if not scan_flag:
+                if response == "false":
                     self.fringe_scan_button.setChecked(False)
                     print("Fringe scan ended")
                 else:
@@ -956,7 +966,7 @@ class ScienceCameraWidget(RawWidget):
         #GD_data = np.random.rand(6000)*80
         GD_data = np.clip(GD_data*self.GD_window.contrast.getValue(), 0, 65535, GD_data)
         GD_data = GD_data.astype("uint16")
-        GD_data_binned = GD_data[:(GD_data.size // 15) * 15].reshape(-1, 15).mean(axis=1)
+        GD_data_binned = GD_data[:(GD_data.size // self.bin_param) * self.bin_param].reshape(-1, self.bin_param).mean(axis=1)
         temp = np.roll(self.GD_array,1,axis=0)
         temp[0] = GD_data_binned
         self.GD_array = temp

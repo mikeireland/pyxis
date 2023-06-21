@@ -40,6 +40,7 @@ commander::client::Socket* TS_SOCKET;
 
 int GLOB_SC_DARK_FLAG=0;
 int GLOB_SC_FLUX_FLAG=0;
+int GLOB_SC_FOREGROUND_FLAG=0;
 int GLOB_SC_SCAN_FLAG=0;
 int GLOB_SC_SERVO_FLAG =0;
 int GLOB_SC_NEXT_SCAN_FLAG=0;
@@ -55,7 +56,7 @@ int GLOB_SC_REACQ_STAGE = 0;
 int GLOB_SC_REACQ_CUR_STEP;
 int GLOB_SC_REACQ_PRE_STEP = 0;
 int GLOB_SC_REACQ_STEPSIZE;
-double GLOB_SC_REAQC_THRESHOLD;
+double GLOB_SC_REACQ_THRESHOLD;
 
 std::chrono::time_point<std::chrono::system_clock> GLOB_SC_PREVIOUS = std::chrono::system_clock::now();
 // Return 1 if error!
@@ -115,8 +116,13 @@ int GroupDelayCallback (unsigned short* data){
         }
     }  else if (GLOB_SC_STAGE == 5){
         ret_val = calcGroupDelay(data);
+        if (GLOB_SC_PRINT_COUNTER > 20){
+            cout << "GD: " << GLOB_SC_GD << endl;
+            cout << "V2SNR: " << GLOB_SC_V2SNR << endl;
+            cout << "V2SNR2: " << GLOB_SC_V2SNR2 << endl;
+        }
         if (GLOB_SC_SCAN_FLAG){
-            if (GLOB_SC_V2SNR > GLOB_SC_V2SNR_THRESHOLD){
+            if (GLOB_SC_V2SNR2 > GLOB_SC_V2SNR_THRESHOLD){
                 pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                 GLOB_SC_SCAN_FLAG = 0;
                 pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
@@ -126,17 +132,20 @@ int GroupDelayCallback (unsigned short* data){
                 return 1;
             }
         } else if (GLOB_SC_SERVO_FLAG){
-            if (GLOB_SC_V2SNR2 > GLOB_SC_REAQC_THRESHOLD){
+            if (GLOB_SC_V2SNR2 > GLOB_SC_REACQ_THRESHOLD){
                 /////////////////// REACQUISITION /////////////////////////
                 if (GLOB_SC_REACQ_FLAG){
                     if (GLOB_SC_V2SNR2 > GLOB_SC_V2SNR_THRESHOLD){
+                        std::cout << "Ending Reacq" << std::endl;
                         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                         GLOB_SC_REACQ_FLAG = 0;
                         GLOB_SC_REACQ_STAGE = 0;
                         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
                     } else {
                         GLOB_SC_REACQ_CUR_STEP = CA_SOCKET->send<int32_t>("CA.SDCpos"); // Get position
-                        if (GLOB_SC_REACQ_CUR_STEP == GLOB_SC_REACQ_PRE_STEP){
+                        int32_t dest_step = GLOB_SC_REACQ_PRE_STEP + (2*(GLOB_SC_REACQ_STAGE%2)-1)*(GLOB_SC_REACQ_STAGE+1)*GLOB_SC_REACQ_STEPSIZE;
+                        std::cout << dest_step << std::endl;
+                        if (abs(GLOB_SC_REACQ_CUR_STEP - dest_step) < 10){
                             pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                             GLOB_SC_REACQ_STAGE += 1;
                             pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
@@ -144,30 +153,35 @@ int GroupDelayCallback (unsigned short* data){
                                 // Move N steps forward
                                 int32_t num_steps = static_cast<int32_t>((GLOB_SC_REACQ_STAGE+1)*GLOB_SC_REACQ_STEPSIZE);
                                 std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, 100);
-                                cout << result << endl;
                             } else {
                                 // Scan N steps backwards
                                 int32_t num_steps = static_cast<int32_t>(-(GLOB_SC_REACQ_STAGE+1)*GLOB_SC_REACQ_STEPSIZE);
-                                std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, GLOB_SC_SCAN_PERIOD);
-                                cout << result << endl;                            
+                                std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, GLOB_SC_SCAN_PERIOD);                     
                             }
+                            pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+                            GLOB_SC_REACQ_PRE_STEP = GLOB_SC_REACQ_CUR_STEP;
+                            pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
                         }
-                        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-                        GLOB_SC_REACQ_PRE_STEP = GLOB_SC_REACQ_CUR_STEP;
-                        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                        
                     }
                  /////////////////// END REACQUISITION /////////////////////////
-                } else {     
+                } else {  
+                    
                     int32_t num_steps = static_cast<int32_t>(GLOB_SC_GAIN*GLOB_SC_GD*50); //
                     std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, GLOB_SC_TRACK_PERIOD);
-                    cout << result << endl;
+                    std::ofstream myfile;
+                    myfile.open ("GD_servo_data.txt",std::ios_base::app);
+                    myfile << GLOB_SC_GD << "," << num_steps << "\n";
+                    myfile.close();
                 }
                 
-            } else if (GLOB_SC_V2SNR2 < GLOB_SC_REAQC_THRESHOLD){
+            } else if (GLOB_SC_V2SNR2 <= GLOB_SC_REACQ_THRESHOLD){
                 /////////////////// REACQUISITION /////////////////////////
                 if (GLOB_SC_REACQ_FLAG){
                     GLOB_SC_REACQ_CUR_STEP = CA_SOCKET->send<int32_t>("CA.SDCpos"); // Get position
-                    if (GLOB_SC_REACQ_CUR_STEP == GLOB_SC_REACQ_PRE_STEP){
+                    int32_t dest_step = GLOB_SC_REACQ_PRE_STEP + (2*(GLOB_SC_REACQ_STAGE%2)-1)*(GLOB_SC_REACQ_STAGE+1)*GLOB_SC_REACQ_STEPSIZE;
+                    std::cout << dest_step << std::endl;
+                    if (abs(GLOB_SC_REACQ_CUR_STEP - dest_step) < 10){
                         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                         GLOB_SC_REACQ_STAGE += 1;
                         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
@@ -175,21 +189,21 @@ int GroupDelayCallback (unsigned short* data){
                             // Move N steps forward
                             int32_t num_steps = static_cast<int32_t>((GLOB_SC_REACQ_STAGE+1)*GLOB_SC_REACQ_STEPSIZE);
                             std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, 100);
-                            cout << result << endl;
                         } else {
                             // Scan N steps backwards
                             int32_t num_steps = static_cast<int32_t>(-(GLOB_SC_REACQ_STAGE+1)*GLOB_SC_REACQ_STEPSIZE);
-                            std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, GLOB_SC_SCAN_PERIOD);
-                            cout << result << endl;                            
+                            std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, GLOB_SC_SCAN_PERIOD);              
                         }
+                        GLOB_SC_REACQ_PRE_STEP = GLOB_SC_REACQ_CUR_STEP;
                     }
-                    pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
-                    GLOB_SC_REACQ_PRE_STEP = GLOB_SC_REACQ_CUR_STEP;
-                    pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+
                 } else{
+                    std::cout << "Starting Reacq" << std::endl;   
+                    GLOB_SC_REACQ_CUR_STEP = CA_SOCKET->send<int32_t>("CA.SDCpos"); // Get position
                     pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                     GLOB_SC_REACQ_FLAG = 1;
                     GLOB_SC_REACQ_STAGE = 0;
+                    GLOB_SC_REACQ_PRE_STEP = GLOB_SC_REACQ_CUR_STEP;
                     pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
                     // Move N steps forward
                     int32_t num_steps = static_cast<int32_t>((GLOB_SC_REACQ_STAGE+1)*GLOB_SC_REACQ_STEPSIZE);
@@ -199,18 +213,9 @@ int GroupDelayCallback (unsigned short* data){
                 /////////////////// END REACQUISITION /////////////////////////
 
             }
-            
-            std::ofstream myfile;
-            myfile.open ("GD_plot.txt",std::ios_base::app);
-            myfile << GLOB_SC_GD << "," << num_steps << ",";
-            myfile.close();
+           
         }
    
-        if (GLOB_SC_PRINT_COUNTER > 20){
-            cout << "GD: " << GLOB_SC_GD << endl;
-            cout << "V2SNR: " << GLOB_SC_V2SNR << endl;
-            cout << "V2SNR2: " << GLOB_SC_V2SNR2 << endl;
-        }
 
         //TO FILE
     } else {
@@ -396,8 +401,8 @@ struct SciCam: QHYCameraServer{
     string enableFringeScan(int flag){
         string ret_msg;
         if(GLOB_CAM_STATUS == 2){
-            if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0 and GLOB_RUNNING == 0){
-                if (GLOB_SC_STAGE > 3){
+            if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
+                if (GLOB_SC_STAGE > 4){
                     if (flag == 1){
                         ret_msg = "Enabling Fringe Scanning";
                         cout << ret_msg << endl;
@@ -447,6 +452,8 @@ struct SciCam: QHYCameraServer{
                     ret_msg = "Please save Flux Sinistra first";
                 } else if (GLOB_SC_STAGE == 3){
                     ret_msg = "Please make P2VM matrices first";
+                } else if (GLOB_SC_STAGE == 4){
+                    ret_msg = "Please save foreground first";
                 }
             }else{
                 ret_msg = "Camera Busy!";

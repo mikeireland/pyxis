@@ -84,7 +84,7 @@ int calcFringeEnvelope(unsigned short* data, Eigen::MatrixXcd& fringe_envelope) 
 
     //GLOB_SC_V2SNR = SNR.norm();
     fringe_envelope = GLOB_SC_DELAYMAT*g;
-    return 0
+    return 0;
 }
 
 int calcForeground(unsigned short* data){
@@ -113,7 +113,7 @@ int calcGroupDelay(unsigned short* data){
     double noise = sqrt(noise_med_real*noise_med_real + noise_med_im*noise_med_im);
 
     // Fourier transform sampling by multiplying by trial delay matrix
-    Eigen::MatrixXcd delay_current_amp = fringe_envelope.cwiseAbs2().real() - GLOB_SC_DELAY_FOREGROUND_AMP;
+    Eigen::MatrixXd delay_current_amp = fringe_envelope.cwiseAbs2().real() - GLOB_SC_DELAY_FOREGROUND_AMP;
     
     //Moving average/fading memory
     if (not GLOB_SC_WINDOW_INDEX){
@@ -127,7 +127,7 @@ int calcGroupDelay(unsigned short* data){
     Eigen::Index maxRow, maxCol;
     double maxAmp = GLOB_SC_DELAY_AVE.maxCoeff(&maxRow,&maxCol);
     
-    GLOB_SC_V2SNR2 = maxAmp/noise;
+    GLOB_SC_V2SNR2 = abs(maxAmp)/noise;
 
     GLOB_SC_GD = delays(maxRow,maxCol).real();
 

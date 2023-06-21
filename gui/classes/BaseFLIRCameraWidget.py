@@ -314,22 +314,27 @@ class BaseFLIRCameraWidget(RawWidget):
                 self.Connect_button.setChecked(False)
                 self.Connect_button.setText("Connect")
                 self.run_button.setChecked(False)
+                self.run_button.setText("Start Camera")
             elif response == '"Camera Connecting"':
                 self.Connect_button.setChecked(True)
                 self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
+                self.run_button.setText("Start Camera")
             elif response == '"Camera Reconfiguring"':
                 self.Connect_button.setChecked(True)
                 self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
+                self.run_button.setText("Start Camera")
             elif response == '"Camera Stopping"':
                 self.Connect_button.setChecked(True)
                 self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
+                self.run_button.setText("Start Camera")
             elif response == '"Camera Waiting"':
                 self.Connect_button.setChecked(True)
                 self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
+                self.run_button.setText("Start Camera")
             else:
                 self.Connect_button.setChecked(True)
                 self.Connect_button.setText("Disconnect")
