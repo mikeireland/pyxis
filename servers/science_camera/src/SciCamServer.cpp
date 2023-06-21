@@ -119,10 +119,9 @@ int GroupDelayCallback (unsigned short* data){
         if (GLOB_SC_PRINT_COUNTER > 20){
             cout << "GD: " << GLOB_SC_GD << endl;
             cout << "V2SNR: " << GLOB_SC_V2SNR << endl;
-            cout << "V2SNR2: " << GLOB_SC_V2SNR2 << endl;
         }
         if (GLOB_SC_SCAN_FLAG){
-            if (GLOB_SC_V2SNR2 > GLOB_SC_V2SNR_THRESHOLD){
+            if (GLOB_SC_V2SNR > GLOB_SC_V2SNR_THRESHOLD){
                 pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                 GLOB_SC_SCAN_FLAG = 0;
                 pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
@@ -132,10 +131,10 @@ int GroupDelayCallback (unsigned short* data){
                 return 1;
             }
         } else if (GLOB_SC_SERVO_FLAG){
-            if (GLOB_SC_V2SNR2 > GLOB_SC_REACQ_THRESHOLD){
+            if (GLOB_SC_V2SNR > GLOB_SC_REACQ_THRESHOLD){
                 /////////////////// REACQUISITION /////////////////////////
                 if (GLOB_SC_REACQ_FLAG){
-                    if (GLOB_SC_V2SNR2 > GLOB_SC_V2SNR_THRESHOLD){
+                    if (GLOB_SC_V2SNR > GLOB_SC_V2SNR_THRESHOLD){
                         std::cout << "Ending Reacq" << std::endl;
                         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                         GLOB_SC_REACQ_FLAG = 0;
@@ -175,7 +174,7 @@ int GroupDelayCallback (unsigned short* data){
                     myfile.close();
                 }
                 
-            } else if (GLOB_SC_V2SNR2 <= GLOB_SC_REACQ_THRESHOLD){
+            } else if (GLOB_SC_V2SNR <= GLOB_SC_REACQ_THRESHOLD){
                 /////////////////// REACQUISITION /////////////////////////
                 if (GLOB_SC_REACQ_FLAG){
                     GLOB_SC_REACQ_CUR_STEP = CA_SOCKET->send<int32_t>("CA.SDCpos"); // Get position
@@ -491,7 +490,6 @@ struct SciCam: QHYCameraServer{
                 GLOB_SC_WINDOW_INDEX = 0;
                 GLOB_SC_GD = 0.0;
                 GLOB_SC_V2SNR = 0.0;
-                GLOB_SC_V2SNR2 = 0.0;
                 GLOB_SC_DARK_VAL = 0.0;
                 GLOB_SC_TOTAL_FLUX = 0.0;
 

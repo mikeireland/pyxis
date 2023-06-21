@@ -15,7 +15,6 @@ extern int GLOB_SC_WINDOW_INDEX;
 extern double GLOB_SC_WINDOW_ALPHA;
 extern double GLOB_SC_GD;
 extern double GLOB_SC_V2SNR;
-extern double GLOB_SC_V2SNR2;
 
 
 int calcTrialDelayMat(int numDelays, double delaySize);

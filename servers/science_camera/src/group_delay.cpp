@@ -17,7 +17,6 @@ double GLOB_SC_WINDOW_ALPHA = 1.0;
 
 double GLOB_SC_GD = 0.0;
 double GLOB_SC_V2SNR = 0.0;
-double GLOB_SC_V2SNR2 = 0.0;
 
 Eigen::ArrayXcd delays;
 
@@ -127,7 +126,7 @@ int calcGroupDelay(unsigned short* data){
     Eigen::Index maxRow, maxCol;
     double maxAmp = GLOB_SC_DELAY_AVE.maxCoeff(&maxRow,&maxCol);
     
-    GLOB_SC_V2SNR2 = abs(maxAmp)/noise;
+    GLOB_SC_V2SNR = abs(maxAmp)/noise;
 
     GLOB_SC_GD = delays(maxRow,maxCol).real();
 
