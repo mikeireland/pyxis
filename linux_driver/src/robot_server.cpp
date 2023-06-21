@@ -150,16 +150,18 @@ void unambig(RobotDriver *driver) {
 	}
 }
 
+
+
 void translate(RobotDriver *driver) {
 	Servo::Doubles velocity_target;
 	Servo::Doubles angle_target;
-	double elevation_target = el;
+	double elevation_target = 0.0000048481*el;
 	velocity_target.x = 0.001*velocity*x;
 	velocity_target.y = 0.001*velocity*y;
 	velocity_target.z = 0.001*velocity*z;
 	angle_target.x = 0.001*roll;
 	angle_target.y = 0.001*pitch;
-	angle_target.z = 0.001*yaw;
+	angle_target.z = 0.0000014302*yaw;
 	
 	driver->SetNewStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
@@ -178,9 +180,10 @@ void translate(RobotDriver *driver) {
 			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, elevation_target);
 			//driver->WriteLevellerStateToFileAlt(f, velocity_target);
 			driver->teensy_port.SendAllRequests();
-			cout << global_timepoint << '\n';
+		//	driver->LogSteps(global_timepoint, filename, f);
+
 		}
-		last_stabiliser_timepoint += 1000;
+		last_stabiliser_timepoint = global_timepoint;
 	}
 }
 
@@ -225,7 +228,7 @@ void track(RobotDriver *driver) {
 		//	driver->LogSteps(global_timepoint, filename, f);
 
 		}
-		last_stabiliser_timepoint += 1000;
+		last_stabiliser_timepoint = global_timepoint;
 	}
 }
 
@@ -270,12 +273,11 @@ void level(RobotDriver *driver) {
 
     if (driver->leveller.enable_flag_) {
         if (global_timepoint-last_leveller_subtimepoint > 1000) {
-            if (global_timepoint-last_leveller_timepoint > 10000) {
-                driver->LevellerLoop();
-                last_leveller_timepoint = global_timepoint;
-            }
-            driver->LevellerSubLoop();
-            last_leveller_subtimepoint = global_timepoint;
+            driver->teensy_port.ReadMessage();
+            driver->RequestAccelerations();
+	        driver->PassAccelBytesToLeveller();
+	        driver->leveller.UpdateTarget();
+	        driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, el);
         }
     }
     else {
@@ -336,8 +338,7 @@ int robot_loop() {
 				unambig(driver);
 				break;
 			case 4:
-				stop(driver);
-				closed_loop_enable_flag = false;
+				translate(driver);
 				break;
 			case 5:
 				level(driver);
@@ -345,9 +346,12 @@ int robot_loop() {
 			case 6:
 				track(driver);
 				break;
+			case 7:
+			    cout << "disconnecting\n";
+			    translate(driver);
+			    closed_loop_enable_flag = false;
 			default:
-				stop(driver);
-				closed_loop_enable_flag = false;
+			    usleep(10);
 				break;
 		}
 		time_point_current = steady_clock::now();
@@ -365,16 +369,23 @@ int start_robot_loop() {
     GLOBAL_STATUS_CHANGED = true;
     cout << "fine";
     robot_controller_thread = std::thread(robot_loop);
-    sch_params.sched_priority = 98;
+    sch_params.sched_priority = 90;
     pthread_setschedparam(robot_controller_thread.native_handle(), SCHED_RR, &sch_params);
     return 0;
 }
 
 
 int stop_robot_loop() {
+    velocity = 0;
+    x = 0;
+    y = 0;
+    z = 0;
+    roll = 0;
+    yaw = 0;
+    pitch = 0;
+    el = 0;
     GLOBAL_SERVER_STATUS = 4;
     GLOBAL_STATUS_CHANGED = true;
-    robot_controller_thread.join();
     return 0;
 }
 
@@ -437,6 +448,23 @@ void track_robot(double vel, double x_val, double y_val, double z_val, double ro
     GLOBAL_SERVER_STATUS = 6;
 }
 
+int disconnect() {
+    velocity = 0;
+    x = 0;
+    y = 0;
+    z = 0;
+    roll = 0;
+    yaw = 0;
+    pitch = 0;
+    el = 0;
+    ygain = 0;
+	egain = 0;
+    GLOBAL_SERVER_STATUS = 7;
+    GLOBAL_STATUS_CHANGED = true;
+    robot_controller_thread.join();
+    return 0;
+}
+
 COMMANDER_REGISTER(m)
 {
     // You can register a function or any other callable object as
@@ -451,4 +479,5 @@ COMMANDER_REGISTER(m)
     m.def("receive_ST_angles", receive_ST_angles, "placeholder");
     m.def("track", track_robot, "placeholder");
     m.def("set_gains", set_gains, "placeholder");
+    m.def("disconnect", disconnect, "placeholder");
 }

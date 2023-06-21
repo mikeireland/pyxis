@@ -16,7 +16,7 @@ using std::chrono::milliseconds;
 
 using namespace std;
 
-Comms::SerialPort teensy_port(128);
+Comms::SerialPort teensy_port(127);
 
 struct powerStatus{
     double PC_V;
@@ -60,7 +60,6 @@ struct DeputyAuxServer {
 	    usleep(150);
 	    teensy_port.ReadMessage();
 	    ret_msg = !teensy_port.ledOn;
-	    teensy_port.ledOn = false;
 	    return ret_msg;
     }
 

@@ -266,12 +266,10 @@ void RobotDriver::EngageLeveller() {
 
 void RobotDriver::LevellerLoop() {
 	RequestAccelerations();
-	teensy_port.PacketManager();
-
 	PassAccelBytesToLeveller();
 	leveller.UpdateTarget();
 	UpdateActuatorVelocity(leveller.actuator_velocity_target_);
-	WriteLevellerStateToFile();
+	teensy_port.SendAllRequests();
 }
 
 void RobotDriver::LevellerSubLoop() {
@@ -399,7 +397,9 @@ void RobotDriver::EngageStabiliser() {
 	for(int i = 0; i < 10000; i++) {
 		RequestAccelerations();
 		RequestStepCounts();
-		teensy_port.PacketManager();
+		teensy_port.SendAllRequests();
+        usleep(1500);
+        teensy_port.ReadMessage();
 
 		stabiliser.acc0_ground_state_measurement_.x += 0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.x[0],teensy_port.accelerometer0_in_.x[1]);
 		stabiliser.acc0_ground_state_measurement_.y += 0.0001*AccelerationBytesToPhysicalDouble(teensy_port.accelerometer0_in_.y[0],teensy_port.accelerometer0_in_.y[1]);
