@@ -27,11 +27,19 @@ class FICameraWidget(BaseFLIRCameraWidget):
         self.sidePanel.addLayout(hbox3)
         
         hbox3 = QHBoxLayout()
-        self.state_button = QPushButton("Set Tip/Tilt Mode", self)
-        self.state_button.setCheckable(True)
-        self.state_button.setFixedWidth(200)
-        self.state_button.clicked.connect(self.switch_state_button_func)
-        hbox3.addWidget(self.state_button)
+        self.DextraTT_button = QPushButton("Dextra T/T", self)
+        self.DextraTT_button.setCheckable(True)
+        self.DextraTT_button.setFixedWidth(200)
+        self.DextraTT_button.clicked.connect(self.switch_state_button_func)
+        hbox3.addWidget(self.DextraTT_button)
+        self.sidePanel.addLayout(hbox3)
+        
+        hbox3 = QHBoxLayout()
+        self.SinistraTT_button = QPushButton("Sinistra T/T", self)
+        self.SinistraTT_button.setCheckable(True)
+        self.SinistraTT_button.setFixedWidth(200)
+        self.SinistraTT_button.clicked.connect(self.switch_state_button_func)
+        hbox3.addWidget(self.SinistraTT_button)
         self.sidePanel.addLayout(hbox3)
 
 
@@ -48,8 +56,8 @@ class FICameraWidget(BaseFLIRCameraWidget):
                 self.run_button.setText("Start Camera")
                 print("Stopping Camera")
                 self.send_to_server("%s.stop"%self.prefix)
-                self.state_button.setChecked(False)
-                self.state_button.setText("Manual Mode")
+                self.DextraTT_button.setChecked(False)
+                self.SinistraTT_button.setChecked(False)
         else:
             self.run_button.setChecked(False)
             print("CAMERA NOT CONNECTED")
@@ -57,20 +65,29 @@ class FICameraWidget(BaseFLIRCameraWidget):
 
     def switch_state_button_func(self):
         if self.Connect_button.isChecked():
-            if self.run_button.isChecked():     
-                if self.state_button.isChecked():
-                    self.state_button.setText("Set Acquisition Mode")
-                    self.send_to_server("FI.enable_tiptiltservo [1]")
-                    print("Beginning Tip/Tilt Servo Mode")
+            if self.run_button.isChecked():  
+                self.socket.client.RCVTIMEO = 60000   
+                if self.DextraTT_button.isChecked():
+                    if self.SinistraTT_button.isChecked():
+                        self.send_to_server("FI.enable_tiptiltservo [3]")
+                        print("Beginning Combined Tip/Tilt Servo Mode")
+                    else:
+                        self.send_to_server("FI.enable_tiptiltservo [1]")
+                        print("Beginning Dextra Tip/Tilt Servo Mode")
+                elif self.SinistraTT_button.isChecked():
+                    self.send_to_server("FI.enable_tiptiltservo [2]")
+                    print("Beginning Sinistra Tip/Tilt Servo Mode")
                 else:
-                    self.state_button.setText("Set Tip/Tilt Mode")
                     self.send_to_server("FI.enable_tiptiltservo [0]")
                     print("Beginning Acquisition Mode")
+                self.socket.client.RCVTIMEO = 3000
             else:
-                self.state_button.setChecked(False)
+                self.DextraTT_button.setChecked(False)
+                self.SinistraTT_button.setChecked(False)
                 print("CAMERA NOT RUNNING")
         else:
-            self.state_button.setChecked(False)
+            self.DextraTT_button.setChecked(False)
+            self.SinistraTT_button.setChecked(False)
             print("CAMERA NOT CONNECTED")
 
     def enable_centroid_loop_button_func(self):

@@ -166,11 +166,18 @@ int GroupDelayCallback (unsigned short* data){
                  /////////////////// END REACQUISITION /////////////////////////
                 } else {  
                     
-                    int32_t num_steps = static_cast<int32_t>(GLOB_SC_GAIN*GLOB_SC_GD*50); //
-                    std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, GLOB_SC_TRACK_PERIOD);
+                    //int32_t num_steps = static_cast<int32_t>(GLOB_SC_GAIN*GLOB_SC_GD*50); //
+                    double sign = copysign(1.0, GLOB_SC_GD);
+                    int32_t num_steps = static_cast<int32_t>(sign*500);
+                    uint16_t period = static_cast<int32_t>(abs(1000*GLOB_SC_GAIN/(GLOB_SC_GD*50)));
+                    if (period < 100){
+                        period = 100;
+                    }
+                    GLOB_SC_REACQ_CUR_STEP = CA_SOCKET->send<int32_t>("CA.SDCpos");
+                    std::string result = CA_SOCKET->send<std::string>("CA.moveSDC", num_steps, period);
                     std::ofstream myfile;
                     myfile.open ("GD_servo_data.txt",std::ios_base::app);
-                    myfile << GLOB_SC_GD << "," << num_steps << "\n";
+                    myfile << GLOB_SC_GD << "," << GLOB_SC_REACQ_CUR_STEP << "\n";
                     myfile.close();
                 }
                 
@@ -411,7 +418,6 @@ struct SciCam: QHYCameraServer{
 
                         // MAY NEED TO WAIT FOR HOME TO COMPLETE
                         std::string result = CA_SOCKET->send<std::string>("CA.homeSDC");
-                        cout << result << endl;
 
                         // Start Camera with no frames
                         pthread_mutex_lock(&GLOB_FLAG_LOCK);
@@ -422,7 +428,6 @@ struct SciCam: QHYCameraServer{
 
                         // Start scan
                         std::string ret_msg = CA_SOCKET->send<std::string>("CA.moveSDC", -400000, GLOB_SC_SCAN_PERIOD);
-                        cout << ret_msg << endl;
 
                         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                         GLOB_SC_SCAN_FLAG = 1;
@@ -436,7 +441,6 @@ struct SciCam: QHYCameraServer{
 
                         // Stop scan
                         std::string ret_msg = CA_SOCKET->send<std::string>("CA.moveSDC", 0, GLOB_SC_SCAN_PERIOD);
-                        cout << ret_msg << endl; 
                         pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                         GLOB_SC_SCAN_FLAG = 0;
                         pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK); 
@@ -467,10 +471,14 @@ struct SciCam: QHYCameraServer{
         string ret_msg;
         if(GLOB_CAM_STATUS == 2){
             if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
-                ret_msg = "Changing GD servo flag to: " + to_string(flag);
                 pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
                 GLOB_SC_SERVO_FLAG = flag;
                 pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+                usleep(1000);
+                if (flag == 0){
+                    std::string ret_msg = CA_SOCKET->send<std::string>("CA.moveSDC", 0, GLOB_SC_SCAN_PERIOD);
+                }
+                ret_msg = "Changing GD servo flag to: " + to_string(flag);
             }else{
                 ret_msg = "Camera Busy!";
             }
@@ -588,6 +596,35 @@ struct SciCam: QHYCameraServer{
         return ret_msg;
     }
     
+    string setGainParams(double gain, double window_alpha){
+        string ret_msg;
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        GLOB_SC_WINDOW_ALPHA = window_alpha;
+        GLOB_SC_GAIN = gain;
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        ret_msg = "Set science gain to " + to_string(gain) + " and fading memory param to " + to_string(window_alpha);
+        return ret_msg;
+    }
+    
+    string setSNRthresholds(double V2SNR_threshold, double reacq_threshold){
+        string ret_msg;
+        pthread_mutex_lock(&GLOB_SC_FLAG_LOCK);
+        GLOB_SC_V2SNR_THRESHOLD = V2SNR_threshold;
+        GLOB_SC_REACQ_THRESHOLD = reacq_threshold;
+        pthread_mutex_unlock(&GLOB_SC_FLAG_LOCK);
+        ret_msg = "Set V2SNR threshold to " + to_string(V2SNR_threshold) + " and reacquisition threshold to " + to_string(reacq_threshold);
+        return ret_msg;
+    }
+    
+    string setRefPixel(int xref, int yref){
+        string ret_msg;
+        setPixelPositions(xref,yref);
+        ret_msg = this->purge();
+        std::cout << ret_msg << std::endl;
+        ret_msg = "Set ref pixel to " + to_string(xref) + ", " + to_string(yref) + "and purged saved arrays";
+        return ret_msg;
+    }
+    
     string nextZaber(){
         string ret_msg;
         json j;
@@ -689,6 +726,9 @@ COMMANDER_REGISTER(m)
         .def("getV2array", &SciCam::getV2array, "Get V2 array per pixel")
         .def("getV2SNRestimate", &SciCam::getV2SNRestimate, "Get V2 SNR estimate")
         .def("setTargetandBaseline", &SciCam::setTargetandBaseline, "Set target and baseline info for FITS")
+        .def("setGains", &SciCam::setGainParams, "Set gain and fading memory parameters")
+        .def("setSNRs", &SciCam::setSNRthresholds, "Set SNR thresholds")
+        .def("setRefPix", &SciCam::setRefPixel, "Set reference pixel position (purges saved arrays)")
         .def("zaberFunc", &SciCam::nextZaber, "Request and get new SNR estimate from fringe scanning")
         .def("setupZaber", &SciCam::setupZaber, "Request and get new SNR estimate from fringe scanning")
         .def("zaberStart", &SciCam::zaberStart, "Request and get new SNR estimate from fringe scanning")

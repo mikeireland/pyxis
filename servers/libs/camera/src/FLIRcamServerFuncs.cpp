@@ -91,7 +91,7 @@ string FLIRCameraServer::reconfigure_all(configuration c){
 
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
     while (GLOB_RECONFIGURE == 1){
-        usleep(1000);
+        usleep(100);
     }
     return ret_msg;
 }
@@ -113,7 +113,7 @@ string FLIRCameraServer::reconfigure_gain(float gain){
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 	
     while (GLOB_RECONFIGURE == 1){
-        usleep(1000);
+        usleep(100);
     }
     return ret_msg;
 }
@@ -130,7 +130,7 @@ string FLIRCameraServer::reconfigure_exptime(float exptime){
     }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
     while (GLOB_RECONFIGURE == 1){
-        usleep(1000);
+        usleep(100);
     }
     return ret_msg;
 }
@@ -147,7 +147,7 @@ string FLIRCameraServer::reconfigure_width(int width){
     }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
     while (GLOB_RECONFIGURE == 1){
-        usleep(1000);
+        usleep(100);
     }
     return ret_msg;
 }
@@ -164,7 +164,7 @@ string FLIRCameraServer::reconfigure_height(int height){
     }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
     while (GLOB_RECONFIGURE == 1){
-        usleep(1000);
+        usleep(100);
     }
     return ret_msg;
 }
@@ -181,7 +181,7 @@ string FLIRCameraServer::reconfigure_offsetX(int offsetX){
     }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
     while (GLOB_RECONFIGURE == 1){
-        usleep(1000);
+        usleep(100);
     }
     return ret_msg;
 }
@@ -198,7 +198,7 @@ string FLIRCameraServer::reconfigure_offsetY(int offsetY){
     }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
     while (GLOB_RECONFIGURE == 1){
-        usleep(1000);
+        usleep(100);
     }
     return ret_msg;
 }
@@ -216,7 +216,7 @@ string FLIRCameraServer::reconfigure_blacklevel(float blacklevel){
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
     
     while (GLOB_RECONFIGURE == 1){
-        usleep(1000);
+        usleep(100);
     }
     return ret_msg;
 }
@@ -229,7 +229,7 @@ string FLIRCameraServer::reconfigure_buffersize(float buffersize){
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 	ret_msg = "Camera Reconfigured Buffer Size";
 	while (GLOB_RECONFIGURE == 1){
-        usleep(1000);
+        usleep(100);
     }
     return ret_msg;
 }

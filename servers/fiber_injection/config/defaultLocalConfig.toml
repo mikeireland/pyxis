@@ -32,7 +32,7 @@ cam_ID = "20031616"
 [FibreInjection]
 CA_port = "4101"
 IP = "127.0.0.1"
-servo_gain = 0.5
+servo_gain = 0.5 #0.5
 
     [FibreInjection.Dextra]
     target_x = 594

@@ -128,7 +128,7 @@ int FibreInjectionCallback (unsigned short* data){
         cv::Point2i OffsetI = cv::Point2i(GLOB_CONFIG_PARAMS.offsetX, GLOB_CONFIG_PARAMS.offsetY);
         
         pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
-        if (GLOB_FI_TIPTILTSERVO_FLAG){  
+        if (GLOB_FI_TIPTILTSERVO_FLAG > 0){  
             temp_settings = GLOB_FI_FINE_SETTINGS;
             DextraCentre = cv::Point2i(GLOB_FI_DEXTRA_CENTROIDS.target_pos.x, GLOB_FI_DEXTRA_CENTROIDS.target_pos.y) - OffsetI;
             SinistraCentre = cv::Point2i(GLOB_FI_SINISTRA_CENTROIDS.target_pos.x, GLOB_FI_SINISTRA_CENTROIDS.target_pos.y) - OffsetI;
@@ -160,18 +160,21 @@ int FibreInjectionCallback (unsigned short* data){
         GLOB_FI_SINISTRA_CENTROIDS.diff_pos.y = GLOB_FI_SINISTRA_CENTROIDS.target_pos.y - SinP.y;
         pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
 
-        if (GLOB_FI_TIPTILTSERVO_FLAG){  
+        if (GLOB_FI_TIPTILTSERVO_FLAG == 3){
             string result = CA_SOCKET->send<string>("CA.receiveRelativeTipTiltPos", GLOB_FI_DEXTRA_CENTROIDS.diff_pos, GLOB_FI_SINISTRA_CENTROIDS.diff_pos, GLOB_FI_SERVO_GAIN);
-            cout << result << endl;
 
-        } else {
-             if (GLOB_FI_SET_TARGET_FLAG){
-                pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
-                GLOB_FI_DEXTRA_CENTROIDS.target_pos = DexP;
-                GLOB_FI_SINISTRA_CENTROIDS.target_pos = SinP;
-                GLOB_FI_SET_TARGET_FLAG = 0;
-                pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
-            }
+        } else if (GLOB_FI_TIPTILTSERVO_FLAG == 1){
+            centroid zero_pos {0.0,0.0};
+            string result = CA_SOCKET->send<string>("CA.receiveRelativeTipTiltPos", GLOB_FI_DEXTRA_CENTROIDS.diff_pos, zero_pos, GLOB_FI_SERVO_GAIN);
+        } else if (GLOB_FI_TIPTILTSERVO_FLAG == 2){
+            centroid zero_pos {0.0,0.0};
+            string result = CA_SOCKET->send<string>("CA.receiveRelativeTipTiltPos", zero_pos, GLOB_FI_SINISTRA_CENTROIDS.diff_pos, GLOB_FI_SERVO_GAIN);
+        } else if (GLOB_FI_SET_TARGET_FLAG){
+            pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
+            GLOB_FI_DEXTRA_CENTROIDS.target_pos = DexP;
+            GLOB_FI_SINISTRA_CENTROIDS.target_pos = SinP;
+            GLOB_FI_SET_TARGET_FLAG = 0;
+            pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
         }
         if (GLOB_FI_PRINT_COUNTER > 10){
             cout << "DcX: " <<  GLOB_FI_DEXTRA_CENTROIDS.current_pos.x << endl;
@@ -346,12 +349,17 @@ struct FiberInjection: FLIRCameraServer{
             if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
                 if (flag == GLOB_FI_TIPTILTSERVO_FLAG){
                     ret_msg = "Flag is already set";
-                } else{
+                } else if (flag > 0 && GLOB_FI_TIPTILTSERVO_FLAG > 0){
+                    pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
+                    GLOB_FI_TIPTILTSERVO_FLAG = flag;
+                    pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
+                    ret_msg = "Changing tip/tilt enable flag to: " + to_string(flag);
+                } else {
                     // First, stop the camera if running
                     ret_msg = this->stopcam();
                     cout << ret_msg << endl;
 
-                    if (flag == 1){
+                    if (flag > 0){
                         // Reconfigure to fine centroiding
                         ROI fineROI = calcROI();
                         this->change_ROI(fineROI);    
@@ -381,7 +389,7 @@ struct FiberInjection: FLIRCameraServer{
         string ret_msg;
         if (GLOB_FI_SET_TARGET_FLAG){
             ret_msg = "Target flag already set";
-        } else if (GLOB_FI_TIPTILTSERVO_FLAG){
+        } else if (GLOB_FI_TIPTILTSERVO_FLAG > 0){
             ret_msg = "Can't set target when tip/tilt servo is running";
         } else {
             pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
@@ -389,6 +397,15 @@ struct FiberInjection: FLIRCameraServer{
             pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
             ret_msg = "Target flag set";
         }
+        return ret_msg;
+    }
+    
+    string setGain(double gain){
+        string ret_msg;
+        pthread_mutex_lock(&GLOB_FI_FLAG_LOCK);
+        GLOB_FI_SERVO_GAIN = gain;
+        pthread_mutex_unlock(&GLOB_FI_FLAG_LOCK);
+        ret_msg = "Set servo gain to " + to_string(gain);
         return ret_msg;
     }
 
@@ -420,6 +437,7 @@ COMMANDER_REGISTER(m)
         .def("get_diff_position", &FiberInjection::getDiffPosition, "Get differential position")
         .def("get_target_position", &FiberInjection::getTargetPosition, "Get target position")
         .def("set_target_position", &FiberInjection::setTargetPosition, "Set target position (when centroid running with corner cubes)")
+        .def("set_gain", &FiberInjection::setGain, "Set servo gain")
         .def("get_current_position", &FiberInjection::getCurrentPosition, "Get current position")
         .def("enable_centroiding", &FiberInjection::enableCentroiding, "Enable centroiding")
         .def("enable_tiptiltservo", &FiberInjection::enableTipTiltServo, "Enable tip/tilt servo loop");
