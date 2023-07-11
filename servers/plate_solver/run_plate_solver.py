@@ -211,7 +211,7 @@ if __name__ == "__main__":
     try:
         context = zmq.Context()
         target_socket = context.socket(zmq.REQ)
-        tcpstring = "tcp://"+IP+":"+config["target_port"]
+        tcpstring = "tcp://"+config["target_IP"]+":"+config["target_port"]
         target_socket.connect(tcpstring)
         target_socket.RCVTIMEO = 1000
         print("Connected to target server, port %s"%config["target_port"])

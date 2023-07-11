@@ -2,8 +2,7 @@ port = "4104"
 IP = "192.168.1.5"
 
 [FLIRcamera]
-#cam_ID = "20031596"
-cam_ID = "20031616"
+cam_ID = "20031596"
 
     [FLIRcamera.camera]
     adc_bit_depth = "Bit10" #"Bit10" is a good default
