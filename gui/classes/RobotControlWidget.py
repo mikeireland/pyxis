@@ -258,30 +258,30 @@ class RobotControlWidget(RawWidget):
 
 
     def level_button_func(self):
-        #self.send_to_server("RC.level")
+        self.send_to_server("RC.level")
         print("Sending 'Level' command")
 
     def stop_button_func(self):
-        #self.send_to_server("RC.translate [0,0,0,0,0,0,0]")
+        self.send_to_server("RC.stop")
         print("Sending 'Stop' command")
         
     def hard_stop_button_func(self):
-        #self.send_to_server("RC.stop")
-        print("Sending 'Hard stop' command")
+        self.send_to_server("RC.disconnect")
+        print("Sending 'Disconnect' command")
         
     def start_button_func(self):
-        #self.send_to_server("RC.start")
+        self.send_to_server("RC.start")
         print("Sending 'Start' command")
 
     def save_file(self):
         filename = str(self.file_line_edit.text())
-        #self.send_to_server("RC.file []%filename")
+        self.send_to_server("RC.file [%s]"%filename)
         print("Sending 'Save' command")        
 
     def move_func(self,axis,velocity):
         command = ["0","0","0","0","0","0","0"]
         command[axis] = str(velocity)
         str_command = ",".join(command)
-        #self.send_to_server("RC.translate [%s]"%str_command)
+        self.send_to_server("RC.translate [%s]"%str_command)
         print("moving %s at %s"%(axis,velocity))
         return

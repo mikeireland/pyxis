@@ -86,7 +86,7 @@ int FST_Callback (unsigned short* data){
         cout << "Sending diff angles" << endl;
 
         cout << diff_angles.x << ", " << diff_angles.y << endl;
-        //std::string result = RB_SOCKET->send<std::string>("receive_ST_angle", diff_angles.x, diff_angles.y, 0.0);
+        //std::string result = RB_SOCKET->send<std::string>("RC.receive_ST_angles", diff_angles.x, diff_angles.y, 0.0);
 
     }
 
