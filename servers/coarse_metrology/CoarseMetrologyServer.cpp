@@ -1,6 +1,7 @@
 
 #include <fmt/core.h>
 #include <iostream>
+#include <fstream>
 #include <commander/commander.h>
 #include <commander/client/socket.h>
 #include "toml.hpp"
