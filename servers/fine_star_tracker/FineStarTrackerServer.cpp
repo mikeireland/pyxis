@@ -46,10 +46,10 @@ namespace nlohmann {
 
 centroid CalcStarPosition(cv::Mat img, int height, int width){
 
-    window = cv::Rect(0, 0, height, width)
+    auto window = cv::Rect(0, 0, height, width);
 
     // Function to take image array and find the star position
-    auto p = centroid_funcs::windowCentroidCOG(img, 7, 10, window)
+    auto p = centroid_funcs::windowCentroidCOG(img, 7, 10, window);
     
     centroid result;
     
