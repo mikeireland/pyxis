@@ -5,6 +5,7 @@
 #include "toml.hpp"
 #include "FLIRcamServerFuncs.h"
 #include <pthread.h>
+#include <fstream>
 #include "globals.h"
 #include "centroid.hpp"
 

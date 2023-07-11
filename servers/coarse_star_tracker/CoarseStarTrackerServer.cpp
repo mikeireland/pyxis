@@ -1,6 +1,7 @@
 
 #include <fmt/core.h>
 #include <iostream>
+#include <fstream>
 #include <commander/commander.h>
 #include "FLIRcamServerFuncs.h"
 
