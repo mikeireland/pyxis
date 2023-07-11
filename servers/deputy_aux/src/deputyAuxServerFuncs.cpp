@@ -92,6 +92,16 @@ struct DeputyAuxServer {
 	    cout << "Motor Voltage (mV): " << PS.motor_V << endl;
 	    cout << "Motor Current (mA): " << PS.motor_A << endl;
     }
+    
+    uint16_t getHeading() {
+        teensy_port.Request(COMPASS);
+	    teensy_port.SendAllRequests();
+	    usleep(150);
+	    teensy_port.ReadMessage();
+	    
+	    return teensy_port.heading;
+    }
+
 
 };
 
@@ -124,6 +134,7 @@ COMMANDER_REGISTER(m)
         // To insterface a class method, you can use the `def` method.
         .def("LEDOn", &DeputyAuxServer::turnLEDOn, "Turn on the LED")
         .def("LEDOff", &DeputyAuxServer::turnLEDOff, "Turn off the LED")
+        .def("heading", &DeputyAuxServer::getHeading, "get the latest heading")
         .def("reqpower", &DeputyAuxServer::requestPower, "Request power values");
 
 }

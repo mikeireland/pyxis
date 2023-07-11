@@ -60,7 +60,7 @@ LEDs CalcLEDPosition(cv::Mat img, cv::Mat dark){
     
     LEDs result;
     result.LED1_x = p.p1.x;
-    result.LED2_y = p.p1.y;
+    result.LED1_y = p.p1.y;
     result.LED2_x = p.p2.x;
     result.LED2_y = p.p2.y;
 

@@ -182,6 +182,10 @@ int SerialPort::ReadMessage() {
                 PC_Current = bytes_to_int16(read_buffer_[i+7], read_buffer_[i+8]);
                 i += 9;
                 break;
+            case COMPASS:
+            	heading = bytes_to_uint16(read_buffer_[i+1], read_buffer_[i+2]);
+                i += 3;
+                break;
             case 0x00:
                 //if(read_buffer_[i+1]==0x00){if(read_buffer_[i+2]==0x00){
                 //    i = 64;//If we have reached three consecutive nulls, end the loop

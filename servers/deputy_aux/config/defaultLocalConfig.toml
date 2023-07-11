@@ -1,6 +1,6 @@
 port = "4201"
 IP = "127.0.0.1"
-mode = "Interactive"
+#mode = "Interactive"
 
 [actuators]
 

@@ -2,14 +2,6 @@
 //firmware needs in order to convert between its several relevant datatypes
 #ifndef DECODE_H_INCLUDE_GUARD
 #define DECODE_H_INCLUDE_GUARD
-#include <stdint.h>
-
-void int32_to_bytes(int32_t input, uint8_t *byte0_ptr, uint8_t *byte1_ptr, uint8_t *byte2_ptr, uint8_t *byte3_ptr); // for steps
-void uint16_to_bytes(uint16_t input, uint8_t *byte0_ptr, uint8_t *byte1_ptr); // for period
-
-int16_t bytes_to_int16(uint8_t byte0, uint8_t byte1);
-uint16_t bytes_to_uint16(uint8_t byte0, uint8_t byte1);
-int32_t bytes_to_int32(uint8_t byte0, uint8_t byte1, uint8_t byte2, uint8_t byte3);
 //Takes in the two bytes representing a the signed integer version of the robot velocity
 //and converts it to to a physical velocity as a double precision float
 double VelocityBytesToPhysicalDouble(unsigned char byte0, unsigned char byte1);

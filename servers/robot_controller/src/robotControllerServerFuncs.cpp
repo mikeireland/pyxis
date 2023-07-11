@@ -52,6 +52,9 @@ double az = 0.0;
 double alt = 0.0;
 double pos = 0.0;
 
+
+double heading = 0.0;
+double h_gain = 0.0;
 double ygain = 0.0;
 double egain = 0.0;
 
@@ -188,11 +191,11 @@ void translate(RobotDriver *driver) {
 }
 
 double saturation(double val) {
-    if (val > 50000.0) {
-        return 50000.0;
+    if (val > 10000.0) {
+        return 10000.0;
     }
-    if (val < -50000.0) {
-        return -50000.0;
+    if (val < -10000.0) {
+        return -10000.0;
     }
     return val;
 }
@@ -206,7 +209,7 @@ void track(RobotDriver *driver) {
 	velocity_target.z = 0.001*velocity*z;
 	angle_target.x = 0.001*roll;
 	angle_target.y = 0.001*pitch;
-	angle_target.z = 0.0000014302*saturation(yaw + ygain*az);
+	angle_target.z = 0.0000014302*saturation(yaw + ygain*az + h_gain*heading);
 	
 	driver->SetNewStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
@@ -364,120 +367,141 @@ int robot_loop() {
     return 0;
 }
 
-int start_robot_loop() {
-    GLOBAL_SERVER_STATUS = 1;
-    GLOBAL_STATUS_CHANGED = true;
-    cout << "fine";
-    robot_controller_thread = std::thread(robot_loop);
-    sch_params.sched_priority = 90;
-    pthread_setschedparam(robot_controller_thread.native_handle(), SCHED_RR, &sch_params);
-    return 0;
-}
+struct RobotControlServer {
+
+    RobotControlServer(){
+        fmt::print("RobotControlServer\n");
+        
+    }
+
+    ~RobotControlServer(){
+        fmt::print("~RobotControlServer\n");
+    }
+
+    int start_robot_loop() {
+        GLOBAL_SERVER_STATUS = 1;
+        GLOBAL_STATUS_CHANGED = true;
+        cout << "fine";
+        robot_controller_thread = std::thread(robot_loop);
+        //sch_params.sched_priority = 90;
+        pthread_setschedparam(robot_controller_thread.native_handle(), SCHED_RR, &sch_params);
+        return 0;
+    }
 
 
-int stop_robot_loop() {
-    velocity = 0;
-    x = 0;
-    y = 0;
-    z = 0;
-    roll = 0;
-    yaw = 0;
-    pitch = 0;
-    el = 0;
-    GLOBAL_SERVER_STATUS = 4;
-    GLOBAL_STATUS_CHANGED = true;
-    return 0;
-}
+    int stop_robot_loop() {
+        velocity = 0;
+        x = 0;
+        y = 0;
+        z = 0;
+        roll = 0;
+        yaw = 0;
+        pitch = 0;
+        el = 0;
+        ygain = 0;
+        egain=0;
+        h_gain = 0;
+        GLOBAL_SERVER_STATUS = 4;
+        GLOBAL_STATUS_CHANGED = true;
+        return 0;
+    }
 
 
-void translate_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val, double el_val) {
-    velocity = vel;
-    x = x_val;
-    y = y_val;
-    z = z_val;
-    roll = roll_val;
-    yaw = yaw_val;
-    pitch = pitch_val;
-    el = el_val;
-    GLOBAL_STATUS_CHANGED = true;
-    GLOBAL_SERVER_STATUS = 2;
-}
+    void translate_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val, double el_val) {
+        velocity = vel;
+        x = x_val;
+        y = y_val;
+        z = z_val;
+        roll = roll_val;
+        yaw = yaw_val;
+        pitch = pitch_val;
+        el = el_val;
+        GLOBAL_STATUS_CHANGED = true;
+        GLOBAL_SERVER_STATUS = 2;
+    }
 
-void resonance_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val) {
-    velocity = vel;
-    x = x_val;
-    y = y_val;
-    z = z_val;
-    roll = roll_val;
-    yaw = yaw_val;
-    pitch = pitch_val;
-    GLOBAL_STATUS_CHANGED = true;
-    GLOBAL_SERVER_STATUS = 3;
-}
+    void resonance_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val) {
+        velocity = vel;
+        x = x_val;
+        y = y_val;
+        z = z_val;
+        roll = roll_val;
+        yaw = yaw_val;
+        pitch = pitch_val;
+        GLOBAL_STATUS_CHANGED = true;
+        GLOBAL_SERVER_STATUS = 3;
+    }
 
-void level_robot() {
-    GLOBAL_STATUS_CHANGED = true;
-    GLOBAL_SERVER_STATUS = 5;
-}
+    void level_robot() {
+        GLOBAL_STATUS_CHANGED = true;
+        GLOBAL_SERVER_STATUS = 5;
+    }
 
-void change_file(string file) {
-    filename = file;
-}
+    void change_file(string file) {
+        filename = file;
+    }
 
-void receive_ST_angles(double azimuth, double altitude, double pos_angle) {
-	az = 206265.0*azimuth;
-	alt = 206265.0*altitude;
-	pos = 206265.0*pos_angle;
-}
+    void receive_ST_angles(double azimuth, double altitude, double pos_angle) {
+	    az = 206265.0*azimuth;
+	    alt = 206265.0*altitude;
+	    pos = 206265.0*pos_angle;
+    }
 
-void set_gains(double y, double e) {
-	ygain = y;
-	egain = e;
-}
+    void set_gains(double y, double e) {
+	    ygain = y;
+	    egain = e;
+    }
+    
+    void set_heading(double h, double gain) {
+        heading = 60*h;
+        h_gain = gain;
+    }
 
-void track_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val, double el_val) {
-    velocity = vel;
-    x = x_val;
-    y = y_val;
-    z = z_val;
-    roll = roll_val;
-    yaw = yaw_val;
-    pitch = pitch_val;
-    el = el_val;
-    GLOBAL_STATUS_CHANGED = true;
-    GLOBAL_SERVER_STATUS = 6;
-}
+    void track_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val, double el_val) {
+        velocity = vel;
+        x = x_val;
+        y = y_val;
+        z = z_val;
+        roll = roll_val;
+        yaw = yaw_val;
+        pitch = pitch_val;
+        el = el_val;
+        GLOBAL_STATUS_CHANGED = true;
+        GLOBAL_SERVER_STATUS = 6;
+    }
 
-int disconnect() {
-    velocity = 0;
-    x = 0;
-    y = 0;
-    z = 0;
-    roll = 0;
-    yaw = 0;
-    pitch = 0;
-    el = 0;
-    ygain = 0;
-	egain = 0;
-    GLOBAL_SERVER_STATUS = 7;
-    GLOBAL_STATUS_CHANGED = true;
-    robot_controller_thread.join();
-    return 0;
-}
+    int disconnect() {
+        velocity = 0;
+        x = 0;
+        y = 0;
+        z = 0;
+        roll = 0;
+        yaw = 0;
+        pitch = 0;
+        el = 0;
+        ygain = 0;
+	    egain = 0;
+        GLOBAL_SERVER_STATUS = 7;
+        GLOBAL_STATUS_CHANGED = true;
+        robot_controller_thread.join();
+        return 0;
+    }
+};
 
 COMMANDER_REGISTER(m)
 {
     // You can register a function or any other callable object as
     // long as the signature is deductible from the type.
-
-    m.def("stop", stop_robot_loop, "A function that stops all motors and stops the robot loop");
-    m.def("start", start_robot_loop, "A function that starts the robot control loop (in idle)");
-    m.def("translate", translate_robot, "A function that translates robot");
-    m.def("resonance", resonance_robot, "A function that translates robot");
-    m.def("level", level_robot, "placeholder");
-    m.def("file", change_file, "placeholder");
-    m.def("receive_ST_angles", receive_ST_angles, "placeholder");
-    m.def("track", track_robot, "placeholder");
-    m.def("set_gains", set_gains, "placeholder");
-    m.def("disconnect", disconnect, "placeholder");
+    m.instance<RobotControlServer>("RC")
+        .def("stop", &RobotControlServer::stop_robot_loop, "A function that stops all motors and stops the robot loop")
+        .def("start", &RobotControlServer::start_robot_loop, "A function that starts the robot control loop (in idle)")
+        .def("translate", &RobotControlServer::translate_robot, "A function that translates robot")
+        .def("resonance", &RobotControlServer::resonance_robot, "A function that translates robot")
+        .def("level", &RobotControlServer::level_robot, "placeholder")
+        .def("file", &RobotControlServer::change_file, "placeholder")
+        .def("receive_ST_angles", &RobotControlServer::receive_ST_angles, "placeholder")
+        .def("track", &RobotControlServer::track_robot, "placeholder")
+        .def("set_gains", &RobotControlServer::set_gains, "placeholder")
+        .def("set_heading", &RobotControlServer::set_heading, "placeholder")
+        .def("disconnect", &RobotControlServer::disconnect, "placeholder");
 }

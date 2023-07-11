@@ -48,7 +48,6 @@ namespace Comms
             void SendAllRequests();
             void AddToPacket(unsigned char command);
             int Request(unsigned char command);
-            bool ledOn = false;
 
             int teensy_ = -1;
             void PacketManager();
@@ -61,13 +60,6 @@ namespace Comms
             VelBytes actuator_velocities_in_; //For these take x,y,z == 0,1,2
             
             unsigned char goniometer_velocity_out_ [2];
-            
-            int16_t PC_Voltage;
-            int16_t PC_Current;
-            int16_t Motor_Voltage;
-            int16_t Motor_Current;
-            
-            uint16_t heading;
 
             AccelBytes accelerometer0_in_;//Byte arrays to store the incoming accelerations
             AccelBytes accelerometer1_in_;
@@ -99,7 +91,7 @@ namespace Comms
             int max_req_buf = 0;
             bool init = false;
             sched_param sch_params;
-            //std::thread serial_read_thread;
+            std::thread serial_read_thread;
 
             void ClearReadBuff();
             void ClearWriteBuff();
