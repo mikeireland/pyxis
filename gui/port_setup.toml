@@ -49,7 +49,7 @@ refresh_time = 4 #In seconds
     port = "4102"
     description = "Camera controls for the Navis star tracker"
     module_type = "FSTCameraWidget"
-    feed_refresh_time = 0.05
+    feed_refresh_time = 0.5
     compression_param = 2
     contrast_limits = [0.2,4.0]
 

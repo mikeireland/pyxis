@@ -24,6 +24,7 @@ int GLOB_FST_PLATESOLVE_EXPTIME;
 
 double GLOB_FST_PLATESCALE;
 
+int GLOB_FST_CENTROID_FLAG = 0;
 
 pthread_mutex_t GLOB_FST_FLAG_LOCK;
 
@@ -65,27 +66,29 @@ centroid CalcStarPosition(cv::Mat img, int height, int width){
 
 // Return 1 if error!
 int FST_Callback (unsigned short* data){
+    if (GLOB_FST_CENTROID_FLAG){
+        int height = GLOB_IMSIZE/GLOB_WIDTH;
 
-    int height = GLOB_IMSIZE/GLOB_WIDTH;
+        cv::Mat img (height,GLOB_WIDTH,CV_16U,data);
+        //img.convertTo(img, CV_32F);
 
-    cv::Mat img (height,GLOB_WIDTH,CV_16U,data);
-    //img.convertTo(img, CV_32F);
+        centroid position = CalcStarPosition(img,height,GLOB_WIDTH);
 
-    centroid position = CalcStarPosition(img,height,GLOB_WIDTH);
+        centroid diff_angles;
 
-    centroid diff_angles;
+        diff_angles.x = (position.x - GLOB_FST_TARGET_CENTROID.x)*GLOB_FST_PLATESCALE;
+        diff_angles.y = (position.y - GLOB_FST_TARGET_CENTROID.y)*GLOB_FST_PLATESCALE;
 
-    diff_angles.x = (position.x - GLOB_FST_TARGET_CENTROID.x)*GLOB_FST_PLATESCALE;
-    diff_angles.y = (position.y - GLOB_FST_TARGET_CENTROID.y)*GLOB_FST_PLATESCALE;
+        pthread_mutex_lock(&GLOB_FST_FLAG_LOCK);
+        GLOB_FST_CENTROID = diff_angles;
+        pthread_mutex_unlock(&GLOB_FST_FLAG_LOCK);
 
-    pthread_mutex_lock(&GLOB_FST_FLAG_LOCK);
-    GLOB_FST_CENTROID = diff_angles;
-    pthread_mutex_unlock(&GLOB_FST_FLAG_LOCK);
+        cout << "Sending diff angles" << endl;
 
-    cout << "Sending diff angles" << endl;
-    
-    cout << diff_angles.x << ", " << diff_angles.y << endl;
-    //std::string result = RB_SOCKET->send<std::string>("receive_ST_angle", diff_angles.x, diff_angles.y, 0.0);
+        cout << diff_angles.x << ", " << diff_angles.y << endl;
+        //std::string result = RB_SOCKET->send<std::string>("receive_ST_angle", diff_angles.x, diff_angles.y, 0.0);
+
+    }
 
     return 0;
 }
@@ -133,6 +136,7 @@ struct FineStarTracker: FLIRCameraServer{
         string ret_msg;
         if(GLOB_CAM_STATUS == 2){
             if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
+                
                 // First, stop the camera if running
                 ret_msg = this->stopcam();
                 cout << ret_msg << endl;
@@ -142,6 +146,7 @@ struct FineStarTracker: FLIRCameraServer{
                 // Start the camera to not save images
                 pthread_mutex_lock(&GLOB_FLAG_LOCK);
                 GLOB_NUMFRAMES = 0;
+                GLOB_FST_CENTROID_FLAG = 1;
                 pthread_mutex_unlock(&GLOB_FLAG_LOCK);
                 ret_msg = this->startcam(GLOB_NUMFRAMES,GLOB_COADD);
                 cout << ret_msg << endl;
@@ -169,6 +174,7 @@ struct FineStarTracker: FLIRCameraServer{
                 // Start the camera and save images
                 pthread_mutex_lock(&GLOB_FLAG_LOCK);
                 GLOB_NUMFRAMES = 1;
+                GLOB_FST_CENTROID_FLAG = 0;
                 pthread_mutex_unlock(&GLOB_FLAG_LOCK);
                 ret_msg = this->startcam(GLOB_NUMFRAMES,GLOB_COADD);
                 cout << ret_msg << endl;
