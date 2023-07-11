@@ -251,10 +251,11 @@ struct SciCam: QHYCameraServer{
         std::string CA_port = config["ScienceCamera"]["CA_port"].value_or("4100");
         std::string TS_port = config["ScienceCamera"]["TS_port"].value_or("4100");
         std::string IP = config["IP"].value_or("192.168.1.3");
+        std::string TS_IP = config["ScienceCamera"]["TS_IP"].value_or("192.168.1.4");
 
         // Turn into a TCPString
         std::string CA_TCP = "tcp://" + IP + ":" + CA_port;
-        std::string TS_TCP = "tcp://" + IP + ":" + TS_port;
+        std::string TS_TCP = "tcp://" + TS_IP + ":" + TS_port;
         
         CA_SOCKET = new commander::client::Socket(CA_TCP);
         TS_SOCKET = new commander::client::Socket(TS_TCP);

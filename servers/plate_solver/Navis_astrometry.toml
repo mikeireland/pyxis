@@ -3,11 +3,12 @@ IP = "192.168.1.3"
 camera_port = "4102"
 camera_port_name = "FST"
 robot_control_port = "4100"
+target_IP = "192.168.1.4"
 target_port = "4303"
 
 platesolver_index = 0
 
-path_to_data = "/home/jhansen/GitRepos/pyxis/servers/fine_star_tracker"
+path_to_data = "/home/pyxisuser/pyxis/servers/fine_star_tracker"
 
 [Tetra3]
 bg_sub_mode = "local_mean" #"Continuous" is default

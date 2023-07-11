@@ -71,7 +71,7 @@ class FloatSlider(QWidget):
 		adjusted_max = int(round(adjusted_max))
 		self.slider.setRange(0, adjusted_max)
 		
-		self.slider.setValue( (def_value - min) * self.decimal_conversion)
+		self.slider.setValue( int((def_value - min) * self.decimal_conversion))
 			
 		self.slider.valueChanged.connect(self.update_spinbox)
 		self.spinbox.valueChanged.connect(self.update_slider)
