@@ -33,7 +33,7 @@ struct CentroidInterp {
 };
 
 struct ImageProcessBasic {
-    bool do_gauss = false;
+    bool do_gauss = true;
     int gauss_radius = 21;
 
     cv::Mat diff_image;
@@ -83,11 +83,11 @@ private:
 
 // too lazy to do inheritance
 struct ImageProcessSubMatInterpSingle {
-    
+
     bool do_gauss = true;
     int gauss_radius = 21;
     std::size_t margin = 500;
-    
+
     int centroid_interp_size = 3;
 
 
@@ -96,14 +96,14 @@ struct ImageProcessSubMatInterpSingle {
 
     explicit ImageProcessSubMatInterpSingle(const int& height, const int& width, InterpFunc func = CentroidInterp())
         : imheight(height), imwidth(width), interp(func){};
-        
+
     int imheight;
     int imwidth;
 
     cv::Rect_<int> sub_rect{cv::Point_<int>{0, 0}, cv::Point_<int>{imwidth, imheight}};
-    
-    
-    
+
+
+
     cv::Point2d operator()(const cv::Mat &image);
     cv::Point2d get_location(const cv::Mat &image);
 

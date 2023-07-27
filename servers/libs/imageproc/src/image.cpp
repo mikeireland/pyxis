@@ -12,7 +12,7 @@ double LinearGradientInterp::inverse_linear_interp(cv::Point2d p1,
 
 cv::Point2d LinearGradientInterp::operator()(const cv::Mat &image,
                                              const cv::Rect &sub_rect) {
-                                             
+
     assert(sub_rect.width == 3 && sub_rect.height == 3 &&
            "LinearGradientInterp only defined for 3x3 subrect of image");
     assert(image.channels() == 1 &&
@@ -205,7 +205,7 @@ cv::Point2d ImageProcessSubMatInterpSingle::get_location(const cv::Mat &image) {
 
     cv::minMaxLoc(image, nullptr, nullptr, nullptr, &p);
     int a = (centroid_interp_size - 1)/2;
-    
+
     if ((p.x > a) && (p.x < (sub_rect.width - a)) && (p.y > a) && (p.y < (sub_rect.height - a))){
         p_ret = interp(image, p);
     } else {

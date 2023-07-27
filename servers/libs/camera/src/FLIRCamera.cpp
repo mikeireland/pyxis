@@ -34,19 +34,19 @@ FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
     offset_x = config["camera"]["offset_x"].value_or(0);
     offset_y = config["camera"]["offset_y"].value_or(0);
     exposure_time = config["camera"]["exposure_time"].value_or(0);
-    gain = config["camera"]["gain"].value_or(0);
-    
-    width_min = config["bounds"]["width"][0].value_or(0);    
+    gain = config["camera"]["gain"].value_or(0.f);
+
+    width_min = config["bounds"]["width"][0].value_or(0);
     width_max = config["bounds"]["width"][1].value_or(0);
-    
-    height_min = config["bounds"]["height"][0].value_or(0); 
-    height_max = config["bounds"]["height"][1].value_or(0); 
-    
-    exposure_time_min = config["bounds"]["exposure_time"][0].value_or(0);     
-    exposure_time_max = config["bounds"]["exposure_time"][1].value_or(0); 
-    
-    gain_min = config["bounds"]["gain"][0].value_or(0); 
-    gain_max = config["bounds"]["gain"][1].value_or(0); 
+
+    height_min = config["bounds"]["height"][0].value_or(0);
+    height_max = config["bounds"]["height"][1].value_or(0);
+
+    exposure_time_min = config["bounds"]["exposure_time"][0].value_or(0);
+    exposure_time_max = config["bounds"]["exposure_time"][1].value_or(0);
+
+    gain_min = config["bounds"]["gain"][0].value_or(0);
+    gain_max = config["bounds"]["gain"][1].value_or(0);
 
     pixel_format = "Mono16";
     acquisition_mode = "Continuous";
@@ -55,7 +55,7 @@ FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
     black_level = config["camera"]["black_level"].value_or(0.0);
     black_level_min = config["bounds"]["black_level"][0].value_or(0.0);
     black_level_max = config["bounds"]["black_level"][1].value_or(0.0);
-    
+
     buffer_size = config["camera"]["buffer_size"].value_or(0);
     imsize = width*height;
 
@@ -69,26 +69,27 @@ void FLIRCamera::InitCamera(){
     // Initialize camera
     pCam->Init();
 
-    INodeMap& node_map = pCam->GetNodeMap();
-    
-    // Configure Buffer Mode to only return the newest frame ("NewestOnly"). Can set to "NewestFirst" if things are breaking.
-    // Default is "OldestFirst" for some reason, hence a few bugs!
-    // Retrieve Stream Parameters device nodemap
     Spinnaker::GenApi::INodeMap& sNodeMap = pCam->GetTLStreamNodeMap();
-    // Retrieve Buffer Handling Mode Information
+
     CEnumerationPtr ptrHandlingMode = sNodeMap.GetNode("StreamBufferHandlingMode");
-    if (!IsReadable(ptrHandlingMode) || !IsWritable(ptrHandlingMode)){
+    if (!IsReadable(ptrHandlingMode) ||
+        !IsWritable(ptrHandlingMode))
+    {
         cout << "Unable to set Buffer Handling mode (node retrieval). Aborting..." << endl << endl;
     }
+
     CEnumEntryPtr ptrHandlingModeEntry = ptrHandlingMode->GetCurrentEntry();
-    if (!IsReadable(ptrHandlingModeEntry)){
+    if (!IsReadable(ptrHandlingModeEntry))
+    {
         cout << "Unable to get Buffer Handling mode (Entry retrieval). Aborting..." << endl << endl;
     }
+
     ptrHandlingModeEntry = ptrHandlingMode->GetEntryByName("NewestOnly");
     ptrHandlingMode->SetIntValue(ptrHandlingModeEntry->GetValue());
     cout << "Buffer Handling Mode has been set to " << ptrHandlingModeEntry->GetDisplayName() << endl;
 
     //Configure Camera
+    INodeMap& node_map = pCam->GetNodeMap();
 
     // Set width
     CIntegerPtr ptr_width = node_map.GetNode("Width");
@@ -97,7 +98,7 @@ void FLIRCamera::InitCamera(){
     // Set height
     CIntegerPtr ptr_height = node_map.GetNode("Height");
     ptr_height->SetValue(height);
-    
+
     // Set x offset
     CIntegerPtr ptr_offset_x = node_map.GetNode("OffsetX");
     ptr_offset_x->SetValue(offset_x);
@@ -172,7 +173,7 @@ void FLIRCamera::InitCamera(){
     cout << Label("Offset X") << ptr_offset_x->GetValue() << endl;
     cout << Label("Offset Y") << ptr_offset_y->GetValue() << endl;
     cout << endl;
-    
+
     // Set global configuration struct
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     GLOB_IMSIZE = imsize;
@@ -186,7 +187,7 @@ void FLIRCamera::InitCamera(){
     GLOB_CONFIG_PARAMS.blacklevel = black_level;
     GLOB_CONFIG_PARAMS.buffersize = buffer_size;
     GLOB_CONFIG_PARAMS.savedir = savefilename_prefix;
-    
+
     GLOB_WIDTH_MAX = width_max;
     GLOB_WIDTH_MIN = width_min;
     GLOB_HEIGHT_MAX = height_max;
@@ -197,7 +198,7 @@ void FLIRCamera::InitCamera(){
     GLOB_EXPTIME_MIN = exposure_time_min;
     GLOB_BLACKLEVEL_MAX = black_level_max;
     GLOB_BLACKLEVEL_MIN = black_level_min;
-    
+
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 
 }
@@ -235,7 +236,7 @@ void FLIRCamera::ReconfigureInt(std::string parameter, int value){
 }
 
 /* Function to reconfigure all parameters, both in the camera and in the class parameters. Inputs are explanatory */
-void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, 
+void FLIRCamera::ReconfigureAll(float new_gain, int new_exptime, int new_width, int new_height, int new_offsetX,
                                 int new_offsetY, float new_blacklevel, int new_buffersize, string new_savedir){
 
     ReconfigureFloat("Gain",new_gain);
@@ -257,7 +258,7 @@ void FLIRCamera::ReconfigureAll(int new_gain, int new_exptime, int new_width, in
     buffer_size = new_buffersize;
     this->imsize = new_width*new_height;
     savefilename_prefix = new_savedir;
-    
+
     GLOB_IMSIZE = imsize;
     GLOB_WIDTH = new_width;
 }
@@ -282,9 +283,13 @@ void FLIRCamera::DeinitCamera(){
         0 on regular exit
         1 on callback exit
 */
-int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, int (*f)(unsigned short*)) {
+int FLIRCamera::GrabFrames(
+    unsigned long num_frames,
+    unsigned long start_index,
+    std::function<int(unsigned short*)> f
+) {
     int main_result = 0;
-    try {	
+    try {
         cout << "Start Acquisition" << endl;
 
         std::chrono::time_point<std::chrono::steady_clock> start, end;
@@ -318,10 +323,11 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
             // Do something with the data in real time if required
             // If 1 is returned by the callback function, end acquisition (regardless of
             // number of frames to go).
-            if (*f != NULL){
+            // if (*f != NULL)
+            {
                 int result;
 
-                result = (*f)(data);
+                result = f(data);
 
                 if (result == 1){
 
@@ -336,7 +342,7 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
             pthread_mutex_lock(&GLOB_LATEST_IMG_INDEX_LOCK);
             GLOB_LATEST_IMG_INDEX = current_index;
             pthread_mutex_unlock(&GLOB_LATEST_IMG_INDEX_LOCK);
-            
+
             ptr_result_image->Release();
 
         }
@@ -386,7 +392,7 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
 	unsigned short *linear_image_array;
 	cout << imsize <<endl;
 	linear_image_array = (unsigned short*)malloc(sizeof(unsigned short)*imsize*num_images);
-	
+
 
 	// Fill "saving" array with images
 	unsigned long current_index;
@@ -397,17 +403,17 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
 		pthread_mutex_unlock(&GLOB_IMG_MUTEX_ARRAY[current_index]);
 	}
 
-    
+
 
     // Define filepath and name for the FITS file
-    string file_path = "!" + savefilename + ".fits";
+    string file_path = '!' + savefilename + ".fits";
 
     // Configure FITS file
     int bitpix = config["fits"]["bitpix"].value_or(20);
     long naxis = 3; // 2D image over time
-    long naxes[3] = {width, height, num_images};
-    
-    
+    long naxes[3] = {width, height, static_cast<long int>(num_images)};
+
+
     //Coadd frames?
     if(GLOB_COADD){
         cout << "Start Coadd" << endl;
@@ -423,8 +429,10 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
     int status = 0;
 
     // Create new FITS file. Will overwrite file with the same name!!
-    if (fits_create_file(&fptr, file_path.c_str(), &status)){
-       cout << "ERROR: Could not create FITS file" << endl;
+    if (fits_create_file(&fptr, const_cast<char*>(file_path.c_str()), &status)){
+        std::string err_buffer(30, '\0');
+        fits_get_errstatus(status, err_buffer.data());
+       cout << "ERROR: Could not create FITS file " << file_path << ' ' << err_buffer << endl;
        return( status );
     }
     //bitpix = 32;
@@ -457,13 +465,13 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
     if ( fits_write_key(fptr, TSTRING, "ADC BIT DEPTH", &adc_bit_depth[0],
          "ADC Bit Depth", &status) )
          return( status );
-         
+
     // Write Coadd Flag
     if ( fits_write_key(fptr, TINT, "COADD_FLAG", &GLOB_COADD,
          "Coadded Image Flag", &status) )
          return( status );
-    
-    if(GLOB_COADD){     
+
+    if(GLOB_COADD){
         // Number of frames coadded
         if ( fits_write_key(fptr, TINT, "COADD_NUM", &num_images,
              "Number of coadded images", &status) )
@@ -481,10 +489,10 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
          return( status );
 
     // Write gain
-    if ( fits_write_key(fptr, TINT, "GAIN", &gain,
+    if ( fits_write_key(fptr, TFLOAT, "GAIN", &gain,
          "Software Gain (dB)", &status) )
          return( status );
-         
+
     // Write black level
     if ( fits_write_key(fptr, TDOUBLE, "BLACK LEVEL", &black_level,
          "Black Level (ADU?)", &status) )
@@ -516,6 +524,6 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
 	pthread_mutex_lock(&GLOB_LATEST_FILE_LOCK);
     GLOB_LATEST_FILE = savefilename + ".fits";
    	pthread_mutex_unlock(&GLOB_LATEST_FILE_LOCK);
-   	
+
     return( status );
 }

@@ -4,6 +4,7 @@
 
 #include "Spinnaker.h"
 #include "toml.hpp"
+#include <functional>
 
 /* FLIR CAMERA CLASS
    Contains necessary methods and attributes for running
@@ -24,7 +25,7 @@ class FLIRCamera {
 
         int width_min;
         int width_max;
-        
+
         int height_min;
         int height_max;
 
@@ -34,16 +35,16 @@ class FLIRCamera {
 
         // Exposure time of images
         int exposure_time;
-        
+
         int exposure_time_min;
         int exposure_time_max;
 
         // Software gain
-        int gain;
-        
+        float gain;
+
         int gain_min;
         int gain_max;
-        
+
         // Pixel format of images (Mono16)
         std::string pixel_format;
 
@@ -70,7 +71,7 @@ class FLIRCamera {
 
         // Timestamp of first image
         std::string timestamp;
-        
+
         //Saving directory; prefix is without frame number and extension
         std::string savefilename_prefix;
         std::string savefilename;
@@ -85,9 +86,9 @@ class FLIRCamera {
 
 		/* Function to setup and start the camera. MUST CALL BEFORE USING!!! */
         void InitCamera();
-        
+
         /* Function to reconfigure all parameters. Inputs are explanatory */
-        void ReconfigureAll(int new_gain, int new_exptime, int new_width, int new_height, int new_offsetX, 
+        void ReconfigureAll(float new_gain, int new_exptime, int new_width, int new_height, int new_offsetX,
                             int new_offsetY, float new_blacklevel, int new_buffersize, std::string new_savedir);
 
 
@@ -105,7 +106,7 @@ class FLIRCamera {
                 0 on regular exit
                 1 on callback exit
         */
-        int GrabFrames(unsigned long num_frames, unsigned long start_index, int (*f)(unsigned short*));
+        int GrabFrames(unsigned long num_frames, unsigned long start_index, std::function<int(unsigned short*)> f);
 
         /* Write a given array of image data as a FITS file
            INPUTS:
@@ -117,7 +118,7 @@ class FLIRCamera {
 	private:
 	    /* Helper functions for "ReconfigureAll" */
         void ReconfigureInt(std::string parameter, int value);
-        
+
         void ReconfigureFloat(std::string parameter, float value);
 };
 

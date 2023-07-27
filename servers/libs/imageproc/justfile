@@ -1,7 +1,6 @@
 all: configure build run
 
 configure:
-    #!/usr/bin/env bash
     mkdir -p build
     conan install . -if build -pr default -pr:b=default
     conan build -c . -bf build

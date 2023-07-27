@@ -614,6 +614,7 @@ TOML_DISABLE_WARNINGS
 #include <vector>
 #include <map>
 #include <iosfwd>
+#include <fstream>
 #if !TOML_HAS_CUSTOM_OPTIONAL_TYPE
 	#include <optional>
 #endif
@@ -7294,7 +7295,7 @@ TOML_NAMESPACE_START
 
 		// open file with a custom-sized stack buffer
 		using ifstream = std::basic_ifstream<StreamChar>;
-		ifstream file;
+		std::basic_ifstream<StreamChar> file;
 		StreamChar file_buffer[sizeof(void*) * 4096_sz];
 		file.rdbuf()->pubsetbuf(file_buffer, sizeof(file_buffer));
 		file.open(file_path_str, ifstream::in | ifstream::binary | ifstream::ate);

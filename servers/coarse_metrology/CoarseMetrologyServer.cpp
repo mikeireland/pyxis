@@ -11,6 +11,11 @@
 #include "image.hpp"
 #include <opencv2/opencv.hpp>
 
+#include <fmt/core.h>
+
+// header for sleep
+#include <unistd.h>
+
 
 using json = nlohmann::json;
 
@@ -36,11 +41,30 @@ std::string GLOB_DA_TCP = "NOFILESAVED";
 commander::client::Socket* RB_SOCKET;
 commander::client::Socket* DA_SOCKET;
 
+struct FramePublisher {
+    zmq::context_t ctx;
+    zmq::socket_t sock;
+
+    FramePublisher() : ctx(1), sock(ctx, zmq::socket_type::pub) {
+        sock.bind("tcp://*:5555");
+    }
+
+    void publish(const cv::Mat& img) {
+        sock.send(zmq::str_buffer("image"), zmq::send_flags::sndmore);
+        zmq::message_t msg(img.data, img.total() * img.elemSize());
+        sock.send(msg, zmq::send_flags::none);
+    }
+
+};
+
+FramePublisher* frame_publisher;
+
+
 namespace nlohmann {
     template <>
     struct adl_serializer<LEDs> {
         static void to_json(json& j, const LEDs& L) {
-            j = json{{"LED1_x", L.LED1_x},{"LED1_y", L.LED1_y}, 
+            j = json{{"LED1_x", L.LED1_x},{"LED1_y", L.LED1_y},
             {"LED2_x", L.LED2_x},{"LED2_y", L.LED2_y}};
         }
 
@@ -53,12 +77,18 @@ namespace nlohmann {
     };
 }
 
-LEDs CalcLEDPosition(cv::Mat img, cv::Mat dark){
+image::ImageProcessBasic& get_image_proc() {
+    static image::ImageProcessBasic ipb;
+    return ipb;
+}
+
+LEDs CalcLEDPosition(const cv::Mat& img, const cv::Mat& dark){
 
     // Function to take image array and find the two LED positions
-    static image::ImageProcessSubMatInterp ipb;
-    auto p = ipb(img, dark);
-    
+    auto& ipb = get_image_proc();
+
+    auto p = ipb(dark, img);
+
     LEDs result;
     result.LED1_x = p.p1.x;
     result.LED1_y = p.p1.y;
@@ -69,6 +99,7 @@ LEDs CalcLEDPosition(cv::Mat img, cv::Mat dark){
 
 }
 
+int count = 0;
 
 // Return 1 if error!
 int CM_Callback (unsigned short* data){
@@ -76,41 +107,47 @@ int CM_Callback (unsigned short* data){
     if (GLOB_CM_ENABLEFLAG){
         int height = GLOB_IMSIZE/GLOB_WIDTH;
 
-        cv::Mat img (height,GLOB_WIDTH,CV_16U,data);
+        cv::Mat img (height,GLOB_WIDTH,CV_16UC1,data);
 
         //If LED is ON
         if (GLOB_CM_ONFLAG){
-            
+
             cout << "LED On" << endl;
             pthread_mutex_lock(&GLOB_CM_IMG_LOCK);
             LEDs positions = CalcLEDPosition(img,GLOB_CM_IMG_DARK);
             pthread_mutex_unlock(&GLOB_CM_IMG_LOCK);
+
+            {
+                auto& ipb = get_image_proc();
+                auto& diff = ipb.diff_image;
+
+                frame_publisher->publish(img);
+            }
+
             pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
             GLOB_CM_LEDs = positions;
             pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
-            
+
             //ZMQ CLIENT SEND TO DEPUTY ROBOT positions
             //std::string result = RB_SOCKET->send<std::string>("RC.receive_LED_positions", positions);
-            
-            //ZMQ CLIENT SEND TO AUX TURN OFF LED
-            std::string result = DA_SOCKET->send<std::string>("DA.LEDOff");
 
-        
+            //ZMQ CLIENT SEND TO AUX TURN OFF LED
+            DA_SOCKET->send<int>("DA.LEDOff");
+
+
             pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
             GLOB_CM_ONFLAG = 0;
             pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
 
-        }
+        } else {
 
-        else {
-        
             cout << "LED Off" << endl;
             pthread_mutex_lock(&GLOB_CM_IMG_LOCK);
             img.copyTo(GLOB_CM_IMG_DARK);
             pthread_mutex_unlock(&GLOB_CM_IMG_LOCK);
 
             //ZMQ CLIENT SEND TO AUX TURN ON LED
-            std::string result = DA_SOCKET->send<std::string>("DA.LEDOn");
+            DA_SOCKET->send<int>("DA.LEDOn");
 
             pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
             GLOB_CM_ONFLAG = 1;
@@ -118,6 +155,10 @@ int CM_Callback (unsigned short* data){
 
         }
     }
+
+    // add 100ms sleep
+    // usleep(100'000);
+
     return 0;
 }
 
@@ -126,26 +167,30 @@ int CM_Callback (unsigned short* data){
 struct CoarseMet: FLIRCameraServer{
 
     CoarseMet() : FLIRCameraServer(CM_Callback){
-    
+        GLOB_CALLBACK = CM_Callback;
+
         // Set up client parameters
         toml::table config = toml::parse_file(GLOB_CONFIGFILE);
         // Retrieve port and IP
         std::string RB_port = config["CoarseMet"]["RB_port"].value_or("4000");
         std::string DA_port = config["CoarseMet"]["DA_port"].value_or("4000");
-        std::string IP = config["CoarseMet"]["IP"].value_or("192.168.1.4");
+        std::string IP = config["CoarseMet"]["IP"].value_or("127.0.0.1");
 
         // Turn into a TCPString
         GLOB_RB_TCP = "tcp://" + IP + ":" + RB_port;
         GLOB_DA_TCP = "tcp://" + IP + ":" + DA_port;
-        
-        RB_SOCKET = new commander::client::Socket(GLOB_RB_TCP);
+
+        std::cout << "Creating DA_SOCKET" << GLOB_DA_TCP << std::endl;
         DA_SOCKET = new commander::client::Socket(GLOB_DA_TCP);
-    
+        DA_SOCKET->send<int>("DA.LEDOff");
+        frame_publisher = new FramePublisher();
+
     }
-    
+
     ~CoarseMet(){
-        delete RB_SOCKET;
+        // delete RB_SOCKET;
         delete DA_SOCKET;
+        delete frame_publisher;
     }
 
     LEDs getLEDpositions(){

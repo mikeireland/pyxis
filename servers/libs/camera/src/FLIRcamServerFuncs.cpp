@@ -25,7 +25,7 @@ FLIRCameraServer::FLIRCameraServer(){
         fmt::print("FLIRCameraServer\n");
         GLOB_CALLBACK = SimpleCallback;
     }
-    
+
 FLIRCameraServer::FLIRCameraServer(std::function<int(unsigned short*)> AnalysisFunc){
         fmt::print("FLIRCameraServer\n");
         GLOB_CALLBACK = AnalysisFunc;
@@ -111,7 +111,7 @@ string FLIRCameraServer::reconfigure_gain(float gain){
         ret_msg = "Gain out of bounds! Gain should be between "+ std::to_string(GLOB_GAIN_MIN) + " and " + std::to_string(GLOB_GAIN_MAX);
     }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-	
+
     while (GLOB_RECONFIGURE == 1){
         usleep(100);
     }
@@ -214,7 +214,7 @@ string FLIRCameraServer::reconfigure_blacklevel(float blacklevel){
         ret_msg = "Black Level out of bounds! Black level should be between "+ std::to_string(GLOB_BLACKLEVEL_MIN) + " and " + std::to_string(GLOB_BLACKLEVEL_MAX);
     }
     pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-    
+
     while (GLOB_RECONFIGURE == 1){
         usleep(100);
     }
@@ -345,7 +345,7 @@ string FLIRCameraServer::getlatestfilename(){
 	string ret_msg;
     pthread_mutex_lock(&GLOB_LATEST_FILE_LOCK);
     ret_msg = GLOB_LATEST_FILE;
-    pthread_mutex_unlock(&GLOB_LATEST_FILE_LOCK);	
+    pthread_mutex_unlock(&GLOB_LATEST_FILE_LOCK);
 	return ret_msg;
 }
 
@@ -376,7 +376,7 @@ string FLIRCameraServer::getlatestimage(int compression, int binning){
 				cv::Mat mat (height,GLOB_WIDTH,CV_16U,ret_image_array);
                 cout << "converting mat" << endl;
                 mat.convertTo(mat, CV_8U, 1/256.0); // CONVERT TO 8 BIT
-                
+
                 if(binning){
                     cout << "binning" << endl;
                     cv::resize(mat,mat,cv::Size(), 0.5, 0.5,cv::INTER_AREA);
@@ -388,8 +388,8 @@ string FLIRCameraServer::getlatestimage(int compression, int binning){
                 param[0] = cv::IMWRITE_PNG_COMPRESSION;
                 param[1] = compression;// COMPRESSION 0-9
                 cv::imencode(".png", mat, array, param);
-                
-                
+
+
                 /* USE IF NO COMPRESSION!
                 if (mat.isContinuous()) {
                   // array.assign((float*)mat.datastart, (float*)mat.dataend); // <- has problems for sub-matrix like mat = big_mat.row(i)
@@ -412,7 +412,7 @@ string FLIRCameraServer::getlatestimage(int compression, int binning){
 
                 //Attach to message
 				ret_msg = s;
-				
+
 			    //Free image
 				free(ret_image_array);
 			}else{

@@ -29,13 +29,13 @@ using namespace std;
 int CallbackFunc (unsigned short* data){
 
 	if (GLOB_STOPPING==1){
-		
+
 		pthread_mutex_lock(&GLOB_FLAG_LOCK);
     	GLOB_STOPPING = 0;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-		
+
 		return 1;
-	
+
 	}
 
     if (GLOB_CALLBACK(data)){
@@ -53,27 +53,27 @@ int CallbackFunc (unsigned short* data){
 /* Function to reconfigure all parameters
     INPUTS:
        c - configuration (json) structure with all the values
-       Fcam - FLIRCamera class 
+       Fcam - FLIRCamera class
 */
 void reconfigure(configuration c, FLIRCamera& Fcam){
 
 	Fcam.ReconfigureAll(c.gain, c.exptime, c.width, c.height, c.offsetX, c.offsetY, c.blacklevel, c.buffersize, c.savedir);
-	
+
 	return;
 }
 
 
-/* Main pThread function to run the camera with a separate thread */ 
+/* Main pThread function to run the camera with a separate thread */
 void *runCam(void*) {
-	
+
 	// Cam status of 1 indicates camera is starting up
 	pthread_mutex_lock(&GLOB_FLAG_LOCK);
     GLOB_CAM_STATUS = 1;
     string config_file = GLOB_CONFIGFILE;
 	pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-	
+
 	cout << GLOB_CONFIGFILE << endl;
-	
+
     // Print application build information
     cout << "Application build date: " << __DATE__ << " " << __TIME__ << endl << endl;
 
@@ -88,7 +88,7 @@ void *runCam(void*) {
     }
 
     // Parse the configuration file
-    
+
 	//toml::table config;
     toml::table config = toml::parse_file(config_file);
 
@@ -121,40 +121,40 @@ void *runCam(void*) {
 
 	    // Initialise FLIRCamera instance from the serial number
         FLIRCamera Fcam (cam_list.GetBySerial(serialNum), cam_config);
-        
+
 	    // Setup and start the camera
         Fcam.InitCamera();
-        
-        // Cam status of 2 indicates camera is waiting   
+
+        // Cam status of 2 indicates camera is waiting
         pthread_mutex_lock(&GLOB_FLAG_LOCK);
         GLOB_CAM_STATUS = 2;
         pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-        
+
 
         // Run a waiting loop as long as the camera remains "waiting"
         while (GLOB_CAM_STATUS==2){
-        
+
             // Check if camera needs reconfiguring
         	if(GLOB_RECONFIGURE==1){
         		reconfigure(GLOB_CONFIG_PARAMS,Fcam);
-        		
+
         		pthread_mutex_lock(&GLOB_FLAG_LOCK);
         		GLOB_RECONFIGURE=0;
         		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
         	}
-        
+
             // Check if camera needs to start acquisition
         	if(GLOB_RUNNING==1){
 
 				int finish = 0;
-				
+
 				// How many frames to take?
 				pthread_mutex_lock(&GLOB_FLAG_LOCK);
 				unsigned long num_frames = GLOB_NUMFRAMES;
 				pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-				
+
 				int SAVE_FLAG = 1;
-				
+
 				// No saving if num_frames = 0; continuous acquisition
 				if(num_frames == 0){
 					SAVE_FLAG = 0;
@@ -170,57 +170,57 @@ void *runCam(void*) {
 				for(int i=0; i<Fcam.buffer_size; i++){
 					GLOB_IMG_MUTEX_ARRAY[i] = PTHREAD_MUTEX_INITIALIZER;
 				}
-				
+
 				while (finish == 0){
-				
+
 			        // Acquire the images, saving them to GLOB_IMG_ARRAY, and call "CallbackFunc"
 			        // after each image is retrieved. CallbackFunc to return 1 when exiting!
-					finish = Fcam.GrabFrames(num_frames, buffer_no, CallbackFunc);
+					finish = Fcam.GrabFrames(num_frames, buffer_no, GLOB_CALLBACK);
 
 					if (SAVE_FLAG == 1){
 						// Save the data as a FITS file
-						cout << "Saving Data" << endl;
+						cout << "Saving " << num_frames << " frames\n";
 
 						string save_no_str = std::to_string(save_no);
 						Fcam.savefilename = Fcam.savefilename_prefix + "_" + save_no_str;
-						
+
 						Fcam.SaveFITS(num_frames, buffer_no);
-						
+
 						save_no++;
 					}
-					
+
 					// Index of the next available spot in the circular buffer
 					buffer_no = (buffer_no+num_frames)%Fcam.buffer_size;
 				}
-								
+
 			   	// Free the memory
 				pthread_mutex_lock(&GLOB_FLAG_LOCK);
         		GLOB_RUNNING = 0;
         		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
-        		
+
         		free(GLOB_IMG_ARRAY);
 				free(GLOB_IMG_MUTEX_ARRAY);
-			
+
 				// Reset latest file for plate solver to stop solving when not running
 				pthread_mutex_lock(&GLOB_LATEST_FILE_LOCK);
     			GLOB_LATEST_FILE = "CAMERA_NOT_SAVING";
    				pthread_mutex_unlock(&GLOB_LATEST_FILE_LOCK);
 
 			}
-			
+
 			usleep(sleeptime); // Sleep to save resources
 
 		}
-		
+
     Fcam.DeinitCamera(); // Deinit camera
 	}
-	
+
     // Clear camera list before releasing system
     cam_list.Clear();
 
     // Release system
     system->ReleaseInstance();
-    
+
 
     pthread_exit(NULL);
 }
