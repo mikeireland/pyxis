@@ -31,8 +31,8 @@ class FeedLabel(QLabel):
         point = QPoint(0,0)
         scaledPix = self.pixmap.scaled(size, Qt.KeepAspectRatio, transformMode = Qt.FastTransformation)
         # start painting the label from left upper corner
-        point.setX((size.width() - scaledPix.width())/2)
-        point.setY((size.height() - scaledPix.height())/2)
+        point.setX(int((size.width() - scaledPix.width())/2))
+        point.setY(int((size.height() - scaledPix.height())/2))
         painter.drawPixmap(point, scaledPix)
 
     def changePixmap(self, img):

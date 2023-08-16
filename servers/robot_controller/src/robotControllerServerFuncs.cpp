@@ -5,6 +5,7 @@
 #include <commander/commander.h>
 #include "RobotDriver.h"
 #include <time.h>
+#include <vector>
 
 namespace co = commander;
 using namespace std;
@@ -162,13 +163,13 @@ void translate(RobotDriver *driver) {
 	velocity_target.x = 0.001*velocity*x;
 	velocity_target.y = 0.001*velocity*y;
 	velocity_target.z = 0.001*velocity*z;
-	angle_target.x = 0.001*roll;
-	angle_target.y = 0.001*pitch;
+	angle_target.x = roll;
+	angle_target.y = pitch;
 	angle_target.z = 0.0000014302*yaw;
 	
 	driver->SetNewStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
-	if(global_timepoint-last_stabiliser_timepoint > 1000) {	
+	if(1) {	
 		if(driver->stabiliser.enable_flag_) {
 			//printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
 			//if  (global_timepoint < 10000000) {
@@ -191,11 +192,11 @@ void translate(RobotDriver *driver) {
 }
 
 double saturation(double val) {
-    if (val > 10000.0) {
-        return 10000.0;
+    if (val > 5000.0) {
+        return 5000.0;
     }
-    if (val < -10000.0) {
-        return -10000.0;
+    if (val < -5000.0) {
+        return -5000.0;
     }
     return val;
 }
@@ -203,17 +204,19 @@ double saturation(double val) {
 void track(RobotDriver *driver) {
 	Servo::Doubles velocity_target;
 	Servo::Doubles angle_target;
+	driver->teensy_port.ReadMessage();
+	driver->leveller.UpdateTarget();
 	double elevation_target = 0.0000048481*saturation(el + egain*alt);
 	velocity_target.x = 0.001*velocity*x;
 	velocity_target.y = 0.001*velocity*y;
 	velocity_target.z = 0.001*velocity*z;
-	angle_target.x = 0.001*roll;
-	angle_target.y = 0.001*pitch;
+	angle_target.x = saturation(roll+roll_gain*roll_error);
+	angle_target.y = saturation(pitch + pitch_gain*pitch_error);
 	angle_target.z = 0.0000014302*saturation(yaw + ygain*az + h_gain*heading);
 	
 	driver->SetNewStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
-	if(global_timepoint-last_stabiliser_timepoint > 1000) {	
+	if(1) {	
 		if(driver->stabiliser.enable_flag_) {
 			//printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
 			//if  (global_timepoint < 10000000) {
@@ -221,7 +224,7 @@ void track(RobotDriver *driver) {
 			//	velocity_target.y = 0;
 			//	velocity_target.z = 0;
 			//}
-			driver->teensy_port.ReadMessage();
+			
 			driver->StabiliserLoop();
 
 			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
@@ -247,7 +250,7 @@ void ramp(RobotDriver *driver) {
 	driver->SetNewStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
 	
-	if(global_timepoint-last_stabiliser_timepoint > 1000) {	
+	if(1) {	
 		if(driver->stabiliser.enable_flag_) {
 		    if (global_timepoint*0.000001<2) {
 			    double scaler = (double) global_timepoint / 2000000.0;
@@ -357,7 +360,8 @@ int robot_loop() {
 			    usleep(10);
 				break;
 		}
-		time_point_current = steady_clock::now();
+		usleep(time_point_current + 1000 - steady_clock::now());
+		//time_point_current = steady_clock::now();
 
 		
 	}

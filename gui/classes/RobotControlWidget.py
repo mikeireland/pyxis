@@ -279,8 +279,8 @@ class RobotControlWidget(RawWidget):
         print("Sending 'Save' command")        
 
     def move_func(self,axis,velocity):
-        command = ["0","0","0","0","0","0","0"]
-        command[axis] = str(velocity)
+        command = ["1","0","0","0","0","0","0","0"]
+        command[axis+1] = str(velocity)
         str_command = ",".join(command)
         self.send_to_server("RC.translate [%s]"%str_command)
         print("moving %s at %s"%(axis,velocity))
