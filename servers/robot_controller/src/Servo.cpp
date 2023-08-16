@@ -27,13 +27,11 @@ void Leveller::UpdateTarget() {
 //Here we combine the three accelerometer measurements into a single
 //measurement of the overall acceleration (this is likely not final)
 void Leveller::CombineAccelerations() {
-    acc_estimate_.x = (-0.5*acc0_latest_measurements_.x+0.866*acc0_latest_measurements_.y
-                           +acc1_latest_measurements_.x
-                       -0.5*acc2_latest_measurements_.x-0.866*acc2_latest_measurements_.y)/3.0;
+    acc_estimate_.x = (-1*acc0_latest_measurements_.x+1*acc1_latest_measurements_.y
+                           +acc2_latest_measurements_.x)/3.0;
 
-    acc_estimate_.y = (-0.866*acc0_latest_measurements_.x-0.5*acc0_latest_measurements_.y
-                                                             +acc1_latest_measurements_.y
-                       +0.866*acc2_latest_measurements_.x-0.5*acc2_latest_measurements_.y)/3.0;
+    acc_estimate_.y = (-1*acc0_latest_measurements_.y-1*acc1_latest_measurements_.x
+                                                             +acc2_latest_measurements_.y)/3.0;
 
     //We flip the sign on the z component so that gravity is measured downwards
     acc_estimate_.z = (acc0_latest_measurements_.z
