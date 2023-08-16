@@ -221,6 +221,7 @@ void track(RobotDriver *driver) {
 	Servo::Doubles velocity_target;
 	Servo::Doubles angle_target;
 	driver->teensy_port.ReadMessage();
+	driver->PassAccelBytesToLeveller();
 	driver->leveller.UpdateTarget();
 	current_roll = 3600*driver->leveller.roll_estimate_filtered_;
 	current_pitch = 3600*driver->leveller.pitch_estimate_filtered_;
