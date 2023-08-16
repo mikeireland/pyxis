@@ -54,11 +54,24 @@ double az = 0.0;
 double alt = 0.0;
 double pos = 0.0;
 
+double alt_acc = 0.0;
+double az_acc = 0.0;
+
+double current_roll = 0.0;
+double current_pitch = 0.0;
+double roll_error = 0.0;
+double pitch_error = 0.0;
+double roll_gain = 0.0000001;
+double pitch_gain = 0.0000001;
+
 
 double heading = 0.0;
 double h_gain = 0.0;
 double ygain = 0.0;
 double egain = 0.0;
+
+double yint = 0.0;
+double eint = 0.0;
 
 double f = 0.5;
 
@@ -207,14 +220,20 @@ void track(RobotDriver *driver) {
 	Servo::Doubles angle_target;
 	driver->teensy_port.ReadMessage();
 	driver->leveller.UpdateTarget();
-
-	double elevation_target = 0.0000048481*saturation(el + egain*alt);
+	current_roll = 3600*driver->leveller.roll_estimate_filtered_;
+	current_pitch = 3600*driver->leveller.pitch_estimate_filtered_;
+	roll_error = roll_target - current_roll;
+	pitch_error = pitch_target - current_pitch;
+	double elevation_target = 0.0000048481*saturation(el + egain*alt + eint*alt_acc);
 	velocity_target.x = 0.001*velocity*x;
 	velocity_target.y = 0.001*velocity*y;
 	velocity_target.z = 0.001*velocity*z;
-	angle_target.x = saturation(roll);//+roll_gain*roll_error);
-	angle_target.y = saturation(pitch);// + pitch_gain*pitch_error);
-	angle_target.z = 0.0000014302*saturation(yaw + ygain*az + h_gain*heading);
+	angle_target.x = saturation(roll+roll_gain*roll_error);
+	angle_target.y = saturation(pitch + pitch_gain*pitch_error);
+	angle_target.z = 0.0000014302*saturation(yaw + ygain*az + yint*az_acc + h_gain*heading);
+
+	alt_acc += 0.001*alt;
+	az_acc += 0.001*az;
 	
 	driver->SetNewStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
@@ -448,6 +467,11 @@ struct RobotControlServer {
         filename = file;
     }
 
+	void print_level() {
+		cout << current_roll << '\n';
+		cout << current_pitch << '\n';
+	}
+
     void receive_ST_angles(double azimuth, double altitude, double pos_angle) {
 	    az = 206265.0*azimuth;
 	    alt = 206265.0*altitude;
@@ -510,5 +534,6 @@ COMMANDER_REGISTER(m)
         .def("track", &RobotControlServer::track_robot, "placeholder")
         .def("set_gains", &RobotControlServer::set_gains, "placeholder")
         .def("set_heading", &RobotControlServer::set_heading, "placeholder")
+		.def("print_level", &RobotControlServer::print_level, "placeholder")
         .def("disconnect", &RobotControlServer::disconnect, "placeholder");
 }
