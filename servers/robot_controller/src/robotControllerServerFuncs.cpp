@@ -22,6 +22,7 @@ sched_param sch_params;
 
 auto time_point_start = steady_clock::now();
 auto time_point_current = steady_clock::now();
+auto now_time = steady_clock::now();
 auto last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 auto last_leveller_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 auto last_leveller_subtimepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
