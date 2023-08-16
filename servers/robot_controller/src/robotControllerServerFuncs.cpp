@@ -61,6 +61,8 @@ double current_roll = 0.0;
 double current_pitch = 0.0;
 double roll_error = 0.0;
 double pitch_error = 0.0;
+double roll_target = 0.0;
+double pitch_target = 0.0;
 double roll_gain = 0.0000001;
 double pitch_gain = 0.0000001;
 
