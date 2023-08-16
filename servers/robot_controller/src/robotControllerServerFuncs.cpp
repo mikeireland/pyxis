@@ -211,8 +211,8 @@ void track(RobotDriver *driver) {
 	velocity_target.x = 0.001*velocity*x;
 	velocity_target.y = 0.001*velocity*y;
 	velocity_target.z = 0.001*velocity*z;
-	angle_target.x = saturation(roll)//+roll_gain*roll_error);
-	angle_target.y = saturation(pitch)// + pitch_gain*pitch_error);
+	angle_target.x = saturation(roll);//+roll_gain*roll_error);
+	angle_target.y = saturation(pitch);// + pitch_gain*pitch_error);
 	angle_target.z = 0.0000014302*saturation(yaw + ygain*az + h_gain*heading);
 	
 	driver->SetNewStabiliserTarget(velocity_target,angle_target);
@@ -361,7 +361,7 @@ int robot_loop() {
 			    usleep(10);
 				break;
 		}
-		usleep(duration_cast<microseconds>(time_point_current) + 1000 - duration_cast<microseconds>(steady_clock::now()));
+		usleep(duration_cast<microseconds>(time_point_current.count()) + 1000 - duration_cast<microseconds>(steady_clock::now().count()));
 		//time_point_current = steady_clock::now();
 
 		
