@@ -63,8 +63,8 @@ double roll_error = 0.0;
 double pitch_error = 0.0;
 double roll_target = 0.0;
 double pitch_target = 0.0;
-double roll_gain = -0.05;
-double pitch_gain = -0.05;
+double roll_gain = 0;//-0.05;
+double pitch_gain = 0;//-0.05;
 
 
 double heading = 0.0;
@@ -481,9 +481,11 @@ struct RobotControlServer {
 	    pos = 206265.0*pos_angle;
     }
 
-    void set_gains(double y, double e) {
+    void set_gains(double y, double e, double yi, double ei) {
 	    ygain = y;
 	    egain = e;
+		yint = yi;
+		eint = ei;
     }
     
     void set_heading(double h, double gain) {
