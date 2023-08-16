@@ -63,8 +63,8 @@ double roll_error = 0.0;
 double pitch_error = 0.0;
 double roll_target = 0.0;
 double pitch_target = 0.0;
-double roll_gain = -0.01;
-double pitch_gain = -0.01;
+double roll_gain = -0.05;
+double pitch_gain = -0.05;
 
 
 double heading = 0.0;
