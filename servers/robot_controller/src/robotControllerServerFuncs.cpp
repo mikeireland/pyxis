@@ -361,7 +361,8 @@ int robot_loop() {
 			    usleep(10);
 				break;
 		}
-		usleep(duration_cast<microseconds>(time_point_current).count() + 1000 - duration_cast<microseconds>(steady_clock::now()).count());
+		now_time = steady_clock::now();
+		usleep(duration_cast<microseconds>(time_point_current-now_time).count() + 1000);
 		//time_point_current = steady_clock::now();
 
 		
