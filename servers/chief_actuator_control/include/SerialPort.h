@@ -44,7 +44,7 @@ namespace Comms
             void OpenPort();
             void ClosePort();
             void ReadMessageAsync();
-            void ReadMessage();
+            int ReadMessage();
             void WriteMessage();
             void SendAllRequests();
             void AddToPacket(unsigned char command);
