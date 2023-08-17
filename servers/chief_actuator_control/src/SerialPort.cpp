@@ -146,18 +146,18 @@ void SerialPort::ReadMessageAsync() {
     }
 }
 
-void SerialPort::ReadMessage() {
+int SerialPort::ReadMessage() {
   
         ClearReadBuff();
         read(teensy_,&read_buffer_,sizeof(read_buffer_));
-        
-        if (read_buffer_[0]) {
-            std::cout << "receive:";
-            for(int i = 0; i < sizeof(read_buffer_); ++i) {
-                std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)read_buffer_[i] << std::dec << ':';
-            }
-            std::cout << "\n";
+        if (!read_buffer_[0]){
+            return 1;
         }
+        std::cout << "receive:";
+        for(int i = 0; i < sizeof(read_buffer_); ++i) {
+            std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)read_buffer_[i] << std::dec << ':';
+        }
+        std::cout << "\n";
         int i = 0;
         while(i < sizeof(read_buffer_)){
         switch(read_buffer_[i]){
@@ -211,7 +211,7 @@ void SerialPort::ReadMessage() {
                 i += 1;
                 break;
     }} 
-
+    return 0;
 }
 
 
