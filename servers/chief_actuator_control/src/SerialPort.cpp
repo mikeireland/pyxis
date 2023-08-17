@@ -12,14 +12,15 @@ int SerialPort::max_packet_size_ = 128;
 SerialPort::SerialPort(int device_id_target) {
     //Open comms with the first teensy we can find
     init = true;
-    sleep(5);
+    sleep(10);
     OpenPort();
 
     //ID the opened teensy
-    ReadMessage();
+    //ReadMessage();
     Request(TID);
-	SendAllRequests();
+    SendAllRequests();
 	sleep(5);
+	ReadMessage();
 	ReadMessage();
 	printf("Device ID: %u\n",device_id_);
 	printf("Device Firmware Version: %u\n",device_firmware_v_);
@@ -27,28 +28,26 @@ SerialPort::SerialPort(int device_id_target) {
     //If it is wrong we close it and search the rest of the device files
 	while((device_id_ != device_id_target) && (device_file_index_ < 16)){
 		//ID the teensy
-		ClosePort();
+		if (close(teensy_) != 0) {
+            printf("Error %i from close: %s\n", errno, strerror(errno));
+            }
+		printf("succeeded closing\n");
 		teensy_ = -1;
 		OpenPort();
+		while (!ReadMessage()) {
+		    usleep(10);
+		}
+		//ReadMessage();
 		Request(TID);
-		PacketManager();
+		SendAllRequests();
+	sleep(5);
+	ReadMessage();
+	ReadMessage();
 		printf("Device ID: %u\n",device_id_);
 		printf("Device Firmware Version: %u\n",device_firmware_v_);
 	}
 
-	//We allow two attempts for convenience
-	device_file_index_ = 0;
 
-	while((device_id_ != device_id_target) && (device_file_index_ < 16)){
-		//ID the teensy
-		ClosePort();
-		teensy_ = -1;
-		OpenPort();
-		Request(TID);
-		PacketManager();
-		printf("Device ID: %u\n",device_id_);
-		printf("Device Firmware Version: %u\n",device_firmware_v_);
-	}
 	init = false;
 	//serial_read_thread = std::thread(&SerialPort::ReadMessageAsync, this);
     //sch_params.sched_priority = 97;
@@ -58,14 +57,15 @@ SerialPort::SerialPort(int device_id_target) {
 void SerialPort::OpenPort() {
     char device_file_buffer [64] = {""};
     while((teensy_ < 0) && (device_file_index_ < 16)) {
-
+        printf("/dev/ttyACM%d",device_file_index_);
         sprintf(device_file_buffer,"/dev/ttyACM%d",device_file_index_);
-        teensy_ = open(device_file_buffer,O_RDWR);
+        teensy_ = open(device_file_buffer,O_RDWR | O_NOCTTY);
         //Acquire non-blocking exclusive lock
-        /*if(flock(teensy_, LOCK_EX | LOCK_NB) == -1) {
+        /*
+        if(flock(teensy_, LOCK_EX | LOCK_NB) == -1) {
         printf("Serial port with file descriptor %d is already locked by another process.",teensy_);
-        }*/
-
+        }
+        */
         if(teensy_ < 0) {
             printf("Error %i from open: %s\n", errno, strerror(errno));
         }
@@ -79,25 +79,7 @@ void SerialPort::OpenPort() {
             printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
         }
 
-        tty.c_cflag &= ~PARENB; //Clear parity bit
-        tty.c_cflag &= ~CSTOPB; // Clear stop field, only one stop bit used in communication (most common)
-        tty.c_cflag &= ~CSIZE; // Clear all the size bits
-        tty.c_cflag |= CS8; // 8 bits per byte (most common)
-        tty.c_cflag &= ~CRTSCTS; // Disable RTS/CTS hardware flow control (most common) (not sure about this one, it might be meant to be enabled)
-        tty.c_cflag |= CREAD | CLOCAL; // Turn on READ & ignore ctrl lines (CLOCAL = 1)
-
-        tty.c_lflag &= ~ICANON;
-        tty.c_lflag &= ~ECHO; // Disable echo
-        tty.c_lflag &= ~ECHOE; // Disable erasure
-        tty.c_lflag &= ~ECHONL; // Disable new-line echo
-        tty.c_lflag &= ~ISIG; // Disable interpretation of INTR, QUIT and SUSP
-
-        tty.c_iflag &= ~(IXON | IXOFF | IXANY); // Turn off s/w flow ctrl
-        tty.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL); // Disable any special handling of received bytes
-
-        tty.c_oflag &= ~OPOST; // Prevent special interpretation of output bytes (e.g. newline chars)
-        tty.c_oflag &= ~ONLCR; // Prevent conversion of newline to carriage return/line feed
-
+        cfmakeraw(&tty);
         tty.c_cc[VTIME] = 0;    //Return as soon as any data is received.
         tty.c_cc[VMIN] = 0;
 
@@ -129,6 +111,7 @@ void SerialPort::OpenPort() {
         runtime_in_[3] = 0x00;
 
         device_file_index_ = device_file_index_ + 1;
+        usleep(10);
     }
     if(device_file_index_ == 16) {
         printf("WARNING: teensy could not be found\n");
@@ -138,8 +121,7 @@ void SerialPort::OpenPort() {
 //Closes the communication with the teensy
 void SerialPort::ClosePort() {
     init = true;
-    serial_read_thread.join();
-    sleep(1);
+    //serial_read_thread.join();
     close(teensy_);
     printf("Comms Closed\n");
 }
@@ -154,6 +136,8 @@ void SerialPort::WriteMessage() {
     write(teensy_,write_buffer_,sizeof(write_buffer_));
     ClearWriteBuff();
 }
+
+
 
 void SerialPort::ReadMessageAsync() {
     while (!init) {

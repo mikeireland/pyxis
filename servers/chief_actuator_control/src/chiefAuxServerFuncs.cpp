@@ -16,7 +16,7 @@ using std::chrono::milliseconds;
 
 using namespace std;
 
-Comms::SerialPort teensy_port(128);
+Comms::SerialPort teensy_port(127);
 
 struct piezoPWMvals{
     double DextraX_V = -12.0;
