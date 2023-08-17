@@ -58,8 +58,8 @@ void Leveller::EstimateState() {
         roll_estimate_filtered_ += roll_estimate_arr_[i]/10.0;
     }
 
-    printf("Pitch is %f\n",pitch_estimate_filtered_);
-    printf("Roll is %f\n",roll_estimate_filtered_);
+    //printf("Pitch is %f\n",pitch_estimate_filtered_);
+    //printf("Roll is %f\n",roll_estimate_filtered_);
 
     pitch_estimate_filtered_ = pitch_estimate_filtered_ - pitch_target_;
     roll_estimate_filtered_ = roll_estimate_filtered_ - roll_target_;
