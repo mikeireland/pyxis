@@ -117,4 +117,4 @@ def RaDecDot(RA,DEC):
     dALTdt = Omega*np.sin(AZ)*cosLAT
     dAZdt = Omega*(sinLAT-(np.cos(AZ)*np.sin(ALT)*cosLAT)/np.cos(ALT))
 
-    return dALTdt, dAZdt
+    return ALT, AZ, dALTdt, dAZdt

@@ -62,6 +62,11 @@ class FeedWindow(QWidget):
         self.binning_button.setCheckable(True)
         self.binning_button.setFixedWidth(200)
         self.binning_button.clicked.connect(self.set_binning)
+
+        #Default feed window is to bin!
+        self.binning_button.setChecked(True)
+        self.set_binning()
+        
         hbox2.addWidget(self.binning_button)
         vbox.addLayout(hbox2)
         vbox.addStretch()
@@ -223,7 +228,7 @@ class BaseFLIRCameraWidget(RawWidget):
 
         hbox3 = QHBoxLayout()
         lbl1 = QLabel('Frames per save: ', self)
-        self.numframes_edit = QLineEdit("0")
+        self.numframes_edit = QLineEdit("1")
         self.numframes_edit.setFixedWidth(120)
         hbox3.addWidget(lbl1)
         hbox3.addSpacing(10)

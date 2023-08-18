@@ -7,7 +7,7 @@ from BaseFLIRCameraWidget import BaseFLIRCameraWidget
 #starts with a "Q" so there is little chance of getting mixed up.
 
 try:
-    from PyQt5.QtWidgets import QPushButton, QHBoxLayout
+    from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QLineEdit
 except:
     print("Please install PyQt5.")
     raise UserWarning
@@ -17,6 +17,7 @@ class CoarseMetCameraWidget(BaseFLIRCameraWidget):
 
         super(CoarseMetCameraWidget,self).__init__(config,IP=IP,parent=parent)
         
+        self.numframes_edit = QLineEdit("0")
         hbox3 = QHBoxLayout()
         self.enable_button = QPushButton("Enable Metrology", self)
         self.enable_button.setCheckable(True)

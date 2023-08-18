@@ -3,10 +3,10 @@ IP = "192.168.1.5"
 camera_port = "4302"
 camera_port_name = "CST"
 robot_control_port = "4300"
-target_IP = "192.168.1.4"
-target_port = "4203"
+target_IP = "192.168.1.5"
+target_port = "4303"
 
-platesolver_index = 2
+platesolver_index = 0
 
 tiptilt_port = "4105"
 NavisIP = "192.168.1.3"

@@ -3,6 +3,7 @@ from __future__ import print_function, division
 from conversion import RaDecDot
 from astroquery.simbad import Simbad
 from RawWidget import RawWidget
+import numpy as np
 import json
 
 try:
@@ -59,7 +60,39 @@ class TargetWidget(RawWidget):
         Coord_layout.addWidget(self.Set_Target_button)
         Coord_layout.addStretch()
         self.full_window.addLayout(Coord_layout)
-        self.full_window.addSpacing(30)
+        self.full_window.addSpacing(10)
+
+        Coord_layout = QHBoxLayout()
+        lbl = QLabel("Alt/Az (degrees):",self)
+        lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
+        Coord_layout.addWidget(lbl)
+        Coord_layout.addStretch()
+        self.ALT = QLabel("ALT = 0.0")
+        self.ALT.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffffff}")
+        Coord_layout.addWidget(self.ALT)
+        Coord_layout.addSpacing(50)
+        self.AZ = QLabel("AZ = 0.0")
+        self.AZ.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffffff}")
+        Coord_layout.addWidget(self.AZ)
+        Coord_layout.addStretch()
+        self.full_window.addLayout(Coord_layout)
+        self.full_window.addSpacing(10)
+
+        Coord_layout = QHBoxLayout()
+        lbl = QLabel("Velocities (rad/s):",self)
+        lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
+        Coord_layout.addWidget(lbl)
+        Coord_layout.addStretch()
+        self.dALTdt = QLabel("dALTdt = 0.0")
+        self.dALTdt.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffffff}")
+        Coord_layout.addWidget(self.dALTdt)
+        Coord_layout.addSpacing(50)
+        self.dAZdt = QLabel("dAZdt = 0.0")
+        self.dAZdt.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffffff}")
+        Coord_layout.addWidget(self.dAZdt)
+        Coord_layout.addStretch()
+        self.full_window.addLayout(Coord_layout)
+        self.full_window.addSpacing(10)
         
         lbl1 = QLabel('Input: ', self)
         self.baseline_line_edit = QLineEdit("1.0")
@@ -79,22 +112,6 @@ class TargetWidget(RawWidget):
         Coord_layout.addWidget(self.baseline_submit_button)
         Coord_layout.addStretch()
         
-        self.full_window.addLayout(Coord_layout)
-        self.full_window.addSpacing(30)
-
-        Coord_layout = QHBoxLayout()
-        lbl = QLabel("Velocities:",self)
-        lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
-        Coord_layout.addWidget(lbl)
-        Coord_layout.addStretch()
-        self.dALTdt = QLabel("dALTdt = 0.0")
-        self.dALTdt.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffffff}")
-        Coord_layout.addWidget(self.dALTdt)
-        Coord_layout.addSpacing(50)
-        self.dAZdt = QLabel("dAZdt = 0.0")
-        self.dAZdt.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffffff}")
-        Coord_layout.addWidget(self.dAZdt)
-        Coord_layout.addStretch()
         self.full_window.addLayout(Coord_layout)
         self.full_window.addSpacing(30)
 
@@ -167,10 +184,13 @@ class TargetWidget(RawWidget):
         self.new_RA.setText(ra_str)
         self.new_DEC.setText(dec_str)
 
-        dALTdt, dAZdt = RaDecDot(float(ra),float(dec))
-
+        ALT, AZ, dALTdt, dAZdt = RaDecDot(float(ra),float(dec))
+        ALT_str = "ALT = " + str(np.degrees(ALT))
+        AZ_str = "AZ = " + str(np.degrees(AZ))
         dALTdt_str = "dALTdt = " + str(dALTdt)
         dAZdt_str = "dAZdt = " + str(dAZdt)
+        self.ALT.setText(ALT_str)
+        self.AZ.setText(AZ_str)
         self.dALTdt.setText(dALTdt_str)
         self.dAZdt.setText(dAZdt_str)
 

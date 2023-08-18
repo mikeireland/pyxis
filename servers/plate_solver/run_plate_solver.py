@@ -208,46 +208,86 @@ if __name__ == "__main__":
 
     IP = config["IP"]
 
-    try:
-        context = zmq.Context()
-        target_socket = context.socket(zmq.REQ)
-        tcpstring = "tcp://"+config["target_IP"]+":"+config["target_port"]
-        target_socket.connect(tcpstring)
-        target_socket.RCVTIMEO = 1000
-        print("Connected to target server, port %s"%config["target_port"])
-    except:
-        print('ERROR: Could not connect to target server. Please check that the server is running and IP is correct.')
-    try:
-        context = zmq.Context()
-        camera_socket = context.socket(zmq.REQ)
-        tcpstring = "tcp://"+IP+":"+config["camera_port"]
-        camera_socket.connect(tcpstring)
-        camera_socket.RCVTIMEO = 1000
-        print("Connected to camera, port %s"%config["camera_port"])
-    except:
-        print('ERROR: Could not connect to camera server. Please check that the server is running and IP is correct.')
-    
-    try:
-        robot_control_socket = context.socket(zmq.REQ)
-        tcpstring = "tcp://"+IP+":"+config["robot_control_port"]
-        robot_control_socket.connect(tcpstring)
-        robot_control_socket.RCVTIMEO = 1000
-        print("Connected to robot")
-    except:
-        print('ERROR: Could not connect to robot server. Please check that the server is running and IP is correct.')       
-    
-    #Tip Tilt Server
-    if config["platesolver_index"] > 0:
+    output_dir = config["output_folder"]
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    error_flag = 1
+    while error_flag == 1:
+        error_flag = 0
         try:
-            fibre_injection_socket = context.socket(zmq.REQ)
-            tcpstring = "tcp://"+config["NavisIP"]+":"+config["tiptilt_port"]
-            fibre_injection_socket.connect(tcpstring)
-            fibre_injection_socket.RCVTIMEO = 1000
-            print("Connected to fibre injection")
+            context = zmq.Context()
+            target_socket = context.socket(zmq.REQ)
+            tcpstring = "tcp://"+config["target_IP"]+":"+config["target_port"]
+            target_socket.connect(tcpstring)
+            target_socket.RCVTIMEO = 1000
+
+            target_socket.send_string("TS.status")
+            message = target_socket.recv()
+            print("Connected to target server, port %s"%config["target_port"])
         except:
-            print('ERROR: Could not connect to fibre injection server. Please check that the server is running and IP is correct.')       
-      
-    print("Beginning loop")
+            print('ERROR: Could not connect to target server. Please check that the server is running and IP is correct.')
+            error_flag = 1
+            target_socket.setsockopt(zmq.LINGER,0)
+            target_socket.close()
+
+        #Camera server
+        try:
+            context = zmq.Context()
+            camera_socket = context.socket(zmq.REQ)
+            tcpstring = "tcp://"+IP+":"+config["camera_port"]
+            camera_socket.connect(tcpstring)
+            camera_socket.RCVTIMEO = 1000
+
+            camera_socket.send_string(config["camera_port_name"]+".status")
+            message = camera_socket.recv()
+            print("Connected to camera, port %s"%config["camera_port"])
+        except:
+            print('ERROR: Could not connect to camera server. Please check that the server is running and IP is correct.')
+            error_flag = 1
+            camera_socket.setsockopt(zmq.LINGER,0)
+            camera_socket.close()
+
+        #Robot server    
+        try:
+            robot_control_socket = context.socket(zmq.REQ)
+            tcpstring = "tcp://"+IP+":"+config["robot_control_port"]
+            robot_control_socket.connect(tcpstring)
+            robot_control_socket.RCVTIMEO = 1000
+
+            robot_control_socket.send_string("RC.status")
+            message = robot_control_socket.recv()
+            print("Connected to robot")
+        except:
+            print('ERROR: Could not connect to robot server. Please check that the server is running and IP is correct.')       
+            error_flag = 1
+            robot_control_socket.setsockopt(zmq.LINGER,0)
+            robot_control_socket.close()
+
+        #Tip Tilt Server
+        if config["platesolver_index"] > 0:
+            try:
+                fibre_injection_socket = context.socket(zmq.REQ)
+                tcpstring = "tcp://"+config["NavisIP"]+":"+config["tiptilt_port"]
+                fibre_injection_socket.connect(tcpstring)
+                fibre_injection_socket.RCVTIMEO = 1000
+
+                fibre_injection_socket.send_string("FI.status")
+                message = fibre_injection_socket.recv()
+                print("Connected to fibre injection")
+            except:
+                print('ERROR: Could not connect to fibre injection server. Please check that the server is running and IP is correct.')       
+                error_flag = 1
+                fibre_injection_socket.setsockopt(zmq.LINGER,0)
+                fibre_injection_socket.close()
+        
+        if error_flag == 1:
+            print("Destroying ZMQ context due to bad connections. Waiting 5 sec before reattempting")
+            context.term()
+            time.sleep(5)
+            print("Retrying connections")
+        
+    print("Connected to all ports. Beginning plate solving loop")
     while(1):
 
 
