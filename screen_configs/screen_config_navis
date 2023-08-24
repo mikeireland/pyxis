@@ -8,5 +8,5 @@ screen -t InjectionCamera bash -c "cd ~/pyxis/servers/fiber_injection; bin/Fiber
 screen -t ScienceCamera bash -c "cd ~/pyxis/servers/science_camera; bin/SciCamServer config/NavisScienceCamera.toml; exec bash"
 screen -t PlateSolver bash -c "cd ~/pyxis/servers/plate_solver; python3 run_plate_solver.py Navis_astrometry.toml; exec bash"
 screen -t Auxillary bash -c "cd ~/pyxis/servers/chief_actuator_control; echo pyx1steam | sudo -u pyxisuser2 bin/ChiefAuxServer config/chiefAuxConfig.toml; exec bash"
-screen -t Robot bash -c "cd ~/pyxis/servers/robot_controller; bin/robot_driver config/DextraRobotControl; exec bash"
+screen -t Robot bash -c "cd ~/pyxis/servers/robot_controller; bin/robot_driver config/NavisRobotControl.toml; exec bash"
 screen -t Shell bash -c "cd ~/pyxis/servers; exec bash"
