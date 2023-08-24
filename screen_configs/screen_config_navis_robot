@@ -2,5 +2,5 @@ hardstatus alwayslastline "Terminal Win: %n - [%t]"
 hardstatus ignore
 zombie kr
 screen -t Auxillary bash -c "cd ~/pyxis/servers/chief_actuator_control; echo pyx1steam | sudo -u pyxisuser2 bin/ChiefAuxServer config/chiefAuxConfig.toml; exec bash"
-screen -t Robot bash -c "cd ~/pyxis/servers/robot_controller; bin/robot_driver config/NavisRobotControl.toml; exec bash"
+screen -t Robot bash -c "cd ~/pyxis/servers/robot_controller; echo pyx1steam | sudo -u pyxisuser2 bin/robot_driver config/NavisRobotControl.toml; exec bash"
 screen -t Shell bash -c "cd ~/pyxis/servers; exec bash"

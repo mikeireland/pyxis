@@ -2,6 +2,6 @@ hardstatus alwayslastline "Terminal Win: %n - [%t]"
 hardstatus ignore
 zombie kr
 screen -t Auxillary bash -c "cd ~/pyxis/servers/deputy_aux; echo pyx1steam | sudo -u pyxisuser2 bin/DeputyAuxServer config/SinistraAuxConfig.toml; exec bash"
-screen -t Robot bash -c "cd ~/pyxis/servers/robot_controller; bin/robot_driver config/SinistraRobotControl.toml; exec bash"
+screen -t Robot bash -c "cd ~/pyxis/servers/robot_controller; echo pyx1steam | sudo -u pyxisuser2 bin/robot_driver config/SinistraRobotControl.toml; exec bash"
 screen -t Shell bash -c "cd ~/pyxis/servers; bash"
 

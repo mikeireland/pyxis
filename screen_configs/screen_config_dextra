@@ -5,6 +5,6 @@ screen -t Camera bash -c "cd ~/pyxis/servers/coarse_star_tracker; bin/CoarseStar
 screen -t Target bash -c "cd ~/pyxis/servers/target_server; bin/TargetServer config/DextraTargetConfig.toml; exec bash"
 screen -t PlateSolver bash -c "cd ~/pyxis/servers/plate_solver; python3 run_plate_solver.py Dextra_astrometry.toml; exec bash"
 screen -t Auxillary bash -c "cd ~/pyxis/servers/deputy_aux; echo pyx1steam | sudo -u pyxisuser2 bin/DeputyAuxServer config/DextraAuxConfig.toml; exec bash"
-screen -t Robot bash -c "cd ~/pyxis/servers/robot_controller; bin/robot_driver config/DextraRobotControl.toml; exec bash"
+screen -t Robot bash -c "cd ~/pyxis/servers/robot_controller; echo pyx1steam | sudo -u pyxisuser2 bin/robot_driver config/DextraRobotControl.toml; exec bash"
 screen -t Shell bash -c "cd ~/pyxis/servers; bash"
 
