@@ -1,7 +1,8 @@
 hardstatus alwayslastline "Terminal Win: %n - [%t]"
 hardstatus ignore
 zombie kr
-screen -t Auxillary bash -c "cd ~/pyxis/servers/deputy_aux; echo pyx1steam | sudo -u pyxisuser2 bin/DeputyAuxServer config/DextraAuxConfig.toml; exec bash"
-screen -t Robot bash -c "cd ~/pyxis/servers/robot_controller; echo pyx1steam | sudo -u pyxisuser2 bin/robot_driver config/DextraRobotControl.toml; exec bash"
+logfile logs/d2_%t.log
+screen -t Auxillary bash -c "cd ~/pyxis/servers/deputy_aux; cat screen_configs/pw | sudo -S -u pyxisuser2 bin/DeputyAuxServer config/DextraAuxConfig.toml; exec bash"
+screen -t Robot bash -c "cd ~/pyxis/servers/robot_controller; cat screen_configs/pw | sudo -S -u pyxisuser2 bin/robot_driver config/DextraRobotControl.toml; exec bash"
 screen -t Shell bash -c "cd ~/pyxis/servers; bash"
 
