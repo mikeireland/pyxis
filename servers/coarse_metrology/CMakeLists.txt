@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.18)
 project(CoarseMetServer VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
 
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
+
 add_executable(CoarseMetServer
     ../libs/camera/src/main.cpp ../libs/camera/src/runFLIRCam.cpp ../libs/camera/src/FLIRCamera.cpp ../libs/camera/src/globals.cpp ../libs/camera/src/FLIRcamServerFuncs.cpp ../libs/imageproc/src/image.cpp CoarseMetrologyServer.cpp
 )
