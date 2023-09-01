@@ -77,7 +77,7 @@ void *runCam(void*) {
     // Print application build information
     cout << "Application build date: " << __DATE__ << " " << __TIME__ << endl << endl;
 
-
+	cout << "Accessing Config" << endl;
     // Check whether config file is readable/exists
     if (access(config_file.c_str(), R_OK) == -1) {
         cerr << "Config file is not readable" << endl;
@@ -88,11 +88,11 @@ void *runCam(void*) {
     }
 
     // Parse the configuration file
-    
+    cout << "Parsing Config" << endl;
 	//toml::table config;
     toml::table config = toml::parse_file(config_file);
 
-
+	cout << "Getting system" << endl;
     // Retrieve singleton reference to system object
     SystemPtr system = System::GetInstance();
 
@@ -102,6 +102,7 @@ void *runCam(void*) {
          << "." << spinnaker_library_version.type << "." << spinnaker_library_version.build << endl
          << endl;
 
+	cout << "Getting Cam List" << endl;
     // Retrieve list of cameras from the system
     CameraList cam_list = system->GetCameras();
 
@@ -118,10 +119,11 @@ void *runCam(void*) {
         string serialNum = cam_config["cam_ID"].value_or("00000000");
         int sleeptime = cam_config["sleep_time"].value_or(1000000);
 
-
+		cout << "Init Camera Instance" << endl;
 	    // Initialise FLIRCamera instance from the serial number
         FLIRCamera Fcam (cam_list.GetBySerial(serialNum), cam_config);
         
+		cout << "Initing Camera" << endl;
 	    // Setup and start the camera
         Fcam.InitCamera();
         
@@ -130,7 +132,7 @@ void *runCam(void*) {
         GLOB_CAM_STATUS = 2;
         pthread_mutex_unlock(&GLOB_FLAG_LOCK);
         
-
+		cout << "Beginning Loop" << endl;
         // Run a waiting loop as long as the camera remains "waiting"
         while (GLOB_CAM_STATUS==2){
         

@@ -430,7 +430,7 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
     // Create new FITS file. Will overwrite file with the same name!!
     if (fits_create_file(&fptr, file_path.c_str(), &status)){
        cout << "ERROR: Could not create FITS file" << endl;
-       //free(linear_image_array);
+       free(linear_image_array);
        return( status );
     }
     //bitpix = 32;
@@ -445,7 +445,7 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
     if ( fits_write_img(fptr, TUSHORT, fpixel, nelements, linear_image_array, &status) ){
         cout << "ERROR: Could not write FITS file" << endl;
         cout << status << endl;
-        //free(linear_image_array);
+        free(linear_image_array);
         return( status );
     }
     // Configure FITS header keywords
