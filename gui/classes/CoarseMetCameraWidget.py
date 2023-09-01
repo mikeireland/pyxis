@@ -17,7 +17,7 @@ class CoarseMetCameraWidget(BaseFLIRCameraWidget):
 
         super(CoarseMetCameraWidget,self).__init__(config,IP=IP,parent=parent)
         
-        self.numframes_edit = QLineEdit("0")
+        self.numframes_edit.setText("0")
         hbox3 = QHBoxLayout()
         self.enable_button = QPushButton("Enable Metrology", self)
         self.enable_button.setCheckable(True)

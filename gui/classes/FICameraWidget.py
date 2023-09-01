@@ -18,7 +18,7 @@ class FICameraWidget(BaseFLIRCameraWidget):
 
         super(FICameraWidget,self).__init__(config, IP, parent)
 
-        self.numframes_edit = QLineEdit("0")
+        self.numframes_edit.setText("0")
 
         hbox3 = QHBoxLayout()
         self.enable_button = QPushButton("Enable Centroiding", self)

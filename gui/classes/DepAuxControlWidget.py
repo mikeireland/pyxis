@@ -20,7 +20,7 @@ class DepAuxControlWidget(RawWidget):
         super(DepAuxControlWidget,self).__init__(config,IP,parent)
 
         self.voltage_limit = config["voltage_limit"]
-
+        self.full_window.addSpacing(40)
         LED_layout = QHBoxLayout()
         lbl = QLabel("LED Controls:",self)
         lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
@@ -38,7 +38,7 @@ class DepAuxControlWidget(RawWidget):
         LED_layout.addStretch()
         self.full_window.addLayout(LED_layout)
 
-        self.full_window.addSpacing(20)
+        self.full_window.addSpacing(30)
 
         LED_layout = QHBoxLayout()
         lbl = QLabel("Power System Controls:",self)
@@ -53,6 +53,8 @@ class DepAuxControlWidget(RawWidget):
         
         Power_layout = QGridLayout()
         Power_layout.setColumnMinimumWidth(0,100)
+        Power_layout.setRowMinimumHeight(0, 30)
+        Power_layout.setRowMinimumHeight(1, 30)
         Power_layout.setColumnMinimumWidth(1,100)
         Power_layout.setColumnMinimumWidth(2,100)
  
@@ -93,6 +95,7 @@ class DepAuxControlWidget(RawWidget):
         LED_layout.addStretch()
         
         self.full_window.addLayout(LED_layout)
+        self.full_window.addStretch()
         self.ask_for_status()
 
 
