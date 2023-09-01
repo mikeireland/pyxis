@@ -7,8 +7,6 @@ add_executable(FineStarTrackerServer
     ../libs/camera/src/main.cpp ../libs/camera/src/runFLIRCam.cpp ../libs/camera/src/FLIRCamera.cpp ../libs/camera/src/globals.cpp ../libs/camera/src/FLIRcamServerFuncs.cpp ../libs/imageproc/src/centroid.cpp FineStarTrackerServer.cpp
 )
 
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
-
 target_include_directories(FineStarTrackerServer PUBLIC ../libs/camera/include ../libs/imageproc/include /opt/spinnaker/include ~/Downloads/build/include)
 target_compile_features(FineStarTrackerServer PUBLIC cxx_std_17)
 

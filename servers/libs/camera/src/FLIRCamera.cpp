@@ -294,6 +294,7 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
         //Set timestamp
         time_t start_time = time(0);
 
+        cout << "Calling acquisition" << endl;
         // Start aqcuisition
         pCam->BeginAcquisition();
 
@@ -303,6 +304,7 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
 		int current_index = 0;
         for (unsigned int image_cnt = 0; image_cnt < num_frames; image_cnt++){
 
+            cout << "Obtaining Image" << endl;
             // Retrive image
             ImagePtr ptr_result_image = pCam->GetNextImage();
 
@@ -310,6 +312,8 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
             unsigned short* data = (unsigned short*)ptr_result_image->GetData();
 
 			current_index = (start_index + image_cnt)%buffer_size;
+
+            cout << "Writing image" << endl;
             // Append data to an allocated memory array
             pthread_mutex_lock(&GLOB_IMG_MUTEX_ARRAY[current_index]);
 			memcpy(GLOB_IMG_ARRAY+imsize*current_index, data, imsize*2);
@@ -321,6 +325,7 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
             if (*f != NULL){
                 int result;
 
+                cout << "Calling callback" << endl;
                 result = (*f)(data);
 
                 if (result == 1){
@@ -425,6 +430,7 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
     // Create new FITS file. Will overwrite file with the same name!!
     if (fits_create_file(&fptr, file_path.c_str(), &status)){
        cout << "ERROR: Could not create FITS file" << endl;
+       //free(linear_image_array);
        return( status );
     }
     //bitpix = 32;
@@ -439,6 +445,7 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
     if ( fits_write_img(fptr, TUSHORT, fpixel, nelements, linear_image_array, &status) ){
         cout << "ERROR: Could not write FITS file" << endl;
         cout << status << endl;
+        //free(linear_image_array);
         return( status );
     }
     // Configure FITS header keywords

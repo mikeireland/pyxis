@@ -7,8 +7,6 @@ add_executable(FiberInjectionServer
     ../libs/camera/src/main.cpp ../libs/camera/src/runFLIRCam.cpp ../libs/camera/src/FLIRCamera.cpp ../libs/camera/src/globals.cpp ../libs/imageproc/src/centroid.cpp ../libs/camera/src/FLIRcamServerFuncs.cpp FiberInjectionServer.cpp
 )
 
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
-
 target_include_directories(FiberInjectionServer PUBLIC ../libs/camera/include ../libs/imageproc/include /opt/spinnaker/include ~/Downloads/build/include)
 target_compile_features(FiberInjectionServer PUBLIC cxx_std_17)
 
