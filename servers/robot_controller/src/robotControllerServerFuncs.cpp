@@ -1,3 +1,27 @@
+/*
+These functions below have the following roles, described here as there is no header
+file
+1) Utility functions:
+
+void resonance(RobotDriver *driver) : Drive the robot in sinusoidal resonances
+void unambig(RobotDriver *driver) : ??? to delete ???
+void translate(RobotDriver *driver) : Core moving of robot
+double saturation(double val) : filter
+void track(RobotDriver *driver) :
+void ramp(RobotDriver *driver) : Engineering function
+void stop(RobotDriver *driver) : ??? to delete ???
+
+2) The main robot loop
+
+robot_loop
+
+Includes the main state machine based on GLOBAL_SERVER_STATUS
+
+3) The class definition of struct RobotControlServer (why a struct and not a class?)
+
+4) The COMMANDER_REGISTER(m)
+
+*/
 #include <iostream>
 #include <thread>
 #include <string>
@@ -7,6 +31,13 @@
 #include <time.h>
 #include <vector>
 #include "Globals.h"
+
+#define ROBOT_IDLE 1
+#define ROBOT_TRANSLATE 2
+#define ROBOT_UNAMBIG 3
+#define ROBOT_TRACK 6
+#define ROBOT_DISCONNECT 6
+
 
 namespace co = commander;
 using namespace std;
@@ -68,10 +99,9 @@ double pitch_target = -6217.54;
 
 
 double heading = 0.0;
-
-
 double f = 0.5;
 
+/*********** Utility Functions *****************/
 void resonance(RobotDriver *driver) {
 	Servo::Doubles velocity_target;
 	Servo::Doubles angle_target;
@@ -294,32 +324,10 @@ void ramp(RobotDriver *driver) {
 	}
 }
 
-void level(RobotDriver *driver) {
 /*
-    if (driver->leveller.enable_flag_) {
-        if (global_timepoint-last_leveller_subtimepoint > 1000) {
-            driver->teensy_port.ReadMessage();
-            driver->RequestAccelerations();
-	        driver->PassAccelBytesToLeveller();
-	        driver->leveller.UpdateTarget();
-	        driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, el);
-        }
-    }
-    else {
-        driver->SetNewTargetAngle(0.0, 0.0);
-        driver->EngageLeveller();
-    }
+This is the main robot loop, that has an interior loop that is run about every 
+milli-second, which is forked as a thread from the RobotControlServer's start_robot_loop 
 */
-}
-
-void stop(RobotDriver *driver) {
-	for(int i = 0; i < 100; i++) {
-		driver->RequestAllStop();
-		driver->teensy_port.PacketManager();
-		usleep(1000);
-	}
-}
-
 int robot_loop() {
 	//Necessary global timing measures
     time_point_start = steady_clock::now();
@@ -352,26 +360,20 @@ int robot_loop() {
 		global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 
 		switch(GLOBAL_SERVER_STATUS) {
-			case 1:
+			case ROBOT_IDLE:
 				usleep(10);
 				break;
-			case 2:
+			case ROBOT_TRANSLATE:
 				translate(driver);
 				break;
-			case 3:
+			case ROBOT_UNAMBIG:
 				//resonance(driver);
 				unambig(driver);
 				break;
-			case 4:
-				translate(driver);
-				break;
-			case 5:
-				level(driver);
-				break;
-			case 6:
+			case ROBOT_TRACK:
 				track(driver);
 				break;
-			case 7:
+			case ROBOT_DISCONNECT:
 			    cout << "disconnecting\n";
 			    translate(driver);
 			    closed_loop_enable_flag = false;
@@ -386,8 +388,6 @@ int robot_loop() {
 		if (!(loop_counter % 100)) {
 			cout << "Running!\n";
 		}
-
-		
 	}
 
 	driver->teensy_port.ClosePort();
@@ -395,6 +395,9 @@ int robot_loop() {
     return 0;
 }
 
+/*
+This is the main singleton class, which is for some reason a struct (?)
+*/
 struct RobotControlServer {
 
     RobotControlServer(){
@@ -406,8 +409,11 @@ struct RobotControlServer {
         fmt::print("~RobotControlServer\n");
     }
 
+	/*
+	Start the robot loop in the 
+	*/
     int start_robot_loop() {
-        GLOBAL_SERVER_STATUS = 1;
+        GLOBAL_SERVER_STATUS = ROBOT_IDLE;
         GLOBAL_STATUS_CHANGED = true;
         cout << "fine";
         robot_controller_thread = std::thread(robot_loop);
@@ -429,7 +435,7 @@ struct RobotControlServer {
         ygain = 0;
         egain=0;
         h_gain = 0;
-        GLOBAL_SERVER_STATUS = 4;
+        GLOBAL_SERVER_STATUS = ROBOT_TRANSLATE;
         GLOBAL_STATUS_CHANGED = true;
         return 0;
     }
@@ -445,7 +451,7 @@ struct RobotControlServer {
         pitch = pitch_val;
         el = el_val;
         GLOBAL_STATUS_CHANGED = true;
-        GLOBAL_SERVER_STATUS = 2;
+        GLOBAL_SERVER_STATUS = ROBOT_TRANSLATE;
     }
 
     void resonance_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val) {
@@ -457,14 +463,9 @@ struct RobotControlServer {
         yaw = yaw_val;
         pitch = pitch_val;
         GLOBAL_STATUS_CHANGED = true;
-        GLOBAL_SERVER_STATUS = 3;
+        GLOBAL_SERVER_STATUS = ROBOT_UNAMBIG;
     }
-
-    void level_robot() {
-        GLOBAL_STATUS_CHANGED = true;
-        GLOBAL_SERVER_STATUS = 5;
-    }
-
+    
     void change_file(string file) {
         filename = file;
     }
@@ -502,7 +503,7 @@ struct RobotControlServer {
         pitch = pitch_val;
         el = el_val;
         GLOBAL_STATUS_CHANGED = true;
-        GLOBAL_SERVER_STATUS = 6;
+        GLOBAL_SERVER_STATUS = ROBOT_TRACK;
     }
 
     int disconnect() {
@@ -516,7 +517,7 @@ struct RobotControlServer {
         el = 0;
         ygain = 0;
 	    egain = 0;
-        GLOBAL_SERVER_STATUS = 7;
+        GLOBAL_SERVER_STATUS = ROBOT_DISCONNECT;
         GLOBAL_STATUS_CHANGED = true;
         robot_controller_thread.join();
         return 0;
@@ -532,7 +533,6 @@ COMMANDER_REGISTER(m)
         .def("start", &RobotControlServer::start_robot_loop, "A function that starts the robot control loop (in idle)")
         .def("translate", &RobotControlServer::translate_robot, "A function that translates robot")
         .def("resonance", &RobotControlServer::resonance_robot, "A function that translates robot")
-        .def("level", &RobotControlServer::level_robot, "placeholder")
         .def("file", &RobotControlServer::change_file, "placeholder")
         .def("receive_ST_angles", &RobotControlServer::receive_ST_angles, "placeholder")
         .def("track", &RobotControlServer::track_robot, "placeholder")

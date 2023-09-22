@@ -496,6 +496,7 @@ void SerialPort::SendAllRequests() {
     ClearRequestBuff();
 }
 
+//FIXME: Remove this method
 void SerialPort::PacketManager() {
     int requested_incoming_byte_count = 0;
     int requested_outgoing_byte_count = 0;
