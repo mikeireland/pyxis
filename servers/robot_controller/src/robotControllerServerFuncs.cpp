@@ -383,7 +383,7 @@ int robot_loop() {
 		usleep(duration_cast<microseconds>(time_point_current-now_time).count() + 1000);
 		//time_point_current = steady_clock::now();
 		loop_counter++;
-		if !(loop_counter % 100) {
+		if (!(loop_counter % 100)) {
 			cout << "Running!\n";
 		}
 
