@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include "toml.hpp"
+#include "Globals.h"
 
 namespace co = commander;
 using namespace std;
