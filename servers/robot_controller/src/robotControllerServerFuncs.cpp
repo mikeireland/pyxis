@@ -6,6 +6,7 @@
 #include "RobotDriver.h"
 #include <time.h>
 #include <vector>
+#include "Globals.h"
 
 namespace co = commander;
 using namespace std;
@@ -33,6 +34,7 @@ auto resonance_time = duration_cast<seconds>(time_point_current-time_point_start
 auto last_resonance_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 
 int GLOBAL_SERVER_STATUS = 1;
+int loop_counter = 0;
 
 bool GLOBAL_STATUS_CHANGED = false;
 
@@ -63,17 +65,10 @@ double roll_error = 0.0;
 double pitch_error = 0.0;
 double roll_target = 3578.37;
 double pitch_target = -6217.54;
-double roll_gain = -0.05;
-double pitch_gain = -0.05;
 
 
 double heading = 0.0;
-double h_gain = 0.0;
-double ygain = 0.0;
-double egain = 0.0;
 
-double yint = 0.0;
-double eint = 0.0;
 
 double f = 0.5;
 
@@ -284,7 +279,7 @@ void ramp(RobotDriver *driver) {
 			    angle_target.x = velocity*roll*scaler;
 			    angle_target.y = velocity*pitch*scaler;
 			    angle_target.z = 0.001*velocity*yaw*scaler;
-			    //cout << scaler << '\n';
+			    //
 			}
 			driver->StabiliserLoop();
 
@@ -387,6 +382,10 @@ int robot_loop() {
 		now_time = steady_clock::now();
 		usleep(duration_cast<microseconds>(time_point_current-now_time).count() + 1000);
 		//time_point_current = steady_clock::now();
+		loop_counter++;
+		if !(loop_counter % 100) {
+			cout << 'Running!\n';
+		}
 
 		
 	}
