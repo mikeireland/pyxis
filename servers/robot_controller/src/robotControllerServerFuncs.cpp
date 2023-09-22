@@ -384,7 +384,7 @@ int robot_loop() {
 		//time_point_current = steady_clock::now();
 		loop_counter++;
 		if !(loop_counter % 100) {
-			cout << 'Running!\n';
+			cout << "Running!\n";
 		}
 
 		
