@@ -74,6 +74,10 @@ bool closed_loop_enable_flag = true;
 string filename = "state_file.csv";
 
 std::thread robot_controller_thread;
+std::thread watchdog_thread;
+
+int alive_counter = 1;
+int last_alive_counter = 0;
 
 double velocity = 0.0;
 double x = 0.0;
@@ -346,6 +350,7 @@ int robot_loop() {
 	time_point_start = steady_clock::now();
 	while(closed_loop_enable_flag) {
 		//Boolean to store if we have done anything on this loop and wait a little bit if we haven't
+		alive_counter++;
 		
 		if (GLOBAL_STATUS_CHANGED) {
 			time_point_start = steady_clock::now();
@@ -395,6 +400,36 @@ int robot_loop() {
     return 0;
 }
 
+void watchdog() {
+	//start up robot thread procedure
+	robot_controller_thread = std::thread(robot_loop);
+    //sch_params.sched_priority = 90;
+    pthread_setschedparam(robot_controller_thread.native_handle(), SCHED_RR, &sch_params);
+
+		// inner loop, while not disconnecting, check robot thread active
+		// if not active, kill, restart
+		// sleep 100ms
+	while(GLOBAL_SERVER_STATUS!=ROBOT_DISCONNECT) {
+		if (alive_counter==last_alive_counter) {
+			pthread_cancel(robot_controller_thread);
+			robot_controller_thread.join();
+			robot_controller_thread = std::thread(robot_loop);
+			pthread_setschedparam(robot_controller_thread.native_handle(), SCHED_RR, &sch_params);
+		}
+		last_alive_counter = alive_counter;
+		usleep(100000);
+
+	}
+	usleep(100000);
+
+	// send disconnect request
+	// wait
+	// if not disconnected, kill
+	//join
+	pthread_cancel(robot_controller_thread);
+	robot_controller_thread.join();
+}
+
 /*
 This is the main singleton class, which is for some reason a struct (?)
 */
@@ -412,13 +447,14 @@ struct RobotControlServer {
 	/*
 	Start the robot loop in the 
 	*/
+	//TO CHANGE
     int start_robot_loop() {
         GLOBAL_SERVER_STATUS = ROBOT_IDLE;
         GLOBAL_STATUS_CHANGED = true;
         cout << "fine";
-        robot_controller_thread = std::thread(robot_loop);
+        watchdog_thread = std::thread(watchdog);
         //sch_params.sched_priority = 90;
-        pthread_setschedparam(robot_controller_thread.native_handle(), SCHED_RR, &sch_params);
+        pthread_setschedparam(watchdog_thread.native_handle(), SCHED_RR, &sch_params);
         return 0;
     }
 
@@ -505,7 +541,7 @@ struct RobotControlServer {
         GLOBAL_STATUS_CHANGED = true;
         GLOBAL_SERVER_STATUS = ROBOT_TRACK;
     }
-
+	// TO CHANGE
     int disconnect() {
         velocity = 0;
         x = 0;
@@ -519,7 +555,7 @@ struct RobotControlServer {
 	    egain = 0;
         GLOBAL_SERVER_STATUS = ROBOT_DISCONNECT;
         GLOBAL_STATUS_CHANGED = true;
-        robot_controller_thread.join();
+        watchdog_thread.join();
         return 0;
     }
 };
