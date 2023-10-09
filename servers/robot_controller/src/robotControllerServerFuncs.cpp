@@ -35,8 +35,8 @@ Includes the main state machine based on GLOBAL_SERVER_STATUS
 #define ROBOT_IDLE 1
 #define ROBOT_TRANSLATE 2
 #define ROBOT_UNAMBIG 3
-#define ROBOT_TRACK 6
-#define ROBOT_DISCONNECT 6
+#define ROBOT_TRACK 4
+#define ROBOT_DISCONNECT 5
 
 
 namespace co = commander;
