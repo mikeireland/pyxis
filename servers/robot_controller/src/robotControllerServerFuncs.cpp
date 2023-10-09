@@ -411,7 +411,7 @@ void watchdog() {
 		// sleep 100ms
 	while(GLOBAL_SERVER_STATUS!=ROBOT_DISCONNECT) {
 		if (alive_counter==last_alive_counter) {
-			pthread_cancel(robot_controller_thread);
+			pthread_cancel(robot_controller_thread.native_handle());
 			robot_controller_thread.join();
 			robot_controller_thread = std::thread(robot_loop);
 			pthread_setschedparam(robot_controller_thread.native_handle(), SCHED_RR, &sch_params);
@@ -426,7 +426,7 @@ void watchdog() {
 	// wait
 	// if not disconnected, kill
 	//join
-	pthread_cancel(robot_controller_thread);
+	pthread_cancel(robot_controller_thread.native_handle());
 	robot_controller_thread.join();
 }
 
