@@ -334,7 +334,7 @@ milli-second, which is forked as a thread from the RobotControlServer's start_ro
 */
 int robot_loop() {
 	//Necessary global timing measures
-	cout << "Robot starting!\n";
+	
     time_point_start = steady_clock::now();
     time_point_current = steady_clock::now();
     last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
@@ -390,10 +390,7 @@ int robot_loop() {
 		now_time = steady_clock::now();
 		usleep(duration_cast<microseconds>(time_point_current-now_time).count() + 1000);
 		//time_point_current = steady_clock::now();
-		loop_counter++;
-		if (!(loop_counter % 100)) {
-			cout << "Running!\n";
-		}
+
 	}
 
 	driver->teensy_port.ClosePort();
@@ -406,7 +403,7 @@ void watchdog() {
 	robot_controller_thread = std::thread(robot_loop);
     //sch_params.sched_priority = 90;
     pthread_setschedparam(robot_controller_thread.native_handle(), SCHED_RR, &sch_params);
-	cout << "started\n";
+
 	usleep(1000000);
 		// inner loop, while not disconnecting, check robot thread active
 		// if not active, kill, restart
@@ -421,7 +418,6 @@ void watchdog() {
 		}
 		last_alive_counter = alive_counter;
 		usleep(100000);
-		cout << "looping\n";
 
 	}
 	usleep(100000);
@@ -455,7 +451,7 @@ struct RobotControlServer {
     int start_robot_loop() {
         GLOBAL_SERVER_STATUS = ROBOT_IDLE;
         GLOBAL_STATUS_CHANGED = true;
-        cout << "fine";
+     
         watchdog_thread = std::thread(watchdog);
         //sch_params.sched_priority = 90;
         pthread_setschedparam(watchdog_thread.native_handle(), SCHED_RR, &sch_params);
