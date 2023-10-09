@@ -204,6 +204,9 @@ void unambig(RobotDriver *driver) {
 void translate(RobotDriver *driver) {
 	Servo::Doubles velocity_target;
 	Servo::Doubles angle_target;
+	driver->teensy_port.ReadMessage();
+	driver->PassAccelBytesToLeveller();
+	driver->leveller.UpdateTarget();
 	double elevation_target = 0.0000048481*el;
 	velocity_target.x = 0.001*velocity*x;
 	velocity_target.y = 0.001*velocity*y;
@@ -211,6 +214,12 @@ void translate(RobotDriver *driver) {
 	angle_target.x = roll;
 	angle_target.y = pitch;
 	angle_target.z = 0.0000014302*yaw;
+	if (!(loop_counter % 1000)) {
+		current_roll = 3600*driver->leveller.roll_estimate_filtered_;
+		current_pitch = 3600*driver->leveller.pitch_estimate_filtered_;
+		cout << "roll: " << current_roll << '\n';
+		cout << "pitch: " << current_pitch << '\n';
+	}
 	
 	driver->SetNewStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
@@ -222,7 +231,6 @@ void translate(RobotDriver *driver) {
 			//	velocity_target.y = 0;
 			//	velocity_target.z = 0;
 			//}
-			driver->teensy_port.ReadMessage();
 			driver->StabiliserLoop();
 
 			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
@@ -390,7 +398,8 @@ int robot_loop() {
 		now_time = steady_clock::now();
 		usleep(duration_cast<microseconds>(time_point_current-now_time).count() + 1000);
 		//time_point_current = steady_clock::now();
-
+		loop_counter++;
+		
 	}
 
 	driver->teensy_port.ClosePort();
@@ -403,7 +412,7 @@ void watchdog() {
 	robot_controller_thread = std::thread(robot_loop);
     //sch_params.sched_priority = 90;
     pthread_setschedparam(robot_controller_thread.native_handle(), SCHED_RR, &sch_params);
-
+	cout << "started\n";
 	usleep(1000000);
 		// inner loop, while not disconnecting, check robot thread active
 		// if not active, kill, restart
@@ -451,7 +460,6 @@ struct RobotControlServer {
     int start_robot_loop() {
         GLOBAL_SERVER_STATUS = ROBOT_IDLE;
         GLOBAL_STATUS_CHANGED = true;
-     
         watchdog_thread = std::thread(watchdog);
         //sch_params.sched_priority = 90;
         pthread_setschedparam(watchdog_thread.native_handle(), SCHED_RR, &sch_params);
