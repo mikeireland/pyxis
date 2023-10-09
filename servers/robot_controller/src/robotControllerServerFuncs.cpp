@@ -334,6 +334,7 @@ milli-second, which is forked as a thread from the RobotControlServer's start_ro
 */
 int robot_loop() {
 	//Necessary global timing measures
+	cout << "Robot starting!\n";
     time_point_start = steady_clock::now();
     time_point_current = steady_clock::now();
     last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
