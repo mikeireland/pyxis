@@ -405,6 +405,7 @@ void watchdog() {
 	robot_controller_thread = std::thread(robot_loop);
     //sch_params.sched_priority = 90;
     pthread_setschedparam(robot_controller_thread.native_handle(), SCHED_RR, &sch_params);
+	cout << "started\n";
 
 		// inner loop, while not disconnecting, check robot thread active
 		// if not active, kill, restart
@@ -418,6 +419,7 @@ void watchdog() {
 		}
 		last_alive_counter = alive_counter;
 		usleep(100000);
+		cout << "looping\n";
 
 	}
 	usleep(100000);
