@@ -406,12 +406,13 @@ void watchdog() {
     //sch_params.sched_priority = 90;
     pthread_setschedparam(robot_controller_thread.native_handle(), SCHED_RR, &sch_params);
 	cout << "started\n";
-
+	usleep(1000000);
 		// inner loop, while not disconnecting, check robot thread active
 		// if not active, kill, restart
 		// sleep 100ms
 	while(GLOBAL_SERVER_STATUS!=ROBOT_DISCONNECT) {
 		if (alive_counter==last_alive_counter) {
+			cout << "killing\n";
 			pthread_cancel(robot_controller_thread.native_handle());
 			robot_controller_thread.join();
 			robot_controller_thread = std::thread(robot_loop);
