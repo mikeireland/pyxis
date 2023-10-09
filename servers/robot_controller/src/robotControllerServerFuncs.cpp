@@ -347,7 +347,7 @@ int robot_loop() {
 
 	RobotDriver* driver = new RobotDriver();
 	closed_loop_enable_flag = true;
-	driver->EngageStabiliser();
+	//driver->EngageStabiliser();
 	time_point_start = steady_clock::now();
 	while(closed_loop_enable_flag) {
 		//Boolean to store if we have done anything on this loop and wait a little bit if we haven't

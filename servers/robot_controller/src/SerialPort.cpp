@@ -13,14 +13,14 @@ SerialPort::SerialPort(int device_id_target) {
     //Open comms with the first teensy we can find
     //Open comms with the first teensy we can find
     init = true;
-    sleep(10);
+
     OpenPort();
 
     //ID the opened teensy
     //ReadMessage();
     Request(ID);
     SendAllRequests();
-	sleep(5);
+	usleep(2000);
 	ReadMessage();
 	ReadMessage();
 	printf("Device ID: %u\n",device_id_);
@@ -41,7 +41,7 @@ SerialPort::SerialPort(int device_id_target) {
 		//ReadMessage();
 		Request(ID);
 		SendAllRequests();
-	sleep(5);
+	usleep(2000);
 	ReadMessage();
 	ReadMessage();
 		printf("Device ID: %u\n",device_id_);
