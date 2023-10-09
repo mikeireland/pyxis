@@ -28,6 +28,6 @@ cam_ID = "20031596"
 	filename_prefix = "data/test" #Default "where to save" file prefix
 
 [CoarseMet]
-RB_port = "4300"
-DA_port = "4301"
-IP = "192.168.1.5"
+RB_port = "4300" #Sinistra robot port
+DA_port = "4301" #Deputy auxillary port
+IP = "192.168.1.5" #Sinistra IP
