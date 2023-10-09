@@ -7,7 +7,13 @@
 
 //PLATE SOLVER SENDS ZMQ REQUEST OF GET LATEST FILENAME TO PLATESOLVE. THAT'S ABOUT ALL THE INTERACTIONS!
 
-// Return 1 if error!
+/*
+Callback function to do nothing!
+Inputs:
+    data - array of the raw camera data
+Output:
+    return 1 if error
+*/
 int NoCallback (unsigned short* data){
     return 0;
 }

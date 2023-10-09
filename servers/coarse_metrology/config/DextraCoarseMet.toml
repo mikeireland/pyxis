@@ -28,6 +28,6 @@ cam_ID = "20031592"
 	filename_prefix = "data/test" #Default "where to save" file prefix
 
 [CoarseMet]
-RB_port = "4200"
-DA_port = "4201"
-IP = "192.168.1.4"
+RB_port = "4200" #Dextra Robot port
+DA_port = "4201" #Dextra auxillary port
+IP = "192.168.1.4" #Dextra IP

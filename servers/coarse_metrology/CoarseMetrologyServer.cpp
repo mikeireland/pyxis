@@ -14,28 +14,30 @@
 
 using json = nlohmann::json;
 
+//LED Struct for the x/y position of both LED positions
 struct LEDs {
-    double LED1_x;
+    double LED1_x; 
     double LED1_y;
     double LED2_x;
     double LED2_y;
 };
 
-LEDs GLOB_CM_LEDs;
-int GLOB_CM_ONFLAG = 0;
-int GLOB_CM_ENABLEFLAG = 0;
+LEDs GLOB_CM_LEDs; //Main LED struct
+int GLOB_CM_ONFLAG = 0; //Are the LEDs on?
+int GLOB_CM_ENABLEFLAG = 0; //Is the coarse metrology to be enabled?
 
-cv::Mat GLOB_CM_IMG_DARK;
+cv::Mat GLOB_CM_IMG_DARK; //Dark image
 
-pthread_mutex_t GLOB_CM_FLAG_LOCK;
-pthread_mutex_t GLOB_CM_IMG_LOCK;
+pthread_mutex_t GLOB_CM_FLAG_LOCK; //Lock on changing flags
+pthread_mutex_t GLOB_CM_IMG_LOCK; //Lock on the images
 
-std::string GLOB_RB_TCP = "NOFILESAVED";
-std::string GLOB_DA_TCP = "NOFILESAVED";
+std::string GLOB_RB_TCP = "NOFILESAVED"; //Robot TCP address
+std::string GLOB_DA_TCP = "NOFILESAVED"; //Dep Aux TCP address
 
-commander::client::Socket* RB_SOCKET;
-commander::client::Socket* DA_SOCKET;
+commander::client::Socket* RB_SOCKET; //Robot commander socket
+commander::client::Socket* DA_SOCKET; //Dep Aux commander socket
 
+//Serialiser for commander
 namespace nlohmann {
     template <>
     struct adl_serializer<LEDs> {
@@ -53,6 +55,14 @@ namespace nlohmann {
     };
 }
 
+/* Function to calculate the LED positions from an image
+Inputs:
+    img - OpenCV image to process
+    dark - OpenCV image of the system without LEDs on
+
+Outputs:
+    struct of LED positions
+*/
 LEDs CalcLEDPosition(cv::Mat img, cv::Mat dark){
 
     // Function to take image array and find the two LED positions
@@ -69,8 +79,13 @@ LEDs CalcLEDPosition(cv::Mat img, cv::Mat dark){
 
 }
 
-
-// Return 1 if error!
+/*
+Callback function to calculate the metrology.
+Inputs:
+    data - array of the raw camera data
+Output:
+    return 1 if error
+*/
 int CM_Callback (unsigned short* data){
 
     if (GLOB_CM_ENABLEFLAG){
@@ -148,6 +163,11 @@ struct CoarseMet: FLIRCameraServer{
         delete DA_SOCKET;
     }
 
+    /*
+    Gets the positions of both LEDs
+    Outputs:
+        Returns a struct of the x/y positions of the LEDs
+    */
     LEDs getLEDpositions(){
         LEDs ret_LEDs;
         pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
@@ -156,6 +176,13 @@ struct CoarseMet: FLIRCameraServer{
         return ret_LEDs;
     }
 
+    /*
+    Function to enable the coarse metrology
+    Input:
+        flag to enable (1=on, 0=off)
+    Output:
+        String output message
+    */
     string enableCoarseMetLEDs(int flag){
         string ret_msg = "Changing enable flag to: " + to_string(flag);
         pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
