@@ -30,4 +30,4 @@ cam_ID = "20031592"
 [CoarseMet]
 RB_port = "4200" #Dextra Robot port
 DA_port = "4201" #Dextra auxillary port
-IP = "192.168.1.4" #Dextra IP
+IP = "192.168.1.3" #Dextra IP
