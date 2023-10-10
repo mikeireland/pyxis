@@ -581,6 +581,7 @@ struct RobotControlServer {
 		cout << measured.LED1_y << '\n';
 		cout << measured.LED2_x << '\n';
 		cout << measured.LED2_y << '\n';
+		return 0;
 	}
 };
 
