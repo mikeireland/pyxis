@@ -6,14 +6,14 @@ flush_cache(){
     a=$1
     b=${a:1:1}
     if [ $b == "3" ]; then
-        cat ~/pyxis/screen_configs/pw | sudo -S 'ykushcmd ykush3 -s $1 -d $2'
+        cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd ykush3 -s $1 -d $2
         sleep 1
-        cat ~/pyxis/screen_configs/pw | sudo -S 'ykushcmd ykush3 -s $1 -u $2'
+        cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd ykush3 -s $1 -u $2
     else
-        cat ~/pyxis/screen_configs/pw | sudo -S 'ykushcmd ykush -s $1 -d $2'
+        cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd ykush -s $1 -d $2
         sleep 1
-        cat ~/pyxis/screen_configs/pw | sudo -S 'ykushcmd ykush -s $1 -u $2'
+        cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd ykush -s $1 -u $2
     fi
 }
 
-source $3
+$3
