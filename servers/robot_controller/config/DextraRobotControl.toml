@@ -1,6 +1,7 @@
 port = "4200"
 IP = "192.168.1.4"
 #mode = "Interactive"
-
+roll = "-9000"
+pitch = "-3800"
 
 

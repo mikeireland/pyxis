@@ -101,6 +101,15 @@ double pitch_error = 0.0;
 double roll_target = 3578.37;
 double pitch_target = -6217.54;
 
+struct LEDs {
+    double LED1_x; 
+    double LED1_y;
+    double LED2_x;
+    double LED2_y;
+};
+
+
+
 
 double heading = 0.0;
 double f = 0.5;
@@ -566,7 +575,31 @@ struct RobotControlServer {
         watchdog_thread.join();
         return 0;
     }
+
+	int receive_LED(LEDs measured) {
+		cout << measured.LED1_x << '\n';
+		cout << measured.LED1_y << '\n';
+		cout << measured.LED2_x << '\n';
+		cout << measured.LED2_y << '\n';
+	}
 };
+
+namespace nlohmann {
+    template <>
+    struct adl_serializer<LEDs> {
+        static void to_json(json& j, const LEDs& L) {
+            j = json{{"LED1_x", L.LED1_x},{"LED1_y", L.LED1_y}, 
+            {"LED2_x", L.LED2_x},{"LED2_y", L.LED2_y}};
+        }
+
+        static void from_json(const json& j, LEDs& L) {
+            j.at("LED1_x").get_to(L.LED1_x);
+            j.at("LED1_y").get_to(L.LED1_y);
+            j.at("LED2_x").get_to(L.LED2_x);
+            j.at("LED2_y").get_to(L.LED2_y);
+        }
+    };
+}
 
 COMMANDER_REGISTER(m)
 {
@@ -583,5 +616,6 @@ COMMANDER_REGISTER(m)
         .def("set_gains", &RobotControlServer::set_gains, "placeholder")
         .def("set_heading", &RobotControlServer::set_heading, "placeholder")
 		.def("print_level", &RobotControlServer::print_level, "placeholder")
+		.def("receive_LED_positions", &RobotControlServer::receive_LED, "placeholder")
         .def("disconnect", &RobotControlServer::disconnect, "placeholder");
 }
