@@ -2,7 +2,7 @@ hardstatus alwayslastline "Terminal Win: %n - [%t]"
 hardstatus ignore
 zombie kr
 logfile logs/s1_%t.log
-screen -t Camera bash -c "cd ~/pyxis/servers/coarse_star_tracker; ~/pyxis/flush_FLIR.sh YK55673 1 'bin/CoarseStarTrackerServer config/DextraStarTracker.toml'; exec bash"
+screen -t Camera bash -c "cd ~/pyxis/servers/coarse_star_tracker; ~/pyxis/flush_FLIR.sh YK55673 1 'bin/CoarseStarTrackerServer config/SinistraStarTracker.toml'; exec bash"
 screen -t Target bash -c "cd ~/pyxis/servers/target_server; bin/TargetServer config/SinistraTargetConfig.toml; exec bash"
 screen -t PlateSolver bash -c "cd ~/pyxis/servers/plate_solver; python3 run_plate_solver.py Sinistra_astrometry.toml; exec bash"
 screen -t Shell bash -c "cd ~/pyxis/servers; bash"
