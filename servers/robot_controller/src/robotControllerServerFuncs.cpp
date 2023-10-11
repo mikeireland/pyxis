@@ -89,6 +89,8 @@ double pitch = 0.0;
 double el = 0.0;
 double az = 0.0;
 double alt = 0.0;
+double az_off = 0.0;
+double alt_off = 0.0;
 double pos = 0.0;
 
 double alt_acc = 0.0;
@@ -273,16 +275,16 @@ void track(RobotDriver *driver) {
 	current_pitch = 3600*driver->leveller.pitch_estimate_filtered_;
 	roll_error = roll_target - current_roll;
 	pitch_error = pitch_target - current_pitch;
-	double elevation_target = 0.0000048481*saturation(el + egain*alt + eint*alt_acc);
+	double elevation_target = 0.0000048481*saturation(el + egain*(alt+alt_off) + eint*alt_acc);
 	velocity_target.x = 0.001*velocity*x;
 	velocity_target.y = 0.001*velocity*y;
 	velocity_target.z = 0.001*velocity*z;
 	angle_target.x = saturation(roll+roll_gain*roll_error);
 	angle_target.y = saturation(pitch + pitch_gain*pitch_error);
-	angle_target.z = 0.0000014302*saturation(yaw + ygain*az + yint*az_acc + h_gain*heading);
+	angle_target.z = 0.0000014302*saturation(yaw + ygain*(az+az_off) + yint*az_acc + h_gain*heading);
 
-	alt_acc += 0.001*alt;
-	az_acc += 0.001*az;
+	alt_acc += 0.001*(alt+alt_off);
+	az_acc += 0.001*(az+az_off);
 	
 	driver->SetNewStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
@@ -576,6 +578,14 @@ struct RobotControlServer {
         return 0;
     }
 
+	int offset_targets(double azimuth, double altitude, double rollval, double pitchval) {
+		roll_target += rollval;
+		pitch_target += pitchval;
+		az_off += azimuth;
+		alt_off += altitude;
+		return 0;
+	}
+
 	int receive_LED(LEDs measured) {
 		cout << measured.LED1_x << '\n';
 		cout << measured.LED1_y << '\n';
@@ -618,5 +628,6 @@ COMMANDER_REGISTER(m)
         .def("set_heading", &RobotControlServer::set_heading, "placeholder")
 		.def("print_level", &RobotControlServer::print_level, "placeholder")
 		.def("receive_LED_positions", &RobotControlServer::receive_LED, "placeholder")
+		.def("update_offsets", &RobotControlServer::update_offsets, "placeholder")
         .def("disconnect", &RobotControlServer::disconnect, "placeholder");
 }
