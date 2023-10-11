@@ -1,5 +1,5 @@
-double roll_gain = -0.05;
-double pitch_gain = -0.05;
+double roll_gain = -0.08;
+double pitch_gain = -0.08;
 double roll_int = 0.0;
 double pitch_int = 0.0;
 
