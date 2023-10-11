@@ -628,6 +628,6 @@ COMMANDER_REGISTER(m)
         .def("set_heading", &RobotControlServer::set_heading, "placeholder")
 		.def("print_level", &RobotControlServer::print_level, "placeholder")
 		.def("receive_LED_positions", &RobotControlServer::receive_LED, "placeholder")
-		.def("update_offsets", &RobotControlServer::update_offsets, "placeholder")
+		.def("update_offsets", &RobotControlServer::offset_targets, "placeholder")
         .def("disconnect", &RobotControlServer::disconnect, "placeholder");
 }
