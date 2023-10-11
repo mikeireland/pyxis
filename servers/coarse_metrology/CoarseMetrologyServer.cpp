@@ -105,10 +105,10 @@ int CM_Callback (unsigned short* data){
             pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
             
             //ZMQ CLIENT SEND TO DEPUTY ROBOT positions
-            std::string result = RB_SOCKET->send<std::string>("RC.receive_LED_positions", positions);
+            RB_SOCKET->send<int>("RC.receive_LED_positions", positions);
             
             //ZMQ CLIENT SEND TO AUX TURN OFF LED
-            std::string result = DA_SOCKET->send<std::string>("DA.LEDOff");
+            DA_SOCKET->send<int>("DA.LEDOff");
 
         
             pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
@@ -125,7 +125,7 @@ int CM_Callback (unsigned short* data){
             pthread_mutex_unlock(&GLOB_CM_IMG_LOCK);
 
             //ZMQ CLIENT SEND TO AUX TURN ON LED
-            std::string result = DA_SOCKET->send<std::string>("DA.LEDOn");
+            DA_SOCKET->send<int>("DA.LEDOn");
 
             pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
             GLOB_CM_ONFLAG = 1;
