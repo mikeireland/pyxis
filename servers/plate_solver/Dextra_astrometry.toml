@@ -23,8 +23,10 @@ filt_size = 15 #Size of filter
 depth = 10 #How many stars to match?
 FOV_min = 5 #minimum estimate of FOV in degrees
 FOV_max = 6 #maximum estimate of FOV in degrees
-ref_pix_x = 720.5 #x reference pixel for WCS solution
-ref_pix_y = 540.5 #y reference pixel for WCS solution
+#ref_pix_x = 720.5 #x reference pixel for WCS solution
+#ref_pix_y = 540.5 #y reference pixel for WCS solution
+ref_pix_x = 666 #x reference pixel for WCS solution
+ref_pix_y = 456 #y reference pixel for WCS solution
 
     [Astrometry.estimate_position]
     flag = 0
