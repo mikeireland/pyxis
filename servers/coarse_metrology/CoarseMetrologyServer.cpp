@@ -16,10 +16,10 @@ using json = nlohmann::json;
 
 //LED Struct for the x/y position of both LED positions
 struct LEDs {
-    double LED1_x; 
-    double LED1_y;
-    double LED2_x;
-    double LED2_y;
+    double LED1_x = 0.; 
+    double LED1_y = 0.;
+    double LED2_x = 0.;
+    double LED2_y = 0.;
 };
 
 LEDs GLOB_CM_LEDs; //Main LED struct
@@ -67,13 +67,20 @@ LEDs CalcLEDPosition(cv::Mat img, cv::Mat dark){
 
     // Function to take image array and find the two LED positions
     static image::ImageProcessSubMatInterp ipb;
-    auto p = ipb(img, dark);
     
     LEDs result;
-    result.LED1_x = p.p1.x;
-    result.LED1_y = p.p1.y;
-    result.LED2_x = p.p2.x;
-    result.LED2_y = p.p2.y;
+
+    try {
+        auto p = ipb(img, dark);
+        
+        result.LED1_x = p.p1.x;
+        result.LED1_y = p.p1.y;
+        result.LED2_x = p.p2.x;
+        result.LED2_y = p.p2.y;
+
+    } catch (const cv::Exception& e) {
+        std:cout << e.what() << std::endl;
+    }   
 
     return result;
 
