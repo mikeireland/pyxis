@@ -307,7 +307,10 @@ if __name__ == "__main__":
         print(target)
 
         if config["platesolver_index"] > 0:
-            fibre_injection_socket.send_string(config["tiptilt_command"])
+            if config["platesolver_index"] == 1:
+                fibre_injection_socket.send_string(config["FI.getDiffPosition [1]"])
+            elif config["platesolver_index"] == 2:
+                fibre_injection_socket.send_string(config["FI.getDiffPosition [2]"])
             message = fibre_injection_socket.recv()
             message = message.decode("utf-8")
             print("Received fibre injection server message: %s" % message )

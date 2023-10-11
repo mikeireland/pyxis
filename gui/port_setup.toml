@@ -172,10 +172,10 @@ refresh_time = 4 #In seconds
     compression_param = 2
     contrast_limits = [0.2,4.0]
 
-    [Sinistra.TargetControl]
-    tab_name = "Target"
-    name = "TargetControl"
-    prefix = "TS"
-    port = "4303"
-    description = "Sinistra Target selector (move to FSM?)"
-    module_type = "TargetWidget"
+#    [Sinistra.TargetControl]
+#    tab_name = "Target"
+#    name = "TargetControl"
+#    prefix = "TS"
+#    port = "4303"
+#    description = "Sinistra Target selector (move to FSM?)"
+#    module_type = "TargetWidget"
