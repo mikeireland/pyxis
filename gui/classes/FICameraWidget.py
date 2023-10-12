@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
-from BaseFLIRCameraWidget import BaseFLIRCameraWidget, FeedWindow
+from BaseFLIRCameraWidget import BaseFLIRCameraWidget
 
 try:
     from PyQt5.QtWidgets import QPushButton, QHBoxLayout
-    from PyQt5.QtCore import QPoint
 except:
     print("Please install PyQt5.")
     raise UserWarning
@@ -15,15 +14,6 @@ class FICameraWidget(BaseFLIRCameraWidget):
         super(FICameraWidget,self).__init__(config, IP, parent)
 
         self.numframes_edit.setText("0")
-        contrast_min = config["contrast_limits"][0]
-        contrast_max = config["contrast_limits"][1]
-
-        target_1 = QPoint(594,430)
-        target_2 = QPoint(632,628)
-        target_ls = [target_1,target_2]
-        offset = QPoint(420,252)
-
-        self.feed_window = FeedWindow(self.name, contrast_min, contrast_max, target_ls, offset)
 
         hbox3 = QHBoxLayout()
         self.enable_button = QPushButton("Enable Centroiding", self)

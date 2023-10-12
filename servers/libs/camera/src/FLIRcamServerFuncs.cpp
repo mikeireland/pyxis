@@ -14,27 +14,40 @@
 using namespace std;
 using json = nlohmann::json;
 
-// Return 1 if error!
+/*
+Callback function to do nothing!
+Inputs:
+    data - array of the raw camera data
+Output:
+    return 1 if error
+*/
 int SimpleCallback (unsigned short* data){
     cout << "I could be working here!" << endl;
     return 0;
 }
 
-
+/*
+Constructor with no callback
+*/
 FLIRCameraServer::FLIRCameraServer(){
         fmt::print("FLIRCameraServer\n");
         GLOB_CALLBACK = SimpleCallback;
     }
-    
+
+/*
+Constructor with callback
+*/
 FLIRCameraServer::FLIRCameraServer(std::function<int(unsigned short*)> AnalysisFunc){
         fmt::print("FLIRCameraServer\n");
         GLOB_CALLBACK = AnalysisFunc;
     }
 
+/*
+Destructor
+*/
 FLIRCameraServer::~FLIRCameraServer(){
         fmt::print("~FLIRCameraServer\n");
     }
-
 
 //Get status of camera
 string FLIRCameraServer::status(){
@@ -65,7 +78,12 @@ configuration FLIRCameraServer::getparams(){
     return ret_c;
 	}
 
-// Reconfigure parameters from an input configuration struct
+/*
+Reconfigure all parameters on the camera;
+The complexity here is due to checking for bounds
+Inputs:
+    c - configuration struct
+*/
 string FLIRCameraServer::reconfigure_all(configuration c){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
@@ -283,8 +301,12 @@ string FLIRCameraServer::disconnectcam(){
 	return ret_msg;
 }
 
-// Start acquisition of the camera. Takes in the number of frames to save
-// per FITS file (or 0 for continuous, no saving)
+/* 
+Start acquisition of the camera. 
+Inputs:
+    num_frames - number of frames to save. 0 is continuous, no saving
+    coadd_flag - add frames together?
+*/
 string FLIRCameraServer::startcam(int num_frames, int coadd_flag){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
@@ -349,7 +371,12 @@ string FLIRCameraServer::getlatestfilename(){
 	return ret_msg;
 }
 
-// Get the latest image data from the camera thread
+/* 
+Get latest image 
+Inputs:
+    compression - PNG compression parameter (see imencode, goes from 0-9)
+    binning - flag to see whether to bin or not
+*/
 string FLIRCameraServer::getlatestimage(int compression, int binning){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
@@ -377,9 +404,11 @@ string FLIRCameraServer::getlatestimage(int compression, int binning){
                 cout << "converting mat" << endl;
                 mat.convertTo(mat, CV_8U, 1/256.0); // CONVERT TO 8 BIT
                 
+                // Binning (possibly some issues here?)
                 if(binning){
                     cout << "binning" << endl;
-                    cv::resize(mat,mat,cv::Size(), 0.5, 0.5,cv::INTER_AREA);
+                    cv::resize(mat,mat,0, 0.5, 0.5,cv::INTER_AREA);
+                    //cv::resize(mat,mat,cv::Size(), 0.5, 0.5,cv::INTER_AREA); OLD LINE
                 }
                 cout << "compressing" << endl;
                 // Compress and Convert data to vector
@@ -427,6 +456,3 @@ string FLIRCameraServer::getlatestimage(int compression, int binning){
 
 	return ret_msg;
 }
-
-
-

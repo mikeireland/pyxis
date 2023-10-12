@@ -14,27 +14,40 @@
 using namespace std;
 using json = nlohmann::json;
 
-// Return 1 if error!
+/*
+Callback function to do nothing!
+Inputs:
+    data - array of the raw camera data
+Output:
+    return 1 if error
+*/
 int SimpleCallback (unsigned short* data){
     cout << "I could be working here!" << endl;
     return 0;
 }
 
-
+/*
+Constructor with no callback
+*/
 QHYCameraServer::QHYCameraServer(){
         fmt::print("QHYCameraServer\n");
         GLOB_CALLBACK = SimpleCallback;
     }
-    
+
+/*
+Constructor with callback
+*/
 QHYCameraServer::QHYCameraServer(std::function<int(unsigned short*)> AnalysisFunc){
         fmt::print("FLIRCameraServer\n");
         GLOB_CALLBACK = AnalysisFunc;
     }
 
+/*
+Destructor
+*/
 QHYCameraServer::~QHYCameraServer(){
         fmt::print("~QHYCameraServer\n");
     }
-
 
 //Get status of camera
 string QHYCameraServer::status(){
@@ -68,7 +81,12 @@ configuration QHYCameraServer::getparams(){
     return ret_c;
 	}
 
-// Reconfigure parameters from an input configuration struct
+/*
+Reconfigure all parameters on the camera;
+The complexity here is due to checking for bounds
+Inputs:
+    c - configuration struct
+*/
 string QHYCameraServer::reconfigure_all(configuration c){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
@@ -283,8 +301,12 @@ string QHYCameraServer::disconnectcam(){
 	return ret_msg;
 }
 
-// Start acquisition of the camera. Takes in the number of frames to save
-// per FITS file (or 0 for continuous, no saving)
+/* 
+Start acquisition of the camera. 
+Inputs:
+    num_frames - number of frames to save. 0 is continuous, no saving
+    coadd_flag - add frames together?
+*/
 string QHYCameraServer::startcam(int num_frames){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
@@ -344,7 +366,12 @@ string QHYCameraServer::getlatestfilename(){
 	return ret_msg;
 }
 
-// Get the latest image data from the camera thread
+/* 
+Get latest image 
+Inputs:
+    compression - PNG compression parameter (see imencode, goes from 0-9)
+    binning - NOT USED
+*/
 string QHYCameraServer::getlatestimage(int compression, int binning){
 	string ret_msg;
 	if(GLOB_CAM_STATUS == 2){
@@ -415,6 +442,4 @@ string QHYCameraServer::getlatestimage(int compression, int binning){
 
 	return ret_msg;
 }
-
-
 

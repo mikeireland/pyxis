@@ -148,6 +148,17 @@ class BaseFLIRCameraWidget(RawWidget):
         contrast_min = config["contrast_limits"][0]
         contrast_max = config["contrast_limits"][1]
 
+        target_list = config["annotated_point_list"]
+        target_qpoint_list = []
+        if len(target_list) > 0:
+            for target in target_list:
+                target_qpoint = QPoint(target[0],target[1])
+                target_qpoint_list.append(target_qpoint)
+
+        offset = QPoint(config["offset"][0],config["offset"][1])
+
+        self.feed_window = FeedWindow(self.name, contrast_min, contrast_max, target_qpoint_list, offset)
+
         hbox4 = QHBoxLayout()
         vbox4 = QVBoxLayout()
         #Add controls for taking exposures with the camera
@@ -296,8 +307,6 @@ class BaseFLIRCameraWidget(RawWidget):
         self.Reconfigure_button.clicked.connect(self.reconfigure_camera)
         hbox3.addWidget(self.Reconfigure_button)
         self.sidePanel.addLayout(hbox3)
-
-        self.feed_window = FeedWindow(self.name, contrast_min, contrast_max)
 
         hbox3 = QHBoxLayout()
         self.Camera_button = QPushButton("Start Feed", self)

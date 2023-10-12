@@ -9,10 +9,9 @@ import conversion
 import tetra3 as t3
 from astropy.io import fits
 import subprocess as sp
-import scipy.ndimage as nd
 import glob
 import numpy as np
-import tomli
+import pytomlpp
 import glob
 import zmq
 import json
@@ -76,16 +75,17 @@ def writeANxy(filename, x, y, dim, depth=10, scale_bounds = (0.,0.), ref_pix = (
 
 """
 Main function to run an image
-Takes a FITS image, extracts stars, solves the field and converts into an AltAz
-attitude quaternion.
+Takes a FITS image, extracts stars, solves the field and converts into Euler angles.
 
 INPUTS:
-img_filename = filename of the FITS image to solve
-prefix = prefix of all auxillary files (including solution)
-output_folder = folder to store auxillary and solution files
+    img_filename = filename of the FITS image to solve
+    config - configuration file
+    target - target Ra and Dec
+    offset - offset to reference pixel
 
 OUTPUTS:
-An attitude quaternion in AltAz coordinate frame of the image
+    Error code (1 if successful)
+    Euler angles in AltAz coordinate frame of the image
 """
 def run_image(img_filename,config,target,offset):
     start_time = time.perf_counter()
@@ -104,6 +104,7 @@ def run_image(img_filename,config,target,offset):
                                           sigma_mode=config["Tetra3"]["sigma_mode"],
                                           filtsize=config["Tetra3"]["filt_size"])
 
+    # If no extraction, return error
     if len(lst) == 0:
         print("COULD NOT EXTRACT STARS")
         return (0,np.array([0,0,0]))
@@ -127,6 +128,7 @@ def run_image(img_filename,config,target,offset):
     #Run astrometry.net
     os.system("./astrometry/solver/astrometry-engine %s.axy -c astrometry.cfg"%folder_prefix)
 
+    #If failed solve, return error
     if not(os.path.exists("%s.wcs"%folder_prefix)):
         print("DID NOT SOLVE")
         config["Astrometry"]["estimate_position"]["flag"] = 0
@@ -144,7 +146,7 @@ def run_image(img_filename,config,target,offset):
     config["Astrometry"]["estimate_position"]["dec"] = DEC
     config["Astrometry"]["estimate_position"]["flag"] = 1
 
-    #Convert to quaternion
+    #Convert to angles
     angles = conversion.diffRaDec2AltAz(RA,DEC,POS,target[0],target[1])
     end_time = time.perf_counter()
     print(f"\nCompleted in {end_time - start_time:0.4f} seconds")
@@ -153,36 +155,50 @@ def run_image(img_filename,config,target,offset):
 
     return (1,angles)
 
-def get_image(input_folder):
-    list_of_files = glob.glob(input_folder+'/*.fits') # * means all if need specific format then *.csv
-    latest_file = max(list_of_files, key=os.path.getctime)
-    return latest_file
+"""
+Function to convert the tip/tilt pixel offsets into a star tracker pixel offset for the plate solver.
+Inputs:
+    index - 1 = Dextra, 2 = Sinistra
+    current_radec - tuple of (ra, dec) of previous position. 
+                    Note that the estimates start of with 0,0, and so we will only guess the offset once we solve
+                    and know the current ra/dec (i.e elevation)
+    offset - the corrective differential pixel displacement from the tip/tilt camera
+Output:
+    the differential pixel offset on the star tracker camera
 
-
+"""
 def tt_to_plate(index,current_radec,offset):
 
-    del_x,del_y = offset
+    #Ensure we have an estimate of the ra/dec first, or else the elevation will be wrong!
+    if current_radec != (0,0):
+        del_x,del_y = offset
 
-    tt_to_beam = 3.35 #1px to arcseconds
-    plate_scale = 14.2
+        tt_to_beam = 3.35 #1px to arcseconds
+        plate_scale = 14.2
+        
+        #Convert t/t pixel offsets to angles
+        beam_angles = np.array([del_x,del_y])*tt_to_beam
+        
+        #get elevation (and azimuth)
+        e,a = conversion.toAltAz_rad(current_radec[0],current_radec[1])
+        
+        #Coordinate transform FIX SIGNS HERE!!!!
+        if index == 1:
+            # Dextra matrix
+            M = np.array([[np.cos(e)**2, 5], [np.cos(e)*np.sin(e) + 5*np.cos(e)**2, 1]])
+        elif index == 2:
+            # Sinistra matrix
+            M = np.array([[np.cos(e)**2, 5], [np.cos(e)*np.sin(e) + 5*np.cos(e)**2, 1]])
+        
+        # Invert matrix
+        inv_M = np.linalg.inv(M)
+        plate_angles = inv_M @ beam_angles #Angles on the star tracker
+        pixel_plate_angles = plate_angles/plate_scale #convert to pixel offset
+        
+        return pixel_plate_angles
     
-    beam_angles = np.array([del_x,del_y])*tt_to_beam
-    
-    #get elevation (and azimuth)
-    e,a = conversion.toAltAz_rad(current_radec[0],current_radec[1])
-    
-
-    #Coordinate transform
-    if index == 1:
-        M = np.array([[np.cos(e)**2, 5], [np.cos(e)*np.sin(e) + 5*np.cos(e)**2, 1]])
-    elif index == 2:
-        M = np.array([[np.cos(e)**2, 5], [np.cos(e)*np.sin(e) + 5*np.cos(e)**2, 1]])
-    
-    inv_M = np.linalg.inv(M)
-    plate_angles = inv_M @ beam_angles
-    pixel_plate_angles = plate_angles/plate_scale
-    
-    return pixel_plate_angles
+    else:
+        return (0,0) # Return no offset if we haven't solved yet!
 
 
 ###############################################################################
@@ -203,15 +219,23 @@ if __name__ == "__main__":
         print("Bad number of arguments")
         exit()
 
+    # Load config file
     with open(config_file, "rb") as f:
-        config = tomli.load(f)
+        config = pytomlpp.load(f)
 
     IP = config["IP"]
 
+    #Make output folder
     output_dir = config["output_folder"]
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    """
+    Attempt to connect to all relevant servers.
+    If fails, it should restart and try again.
+    This does not always works.
+    Best practice: ensure all other servers are running, then start/reboot this script.
+    """
     error_flag = 1
     while error_flag == 1:
         error_flag = 0
@@ -283,16 +307,16 @@ if __name__ == "__main__":
         
         if error_flag == 1:
             print("Destroying ZMQ context due to bad connections. Waiting 5 sec before reattempting")
-            context.term()
-            time.sleep(5)
+            context.term() #THIS DOESN'T ALWAYS WORK!!!
+            time.sleep(1)
             print("Retrying connections")
-        
+
+
+    # MAIN LOOP
     print("Connected to all ports. Beginning plate solving loop")
     while(1):
 
-
-        print("Sending request")
-
+        #Get target coordinates
         target_socket.send_string("TS.getCoordinates")
         message = target_socket.recv()
         message = message.decode("utf-8")
@@ -306,6 +330,7 @@ if __name__ == "__main__":
         
         print(target)
 
+        # Retrieve tip/tilt offset adjustments if desired
         if config["platesolver_index"] > 0:
             if config["platesolver_index"] == 1:
                 fibre_injection_socket.send_string(config["FI.getDiffPosition [1]"])

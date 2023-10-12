@@ -52,6 +52,8 @@ refresh_time = 4 #In seconds
     feed_refresh_time = 0.5
     compression_param = 2
     contrast_limits = [0.2,4.0]
+    annotated_point_list = [[1536,1024]]
+    offset = [0,0]
 
     [Navis.DextraCoarseMet]
     tab_name = "Dextra Coarse Met Camera"
@@ -63,6 +65,8 @@ refresh_time = 4 #In seconds
     feed_refresh_time = 0.05
     compression_param = 2
     contrast_limits = [0.2,4.0]
+    annotated_point_list = [[599,557],[703,557]]
+    offset = [0,0]
 
     [Navis.SinistraCoarseMet]
     tab_name = "Sinistra Coarse Met Camera"
@@ -74,6 +78,8 @@ refresh_time = 4 #In seconds
     feed_refresh_time = 0.05
     compression_param = 2
     contrast_limits = [0.2,4.0]
+    annotated_point_list = [[688,546],[799,548]]
+    offset = [0,0]
 
     [Navis.FiberInjection]
     tab_name = "Fiber Injection Camera"
@@ -85,6 +91,8 @@ refresh_time = 4 #In seconds
     module_type = "FICameraWidget"
     compression_param = 2
     contrast_limits = [0.2,4.0]
+    annotated_point_list = [[594,430],[632,628]]
+    offset = [420,252]
 
     [Navis.ScienceCamera]
     tab_name = "Science Camera"
@@ -131,7 +139,9 @@ refresh_time = 4 #In seconds
     feed_refresh_time = 0.05
     compression_param = 2
     contrast_limits = [0.2,4.0]
-    
+    annotated_point_list = [[666,456]]
+    offset = [0,0]
+
     [Dextra.TargetControl]
     tab_name = "Target"
     name = "TargetControl"
@@ -171,6 +181,8 @@ refresh_time = 4 #In seconds
     feed_refresh_time = 0.05
     compression_param = 2
     contrast_limits = [0.2,4.0]
+    annotated_point_list = [[707,579]]
+    offset = [0,0]
 
 #    [Sinistra.TargetControl]
 #    tab_name = "Target"

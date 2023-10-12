@@ -3,10 +3,10 @@ IP = "192.168.1.4"
 camera_port = "4202"
 camera_port_name = "CST"
 robot_control_port = "4200"
-target_IP = "192.168.1.4"
+target_IP = "192.168.1.4" #Target server runs on Dextra
 target_port = "4203"
 
-platesolver_index = 0
+platesolver_index = 0 #Make this 1 to correct for the tip/tilt drift
 
 tiptilt_port = "4105"
 NavisIP = "192.168.1.3"
@@ -28,8 +28,8 @@ FOV_max = 6 #maximum estimate of FOV in degrees
 ref_pix_x = 666 #x reference pixel for WCS solution
 ref_pix_y = 456 #y reference pixel for WCS solution
 
-    [Astrometry.estimate_position]
+    [Astrometry.estimate_position] # Use this to search for a solution around where we previously were
     flag = 0
     ra = 0
     dec = 0
-    rad = 10
+    rad = 10 #Make this small to increase speed, but increase chance of failure. The radius in degrees to search for the solution centred at ra/dec
