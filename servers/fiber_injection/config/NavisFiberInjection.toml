@@ -1,10 +1,7 @@
 port = "4105"
 IP = "192.168.1.3"
 
-
-
 [FLIRcamera]
-#cam_ID = "20031596"
 cam_ID = "20031616"
 
     [FLIRcamera.camera]
@@ -31,32 +28,33 @@ cam_ID = "20031616"
 	filename_prefix = "data/test" #Default "where to save" file prefix
 
 [FibreInjection]
-CA_port = "4101"
-IP = "192.168.1.3"
-servo_gain = 0.5 #0.5
+CA_port = "4101" #Port for the chief auxillary board
+servo_gain = 0.5 #0.5 seems ok?
 
     [FibreInjection.Dextra]
-    target_x = 594
-    target_y = 430
-    centre_x = 615
-    centre_y = 450
+    target_x = 594 #Target x position for Dextra injection
+    target_y = 430 #Target y position for Dextra injection
+    centre_x = 615 #X position of the centre of Dextra injection FOV
+    centre_y = 450 #Y position of the centre of Dextra injection FOV
 
     [FibreInjection.Sinistra]
-    target_x = 632
-    target_y = 628
-    centre_x = 725
-    centre_y = 695
+    target_x = 632 #Target x position for Sinistra injection
+    target_y = 628 #Target y position for Sinistra injection
+    centre_x = 725 #X position of the centre of Sinistra injection FOV
+    centre_y = 695 #Y position of the centre of Sinistra injection FOV
 
+    # Parameters for the coarse centroiding (sending centroid position to deputy plate solver)
     [FibreInjection.CoarseCentroid]
-    interp_size = 5 #must be odd
-    gaussian_radius = 15 #must be odd
-    gaussian_window_size = 300 #must be even
-    WCOG_gain = 1.0
-    WCOG_sigma = 4.0
+    interp_size = 5 #must be odd, size to interpolate centroid
+    gaussian_radius = 15 #must be odd, gaussian blur radius
+    window_size = 300 #must be even, size of window to consider the centroid in
+    WCOG_gain = 1.0 #Gain of weighted COG
+    WCOG_sigma = 4.0 #Sigma of weighted COG
 
+    # Parameters for the fine centroiding (sending centroid positions to t/t piezos)
     [FibreInjection.FineCentroid]
-    interp_size = 5 #must be odd
-    gaussian_radius = 7 #must be odd
-    gaussian_window_size = 100 #must be even
-    WCOG_gain = 1.0
-    WCOG_sigma = 4.0
+    interp_size = 5 #must be odd, size to interpolate centroid
+    gaussian_radius = 7 #must be odd, gaussian blur radius
+    window_size = 100 #must be even, size of window to consider the centroid in
+    WCOG_gain = 1.0 #Gain of weighted COG
+    WCOG_sigma = 4.0 #Sigma of weighted COG

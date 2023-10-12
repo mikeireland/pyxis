@@ -7,11 +7,15 @@
 namespace co = commander;
 using namespace std;
 
+/*
+Struct to hold Ra and Dec coordinates
+*/
 struct coord{
     double RA; //current
     double DEC; //voltage
 };
 
+// Global target parameters for requests
 coord GLOB_TS_COORD;
 string GLOB_TS_NAME;
 double GLOB_TS_BASELINE;
@@ -19,7 +23,7 @@ double GLOB_TS_BASELINE;
 //config_file
 char* GLOB_CONFIGFILE = (char*)"./";
 
-
+// Target server definition
 struct TargetServer {
 
     TargetServer()
@@ -32,64 +36,97 @@ struct TargetServer {
         fmt::print("~DeputyAuxServer\n");
     }
 
-string setCoordinates(double new_ra, double new_dec){
-    string ret_msg;
-    GLOB_TS_COORD.RA = new_ra;
-    GLOB_TS_COORD.DEC = new_dec;
-    ret_msg = "Set coordinates to " + to_string(new_ra) + ", " + to_string(new_dec);
-	return ret_msg;
-}
+    /*
+    Function to set a new target's coordinates
+    Inputs:
+        new_ra - new right ascension (deg)
+        new_dec - new declination (deg)
+    Output:
+        status string
+    */
+    string setCoordinates(double new_ra, double new_dec){
+        string ret_msg;
+        GLOB_TS_COORD.RA = new_ra;
+        GLOB_TS_COORD.DEC = new_dec;
+        ret_msg = "Set coordinates to " + to_string(new_ra) + ", " + to_string(new_dec);
+        return ret_msg;
+    }
 
-string setTargetName(string target_name){
-    string ret_msg;
-    GLOB_TS_NAME = target_name;
-    ret_msg = "Set Target Name to " + target_name;
-	return ret_msg;
-}
+    /*
+    Function to set a new target's name
+    Inputs:
+        target_name - name of target
+    Output:
+        status string
+    */
+    string setTargetName(string target_name){
+        string ret_msg;
+        GLOB_TS_NAME = target_name;
+        ret_msg = "Set Target Name to " + target_name;
+        return ret_msg;
+    }
 
-string setBaseline(double baseline){
-    string ret_msg;
-    GLOB_TS_BASELINE = baseline;
-    ret_msg = "Set baseline " + to_string(baseline);
-	return ret_msg;
-}
+    /*
+    Function to set a new baseline length
+    Inputs:
+        baseline
+    Output:
+        status string
+    */
+    string setBaseline(double baseline){
+        string ret_msg;
+        GLOB_TS_BASELINE = baseline;
+        ret_msg = "Set baseline " + to_string(baseline);
+        return ret_msg;
+    }
 
-coord getCoordinates(){
-	coord ret_coord;
-	ret_coord = GLOB_TS_COORD;
-	return ret_coord;
-}
+    /* 
+    Function to get the current target coordinates, in the form of a coord struct
+    */
+    coord getCoordinates(){
+        coord ret_coord;
+        ret_coord = GLOB_TS_COORD;
+        return ret_coord;
+    }
 
-string getTargetName(){
-	string name = GLOB_TS_NAME;
-	return name;
-}
+    /* 
+    Function to get the current target's name as a string
+    */
+    string getTargetName(){
+        string name = GLOB_TS_NAME;
+        return name;
+    }
 
-double getBaseline(){
-	double baseline = GLOB_TS_BASELINE;
-	return baseline;
-}
+    /*
+    Function to get the current baseline
+    */
+    double getBaseline(){
+        double baseline = GLOB_TS_BASELINE;
+        return baseline;
+    }
 
-string status(){
-	string ret_msg;
-	ret_msg = "Server Running";
-	return ret_msg;
-}
+    /*
+    Function to check if the server is alive!
+    */
+    string status(){
+        string ret_msg;
+        ret_msg = "Server Running";
+        return ret_msg;
+    }
 
 };
 
 
-// Register as commander server
+// Register with commander
 COMMANDER_REGISTER(m)
 {
     m.instance<TargetServer>("TS")
-        // To insterface a class method, you can use the `def` method.
         .def("getCoordinates", &TargetServer::getCoordinates, "Get Ra and Dec")
         .def("getTargetName", &TargetServer::getTargetName, "Get Target Name")
         .def("getBaseline", &TargetServer::getBaseline, "Get Baseline")
-        .def("setCoordinates", &TargetServer::setCoordinates, "Set Ra and Dec")
-        .def("setTargetName", &TargetServer::setTargetName, "Set Target Name")
-        .def("setBaseline", &TargetServer::setBaseline, "Set Baseline")
+        .def("setCoordinates", &TargetServer::setCoordinates, "Set Ra and Dec in degrees [Ra, Dec]")
+        .def("setTargetName", &TargetServer::setTargetName, "Set Target Name [Name]")
+        .def("setBaseline", &TargetServer::setBaseline, "Set Baseline [Baseline]")
         .def("status", &TargetServer::status, "Check status");
 }
 
@@ -147,6 +184,7 @@ int main(int argc, char* argv[]) {
     string port = config["port"].value_or("4000");
     string IP = config["IP"].value_or("192.168.1.4");
     
+    // Set coords as (0,0)
     GLOB_TS_COORD.RA = 0.0;
     GLOB_TS_COORD.DEC = 0.0;
     

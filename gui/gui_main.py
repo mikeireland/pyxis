@@ -6,19 +6,15 @@ import collections
 import importlib
 import faulthandler
 
-
 faulthandler.enable()
 
-#Import only what we need from PyQt5, or everything from PyQt4. In any case, we'll try
-#to keep this back-compatible. Although this floods the namespace somewhat, everything
-#starts with a "Q" so there is little chance of getting mixed up.
 sys.path.insert(0, './classes')
 from client_socket import ClientSocket
 
 try:
     from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QHBoxLayout, \
         QVBoxLayout, QGridLayout, QLabel, QTabWidget, QScrollArea, QLineEdit, QTextEdit, QFrame
-    from PyQt5.QtCore import QTimer, Qt
+    from PyQt5.QtCore import QTimer
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtSvg import QSvgWidget
 except:

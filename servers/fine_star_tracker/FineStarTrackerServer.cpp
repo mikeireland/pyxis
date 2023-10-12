@@ -16,9 +16,11 @@
 
 using json = nlohmann::json;
 
+// Centroid structs of measurement and target
 centroid GLOB_FST_CENTROID;
 centroid GLOB_FST_TARGET_CENTROID;
 
+// Other global variables
 int GLOB_FST_CENTROID_EXPTIME;
 int GLOB_FST_PLATESOLVE_EXPTIME;
 
@@ -32,6 +34,7 @@ std::string GLOB_RB_TCP = "NOFILESAVED";
 
 commander::client::Socket* RB_SOCKET;
 
+// Serialise centroid struct into JSON
 namespace nlohmann {
     template <>
     struct adl_serializer<centroid> {
@@ -46,8 +49,18 @@ namespace nlohmann {
     };
 }
 
+/*
+Function to calculate the (brightest) star position in a given image
+Inputs:
+    img - OpenCV image matrix
+    height - height of image in pixels
+    width - width of image in pixels
+Output:
+    returns a centroid of the star position
+*/
 centroid CalcStarPosition(cv::Mat img, int height, int width){
 
+    // Create the window of the entire image
     auto window = cv::Rect(0, 0, width, height);
 
     // Function to take image array and find the star position
@@ -57,25 +70,31 @@ centroid CalcStarPosition(cv::Mat img, int height, int width){
     
     result.x = p.x;
     result.y = p.y;
-    //result.x = rand();
-    //result.y = rand();
 
     return result;
-
 }
 
-// Return 1 if error!
+/*
+Callback function to either calculate and send the star's position if on centroid mode,
+else it will do nothing (as it is instead plate solving)
+Inputs:
+    data - array of the raw camera data
+Output:
+    return 1 if error
+*/
 int FST_Callback (unsigned short* data){
+
+    // If centroid mode is on, do stuff
     if (GLOB_FST_CENTROID_FLAG){
+
         int height = GLOB_IMSIZE/GLOB_WIDTH;
-
         cv::Mat img (height,GLOB_WIDTH,CV_16U,data);
-        //img.convertTo(img, CV_32F);
 
+        // Get star position
         centroid position = CalcStarPosition(img,height,GLOB_WIDTH);
 
+        // Calculate differential position from target (based on platescale)
         centroid diff_angles;
-
         diff_angles.x = (position.x - GLOB_FST_TARGET_CENTROID.x)*GLOB_FST_PLATESCALE;
         diff_angles.y = (position.y - GLOB_FST_TARGET_CENTROID.y)*GLOB_FST_PLATESCALE;
 
@@ -83,10 +102,10 @@ int FST_Callback (unsigned short* data){
         GLOB_FST_CENTROID = diff_angles;
         pthread_mutex_unlock(&GLOB_FST_FLAG_LOCK);
 
+        // Send the differential positions to the robot
         cout << "Sending diff angles" << endl;
-
         cout << diff_angles.x << ", " << diff_angles.y << endl;
-        //std::string result = RB_SOCKET->send<std::string>("RC.receive_ST_angles", diff_angles.x, diff_angles.y, 0.0);
+        RB_SOCKET->send<std::string>("RC.receive_ST_angles", diff_angles.x, diff_angles.y, 0.0);
 
     }
 
@@ -94,7 +113,7 @@ int FST_Callback (unsigned short* data){
 }
 
 
-// FLIR Camera Server
+// FLIR Camera Server for the fine star tracker
 struct FineStarTracker: FLIRCameraServer{
 
     FineStarTracker() : FLIRCameraServer(FST_Callback){
@@ -108,6 +127,7 @@ struct FineStarTracker: FLIRCameraServer{
         // Turn into a TCPString
         GLOB_RB_TCP = "tcp://" + IP + ":" + RB_port;
         
+        // Create robot socket
         RB_SOCKET = new commander::client::Socket(GLOB_RB_TCP);
         
         GLOB_FST_PLATESCALE = config["FineStarTracker"]["platescale"].value_or(1.0);
@@ -124,6 +144,9 @@ struct FineStarTracker: FLIRCameraServer{
         delete RB_SOCKET;
     }
 
+    /*
+    Function to get the current differential star position as a centroid struct
+    */
     centroid getstarposition(){
         centroid ret_position;
         pthread_mutex_lock(&GLOB_FST_FLAG_LOCK);
@@ -132,6 +155,9 @@ struct FineStarTracker: FLIRCameraServer{
         return ret_position;
     }
 
+    /*
+    Function to switch the solving mode to CENTROIDING (i.e centroid without saving image)
+    */
     string switchToCentroid(){
         string ret_msg;
         if(GLOB_CAM_STATUS == 2){
@@ -160,7 +186,10 @@ struct FineStarTracker: FLIRCameraServer{
 	    }
         return ret_msg;
     }
-    
+
+    /*
+    Function to switch the solving mode to PLATE SOLVING (i.e just save images)
+    */
     string switchToPlatesolve(){
         string ret_msg;
         if(GLOB_CAM_STATUS == 2){
@@ -199,20 +228,20 @@ COMMANDER_REGISTER(m)
         .def("status", &FineStarTracker::status, "Camera Status")
         .def("connect", &FineStarTracker::connectcam, "Connect the camera")
         .def("disconnect", &FineStarTracker::disconnectcam, "Disconnect the camera")
-        .def("start", &FineStarTracker::startcam, "Start exposures")
+        .def("start", &FineStarTracker::startcam, "Start exposures [number of frames, coadd flag]")
         .def("stop", &FineStarTracker::stopcam, "Stop exposures")
         .def("getlatestfilename", &FineStarTracker::getlatestfilename, "Get the latest image filename")
-        .def("getlatestimage", &FineStarTracker::getlatestimage, "Get the latest image data")
-        .def("reconfigure_all", &FineStarTracker::reconfigure_all, "Reconfigure all parameters")
-        .def("reconfigure_gain", &FineStarTracker::reconfigure_gain, "Reconfigure the gain")
-        .def("reconfigure_exptime", &FineStarTracker::reconfigure_exptime, "Reconfigure the exposure time")
-        .def("reconfigure_width", &FineStarTracker::reconfigure_width, "Reconfigure the width")
-        .def("reconfigure_height", &FineStarTracker::reconfigure_height, "Reconfigure the height")
-        .def("reconfigure_offsetX", &FineStarTracker::reconfigure_offsetX, "Reconfigure the X offset")
-        .def("reconfigure_offsetY", &FineStarTracker::reconfigure_offsetY, "Reconfigure the Y offset")
-        .def("reconfigure_blacklevel", &FineStarTracker::reconfigure_blacklevel, "Reconfigure the black level")
-        .def("reconfigure_buffersize", &FineStarTracker::reconfigure_buffersize, "Reconfigure the buffer size")
-        .def("reconfigure_savedir", &FineStarTracker::reconfigure_savedir, "Reconfigure the save directory")
+        .def("getlatestimage", &FineStarTracker::getlatestimage, "Get the latest image data [binning flag, compression parameter]")
+        .def("reconfigure_all", &FineStarTracker::reconfigure_all, "Reconfigure all parameters [configuration struct as a json]")
+        .def("reconfigure_gain", &FineStarTracker::reconfigure_gain, "Reconfigure the gain [gain]")
+        .def("reconfigure_exptime", &FineStarTracker::reconfigure_exptime, "Reconfigure the exposure time [exptime in us]")
+        .def("reconfigure_width", &FineStarTracker::reconfigure_width, "Reconfigure the width [width in px]")
+        .def("reconfigure_height", &FineStarTracker::reconfigure_height, "Reconfigure the height [height in px]")
+        .def("reconfigure_offsetX", &FineStarTracker::reconfigure_offsetX, "Reconfigure the X offset [xoffset in px]")
+        .def("reconfigure_offsetY", &FineStarTracker::reconfigure_offsetY, "Reconfigure the Y offset [yoffset in px]")
+        .def("reconfigure_blacklevel", &FineStarTracker::reconfigure_blacklevel, "Reconfigure the black level [black_level]")
+        .def("reconfigure_buffersize", &FineStarTracker::reconfigure_buffersize, "Reconfigure the buffer size [buffer size in frames]")
+        .def("reconfigure_savedir", &FineStarTracker::reconfigure_savedir, "Reconfigure the save directory [save directory as a string]")
         .def("getparams", &FineStarTracker::getparams, "Get all parameters")
         .def("getstar", &FineStarTracker::getstarposition, "Get position of the star")
         .def("switchCentroid", &FineStarTracker::switchToCentroid, "Switch to Centroiding Mode")

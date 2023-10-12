@@ -279,6 +279,7 @@ int QHYCamera::InitCamera(){
     GLOB_CONFIG_PARAMS.buffersize = buffer_size;
     GLOB_CONFIG_PARAMS.savedir = savefilename_prefix;
     
+    // Set bounds
     GLOB_WIDTH_MAX = width_max;
     GLOB_WIDTH_MIN = width_min;
     GLOB_HEIGHT_MAX = height_max;

@@ -22,9 +22,11 @@ class FLIRCamera {
         int width;
         int height;
 
+        // Width bounds
         int width_min;
         int width_max;
         
+        // Height bounds
         int height_min;
         int height_max;
 
@@ -35,12 +37,14 @@ class FLIRCamera {
         // Exposure time of images
         int exposure_time;
         
+        // Exposure time bounds
         int exposure_time_min;
         int exposure_time_max;
 
         // Software gain
         int gain;
         
+        // Gain bounds
         int gain_min;
         int gain_max;
         
@@ -55,9 +59,10 @@ class FLIRCamera {
 
         // Set black level in percent
         double black_level;
+
+        // Black level bounds
         double black_level_min;
         double black_level_max;
-
 
         // Buffer size for image data
         unsigned int buffer_size;

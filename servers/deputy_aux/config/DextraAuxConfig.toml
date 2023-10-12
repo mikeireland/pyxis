@@ -5,5 +5,5 @@ IP = "192.168.1.4"
 
 
 [aux]
-power_req_time = 1000
+power_req_time = 1000 # How much time elapses before requesting the power (in ms)
 

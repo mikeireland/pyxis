@@ -98,7 +98,7 @@ refresh_time = 4 #In seconds
     plot_refresh_time = 0.2
     GD_window_size = 200
     num_delays = 3000
-    grid_spacing = 5
+    grid_spacing = 1000
     contrast_limits = [0.2,4.0]
     GD_contrast_limits = [0.2,1000.0]
 

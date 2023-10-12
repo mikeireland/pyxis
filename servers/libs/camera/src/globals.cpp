@@ -18,6 +18,7 @@ int GLOB_COADD = 0;
 int GLOB_IMSIZE = 0;
 int GLOB_WIDTH = 0;
 
+// Bounds
 int GLOB_WIDTH_MAX = 0;
 int GLOB_WIDTH_MIN = 0;
 int GLOB_HEIGHT_MAX = 0;
@@ -45,6 +46,7 @@ pthread_mutex_t *GLOB_IMG_MUTEX_ARRAY;
 // Array of images (i.e Image buffer)
 unsigned short *GLOB_IMG_ARRAY;
 
+// Callback function
 std::function<int(unsigned short*)> GLOB_CALLBACK;
 
 // Latest file/image

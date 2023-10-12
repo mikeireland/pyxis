@@ -7,10 +7,6 @@ import cv2
 from RawWidget import RawWidget
 from sliders import FloatSlider
 
-#Import only what we need from PyQt5, or everything from PyQt4. In any case, we'll try
-#to keep this back-compatible. Although this floods the namespace somewhat, everything
-#starts with a "Q" so there is little chance of getting mixed up.
-
 try:
     from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, \
         QVBoxLayout, QGridLayout, QLabel, QLineEdit
@@ -21,11 +17,15 @@ except:
     raise UserWarning
 
 class FeedLabel(QLabel):
-    def __init__(self, img):
+    def __init__(self, img, point_ls, offset):
         super(FeedLabel, self).__init__()
         self.pixmap = QPixmap(img)
+        self.dims = (100,100)
+        self.offset = offset
+        self.point_ls = point_ls
 
     def paintEvent(self, event):
+
         size = self.size()
         painter = QPainter(self)
         point = QPoint(0,0)
@@ -34,20 +34,32 @@ class FeedLabel(QLabel):
         point.setX(int((size.width() - scaledPix.width())/2))
         point.setY(int((size.height() - scaledPix.height())/2))
         painter.drawPixmap(point, scaledPix)
+        x = point.x()
+        y = point.y()
+        width = scaledPix.width()/self.dims.width()
+        height = scaledPix.height()/self.dims.height()
+
+        if len(self.point_ls > 0):
+            for point in self.point_ls:
+                y1 = y + height*(point.y() - self.offset.y())
+                x1 = x + width*(point.x() - self.offset.x())
+
+                painter.drawEllipse(QPoint(x1,y1),3,3)
 
     def changePixmap(self, img):
+        self.dims = img.size()
         self.pixmap = QPixmap(img)
         self.repaint()
 
 class FeedWindow(QWidget):
-    def __init__(self, name, contrast_min, contrast_max):
+    def __init__(self, name, contrast_min, contrast_max, point_ls=[], offset=QPoint(0,0)):
         super(FeedWindow, self).__init__()
 
         # Label
         self.resize(900, 500)
         self.setWindowTitle("%s Camera Feed"%name)
         hbox = QHBoxLayout()
-        self.cam_feed = FeedLabel("assets/camtest1.png")
+        self.cam_feed = FeedLabel("assets/camtest1.png",point_ls,offset)
         self.binning_flag = 0
 
         mainvbox = QVBoxLayout()

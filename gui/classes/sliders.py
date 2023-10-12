@@ -3,15 +3,9 @@
 # Malcolm Kesson
 # 28 July 2020
 
-try:
-	from PyQt5.QtCore import *
-	from PyQt5.QtGui import *
-	from PyQt5.QtWidgets import *
-except ImportError:
-	from PySide2.QtGui import *
-	from PySide2.QtWidgets import *
-	from PySide2.QtCore import *
-	from PySide2.QtUiTools import *
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QLabel, QSpinBox, QSlider, QWidget,\
+	QHBoxLayout, QDoubleSpinBox
 import math
 
 #______________________________________________________________

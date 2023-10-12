@@ -18,6 +18,9 @@ using namespace std;
 
 Comms::SerialPort teensy_port(127);
 
+/*
+Struct to hold piezo voltages and displacements
+*/
 struct piezoPWMvals{
     double DextraX_V = -12.0;
     double DextraY_V = -12.0;
@@ -32,6 +35,9 @@ struct piezoPWMvals{
     double Science_um = 0.0;
 };
 
+/*
+Struct to hold PC/Motor voltages and currents
+*/
 struct powerStatus{
     double PC_V;
     double PC_A;
@@ -39,35 +45,47 @@ struct powerStatus{
     double motor_A;
 };
 
+/*
+Struct to hold the displacement, voltage and status of a piezo
+for return of server
+*/
 struct piezoStatus{
     double um;
     double voltage;
     string msg;
 };
 
+/*
+Struct to hold all relevant status information
+*/
 struct status{
-    piezoPWMvals ppv;
-    int32_t sdc_step_count;
-    powerStatus ps;
-    string msg;
+    piezoPWMvals ppv; // Piezo positions
+    int32_t sdc_step_count; // SDC step count
+    powerStatus ps; // Power status
+    string msg; // Message
 };
 
+/*
+Struct for a 2D centroid
+*/
 struct centroid {
     double x;
     double y;
 };
 
+// Global struct initialisation
 piezoPWMvals PPV;
 powerStatus PS;
 double SDC_pos;
 int32_t SDC_step_count;
 
+// Voltage range
 double V_max = 100.0;
 double V_min = -12.0;
 double V_diff = V_max - V_min;
 
 
-// FLIR Camera Server
+// Chief Auxillary server
 struct ChiefAuxServer {
 
     ChiefAuxServer(){
@@ -79,6 +97,9 @@ struct ChiefAuxServer {
         fmt::print("~ChiefAuxServer\n");
     }
 
+    /*
+    Request the full status of the aux server from the global struct
+    */
     status requestStatus(){
         status ret_status;
         
@@ -92,6 +113,14 @@ struct ChiefAuxServer {
         return ret_status;
     }
 
+    /*
+    Move the SDC stage
+    Inputs:
+        steps - number of steps to take
+        period - how long between steps (in us)
+    Output:
+        returns message of what command was sent
+    */
     string moveSDC(int32_t steps, uint16_t period) {
         string ret_msg;
         // -ve steps is towards middle of injection system
@@ -103,6 +132,9 @@ struct ChiefAuxServer {
         return ret_msg;
     }
 
+    /*
+    Homes the fine stage to 0
+    */
     string homeSDC() {
         string ret_msg;
         // -ve steps is towards middle of injection system
@@ -114,35 +146,50 @@ struct ChiefAuxServer {
         teensy_port.SendAllRequests();
 
         while (true){
-            sleep(1);
+            sleep(1); // Sleep while moving
+            
+            // Request current position
             teensy_port.Request(GETSDC);
             teensy_port.SendAllRequests();
             usleep(150);
             teensy_port.ReadMessage();
+            // Check if done, exit if it iss
             if (teensy_port.current_step == 0){
                 break;
             }       
         }
 
         ret_msg = "Fine stage is homed";
-        //WAIT TO RETURN???
         return ret_msg;
     }
 
+    /*
+    Moves one of the tip/tilt piezos to a new voltage
+    Inputs:
+        flag - which piezo:
+            0 - Dextra X
+            1 - Dextra Y
+            2 - Sinistra X
+            3 - Sinistra Y
+        voltage - new voltage for the piezo
+    Output:
+        piezoStatus of the chosen piezo
+    */
     piezoStatus moveTipTiltPiezo(int flag, double voltage){
         
         piezoStatus ps;
 
+        // Check if at limits
         if (voltage < V_max && voltage >= V_min){
             
             //double um_to_V = 0.7614213197969543;
             //double voltage = um_to_V*um-15;
             double V_to_um = 1.313333333;
-
             double um = V_to_um*(voltage - V_min);
 
             string ret_msg_tmp; 
 
+            // Set current status depending on flag
             if (flag == 0){
                 PPV.DextraX_V = voltage;
                 PPV.DextraX_um = um;
@@ -177,15 +224,24 @@ struct ChiefAuxServer {
         return ps;
     }
 
-    
+    /*
+    Accepts differential positions from the client (tip/tilt camera) and moves the relevant piezos to match them.
+    Inputs:
+        Dpos - Dextra differential position to move (centroid struct of x and y)
+        Spos - Sinistra differential position to move (centroid struct of x and y)
+        gain - gain of the proportional controller
+    Output:
+        returns a status message
+    */
     string receiveRelativeTipTiltPos(centroid Dpos, centroid Spos, double gain){
 
         string ret_msg;
-        cout << Dextra_angle << endl;
+        // Convert pixel differential position to voltage movement (including proportional gain)
         double px_to_um = 1.725; 
         double um_to_V = 0.7614213197969543;
         double conversion = px_to_um*um_to_V*gain;
         
+        // Convert between pixel positions and piezo X/Y movements
         double Dx = cos(Dextra_angle)*Dpos.x - sin(Dextra_angle)*Dpos.y;
         double Dy = -sin(Dextra_angle)*Dpos.x - cos(Dextra_angle)*Dpos.y;
         double Sx = cos(Sinistra_angle)*Spos.x - sin(Sinistra_angle)*Spos.y;
@@ -193,8 +249,8 @@ struct ChiefAuxServer {
 
         cout << Dpos.x << endl;
         cout << Dpos.y << endl;
-        cout << Dx << endl;
 
+        // Set values
         PPV.DextraX_um += px_to_um*Dx;
         PPV.DextraY_um += px_to_um*Dy;
         PPV.SinistraX_um += px_to_um*Sx;
@@ -205,6 +261,7 @@ struct ChiefAuxServer {
         PPV.SinistraX_V += conversion*Sx;
         PPV.SinistraY_V += conversion*Sy;
         
+        // Ensure we don't go beyond the range
         if (PPV.DextraX_V > V_max){
             PPV.DextraX_V = V_max;
         } else if (PPV.DextraX_V < V_min){
@@ -228,6 +285,8 @@ struct ChiefAuxServer {
         } else if (PPV.SinistraY_V < V_min){
             PPV.SinistraY_V = V_min;
         }
+
+        // Send values
         sendPiezoVals(PPV);
         
         ret_msg = to_string(conversion*Dx) + " dx, " + to_string(conversion*Dy) + " dy, " + to_string(conversion*Sx) + " sx, " + to_string(conversion*Sy) + " sy";
@@ -235,6 +294,13 @@ struct ChiefAuxServer {
         return ret_msg;
     }
 
+    /*
+    Moves the science piezo stack to a new voltage
+    Inputs:
+        voltage - new voltage
+    Output:
+        piezoStatus of the science stack
+    */
     piezoStatus moveSciPiezo(double voltage){
 
         piezoStatus ps;
@@ -244,17 +310,20 @@ struct ChiefAuxServer {
             //double img_um_to_piezo_um = 0.8333333333;
             //double um_to_V = 6.428801028608165;
             //double conversion = img_px_to_img_um*img_um_to_piezo_um*um_to_V;
-            // double im_px_to_piezo_um = 5.41666666;
+            //double im_px_to_piezo_um = 5.41666666;
             double V_to_um = 0.15555;
             
+            // Calculate voltage and displacement
             double um = V_to_um*(voltage - V_min);
             PPV.Science_V = voltage;
             PPV.Science_um = um;
 
             string ret_msg = "Moved science piezo to " + to_string(PPV.Science_V) + "V (moved " + to_string(um) + " microns)";
             
+            // Send updated values
             sendPiezoVals(PPV);
 
+            // Prepare return status
             ps.um = um;
             ps.voltage = voltage;
             ps.msg = ret_msg;
@@ -267,15 +336,22 @@ struct ChiefAuxServer {
         return ps;
     }
 
+    /*
+    Get current SDC position; returns step count
+    */
     int32_t getSDCpos(){
         teensy_port.Request(GETSDC);
         teensy_port.SendAllRequests();
         usleep(150);
         teensy_port.ReadMessage();
-        SDC_step_count = -teensy_port.current_step;
+        // Recall that negative values are towards the centre of the injection system from home
+        SDC_step_count = -teensy_port.current_step; 
         return SDC_step_count;
     }
 
+    /*
+    Read the Wattmeter and SDC together, update the status struct and output to terminal
+    */
     void readWattmeterAndSDC() {
         teensy_port.Request(WATTMETER);
         teensy_port.Request(GETSDC);
@@ -283,11 +359,13 @@ struct ChiefAuxServer {
         usleep(150);
         teensy_port.ReadMessage();
         
+        // Update values
         PS.PC_V = teensy_port.PC_Voltage;
         PS.PC_A = teensy_port.PC_Current;
         PS.motor_V = teensy_port.Motor_Voltage;
         PS.motor_A = teensy_port.Motor_Current;
         
+        // Recall that negative values are towards the centre of the injection system from home
         SDC_step_count = -teensy_port.current_step;
 
         cout << "PC Voltage (mV): " << PS.PC_V << endl;
@@ -297,118 +375,44 @@ struct ChiefAuxServer {
         cout << "SDC position (um): " << SDC_step_count << endl;
     }
 
+    /*
+    Takes the voltage and converts to the PWM integer
+    Inputs:
+        voltage - voltage to convert
+    Output:
+        rounded PWM value
+    */  
     uint8_t roundPWM(double voltage){
         uint8_t ret_val;
-        double V_to_PWM = 256/(V_max - V_min);
-        long temp = lround(V_to_PWM*(voltage-V_min));
-        ret_val = (uint8_t) temp;
-        return temp;
+        double V_to_PWM = 256/(V_max - V_min); // Conversion factor
+        long temp = lround(V_to_PWM*(voltage-V_min)); // Convert
+        ret_val = (uint8_t) temp; // to uint8
+        return ret_val;
     }
 
+    /*
+    Send the piezo status values to the teensy
+    Inputs:
+        ppv - current/updated piezo values (in struct)
+    */  
     void sendPiezoVals(piezoPWMvals ppv) {
+        // Convert all voltages to PWM, and put in message buffer
         teensy_port.piezo_duties[0] = roundPWM(ppv.DextraX_V);
         teensy_port.piezo_duties[1] = roundPWM(ppv.DextraY_V);
         teensy_port.piezo_duties[2] = roundPWM(ppv.SinistraX_V);
         teensy_port.piezo_duties[3] = roundPWM(ppv.SinistraY_V);
         teensy_port.piezo_duties[4] = roundPWM(ppv.Science_V);
+
+        // Send values to teensy
         teensy_port.Request(SETPWM);
         teensy_port.SendAllRequests();
     }
 
-/*
-    string moveHV(int flag, double voltageX, double voltageY){
-        
-        piezoStatus ps;
-        double voltageXd, voltageYd;
-        if (flag == 0){
-            voltageXd = cos(Dextra_angle)*voltageX + sin(Dextra_angle)*voltageY;
-            PPV.DextraX_V += voltageXd;
-            voltageYd = -sin(Dextra_angle)*voltageX + cos(Dextra_angle)*voltageY;
-            PPV.DextraY_V += voltageYd;
-        } else if (flag == 1){
-            voltageXd = cos(Sinistra_angle)*voltageX + sin(Sinistra_angle)*voltageY;
-            PPV.SinistraX_V += voltageXd;
-            voltageYd = sin(Sinistra_angle)*voltageX - cos(Sinistra_angle)*voltageY;
-            PPV.SinistraY_V += voltageYd;
-        }
-        
-        cout << voltageXd << ", " << voltageYd << endl;
-        cout << Dextra_angle << endl;
-        //sendPiezoVals(PPV);
-        
-        double voltage = sqrt(voltageXd*voltageXd + voltageYd*voltageYd);
-       
-        return to_string(voltage);
-    }
-
-    string testservo(double dx, double dy, double sx, double sy){
-
-        centroid Dpos, Spos;
-        Dpos.x = dx;
-        Dpos.y = dy;
-        Spos.x = sx;
-        Spos.y = sy;
-
-        string ret_msg;
-        cout << Dextra_angle << endl;
-        double px_to_um = 1.725; 
-        double um_to_V = 0.7614213197969543;
-        double conversion = px_to_um*um_to_V;
-        
-        double Dx = cos(Dextra_angle)*Dpos.x - sin(Dextra_angle)*Dpos.y;
-        double Dy = -sin(Dextra_angle)*Dpos.x - cos(Dextra_angle)*Dpos.y;
-        double Sx = cos(Sinistra_angle)*Spos.x - sin(Sinistra_angle)*Spos.y;
-        double Sy = sin(Sinistra_angle)*Spos.x + cos(Sinistra_angle)*Spos.y;
-
-        cout << Dpos.x << endl;
-        cout << Dpos.y << endl;
-        cout << Dx << endl;
-
-        PPV.DextraX_um += px_to_um*Dx;
-        PPV.DextraY_um += px_to_um*Dy;
-        PPV.SinistraX_um += px_to_um*Sx;
-        PPV.SinistraY_um += px_to_um*Sy;
-
-        PPV.DextraX_V += conversion*Dx;
-        PPV.DextraY_V += conversion*Dy;
-        PPV.SinistraX_V += conversion*Sx;
-        PPV.SinistraY_V += conversion*Sy;
-        
-        if (PPV.DextraX_V > V_max){
-            PPV.DextraX_V = V_max;
-        } else if (PPV.DextraX_V < V_min){
-            PPV.DextraX_V = V_min;
-        }
-        
-        if (PPV.DextraY_V > V_max){
-            PPV.DextraY_V = V_max;
-        } else if (PPV.DextraY_V < V_min){
-            PPV.DextraY_V = V_min;
-        }
-        
-        if (PPV.SinistraX_V > V_max){
-            PPV.SinistraX_V = V_max;
-        } else if (PPV.SinistraX_V < V_min){
-            PPV.SinistraX_V = V_min;
-        }
-        
-        if (PPV.SinistraY_V > V_max){
-            PPV.SinistraY_V = V_max;
-        } else if (PPV.SinistraY_V < V_min){
-            PPV.SinistraY_V = V_min;
-        }
-        
-        sendPiezoVals(PPV);
-        
-        ret_msg = to_string(conversion*Dx) + " dx, " + to_string(conversion*Dy) + " dy, " + to_string(conversion*Sx) + " sx, " + to_string(conversion*Sy) + " sy";
-        
-        return ret_msg;
-    }*/
-
 };
 
-// Serialiser to convert configuration struct to/from JSON
+
 namespace nlohmann {
+    // Serialiser to convert status struct to/from JSON
     template <>
     struct adl_serializer<status> {
         static void to_json(json& j, const status& s) {
@@ -450,7 +454,7 @@ namespace nlohmann {
         }
     };
 
-
+    // Serialiser to convert centroid struct to/from JSON
     template <>
     struct adl_serializer<centroid> {
         static void to_json(json& j, const centroid& c) {
@@ -463,6 +467,7 @@ namespace nlohmann {
         }
     };
 
+    // Serialiser to convert piezoStatus struct to/from JSON
     template <>
     struct adl_serializer<piezoStatus> {
         static void to_json(json& j, const piezoStatus& ps) {
@@ -481,14 +486,11 @@ namespace nlohmann {
 COMMANDER_REGISTER(m)
 {
     m.instance<ChiefAuxServer>("CA")
-        // To insterface a class method, you can use the `def` method.
         .def("requestStatus", &ChiefAuxServer::requestStatus, "Get information on all actuators and power")
-		.def("moveSDC", &ChiefAuxServer::moveSDC, "Move fine stage")
+		.def("moveSDC", &ChiefAuxServer::moveSDC, "Move fine stage [steps, period (us)]")
         .def("homeSDC", &ChiefAuxServer::homeSDC, "Home fine stage")
         .def("SDCpos", &ChiefAuxServer::getSDCpos, "Get fine stage position")
-        //.def("test", &ChiefAuxServer::testservo, "Home fine stage")
-		.def("moveTipTiltPiezo", &ChiefAuxServer::moveTipTiltPiezo, "Set the tip/tilt piezos")
-		.def("receiveRelativeTipTiltPos", &ChiefAuxServer::receiveRelativeTipTiltPos, "Receive positions to move tip tilt piezos")
-		//.def("moveHV", &ChiefAuxServer::moveHV, "Move piezos horizontally and vertically")
-		.def("moveSciPiezo", &ChiefAuxServer::moveSciPiezo, "Set the science piezos");
+		.def("moveTipTiltPiezo", &ChiefAuxServer::moveTipTiltPiezo, "Set the tip/tilt piezos. Flag parameter is 0 for DX, 1 for DY, 2 for SX, 3 for SY [flag, voltage]")
+		.def("receiveRelativeTipTiltPos", &ChiefAuxServer::receiveRelativeTipTiltPos, "Receive positions to update tip tilt piezos [Dextra differential centroid, Sinistra differential centroid, gain]")
+		.def("moveSciPiezo", &ChiefAuxServer::moveSciPiezo, "Set the science piezo [voltage]");
 }

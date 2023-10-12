@@ -2,9 +2,6 @@
 from __future__ import print_function, division
 import json
 from RawWidget import RawWidget
-#Import only what we need from PyQt5, or everything from PyQt4. In any case, we'll try
-#to keep this back-compatible. Although this floods the namespace somewhat, everything
-#starts with a "Q" so there is little chance of getting mixed up.
 
 try:
     from PyQt5.QtWidgets import QPushButton, QHBoxLayout, \

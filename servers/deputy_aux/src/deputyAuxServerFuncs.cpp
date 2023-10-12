@@ -1,4 +1,3 @@
-
 #include <fmt/core.h>
 #include <iostream>
 #include <commander/commander.h>
@@ -18,17 +17,21 @@ using namespace std;
 
 Comms::SerialPort teensy_port(127);
 
+/*
+Struct to hold voltages and currents for server requests
+*/
 struct powerStatus{
     double PC_V;
     double PC_A;
     double motor_V;
     double motor_A;
-    string message;
+    string message; //return message
 };
 
+// Initialise status
 powerStatus PS;
 
-// FLIR Camera Server
+// Auxillary Server
 struct DeputyAuxServer {
 
     DeputyAuxServer()
@@ -41,7 +44,10 @@ struct DeputyAuxServer {
         fmt::print("~DeputyAuxServer\n");
     }
 
-
+    /*
+    Command to turn the LED on
+    Returns 1 if successful (on), 0 if off
+    */
     int turnLEDOn(){
         int ret_msg;
 	    teensy_port.Request(LEDON);
@@ -52,7 +58,10 @@ struct DeputyAuxServer {
 	    return ret_msg;
     }
 
-
+    /*
+    Command to turn the LED off
+    Returns 1 if successful (off), 0 if on
+    */
     int turnLEDOff(){
         int ret_msg;
 	    teensy_port.Request(LEDOFF);
@@ -63,6 +72,10 @@ struct DeputyAuxServer {
 	    return ret_msg;
     }
 
+    /*
+    Function to read the wattmeter, and pass the updated struct to the client.
+    Returns the powerStatus struct (serialised to JSON)
+    */
     powerStatus requestPower(){
         string ret_msg;
         
@@ -76,12 +89,16 @@ struct DeputyAuxServer {
         return PS;
     }
 
+    /*
+    Function to read the wattmeter on the teensy, and store values in the global struct
+    */
     void readWattmeter() {
         teensy_port.Request(WATTMETER);
 	    teensy_port.SendAllRequests();
 	    usleep(150);
 	    teensy_port.ReadMessage();
 	    
+        // Store values
 	    PS.PC_V = teensy_port.PC_Voltage;
 	    PS.PC_A = teensy_port.PC_Current;
 	    PS.motor_V = teensy_port.Motor_Voltage;
@@ -93,19 +110,22 @@ struct DeputyAuxServer {
 	    cout << "Motor Current (mA): " << PS.motor_A << endl;
     }
     
+    /*
+    Get the heading from the compass.
+    Returns the heading as an uint16
+    */
     uint16_t getHeading() {
         teensy_port.Request(COMPASS);
 	    teensy_port.SendAllRequests();
 	    usleep(150);
 	    teensy_port.ReadMessage();
-	    
 	    return teensy_port.heading;
     }
 
 
 };
 
-// Serialiser to convert configuration struct to/from JSON
+// Serialiser to convert power status struct to/from JSON
 namespace nlohmann {
     template <>
     struct adl_serializer<powerStatus> {
@@ -131,10 +151,9 @@ namespace nlohmann {
 COMMANDER_REGISTER(m)
 {
     m.instance<DeputyAuxServer>("DA")
-        // To insterface a class method, you can use the `def` method.
         .def("LEDOn", &DeputyAuxServer::turnLEDOn, "Turn on the LED")
         .def("LEDOff", &DeputyAuxServer::turnLEDOff, "Turn off the LED")
-        .def("heading", &DeputyAuxServer::getHeading, "get the latest heading")
+        .def("heading", &DeputyAuxServer::getHeading, "Get the latest compass heading")
         .def("reqpower", &DeputyAuxServer::requestPower, "Request power values");
 
 }

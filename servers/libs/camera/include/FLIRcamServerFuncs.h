@@ -48,9 +48,9 @@ string reconfigure_offsetY(int offsetY);
 
 string reconfigure_blacklevel(float blacklevel);
 
-string reconfigure_buffersize(float buffersize);
+string reconfigure_buffersize(int buffersize);
 
-string reconfigure_savedir(float savedir);
+string reconfigure_savedir(std::string savedir);
 
 /* ##################################################### */
 

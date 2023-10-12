@@ -26,25 +26,29 @@ class QHYCamera {
         unsigned int width;
         unsigned int height;
         
+        // Width bounds
         int width_min;
         int width_max;
         
+        // Height bounds
         int height_min;
         int height_max;
 
         // Offset of ROI from top left corner
         unsigned int offset_x;
-       	unsigned int offset_y;
+        unsigned int offset_y;
 
         // Exposure time of images
         int exposure_time;
         
+        // Exposure time bounds
         int exposure_time_min;
         int exposure_time_max;
 
         // Software gain
         int gain;
    
+        // Gain bounds
         int gain_min;
         int gain_max;   
         
@@ -54,6 +58,7 @@ class QHYCamera {
         // Set black level in ADU
         int black_level;
         
+        // Black level bounds
         int black_level_min;
         int black_level_max;
 

@@ -221,7 +221,7 @@ string FLIRCameraServer::reconfigure_blacklevel(float blacklevel){
     return ret_msg;
 }
 
-string FLIRCameraServer::reconfigure_buffersize(float buffersize){
+string FLIRCameraServer::reconfigure_buffersize(int buffersize){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     GLOB_CONFIG_PARAMS.buffersize = buffersize;
@@ -234,7 +234,7 @@ string FLIRCameraServer::reconfigure_buffersize(float buffersize){
     return ret_msg;
 }
 
-string FLIRCameraServer::reconfigure_savedir(float savedir){
+string FLIRCameraServer::reconfigure_savedir(std::string savedir){
     string ret_msg;
     pthread_mutex_lock(&GLOB_FLAG_LOCK);
     GLOB_CONFIG_PARAMS.savedir = savedir;

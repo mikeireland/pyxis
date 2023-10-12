@@ -3,7 +3,6 @@ from __future__ import print_function, division
 from BaseFLIRCameraWidget import BaseFLIRCameraWidget
 from PyQt5.QtWidgets import QPushButton, QHBoxLayout
 
-
 class FSTCameraWidget(BaseFLIRCameraWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
 
@@ -17,8 +16,7 @@ class FSTCameraWidget(BaseFLIRCameraWidget):
         hbox3.addWidget(self.state_button)
         self.sidePanel.addLayout(hbox3)
         
-
-
+        
     def run_camera(self):
 
         if self.Connect_button.isChecked():
