@@ -688,12 +688,14 @@ struct SciCam: QHYCameraServer{
 
 };
 
+
 // Register as commander server
 // Register as commander server
 COMMANDER_REGISTER(m)
 {
     m.instance<SciCam>("SC")
         // To insterface a class method, you can use the `def` method.
+        // These are part of all camera classes.
         .def("status", &SciCam::status, "Camera Status")
         .def("connect", &SciCam::connectcam, "Connect the camera")
         .def("disconnect", &SciCam::disconnectcam, "Disconnect the camera")
@@ -712,6 +714,7 @@ COMMANDER_REGISTER(m)
         .def("reconfigure_buffersize", &SciCam::reconfigure_buffersize, "Reconfigure the buffer size")
         .def("reconfigure_savedir", &SciCam::reconfigure_savedir, "Reconfigure the save directory")
         .def("getparams", &SciCam::getparams, "Get all parameters")
+        // These are now specific to the science camera.
         .def("enableDarks", &SciCam::enableDarks, "Enable darks")
         .def("enableFluxes", &SciCam::enableFluxes, "Enable fluxes")
         .def("enableForeground", &SciCam::enableForeground, "Enable foreground")
@@ -730,6 +733,7 @@ COMMANDER_REGISTER(m)
         .def("setGains", &SciCam::setGainParams, "Set gain and fading memory parameters")
         .def("setSNRs", &SciCam::setSNRthresholds, "Set SNR thresholds")
         .def("setRefPix", &SciCam::setRefPixel, "Set reference pixel position (purges saved arrays)")
+        // The Zaber stage is only used for lab alignment.
         .def("zaberFunc", &SciCam::nextZaber, "Request and get new SNR estimate from fringe scanning")
         .def("setupZaber", &SciCam::setupZaber, "Request and get new SNR estimate from fringe scanning")
         .def("zaberStart", &SciCam::zaberStart, "Request and get new SNR estimate from fringe scanning")
