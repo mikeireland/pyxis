@@ -407,8 +407,7 @@ string FLIRCameraServer::getlatestimage(int compression, int binning){
                 // Binning (possibly some issues here?)
                 if(binning){
                     cout << "binning" << endl;
-                    cv::resize(mat,mat,0, 0.5, 0.5,cv::INTER_AREA);
-                    //cv::resize(mat,mat,cv::Size(), 0.5, 0.5,cv::INTER_AREA); OLD LINE
+                    cv::resize(mat,mat,cv::Size(), 0.5, 0.5,cv::INTER_AREA);
                 }
                 cout << "compressing" << endl;
                 // Compress and Convert data to vector

@@ -28,7 +28,7 @@ libxcb-xinerama0 libopencv-dev libgsl-dev
 
 6 Download Pyxis git repo
 
-7 pip install conan==1.59 cmake numpy scipy astropy qt-material matplotlib pyqt5 pyzmq tomli pytomlpp opencv-python astroquery pyqtgraph
+7 pip install conan==1.59 cmake numpy scipy astropy qt-material matplotlib pyqt5 pyzmq pytomlpp opencv-python astroquery pyqtgraph
 
 8 make all relevant servers in git repo. Check they compile!
 
