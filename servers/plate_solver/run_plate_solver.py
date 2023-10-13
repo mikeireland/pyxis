@@ -237,10 +237,10 @@ if __name__ == "__main__":
     Best practice: ensure all other servers are running, then start/reboot this script.
     """
     error_flag = 1
+    context = zmq.Context()
     while error_flag == 1:
         error_flag = 0
         try:
-            context = zmq.Context()
             target_socket = context.socket(zmq.REQ)
             tcpstring = "tcp://"+config["target_IP"]+":"+config["target_port"]
             target_socket.connect(tcpstring)
@@ -257,7 +257,6 @@ if __name__ == "__main__":
 
         #Camera server
         try:
-            context = zmq.Context()
             camera_socket = context.socket(zmq.REQ)
             tcpstring = "tcp://"+IP+":"+config["camera_port"]
             camera_socket.connect(tcpstring)
@@ -306,9 +305,8 @@ if __name__ == "__main__":
                 fibre_injection_socket.close()
         
         if error_flag == 1:
-            print("Destroying ZMQ context due to bad connections. Waiting 5 sec before reattempting")
-            context.term() #THIS DOESN'T ALWAYS WORK!!!
-            time.sleep(1)
+            print("Server connection failed. Waiting 5 sec before reattempting")
+            time.sleep(5)
             print("Retrying connections")
 
 

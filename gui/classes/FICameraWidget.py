@@ -39,6 +39,8 @@ class FICameraWidget(BaseFLIRCameraWidget):
         hbox3.addWidget(self.SinistraTT_button)
         self.sidePanel.addLayout(hbox3)
 
+        self.feed_window.binning_button.setChecked(False)
+        self.feed_window.set_binning()
 
     def run_camera(self):
         if self.Connect_button.isChecked():

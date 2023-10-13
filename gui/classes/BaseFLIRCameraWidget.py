@@ -23,6 +23,7 @@ class FeedLabel(QLabel):
         self.dims = (100,100)
         self.offset = offset
         self.point_ls = point_ls
+        self.binning_flag = 0
 
     def paintEvent(self, event):
 
@@ -39,10 +40,16 @@ class FeedLabel(QLabel):
         width = scaledPix.width()/self.dims.width()
         height = scaledPix.height()/self.dims.height()
 
-        if len(self.point_ls > 0):
+        if len(self.point_ls) > 0:
             for point in self.point_ls:
-                y1 = y + height*(point.y() - self.offset.y())
-                x1 = x + width*(point.x() - self.offset.x())
+                px = point.x() - self.offset.x()
+                py = point.y() - self.offset.y()
+                if self.binning_flag:
+                    px /= 2
+                    py /= 2
+                    
+                y1 = y + height*py
+                x1 = x + width*px
 
                 painter.drawEllipse(QPoint(x1,y1),3,3)
 
@@ -113,8 +120,10 @@ class FeedWindow(QWidget):
     def set_binning(self):
         if self.binning_button.isChecked():
             self.binning_flag = 1
+            self.cam_feed.binning_flag = 1
         else:
             self.binning_flag = 0
+            self.cam_feed.binning_flag = 0
 
     def set_linear_func(self):
         self.linear_button.setChecked(True)
