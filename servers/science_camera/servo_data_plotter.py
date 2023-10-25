@@ -1,3 +1,5 @@
+#Simple script to plot the GD servo data
+
 import csv
 import numpy as np
 import matplotlib.pyplot as plt

@@ -1,5 +1,5 @@
 port = "4106"
-IP = "127.0.0.1"#"192.168.1.4"
+IP = "127.0.0.1"
 
 [QHYCamera]
     [QHYcamera.camera]
@@ -8,8 +8,8 @@ IP = "127.0.0.1"#"192.168.1.4"
     height = 120
     offset_x = 920
     offset_y = 940
-    gain = 5
-    gamma = 1.0
+    gain = 5 #Camera gain
+    gamma = 1.0 #Camera gamma (should be 1!)
     black_level = 5 # Black level offset in ADU
     exposure_time = 3000 # in microseconds
     num_frames = 500 #Default number of frames to save per FITS file; 0 is continuous with no saving
@@ -27,23 +27,18 @@ IP = "127.0.0.1"#"192.168.1.4"
 	filename_prefix = "data/test" #Default "where to save" file prefix
 	
 [ScienceCamera]
-IP = "127.0.0.1"
-CA_port = "4101"
-TS_port = "4203"
-tracking_period = 100 #ms
-scanning_period = 200 #ms
-xref = 71
-yref = 45
-numDelays = 3000 
-delaySize = 0.01 #microns
-window_alpha = 0.95 #0.95
-#gain = 0.2 #0.2 good
-gain = 100
-SNRThreshold = 200.0 #200
-SNRReacqThreshold = 5.0 #30
-reacq_stepsize= 250
-wave_offsets = [0,0,0,0,0,0]
-    
-    [ScienceCamera.FringeScanning]
-    window_size = 20 #Number of frames to FFT over
-    signal_width = 2 #How wide should the "signal" be in wavenumber steps
+CA_port = "4101" #Chief aux port
+TS_IP = "127.0.0.1" #Target server IP
+TS_port = "4203" #Target server port
+tracking_period = 100 #ms per step
+scanning_period = 200 #ms per step
+xref = 71 # X pixel position of the top most output row, reference wavelength (ref wavelength is defined in setup.cpp)
+yref = 45 # Y pixel position of the top most output row, reference wavelength (ref wavelength is defined in setup.cpp)
+wave_offsets = [0,0,0,0,0,0] # Relative X offsets between the wavelength reference pixels of the other rows (default all 0 if straight!)
+numDelays = 3000 # How many delays?
+delaySize = 0.01 # Spacing between delays (microns)
+window_alpha = 0.95 #Fading memory parameter (0.95) 
+gain = 0.2 #Gain for proportional controller (0.2)
+SNRThreshold = 200.0 # SNR to achieve for fringe scan (200)
+SNRReacqThreshold = 30.0 # SNR that when dropped below, will try to reacquire fringes (30)
+reacq_stepsize= 250 # Number of steps to take in reacquisition sequence (multiply by 20nm for physical units)
