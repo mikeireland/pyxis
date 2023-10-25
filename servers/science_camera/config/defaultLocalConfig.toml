@@ -30,6 +30,7 @@ IP = "127.0.0.1"
 CA_port = "4101" #Chief aux port
 TS_IP = "127.0.0.1" #Target server IP
 TS_port = "4203" #Target server port
+P2VM_file = "config/P2VM_calibration.csv" # File to save and read P2VM calibrations to
 tracking_period = 100 #ms per step
 scanning_period = 200 #ms per step
 xref = 71 # X pixel position of the top most output row, reference wavelength (ref wavelength is defined in setup.cpp)

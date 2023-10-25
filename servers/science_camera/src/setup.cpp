@@ -273,15 +273,14 @@ int calcP2VMMat(Eigen::Array<double,3,2>& IMat, Eigen::Matrix<Cd,3,3>& P2VM) {
 
 }
 
-// Filename to store the saved P2VM calibration
-std::string filename = "config/P2VM_calibration.csv";
-
 /*
 Function to calculate the P2VM matrix for each polarisation (2) and wavlength channel (10). Uses the relevant flux ratios
-Also saves the calibration fluxes and dark used to calculate the matrices to a file (filename given above)
+Also saves the calibration fluxes and dark used to calculate the matrices to a file
 Saves each one as an element in the GLOB_SC_P2VM_l list
+Inputs:
+    P2VM_file - filename of the saved calibration data
 */
-int calcP2VMmain(){
+int calcP2VMmain(std::string P2VM_file){
     int ret_val;
     for(int k=0;k<20;k++){
         Eigen::Array<double,3,2> Imat;
@@ -290,17 +289,19 @@ int calcP2VMmain(){
         Imat.col(1) = (GLOB_SC_FLUX_B.row(k)/(GLOB_SC_FLUX_B.row(k)).sum()).transpose();
         ret_val = calcP2VMMat(Imat, GLOB_SC_P2VM_l[k]);
     }
-    saveData(filename); // Save data
+    saveData(P2VM_file); // Save data
     return 0;
 }
 
 /*
 Function to read in the calibration arrays and calculate the P2VMs from a file
+Inputs:
+    P2VM_file - filename of the saved calibration data
 */
-int readP2VMmain(){
+int readP2VMmain(std::string P2VM_file){
     int ret_val;
-    readData(filename);
-    calcP2VMmain();
+    readData(P2VM_file);
+    calcP2VMmain(P2VM_file);
     return 0;
 }
 

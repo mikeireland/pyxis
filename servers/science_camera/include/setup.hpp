@@ -2,6 +2,7 @@
 #define _SC_SETUP_
 
 #include <Eigen/Dense>
+#include <string>
 
 using Cd = std::complex<double>;
 
@@ -49,15 +50,19 @@ extern SC_calibration GLOB_SC_CAL;
 
 /*
 Function to calculate the P2VM matrix for each polarisation (2) and wavlength channel (10). Uses the relevant flux ratios
-Also saves the calibration fluxes and dark used to calculate the matrices to a file (filename given as a parameter in the cpp file)
+Also saves the calibration fluxes and dark used to calculate the matrices to a file
 Saves each one as an element in the GLOB_SC_P2VM_l list
+Inputs:
+    P2VM_file - filename of the saved calibration data
 */
-int calcP2VMmain();
+int calcP2VMmain(std::string P2VM_file);
 
 /*
 Function to read in the calibration arrays and calculate the P2VMs from a file
+Inputs:
+    P2VM_file - filename of the saved calibration data
 */
-int readP2VMmain();
+int readP2VMmain(std::string P2VM_file);
 
 /*
 Function to measure and save a science camera dark frame. Simply takes the mean of the entire frame
