@@ -121,6 +121,15 @@ class PyxisGui(QTabWidget):
         listBox.addLayout(hbox)
 
         hbox0 = QHBoxLayout()
+
+        #Make Scrollable
+        scroll = QScrollArea(self.tab_widgets["dashboard"])
+        hbox0.addWidget(scroll)
+        scroll.setWidgetResizable(True)
+        scrollContent = QWidget(scroll)
+        scrollLayout = QVBoxLayout()
+        scrollContent.setLayout(scrollLayout)
+
         side_input = QVBoxLayout()
 
         #First, the command entry box
@@ -151,15 +160,6 @@ class PyxisGui(QTabWidget):
         side_input.addStretch()
 
         hbox0.addLayout(side_input)
-
-        #Make Scrollable
-        scroll = QScrollArea(self.tab_widgets["dashboard"])
-        hbox0.addWidget(scroll)
-        scroll.setWidgetResizable(True)
-        scrollContent = QWidget(scroll)
-        scrollLayout = QVBoxLayout()
-        scrollContent.setLayout(scrollLayout)
-
 
         #For each tab...
         for tab in config:

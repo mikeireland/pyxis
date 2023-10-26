@@ -1,41 +1,41 @@
 [Pyxis]
-refresh_time = 4 #In seconds
+refresh_time = 4 # How often to ping servers? In seconds
 
 	[Pyxis.IP]
-    FSM = "192.168.1.2"
-    FSM_port = "4000"
-	Navis = "192.168.1.3"
-	Dextra = "192.168.1.4"
-	Sinistra = "192.168.1.5"
-	External = "150.203.91.206"
+    FSM = "192.168.1.2" # FSM IP
+    FSM_port = "4000" # FSM Port
+	Navis = "192.168.1.3" # Navis IP
+	Dextra = "192.168.1.4" # Dextra IP
+	Sinistra = "192.168.1.5" # Sinistra IP
+	External = "150.203.91.206" # External IP
 
 [Navis]
 
     [Navis.RobotControl]
-    tab_name = "Robot Control"
-    name = "NavisRobotControl"
-    prefix = "RC"
-    port = "4100"
+    tab_name = "Robot Control" 
+    name = "NavisRobotControl" # Internal identifier
+    prefix = "RC" # Server class prefix
+    port = "4100" 
     description = "Motor/Actuator control for the chief Navis"
-    module_type = "RobotControlWidget"
+    module_type = "RobotControlWidget" # What GUI class?
 
     [Navis.ChiefAux]
     tab_name = "Navis Auxilliary"
-    name = "NavisDeputyAux"
-    prefix = "CA"
+    name = "NavisDeputyAux" # Internal identifier
+    prefix = "CA" # Server class prefix
     port = "4101"
     description = "Navis power system + actuator controls"
-    module_type = "ChiefAuxControlWidget"
-    voltage_limit = 10
-    
-        [Navis.ChiefAux.PiezoSteps]
+    module_type = "ChiefAuxControlWidget" # What GUI class?
+    voltage_limit = 10 # What is the minimum voltage allowed?
+   
+        [Navis.ChiefAux.PiezoSteps] # Size of the voltage steps when pressing the GUI buttons
         dextra_X = 1
         dextra_Y = 1
         sinistra_X = 1
         sinistra_Y = 1
         science = 5
                        
-        [Navis.ChiefAux.PiezoStart]
+        [Navis.ChiefAux.PiezoStart] #Piezo starting voltages
         dextra_X = 45
         dextra_Y = 45
         sinistra_X = 45
@@ -44,150 +44,149 @@ refresh_time = 4 #In seconds
 
     [Navis.StarTracker]
     tab_name = "Star Tracker Camera"
-    name = "NavisStarTracker"
-    prefix = "FST"
+    name = "NavisStarTracker" # Internal identifier
+    prefix = "FST" # Server class prefix
     port = "4102"
     description = "Camera controls for the Navis star tracker"
-    module_type = "FSTCameraWidget"
-    feed_refresh_time = 0.5
-    compression_param = 2
-    contrast_limits = [0.2,4.0]
-    annotated_point_list = [[1536,1024]]
-    offset = [0,0]
+    module_type = "FSTCameraWidget" # What GUI class?
+    feed_refresh_time = 0.5 # How long to refresh the feed in s
+    compression_param = 2 # PNG compression parameter for camera feed
+    contrast_limits = [0.2,4.0] # Limits for the contrast slider
+    annotated_point_list = [[1536,1024]] # List of points to draw on the feed (Central spot)
+    offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
 
     [Navis.DextraCoarseMet]
     tab_name = "Dextra Coarse Met Camera"
-    name = "DextraCoarseMet"
-    prefix = "CM"
+    name = "DextraCoarseMet" # Internal identifier
+    prefix = "CM" # Server class prefix
     port = "4103"
     description = "Camera controls for the Dextra coarse metrology"
-    module_type = "CoarseMetCameraWidget"
-    feed_refresh_time = 0.05
-    compression_param = 2
-    contrast_limits = [0.2,4.0]
-    annotated_point_list = [[599,557],[703,557]]
-    offset = [0,0]
+    module_type = "CoarseMetCameraWidget" # What GUI class?
+    feed_refresh_time = 0.05 # How long to refresh the feed in s
+    compression_param = 2 # PNG compression parameter for camera feed
+    contrast_limits = [0.2,4.0] # Limits for the contrast slider
+    annotated_point_list = [[599,557],[703,557]] # List of points to draw on the feed (LED positions)
+    offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
 
     [Navis.SinistraCoarseMet]
     tab_name = "Sinistra Coarse Met Camera"
-    name = "SinistraCoarseMet"
-    prefix = "CM"
+    name = "SinistraCoarseMet" # Internal identifier
+    prefix = "CM" # Server class prefix
     port = "4104"
     description = "Camera controls for the Sinistra coarse metrology"
-    module_type = "CoarseMetCameraWidget"
-    feed_refresh_time = 0.05
-    compression_param = 2
-    contrast_limits = [0.2,4.0]
-    annotated_point_list = [[688,546],[799,548]]
-    offset = [0,0]
+    module_type = "CoarseMetCameraWidget" # What GUI class?
+    feed_refresh_time = 0.05 # How long to refresh the feed in s
+    compression_param = 2 # PNG compression parameter for camera feed
+    contrast_limits = [0.2,4.0] # Limits for the contrast slider
+    annotated_point_list = [[688,546],[799,548]] # List of points to draw on the feed (LED positions)
+    offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
 
     [Navis.FiberInjection]
     tab_name = "Fiber Injection Camera"
-    name = "NavisFiberInjection"
-    prefix = "FI"
+    name = "NavisFiberInjection" # Internal identifier
+    prefix = "FI" # Server class prefix
     port = "4105"
-    description = "Camera controls for the Navis fiber injection"
-    feed_refresh_time = 0.05
-    module_type = "FICameraWidget"
-    compression_param = 2
-    contrast_limits = [0.2,4.0]
-    annotated_point_list = [[594,430],[632,628]]
-    offset = [420,252]
+    description = "Camera controls for the Navis fiber injection"=
+    module_type = "FICameraWidget" # What GUI class?
+    feed_refresh_time = 0.05 # How long to refresh the feed in s
+    compression_param = 2 # PNG compression parameter for camera feed
+    contrast_limits = [0.2,4.0] # Limits for the contrast slider
+    annotated_point_list = [[594,430],[632,628]] # List of points to draw on the feed (Injection spots)
+    offset = [420,252] # Camera x/y ROI offset (for the correct positioning of the above points)
 
     [Navis.ScienceCamera]
     tab_name = "Science Camera"
-    name = "NavisScienceCam"
-    prefix = "SC"
+    name = "NavisScienceCam" # Internal identifier
+    prefix = "SC" # Server class prefix
     port = "4106"
     description = "Science Camera controls"
-    module_type = "ScienceCameraWidget"
-    feed_refresh_time = 0.1
-    compression_param = 1
-    plot_refresh_time = 0.2
-    GD_window_size = 200
-    num_delays = 3000
-    grid_spacing = 1000
-    contrast_limits = [0.2,4.0]
+    module_type = "ScienceCameraWidget" # What GUI class?
+    feed_refresh_time = 0.1 # How long to refresh the feed in s
+    compression_param = 1 # PNG compression parameter for camera feed
+    plot_refresh_time = 0.2 # How often to refresh plots in s
+    num_delays = 3000 # Number of trial delays
+    GD_window_size = 200 # Number of pixels in GD window (must be a factor of the total number of trial delays)
+    grid_spacing = 10 # How many pixels per annotated grid element?
+    contrast_limits = [0.2,4.0] # Limits for the contrast slider
     GD_contrast_limits = [0.2,1000.0]
 
 [Dextra]
 
     [Dextra.RobotControl]
     tab_name = "Robot Control"
-    name = "DextraRobotControl"
-    prefix = "RC"
+    name = "DextraRobotControl" # Internal identifier
+    prefix = "RC" # Server class prefix
     port = "4200"
     description = "Motor/Actuator control for the deputy Dextra"
-    module_type = "RobotControlWidget"
+    module_type = "RobotControlWidget" # What GUI class?
 
     [Dextra.DeputyAux]
     tab_name = "Deputy Auxilliary"
-    name = "DextraDeputyAux"
-    prefix = "DA"
+    name = "DextraDeputyAux" # Internal identifier
+    prefix = "DA" # Server class prefix
     port = "4201"
     description = "Dextra power system + LED controls"
-    module_type = "DepAuxControlWidget"
-    voltage_limit = 10
+    module_type = "DepAuxControlWidget" # What GUI class?
+    voltage_limit = 10 # What is the minimum voltage allowed?
 
     [Dextra.StarTracker]
     tab_name = "Star Tracker Camera"
-    name = "DextraStarTracker"
-    prefix = "CST"
+    name = "DextraStarTracker" # Internal identifier
+    prefix = "CST" # Server class prefix
     port = "4202"
     description = "Camera controls for the Dextra star tracker"
-    module_type = "BaseFLIRCameraWidget"
-    feed_refresh_time = 0.05
-    compression_param = 2
-    contrast_limits = [0.2,4.0]
-    annotated_point_list = [[666,456]]
-    offset = [0,0]
+    module_type = "BaseFLIRCameraWidget" # What GUI class?
+    feed_refresh_time = 0.05 # How long to refresh the feed in s
+    compression_param = 2 # PNG compression parameter for camera feed
+    contrast_limits = [0.2,4.0] # Limits for the contrast slider
+    annotated_point_list = [[666,456]] # List of points to draw on the feed (plate solver ref pixel)
+    offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
 
     [Dextra.TargetControl]
-    tab_name = "Target"
-    name = "TargetControl"
-    prefix = "TS"
+    tab_name = "Target" 
+    name = "TargetControl" # Internal identifier
+    prefix = "TS" # Server class prefix
     port = "4203"
     description = "Dextra Target selector (move to FSM?)"
-    module_type = "TargetWidget"
+    module_type = "TargetWidget" # What GUI class?
 
 
 [Sinistra]
 
     [Sinistra.RobotControl]
     tab_name = "Robot Control"
-    name = "SinistraRobotControl"
-    prefix = "RC"
+    name = "SinistraRobotControl" # Internal identifier
+    prefix = "RC" # Server class prefix
     port = "4300"
     description = "Motor/Actuator control for the deputy Sinistra"
-    module_type = "RobotControlWidget"
+    module_type = "RobotControlWidget" # What GUI class?
 
     [Sinistra.DeputyAux]
     tab_name = "Deputy Auxilliary"
-    name = "SinistraDeputyAux"
-    prefix = "DA"
+    name = "SinistraDeputyAux" # Internal identifier
+    prefix = "DA" # Server class prefix
     port = "4301"
     description = "Sinistra power system + LED controls"
-    module_type = "DepAuxControlWidget"
-    voltage_limit = 10
-    power_refresh_time = 2
+    module_type = "DepAuxControlWidget" # What GUI class?
+    voltage_limit = 10 # What is the minimum voltage allowed?
     
     [Sinistra.StarTracker]
     tab_name = "Star Tracker Camera"
-    name = "SinistraStarTracker"
-    prefix = "CST"
+    name = "SinistraStarTracker" # Internal identifier
+    prefix = "CST" # Server class prefix
     port = "4302"
     description = "Camera controls for the Sinistra star tracker"
-    module_type = "BaseFLIRCameraWidget"
-    feed_refresh_time = 0.05
-    compression_param = 2
-    contrast_limits = [0.2,4.0]
-    annotated_point_list = [[707,579]]
-    offset = [0,0]
+    module_type = "BaseFLIRCameraWidget" # What GUI class?
+    feed_refresh_time = 0.05 # How long to refresh the feed in s
+    compression_param = 2 # PNG compression parameter for camera feed
+    contrast_limits = [0.2,4.0] # Limits for the contrast slider
+    annotated_point_list = [[707,579]] # List of points to draw on the feed (plate solver ref pixel)
+    offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
 
 #    [Sinistra.TargetControl]
 #    tab_name = "Target"
-#    name = "TargetControl"
-#    prefix = "TS"
+#    name = "TargetControl" # Internal identifier
+#    prefix = "TS" # Server class prefix
 #    port = "4303"
 #    description = "Sinistra Target selector (move to FSM?)"
-#    module_type = "TargetWidget"
+#    module_type = "TargetWidget" # What GUI class?
