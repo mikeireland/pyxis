@@ -86,7 +86,7 @@ refresh_time = 4 # How often to ping servers? In seconds
     name = "NavisFiberInjection" # Internal identifier
     prefix = "FI" # Server class prefix
     port = "4105"
-    description = "Camera controls for the Navis fiber injection"=
+    description = "Camera controls for the Navis fiber injection"
     module_type = "FICameraWidget" # What GUI class?
     feed_refresh_time = 0.05 # How long to refresh the feed in s
     compression_param = 2 # PNG compression parameter for camera feed
