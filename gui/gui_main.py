@@ -9,7 +9,7 @@ import faulthandler
 faulthandler.enable()
 
 sys.path.insert(0, './classes')
-from client_socket import ClientSocket
+from classes.client_socket import ClientSocket
 
 try:
     from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QHBoxLayout, \
@@ -22,11 +22,6 @@ except:
     raise UserWarning
 
 from qt_material import apply_stylesheet
-
-#A hack to allow unicode as a type from python 2 to work in python 3.
-#It would be better to typecast everything to str
-if (sys.version_info > (3, 0)):
-    unicode = str
 
 #Load config file
 if len(sys.argv) > 1:
@@ -50,7 +45,7 @@ def debug_trace():
   pyqtRemoveInputHook()
   set_trace()
 
-#Load a module from a string
+""" Load a module from a string """
 def class_for_name(module_name, class_name):
     # load the module, will raise ImportError if module cannot be loaded
     m = importlib.import_module(module_name)
@@ -59,10 +54,11 @@ def class_for_name(module_name, class_name):
     return c
 
 import random
+
+""" Random string for debugging """
 def random_string(len):
 
     random_str = ''
-
     for _ in range(len):
         # Considering only upper and lowercase letters
         random_integer = random.randint(97, 97 + 26 - 1)
@@ -74,6 +70,7 @@ def random_string(len):
     return random_str
 
 
+""" Main class for Pyxis GUI"""
 class PyxisGui(QTabWidget):
     def __init__(self, pyx_IPs,parent=None):
 
@@ -91,7 +88,6 @@ class PyxisGui(QTabWidget):
         self.int_IPs = pyx_IPs["Internal"]
         self.ext_IPs = pyx_IPs["External"]
 
-
         #Dashboard Tab
         self.tab_widgets["dashboard"] = QWidget()
         self.addTab(self.tab_widgets["dashboard"],"Finite State Machine")
@@ -99,22 +95,22 @@ class PyxisGui(QTabWidget):
         listBox = QVBoxLayout()
         self.tab_widgets["dashboard"].setLayout(listBox)
 
-        hbox1 = QHBoxLayout()
+        hbox = QHBoxLayout()
         self.fsm_socket = ClientSocket(self.int_IPs["FSM"], self.FSM_port)
 
         self.connect_fsm_button = QPushButton("Connect to FSM", self)
         self.connect_fsm_button.setFixedWidth(200)
         self.connect_fsm_button.clicked.connect(self.connect_fsm)
-        hbox1.addWidget(self.connect_fsm_button)
+        hbox.addWidget(self.connect_fsm_button)
 
         self.power_button = QPushButton("START SERVERS", self)
         self.power_button.clicked.connect(self.power)
         self.power_button.setCheckable(True)
         self.power_button.setStyleSheet("QPushButton {background-color: #005500;border-color: #005500; color: #ffd740}")
         self.power_button.setFixedWidth(200)
-        hbox1.addWidget(self.power_button)
+        hbox.addWidget(self.power_button)
 
-        listBox.addLayout(hbox1)
+        listBox.addLayout(hbox)
 
         hbox = QHBoxLayout()
         self.dashboard_mainStatus = QLabel("STATUS",self)
@@ -124,49 +120,45 @@ class PyxisGui(QTabWidget):
         self.dashboard_mainStatus.setFixedHeight(100)
         listBox.addLayout(hbox)
 
+        hbox0 = QHBoxLayout()
+        side_input = QVBoxLayout()
+
         #First, the command entry box
-        lbl1 = QLabel('Command: ', self)
+        hbox = QHBoxLayout()
+        lbl = QLabel('Command: ', self)
         self.line_edit = QLineEdit("")
         self.line_edit.returnPressed.connect(self.command_enter)
-
-        #Next, the info button
-        self.info_button = QPushButton("INFO", self)
-        self.info_button.clicked.connect(self.info_click)
-
-        hbox4 = QHBoxLayout()
-        vbox3 = QVBoxLayout()
-
-        #Make Scrollable
-        scroll = QScrollArea(self.tab_widgets["dashboard"])
-        hbox4.addWidget(scroll)
-        scroll.setWidgetResizable(True)
-        scrollContent = QWidget(scroll)
-        scrollLayout = QVBoxLayout()
-        scrollContent.setLayout(scrollLayout)
-
-
-        hbox1 = QHBoxLayout()
-        hbox1.addWidget(lbl1)
-        hbox1.addWidget(self.line_edit)
-        hbox1.addWidget(self.info_button)
-        vbox3.addLayout(hbox1)
+        #Next, the refresh button
+        self.refresh_button = QPushButton("Refresh", self)
+        self.refresh_button.clicked.connect(self.refresh_click)
+        hbox.addWidget(lbl)
+        hbox.addWidget(self.line_edit)
+        hbox.addWidget(self.refresh_button)
+        side_input.addLayout(hbox)
 
         #Next, the response box
         self.response_label = QTextEdit('[No Server Response Yet]', self)
         self.response_label.setReadOnly(True)
         self.response_label.setStyleSheet("QTextEdit { background-color : black; }")
         self.response_label.setFixedHeight(150)
-        vbox3.addWidget(self.response_label)
+        side_input.addWidget(self.response_label)
 
-
-
+        # Master Refresh button
         self.dashboard_refresh_button = QPushButton("REFRESH", self)
         self.dashboard_refresh_button.clicked.connect(self.refresh_status)
-        vbox3.addWidget(self.dashboard_refresh_button)
+        side_input.addWidget(self.dashboard_refresh_button)
 
-        vbox3.addStretch()
+        side_input.addStretch()
 
-        hbox4.addLayout(vbox3)
+        hbox0.addLayout(side_input)
+
+        #Make Scrollable
+        scroll = QScrollArea(self.tab_widgets["dashboard"])
+        hbox0.addWidget(scroll)
+        scroll.setWidgetResizable(True)
+        scrollContent = QWidget(scroll)
+        scrollLayout = QVBoxLayout()
+        scrollContent.setLayout(scrollLayout)
 
 
         #For each tab...
@@ -206,6 +198,7 @@ class PyxisGui(QTabWidget):
                 status_layout.addWidget(self.status_lights[tab][name])
                 status_layout.addWidget(self.status_texts[tab][name])
 
+                # Port label
                 port_label = QLabel(sub_config["tab_name"], self)
                 port_label.setStyleSheet("font-weight: bold")
 
@@ -222,7 +215,7 @@ class PyxisGui(QTabWidget):
 
         scroll.setWidget(scrollContent)
 
-        listBox.addLayout(hbox4)
+        listBox.addLayout(hbox0)
 
         #Now show everything, and start status timers.
         self.setWindowTitle("Pyxis Server Gui")
@@ -231,6 +224,7 @@ class PyxisGui(QTabWidget):
 
         self.auto_updater()
 
+    """ Function to change all the IPs. Takes in the IP dictionary"""
     def change_IPs(self, new_IPs):
         self.fsm_socket = ClientSocket(new_IPs["FSM"], self.FSM_port)
         for tab in config:
@@ -239,7 +233,7 @@ class PyxisGui(QTabWidget):
                 self.sub_tab_widgets[tab][item].change_ip(new_IP)
 
 
-    #Function to refresh the status of all clients
+    """ Function to refresh the status of all clients """
     def refresh_status(self):
         tab_index = self.currentIndex()
 
@@ -258,29 +252,18 @@ class PyxisGui(QTabWidget):
             self.status_lights[tab][name].load(self.sub_tab_widgets[tab][name].status_light)
             self.status_texts[tab][name].setText(self.sub_tab_widgets[tab][name].status_text)
 
-    """
-    #Function to refresh the camera feeds of each relevant client
-    def refresh_camera_feeds(self):
-        tab_index = self.currentIndex()
-        if tab_index > 0:
-            tab = list(config.items())[tab_index-1][0]
-            subtab_index = self.tab_widgets[tab].currentIndex()
-            item = list(config[tab].items())[subtab_index][0]
-            sub_config = config[tab][item]
-            if sub_config["module_type"] == "CameraWidget" or sub_config["module_type"] == "StarTrackerCameraWidget":
-                name = sub_config["name"]
-                self.sub_tab_widgets[tab][name].refresh_camera_feed()
-    """
 
-    #Function to auto update at a given rate
+    """Function to auto update at a given rate"""
     def auto_updater(self):
         self.refresh_status()
         self.stimer.singleShot(refresh_time, self.auto_updater)
         return
 
+    """ Function to connect to the FSM. CURRENTLY DOES NOTHING """
     def connect_fsm(self):
         return
 
+    """ Button to start or kill all servers. CURRENTLY DOES NOTHING"""
     def power(self):
         if self.power_button.isChecked():
             self.power_button.setText("Kill Servers")
@@ -291,14 +274,13 @@ class PyxisGui(QTabWidget):
 
         return
 
+    """ Send a command to the FSM server """
     def send_to_FSM_server(self, text):
-        """Send a command to the server, dependent on the current tab.
-        """
         try:
             response = self.fsm_socket.send_command(text)
         except:
             response = "*** Connection Error ***"
-        if type(response)==str or type(response)==unicode:
+        if type(response)==str:
             self.response_label.append(response)
         elif type(response)==bool:
             if response:
@@ -307,17 +289,16 @@ class PyxisGui(QTabWidget):
                 self.response_label.append("Failure!")
         self.line_edit.setText("")
 
+    """ Parse a command and send it to the FSM server"""
     def command_enter(self):
-        """Parse the LineEdit string and send_to_server
-        """
         self.send_to_FSM_server(str(self.line_edit.text()))
 
-    #What happens when you click the info button
-    def info_click(self):
-        self.send_to_FSM_server("INFO")
+    """What happens when you click the refresh button"""
+    def refresh_click(self):
+        self.send_to_FSM_server("???")
 
 
-
+# Start application
 app = QApplication(sys.argv)
 app.setStyle("Fusion")
 apply_stylesheet(app, theme='dark_amber_JH.xml')  #Design file
@@ -343,6 +324,7 @@ IP_dict["Internal"] = IP_internal
 IP_dict["External"] = IP_external
 IP_dict["FSM_port"] = IPs["FSM_port"]
 
+# Add External IP info
 ip_frame_ext = QFrame()
 vbox = QVBoxLayout()
 ip_frame_ext.setLayout(vbox)
@@ -351,7 +333,7 @@ ip_connect = QLabel('External IP: %s'%(ext_IP))
 ip_connect.setStyleSheet("font-weight: bold; color: #ffd740; font-size:14px")
 vbox.addWidget(ip_connect)
 
-
+# Add Internal IP info
 ip_frame_int = QFrame()
 vbox = QVBoxLayout()
 ip_frame_int.setLayout(vbox)
@@ -362,7 +344,7 @@ for IP_name in IPs:
 	ip_connect.setStyleSheet("font-weight: bold; color: #ffd740; font-size:14px")
 	vbox.addWidget(ip_connect)
 
-
+# Button to switch between IPs
 IP_button = QPushButton("Connect to External IP")
 IP_button.setFixedWidth(220)
 IP_button.setCheckable(True)
@@ -377,6 +359,7 @@ ip_frame_ext.hide()
 
 pyxis_app = PyxisGui(pyx_IPs=IP_dict)
 
+""" Function to change between internal and external IPs"""
 def change_IP():
 
     if IP_button.isChecked():

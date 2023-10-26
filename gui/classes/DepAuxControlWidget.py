@@ -18,6 +18,8 @@ class DepAuxControlWidget(RawWidget):
 
         self.voltage_limit = config["voltage_limit"]
         self.full_window.addSpacing(40)
+
+        # LED controls
         LED_layout = QHBoxLayout()
         lbl = QLabel("LED Controls:",self)
         lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
@@ -37,17 +39,19 @@ class DepAuxControlWidget(RawWidget):
 
         self.full_window.addSpacing(30)
 
-        LED_layout = QHBoxLayout()
+        # Power status
+        Power_hbox = QHBoxLayout()
         lbl = QLabel("Power System Controls:",self)
         lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
-        LED_layout.addWidget(lbl)
-        LED_layout.addStretch()
+        Power_hbox.addWidget(lbl)
+        Power_hbox.addStretch()
         self.getPower_button = QPushButton("Get Power", self)
         self.getPower_button.setFixedWidth(200)
         self.getPower_button.clicked.connect(self.getPower_func)
-        LED_layout.addWidget(self.getPower_button)
-        LED_layout.addSpacing(50)
+        Power_hbox.addWidget(self.getPower_button)
+        Power_hbox.addSpacing(50)
         
+        # Current and voltage meters
         Power_layout = QGridLayout()
         Power_layout.setColumnMinimumWidth(0,100)
         Power_layout.setRowMinimumHeight(0, 30)
@@ -79,7 +83,7 @@ class DepAuxControlWidget(RawWidget):
         self.Motorcurrent.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         Power_layout.addWidget(self.Motorcurrent,1,2)
         
-        LED_layout.addLayout(Power_layout)
+        Power_hbox.addLayout(Power_layout)
         
         # Complete setup, add status labels and indicators
         self.LED_status_light = 'assets/red.svg'
@@ -87,20 +91,18 @@ class DepAuxControlWidget(RawWidget):
         self.LED_svgWidget = QSvgWidget(self.LED_status_light)
         self.LED_svgWidget.setFixedSize(20,20)
         self.LED_status_label = QLabel(self.LED_status_text, self)
-        LED_layout.addWidget(self.LED_svgWidget)
-        LED_layout.addWidget(self.LED_status_label)
-        LED_layout.addStretch()
+        Power_hbox.addWidget(self.LED_svgWidget)
+        Power_hbox.addWidget(self.LED_status_label)
+        Power_hbox.addStretch()
         
-        self.full_window.addLayout(LED_layout)
+        self.full_window.addLayout(Power_hbox)
         self.full_window.addStretch()
         self.ask_for_status()
 
 
+    """ Ask for server status, updating the power meters as required """
     def ask_for_status(self):
-        """Ask for status for the server that applies to the current tab (as we can
-        only see one server at a time)"""
-        #As this is on a continuous timer, only do anything if we are
-        #connected
+
         self.getPower_func()
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
@@ -114,15 +116,17 @@ class DepAuxControlWidget(RawWidget):
             self.status_label.setText(self.status_text)
             self.svgWidget.load(self.status_light)
 
-
+    """ Turn LEDs on """
     def LEDOn_button_func(self):
         self.send_to_server("DA.LEDOn")
         print("Sending 'LEDOn' command")
 
+    """ Turn LEDs off """
     def LEDOff_button_func(self):
         self.send_to_server("DA.LEDOff")
         print("Sending 'LEDOff' command")
 
+    """ Get and set the power meters """
     def getPower_func(self):
         power_str = self.send_to_server_with_response("DA.reqpower")
         print("Sending 'getPower' command")

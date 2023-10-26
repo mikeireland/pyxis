@@ -3,26 +3,25 @@ from __future__ import print_function, division
 from BaseFLIRCameraWidget import BaseFLIRCameraWidget
 from PyQt5.QtWidgets import QPushButton, QHBoxLayout
 
+
 class FSTCameraWidget(BaseFLIRCameraWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
 
         super(FSTCameraWidget,self).__init__(config,IP,parent)
         
-        hbox3 = QHBoxLayout()
+        # Button to switch between centroiding and plate solving
+        hbox = QHBoxLayout()
         self.state_button = QPushButton("Manual Mode", self)
         self.state_button.setCheckable(True)
         self.state_button.setFixedWidth(200)
         self.state_button.clicked.connect(self.switch_state_button_func)
-        hbox3.addWidget(self.state_button)
-        self.sidePanel.addLayout(hbox3)
+        hbox.addWidget(self.state_button)
+        self.sidePanel.addLayout(hbox)
         
-        
+    """ Edited function to run the camera """    
     def run_camera(self):
-
         if self.Connect_button.isChecked():
             if self.run_button.isChecked():
-                # Refresh camera
-                #EXTRACT NUMBER OF FRAMES
                 self.run_button.setText("Stop Camera")
                 print("Starting Camera")
                 num_frames = str(self.numframes_edit.text())
@@ -38,7 +37,7 @@ class FSTCameraWidget(BaseFLIRCameraWidget):
             self.run_button.setChecked(False)
             print("CAMERA NOT CONNECTED")
 
- 
+    """ Function to switch between centroiding and plate solving """
     def switch_state_button_func(self):
         if self.Connect_button.isChecked():
             if self.run_button.isChecked():     

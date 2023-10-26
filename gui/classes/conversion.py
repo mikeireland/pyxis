@@ -110,6 +110,18 @@ def RaDec2AltAz(RA,DEC,POS_ANG):
 
     return np.array(angles)
 
+"""
+Calculate the Alt/Az velocities of a given RA/DEC coordinate
+INPUTS
+RA = Right ascension in degrees
+DEC = Declination in degrees
+
+OUTPUTS
+ALT = Altitude
+AZ = Azimuth
+dALTdt = Altitude velocity
+dAZdt = Azimuth velocity
+"""
 def RaDecDot(RA,DEC):
     #Convert Ra/Dec to Altitude/Azimuth coordinates
     ALT, AZ = toAltAz_rad(RA,DEC)

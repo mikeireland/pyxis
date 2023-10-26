@@ -29,29 +29,31 @@ class RawWidget(QWidget):
         self.mainHBox = QHBoxLayout()
         self.mainPanel = QVBoxLayout()
         self.sidePanel = QVBoxLayout()
+
         #Description
+        hbox = QHBoxLayout()
         desc = QLabel('Port: %s    Description: %s'%(config["port"],config["description"]), self)
         desc.setStyleSheet("font-weight: bold")
         desc.setFixedHeight(40)
-        hbox1 = QHBoxLayout()
-        hbox1.setContentsMargins(0, 0, 0, 0)
-        hbox1.addWidget(desc)
-        self.full_window.addLayout(hbox1)
+        hbox.setContentsMargins(0, 0, 0, 0)
+        hbox.addWidget(desc)
+        self.full_window.addLayout(hbox)
 
+        # Command Line
         #First, the command entry box
-        lbl1 = QLabel('Command: ', self)
+        lbl = QLabel('Command: ', self)
         self.line_edit = QLineEdit("%s."%self.prefix)
         self.line_edit.returnPressed.connect(self.command_enter)
 
-        #Next, the info button
-        self.info_button = QPushButton("Refresh", self)
-        self.info_button.clicked.connect(self.info_click)
+        #Next, the refresh button
+        self.refresh_button = QPushButton("Refresh", self)
+        self.refresh_button.clicked.connect(self.refresh_click)
 
-        hbox1 = QHBoxLayout()
-        hbox1.addWidget(lbl1)
-        hbox1.addWidget(self.line_edit)
-        hbox1.addWidget(self.info_button)
-        self.mainPanel.addLayout(hbox1)
+        hbox = QHBoxLayout()
+        hbox.addWidget(lbl)
+        hbox.addWidget(self.line_edit)
+        hbox.addWidget(self.refresh_button)
+        self.mainPanel.addLayout(hbox)
 
         #Next, the response box
         self.response_label = QTextEdit('[No Server Response Yet]', self)
@@ -60,6 +62,7 @@ class RawWidget(QWidget):
         self.response_label.setFixedHeight(150)
         self.mainPanel.addWidget(self.response_label)
         self.mainPanel.addSpacing(30)
+
         # Complete setup, add status labels and indicators
         self.mainHBox.addLayout(self.mainPanel)
         self.mainHBox.addLayout(self.sidePanel)
@@ -79,28 +82,30 @@ class RawWidget(QWidget):
         self.setLayout(self.full_window)
 
 
+    """ Basic function to ask the for the server status to see if it's alive
+        (and to potentially do things)
+
+        This function should be superceeded by an identically named function inside
+        a given GUI class    
+    """
     def ask_for_status(self):
-        """Ask for status for the server that applies to the current tab (as we can
-        only see one server at a time)"""
         print("NEED TO IMPLEMENT FUNCTION")
 
+
+    """ Change the IP"""
     def change_ip(self,IP):
         self.socket = ClientSocket(IP=IP, Port=self.port)
 
-    #What happens when you click the info button
-    def info_click(self):
-        print(self.name)
+    """ What happens when you click the refresh button """
+    def refresh_click(self):
         self.ask_for_status()
 
+    """ Parse the LineEdit string and send_to_server """
     def command_enter(self):
-        """Parse the LineEdit string and send_to_server
-        """
         self.send_to_server(str(self.line_edit.text()))
 
-
+    """ Send a command to the server; don't need to parse response """
     def send_to_server(self, text):
-        """Send a command to the server, dependent on the current tab.
-        """
         try:
             response = self.socket.send_command(text)
         except:
@@ -115,9 +120,8 @@ class RawWidget(QWidget):
         self.line_edit.setText("%s."%self.prefix)
 
 
+    """ Send a command to the server; parses the response and returns it """
     def send_to_server_with_response(self, text):
-        """Send a command to the server, dependent on the current tab.
-        """
         try:
             response = self.socket.send_command(text)
         except:
