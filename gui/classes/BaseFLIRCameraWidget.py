@@ -142,11 +142,13 @@ class FeedWindow(QWidget):
 
     """Asinh function does not work!"""
     def asinh_func(self,image):
-        A = 16
-        B = 16
-        bias = np.percentile(image[0:3],30)
-        noise = 1.48*np.median(image[0:3]-bias)
-        scaled = np.arcsinh( A* (image - bias)/noise) + B
+        #A = 16
+        #B = 16
+        #bias = np.percentile(image[0:3],30)
+        #noise = 1.48*np.median(image[0:3]-bias)
+        #scaled = np.arcsinh( A* (image - bias)/noise) + B
+        A0 = 16
+        scaled = A0*np.arcsinh(image/A0)
         return scaled.astype("uint8")
 
     def linear_func(self,image):
