@@ -137,19 +137,22 @@ ImageProcessSubMatInterp::get_location(const cv::Mat &image_off,
 
     // auto sub_image_off = image_off(sub_rect);
     // auto sub_image_on = image_on(sub_rect);
-
+    // diff the images the highlight LEDs
     cv::subtract(image_on, image_off, diff_image);
 
     if (do_gauss)
         cv::GaussianBlur(diff_image, diff_image,
                          cv::Size(gauss_radius, gauss_radius), 0, 0,
                          cv::BORDER_DEFAULT);
+    if (do_median)
+        cv::medianBlur(diff_image, diff_image, 3);
 
     //diff_image.convertTo(diff_image, CV_32F);
 
     Point2D<int> p;
     Point2D<double> p_ret;
 
+    // take maximum, find centroid in region, then set a circle around centroid to 0, and repeat
     cv::minMaxLoc(diff_image, nullptr, nullptr, nullptr, &p.p1);
     p_ret.p1 = interp(diff_image, p.p1);
     cv::circle(diff_image, p.p1, 20, cv::Scalar(0, 0, 0), cv::FILLED);

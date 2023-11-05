@@ -59,6 +59,7 @@ struct ImageProcessSubMat {
 // too lazy to do inheritance
 struct ImageProcessSubMatInterp {
     bool do_gauss = false;
+    bool do_median = true;
     int gauss_radius = 21;
     std::size_t margin = 20;
     int threshold = 10;
