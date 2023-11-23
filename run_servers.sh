@@ -4,7 +4,7 @@
 (crontab -l 2>/dev/null; echo -n "*/2 * * * * (cd ~/GitRepos/pyxis/servers/coarse_star_tracker/data && ls -tp | grep -v '/$' | tail -n +11 | xargs -d '\n' -r rm --)")|awk '!x[$0]++'|crontab -
 
 #Kill current screen
-pkill screen
+#pkill screen
 
 #Start terminals
 echo "Which servers to run?"
