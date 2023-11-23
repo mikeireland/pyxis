@@ -260,7 +260,7 @@ class RobotControlWidget(RawWidget):
 
     """ Level the robot """
     def level_button_func(self):
-        self.send_to_server("RC.level")
+        self.send_to_server("RC.track [0,0,0,0,0,0,0,0]")
         print("Sending 'Level' command")
 
     """ Stop the robot """
