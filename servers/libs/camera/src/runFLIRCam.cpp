@@ -119,9 +119,12 @@ void *runCam(void*) {
 	    // Initialise FLIRCamera instance from the serial number
         FLIRCamera Fcam (cam_list.GetBySerial(serialNum), cam_config);
         
+		cout << "Finished class setup" << endl;
 	    // Setup and start the camera
         Fcam.InitCamera();
         
+		cout << "Failed Init" << endl;
+
         // Cam status of 2 indicates camera is waiting   
         pthread_mutex_lock(&GLOB_FLAG_LOCK);
         GLOB_CAM_STATUS = 2;
