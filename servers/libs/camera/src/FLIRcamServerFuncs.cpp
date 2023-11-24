@@ -375,11 +375,11 @@ string FLIRCameraServer::resetUSBPort(string hub, string port){
     string ret_msg;
     string down_msg;
     string up_msg;
-    down_msg.append("cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd ").append(hub).append(" -d ").append(port);
-    system(down_msg);
-    up_msg.append("cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd ").append(hub).append(" -u ").append(port);
-    usleep(5000000)
-    system(up_msg);
+    down_msg = "cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd " + hub + " -d " + port;
+    system(down_msg.c_str());
+    up_msg = "cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd " + hub + " -u " + port;
+    usleep(5000000);
+    system(up_msg.c_str());
     ret_msg = "Reset USB port";
     return ret_msg;
 }
