@@ -54,6 +54,8 @@ refresh_time = 4 # How often to ping servers? In seconds
     contrast_limits = [0.2,4.0] # Limits for the contrast slider
     annotated_point_list = [[1536,1024]] # List of points to draw on the feed (Central spot)
     offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
+    USB_hub = "ykush3 -s Y3N11029" #Command for YKush to locate the correct USB hub
+    USB_port = "1" #USB port number on the hub
 
     [Navis.DextraCoarseMet]
     tab_name = "Dextra Coarse Met Camera"
@@ -67,6 +69,8 @@ refresh_time = 4 # How often to ping servers? In seconds
     contrast_limits = [0.2,4.0] # Limits for the contrast slider
     annotated_point_list = [[599,557],[703,557]] # List of points to draw on the feed (LED positions)
     offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
+    USB_hub = "ykush -s YK55735" #Command for YKush to locate the correct USB hub
+    USB_port = "2" #USB port number on the hub
 
     [Navis.SinistraCoarseMet]
     tab_name = "Sinistra Coarse Met Camera"
@@ -80,6 +84,8 @@ refresh_time = 4 # How often to ping servers? In seconds
     contrast_limits = [0.2,4.0] # Limits for the contrast slider
     annotated_point_list = [[688,546],[799,548]] # List of points to draw on the feed (LED positions)
     offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
+    USB_hub = "ykush -s YK55735" #Command for YKush to locate the correct USB hub
+    USB_port = "1" #USB port number on the hub
 
     [Navis.FiberInjection]
     tab_name = "Fiber Injection Camera"
@@ -93,6 +99,8 @@ refresh_time = 4 # How often to ping servers? In seconds
     contrast_limits = [0.2,4.0] # Limits for the contrast slider
     annotated_point_list = [[594,430],[632,628]] # List of points to draw on the feed (Injection spots)
     offset = [420,252] # Camera x/y ROI offset (for the correct positioning of the above points)
+    USB_hub = "ykush3 -s Y3N11029" #Command for YKush to locate the correct USB hub
+    USB_port = "2" #USB port number on the hub
 
     [Navis.ScienceCamera]
     tab_name = "Science Camera"
@@ -141,6 +149,8 @@ refresh_time = 4 # How often to ping servers? In seconds
     contrast_limits = [0.2,4.0] # Limits for the contrast slider
     annotated_point_list = [[666,456]] # List of points to draw on the feed (plate solver ref pixel)
     offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
+    USB_hub = "ykush -s YK55678" #Command for YKush to locate the correct USB hub
+    USB_port = "1" #USB port number on the hub
 
     [Dextra.TargetControl]
     tab_name = "Target" 
@@ -182,6 +192,8 @@ refresh_time = 4 # How often to ping servers? In seconds
     contrast_limits = [0.2,4.0] # Limits for the contrast slider
     annotated_point_list = [[707,579]] # List of points to draw on the feed (plate solver ref pixel)
     offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
+    USB_hub = "ykush -s YK55673" #Command for YKush to locate the correct USB hub
+    USB_port = "1" #USB port number on the hub
 
 #    [Sinistra.TargetControl]
 #    tab_name = "Target"

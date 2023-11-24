@@ -166,6 +166,9 @@ class BaseFLIRCameraWidget(RawWidget):
         contrast_min = config["contrast_limits"][0]
         contrast_max = config["contrast_limits"][1]
 
+        self.USB_hub = config["USB_hub"]
+        self.USB_port = config["USB_port"]
+
         # Set points to draw over camera feed
         target_list = config["annotated_point_list"]
         target_qpoint_list = []
@@ -318,6 +321,14 @@ class BaseFLIRCameraWidget(RawWidget):
         hbox.addSpacing(50)
         self.sidePanel.addLayout(hbox)
 
+        # Button to toggle the USB power
+        hbox = QHBoxLayout()
+        self.toggle_USB_button = QPushButton("Toggle USB Port", self)
+        self.toggle_USB_button.setFixedWidth(200)
+        self.toggle_USB_button.clicked.connect(self.toggle_USB)
+        hbox.addWidget(self.toggle_USB_button)
+        self.sidePanel.addLayout(hbox)
+
         hbox = QHBoxLayout()
         self.run_button = QPushButton("Start Camera", self)
         self.run_button.setCheckable(True)
@@ -439,6 +450,13 @@ class BaseFLIRCameraWidget(RawWidget):
             self.Connect_button.setText("Connect")
             print("Disconnecting Camera")
             self.send_to_server("%s.disconnect"%self.prefix)
+
+    def toggle_USB(self):
+        if self.Connect_button.isChecked():
+            print("Disconnect Camera First!")
+        else:
+            self.send_to_server('%s.resetUSBPort ["%s", "%s"]'%(self.prefix,self.USB_hub,self.USB_port))
+        return 
 
     """ Reconfigure the camera"""
     def reconfigure_camera(self):
