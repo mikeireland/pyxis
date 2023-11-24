@@ -73,6 +73,9 @@ string getlatestfilename();
 // Get the latest image data from the camera thread
 string getlatestimage(int compression, int binning);
 
+// Reset the USB ports
+string resetUSBPort(string hub, string port);
+
 };
 
 // Serialiser to convert configuration struct to/from JSON
