@@ -7,11 +7,11 @@ flush_cache(){
     b=${a:1:1}
     if [ $b == "3" ]; then
         cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd ykush3 -s $1 -d $2
-        sleep 0.1
+        sleep 0.5
         cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd ykush3 -s $1 -u $2
     else
         cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd ykush -s $1 -d $2
-        sleep 0.1
+        sleep 0.5
         cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd ykush -s $1 -u $2
     fi
 }

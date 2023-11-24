@@ -371,14 +371,21 @@ string FLIRCameraServer::getlatestfilename(){
 	return ret_msg;
 }
 
+/* Reset the USB port via the YKush USB hub
+Inputs:
+    hub = string to determine which HUB to toggle. The string format should be in the format of:
+        "ykush -s YK*****" for USB2 or "ykush3 -s Y3N*****" for USB3
+    port = string of which port number to toggle, i.e "1"
+*/
 string FLIRCameraServer::resetUSBPort(string hub, string port){
     string ret_msg;
+    string sudo_command = "cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd ";
     string down_msg;
     string up_msg;
-    down_msg = "cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd " + hub + " -d " + port;
+    down_msg = sudo_command + hub + " -d " + port;
     system(down_msg.c_str());
-    up_msg = "cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd " + hub + " -u " + port;
-    usleep(5000000);
+    up_msg = sudo_command + hub + " -u " + port;
+    usleep(500000);
     system(up_msg.c_str());
     ret_msg = "Reset USB port";
     return ret_msg;
