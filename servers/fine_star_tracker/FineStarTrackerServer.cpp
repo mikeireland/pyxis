@@ -243,6 +243,7 @@ COMMANDER_REGISTER(m)
         .def("reconfigure_buffersize", &FineStarTracker::reconfigure_buffersize, "Reconfigure the buffer size [buffer size in frames]")
         .def("reconfigure_savedir", &FineStarTracker::reconfigure_savedir, "Reconfigure the save directory [save directory as a string]")
         .def("getparams", &FineStarTracker::getparams, "Get all parameters")
+        .def("resetUSBPort", &FineStarTracker::resetUSBPort, "Reset the USB port on the HUB [string HUB name, string port number]")
         .def("getstar", &FineStarTracker::getstarposition, "Get position of the star")
         .def("switchCentroid", &FineStarTracker::switchToCentroid, "Switch to Centroiding Mode")
         .def("switchPlateSolve", &FineStarTracker::switchToPlatesolve, "Switch to Plate Solving Mode");

@@ -371,6 +371,19 @@ string FLIRCameraServer::getlatestfilename(){
 	return ret_msg;
 }
 
+string FLIRCameraServer::resetUSBPort(string hub, string port){
+    string ret_msg;
+    string down_msg;
+    string up_msg;
+    down_msg.append("cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd ").append(hub).append(" -d ").append(port);
+    system(down_msg);
+    up_msg.append("cat ~/pyxis/screen_configs/pw | sudo -S ykushcmd ").append(hub).append(" -u ").append(port);
+    usleep(5000000)
+    system(up_msg);
+    ret_msg = "Reset USB port";
+    return ret_msg;
+}
+
 /* 
 Get latest image 
 Inputs:

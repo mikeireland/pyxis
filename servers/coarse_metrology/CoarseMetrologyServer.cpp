@@ -222,6 +222,7 @@ COMMANDER_REGISTER(m)
         .def("reconfigure_buffersize", &CoarseMet::reconfigure_buffersize, "Reconfigure the buffer size [buffer size in frames]")
         .def("reconfigure_savedir", &CoarseMet::reconfigure_savedir, "Reconfigure the save directory [save directory as a string]")
         .def("getparams", &CoarseMet::getparams, "Get all parameters")
+        .def("resetUSBPort", &CoarseMet::resetUSBPort, "Reset the USB port on the HUB [string HUB name, string port number]")
         .def("getLEDs", &CoarseMet::getLEDpositions, "Get positions of two LEDs")
         .def("enableLEDs", &CoarseMet::enableCoarseMetLEDs, "Enable the blinking and measuring loop [flag]");
 

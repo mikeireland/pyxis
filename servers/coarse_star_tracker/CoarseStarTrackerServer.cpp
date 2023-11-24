@@ -47,6 +47,7 @@ COMMANDER_REGISTER(m)
         .def("reconfigure_blacklevel", &CoarseStarTracker::reconfigure_blacklevel, "Reconfigure the black level [black_level]")
         .def("reconfigure_buffersize", &CoarseStarTracker::reconfigure_buffersize, "Reconfigure the buffer size [buffer size in frames]")
         .def("reconfigure_savedir", &CoarseStarTracker::reconfigure_savedir, "Reconfigure the save directory [save directory as a string]")
-        .def("getparams", &CoarseStarTracker::getparams, "Get all parameters");
+        .def("getparams", &CoarseStarTracker::getparams, "Get all parameters")
+        .def("resetUSBPort", &CoarseStarTracker::resetUSBPort, "Reset the USB port on the HUB [string HUB name, string port number]");
         
 }
