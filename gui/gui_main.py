@@ -5,6 +5,7 @@ import pytomlpp
 import collections
 import importlib
 import faulthandler
+import argparse
 
 faulthandler.enable()
 
@@ -72,7 +73,7 @@ def random_string(len):
 
 """ Main class for Pyxis GUI"""
 class PyxisGui(QTabWidget):
-    def __init__(self, pyx_IPs,parent=None):
+    def __init__(self, pyx_IPs, use_external, parent=None):
 
         super(PyxisGui,self).__init__(parent)
 
@@ -187,7 +188,10 @@ class PyxisGui(QTabWidget):
                 #Load class and create instance, add to tab container
                 class_name = sub_config["module_type"]
                 widget_module = class_for_name(class_name,class_name)
-                self.sub_tab_widgets[tab][name] = widget_module(sub_config,self.int_IPs[tab])
+                if use_external:
+                	self.sub_tab_widgets[tab][name] = widget_module(sub_config,self.ext_IPs[tab])
+                else:
+	                self.sub_tab_widgets[tab][name] = widget_module(sub_config,self.int_IPs[tab]) #!!! This is where the int_IPs is the default
                 self.tab_widgets[tab].addTab(self.sub_tab_widgets[tab][name],sub_config["tab_name"])
 
                 #Add status indicator to dashboard
@@ -345,7 +349,11 @@ for IP_name in IPs:
 	vbox.addWidget(ip_connect)
 
 # Button to switch between IPs
-IP_button = QPushButton("Connect to External IP")
+if pyxis_config["IP"]["UseExternal"]:
+	IP_button = QPushButton("Connect to Internal IP")
+	IP_button.setChecked(True)
+else:
+	IP_button = QPushButton("Connect to External IP")
 IP_button.setFixedWidth(220)
 IP_button.setCheckable(True)
 IP_button.setStyleSheet("QPushButton {background-color: #000000; border-color: #550000; color: #ffd740}")
@@ -357,7 +365,7 @@ header.addWidget(IP_button)
 
 ip_frame_ext.hide()
 
-pyxis_app = PyxisGui(pyx_IPs=IP_dict)
+pyxis_app = PyxisGui(pyx_IPs=IP_dict, use_external=pyxis_config["IP"]["UseExternal"])
 
 """ Function to change between internal and external IPs"""
 def change_IP():

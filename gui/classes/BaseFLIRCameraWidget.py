@@ -54,7 +54,7 @@ class FeedLabel(QLabel):
                 y1 = y + height*py
                 x1 = x + width*px
 
-                painter.drawEllipse(QPoint(x1,y1),3,3) #Point as a 3x3 circle
+                painter.drawEllipse(QPoint(int(x1),int(y1)),3,3) #Point as a 3x3 circle
 
     def changePixmap(self, img):
         self.dims = img.size()
