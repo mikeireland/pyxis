@@ -188,6 +188,9 @@ class PyxisGui(QTabWidget):
                 #Load class and create instance, add to tab container
                 class_name = sub_config["module_type"]
                 widget_module = class_for_name(class_name,class_name)
+                
+                #The following line is where all the different tabs connect to their servers
+                #It uses the class names "module_type" from port_setup.toml
                 if use_external:
                 	self.sub_tab_widgets[tab][name] = widget_module(sub_config,self.ext_IPs[tab])
                 else:
