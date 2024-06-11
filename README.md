@@ -4,10 +4,10 @@ Control software and utilities for the Pyxis project
 Note that there are some other repositories that should also be merged, in particular:
 https://github.com/raplonu/commander
 
-# GUI requirements:
+# GUI installation requirements:
 pip install numpy qt-material pyqt5 pyzmq pytomlpp opencv-python astroquery pyqtgraph
 
-# TO INSTALL:
+# TO INSTALL on a fresh Pyxis computer (not for the Gui!):
 1 Install ubuntu  (minimal installation) (username: pyxisuser, computername: pyxisuser-Nameofcomputer, password: *****)
 
 When prompted, ask Jonah for Pro credentials
