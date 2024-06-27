@@ -544,8 +544,9 @@ class BaseFLIRCameraWidget(RawWidget):
         compressed_data = np.array(data["Image"]["data"], dtype=np.uint8)
         # Decode the compressed data
         img_data = cv2.imdecode(compressed_data, cv2.IMREAD_UNCHANGED)
-        # Turn to 8 bit image
-        img_data = np.clip(img_data.astype("float")*self.feed_window.contrast.getValue(), 0, 255, img_data)
+        # Turn to 8 bit image. Note that we need to explicitly cast the image data to a float in new numpy versions.
+        # There is probably a simpler way to do this!
+        img_data = np.clip(img_data.astype("float")*self.feed_window.contrast.getValue(), 0, 255, img_data.astype("float"))
         img_data = img_data.astype("uint8")
         # Apply scaling transform
         img_data = self.feed_window.image_func(img_data)
