@@ -39,7 +39,7 @@ class RobotControlWidget(RawWidget):
 
         # Motor control layout
         content_layout = QVBoxLayout()
-        lbl = QLabel("Motor Controls (velocity in units of mm/s or rad/s):",self)
+        lbl = QLabel("Motor Controls (velocity in units of mm/s or arcsec/s):",self)
         lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
         content_layout.addWidget(lbl)
         content_layout.addSpacing(30)
