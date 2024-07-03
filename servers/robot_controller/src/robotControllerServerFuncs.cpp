@@ -236,7 +236,7 @@ void translate(RobotDriver *driver) {
 	}
 	
 	//This is where we set a target.
-	driver->g_posangStabiliserTarget(velocity_target,angle_target);
+	driver->SetNewStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
 	if(1) {	
 		if(driver->stabiliser.enable_flag_) {
@@ -331,7 +331,7 @@ void ramp(RobotDriver *driver) {
 	angle_target.x = velocity*roll;
 	angle_target.y = velocity*pitch;
 	angle_target.z = 0.001*velocity*yaw;
-	driver->g_posangStabiliserTarget(velocity_target,angle_target);
+	driver->SetNewStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
 	
 	if(1) {	
@@ -530,7 +530,7 @@ struct RobotControlServer {
         yaw = yaw_val;
         pitch = pitch_val;
         GLOBAL_STATUS_CHANGED = true;
-        GLOBAL_SERVER_STATUS = ROBOT_;
+        GLOBAL_SERVER_STATUS = ROBOT_UNAMBIG;
     }
     
     void change_file(string file) {
