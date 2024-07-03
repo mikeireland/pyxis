@@ -87,11 +87,11 @@ double roll = 0.0;
 double yaw = 0.0;
 double pitch = 0.0;
 double el = 0.0;
-double az = 0.0;
-double alt = 0.0;
+double g_az = 0.0;
+double g_alt = 0.0;
+double g_posang = 0.0;
 double az_off = 0.0;
 double alt_off = 0.0;
-double pos = 0.0;
 
 double alt_acc = 0.0;
 double az_acc = 0.0;
@@ -111,8 +111,8 @@ struct LEDs {
 };
 
 
-
-
+// !!! This is a heading , in principle based on a magnetometer (which wasn't
+// every installed??? 
 double heading = 0.0;
 double f = 0.5;
 
@@ -160,6 +160,8 @@ void resonance(RobotDriver *driver) {
 }
 
 void unambig(RobotDriver *driver) {
+	// This function makes a periodic change to the robot velocity of amplitude
+	// "velocity" or 0.001 * "velocity" in order to test resonances.
 	Servo::Doubles velocity_target;
 	Servo::Doubles angle_target;
 	velocity_target.x = 0.001*velocity*x*sin(2*3.14159265*f*global_timepoint*0.000001);
@@ -213,6 +215,7 @@ void unambig(RobotDriver *driver) {
 
 
 void translate(RobotDriver *driver) {
+	// Manual translation of forob.
 	Servo::Doubles velocity_target;
 	Servo::Doubles angle_target;
 	driver->teensy_port.ReadMessage();
@@ -232,7 +235,8 @@ void translate(RobotDriver *driver) {
 		cout << "pitch: " << current_pitch << '\n';
 	}
 	
-	driver->SetNewStabiliserTarget(velocity_target,angle_target);
+	//This is where we set a target.
+	driver->g_posangStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
 	if(1) {	
 		if(driver->stabiliser.enable_flag_) {
@@ -266,48 +270,56 @@ double saturation(double val) {
 }
 
 void track(RobotDriver *driver) {
+	// Track the star, based on the g_az and g_alt offsets received previously from
+	// the star tracker. This supercedes much of the machinery in the RobotDriver.
 	Servo::Doubles velocity_target;
 	Servo::Doubles angle_target;
+	
+	// Here we get the latest data (i.e. accelerometers) from the Teensy.
 	driver->teensy_port.ReadMessage();
+
+	// Send the raw data to the leveller object, so that it can compute acclerations.
 	driver->PassAccelBytesToLeveller();
+	
+	// Update our pitch and roll targets (internally in degrees)
 	driver->leveller.UpdateTarget();
+	
+	// The leveller simply estimates the roll and pitch in degrees. We save these
+	// in arcseconds. 
 	current_roll = 3600*driver->leveller.roll_estimate_filtered_;
 	current_pitch = 3600*driver->leveller.pitch_estimate_filtered_;
 	roll_error = roll_target - current_roll;
 	pitch_error = pitch_target - current_pitch;
-	double elevation_target = 0.0000048481*saturation(el + egain*(alt+alt_off) + eint*alt_acc);
+
+	// the constant on the following line is arc-seconds per radian.
+	double elevation_target = 0.0000048481*saturation(el + g_egain*(g_alt+alt_off) + g_eint*alt_acc);
 	velocity_target.x = 0.001*velocity*x;
 	velocity_target.y = 0.001*velocity*y;
 	velocity_target.z = 0.001*velocity*z;
-	angle_target.x = saturation(roll+roll_gain*roll_error);
-	angle_target.y = saturation(pitch + pitch_gain*pitch_error);
-	angle_target.z = 0.0000014302*saturation(yaw + ygain*(az+az_off) + yint*az_acc + h_gain*heading);
-
-	alt_acc += 0.001*(alt+alt_off);
-	az_acc += 0.001*(az+az_off);
 	
-	driver->SetNewStabiliserTarget(velocity_target,angle_target);
-	driver->stabiliser.enable_flag_ = true;
-	if(1) {	
-		if(driver->stabiliser.enable_flag_) {
-			//printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
-			//if  (global_timepoint < 10000000) {
-			//	velocity_target.x = 0;
-			//	velocity_target.y = 0;
-			//	velocity_target.z = 0;
-			//}
-			
-			driver->StabiliserLoop();
+	// Create velocities for pitch and roll, based on a proportional server and our
+	// errors.
+	angle_target.x = saturation(roll + roll_gain*roll_error);
+	angle_target.y = saturation(pitch + pitch_gain*pitch_error);
+	
+	// Create a yaw velocity based on the target yaw velocity "yaw" and a PI servo loop
+	// based on the g_az.
+	angle_target.z = 0.0000014302*saturation(yaw + g_ygain*(g_az + az_off) + g_ygain*az_acc + h_gain*heading);
+	
+	// This is an integral term (not an acceleration)
+	alt_acc += 0.001*(g_alt + alt_off);
+	az_acc += 0.001*(g_az + az_off);
+				
+	// This requests accelerations and step counts (other parts commented out)
+	driver->StabiliserLoop();
 
-			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
-			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, elevation_target);
-			//driver->WriteLevellerStateToFileAlt(f, velocity_target);
-			driver->teensy_port.SendAllRequests();
-		//	driver->LogSteps(global_timepoint, filename, f);
+	//This sends all velocities to the teensy queue of requests.
+	driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, elevation_target);
+	
+	// This sends all request to the Teensy via USB2
+	driver->teensy_port.SendAllRequests();
 
-		}
-		last_stabiliser_timepoint = global_timepoint;
-	}
+	last_stabiliser_timepoint = global_timepoint;
 }
 
 void ramp(RobotDriver *driver) {
@@ -319,7 +331,7 @@ void ramp(RobotDriver *driver) {
 	angle_target.x = velocity*roll;
 	angle_target.y = velocity*pitch;
 	angle_target.z = 0.001*velocity*yaw;
-	driver->SetNewStabiliserTarget(velocity_target,angle_target);
+	driver->g_posangStabiliserTarget(velocity_target,angle_target);
 	driver->stabiliser.enable_flag_ = true;
 	
 	if(1) {	
@@ -487,8 +499,8 @@ struct RobotControlServer {
         yaw = 0;
         pitch = 0;
         el = 0;
-        ygain = 0;
-        egain=0;
+        g_ygain = 0;
+        g_egain=0;
         h_gain = 0;
         GLOBAL_SERVER_STATUS = ROBOT_TRANSLATE;
         GLOBAL_STATUS_CHANGED = true;
@@ -518,7 +530,7 @@ struct RobotControlServer {
         yaw = yaw_val;
         pitch = pitch_val;
         GLOBAL_STATUS_CHANGED = true;
-        GLOBAL_SERVER_STATUS = ROBOT_UNAMBIG;
+        GLOBAL_SERVER_STATUS = ROBOT_;
     }
     
     void change_file(string file) {
@@ -531,16 +543,20 @@ struct RobotControlServer {
 	}
 
     void receive_ST_angles(double azimuth, double altitude, double pos_angle) {
-	    az = 206265.0*azimuth;
-	    alt = 206265.0*altitude;
-	    pos = 206265.0*pos_angle;
+    	// Receives the star-tracker angles in arcseconds and stores them in 
+    	// global variables az, alt and pos
+	    g_az = 206265.0*azimuth;
+	    g_alt = 206265.0*altitude;
+	    g_posang = 206265.0*pos_angle;
     }
 
     void set_gains(double y, double e, double yi, double ei) {
-	    ygain = y;
-	    egain = e;
-		yint = yi;
-		eint = ei;
+    	// Set the gains for tracking altitude (callled "e" or elevation)
+    	// and azimuth (called "y" or yaw) 
+	    g_ygain = y;
+	    g_egain = e;
+		g_yint = yi;
+		g_eint = ei;
     }
     
     void set_heading(double h, double gain) {
@@ -570,8 +586,8 @@ struct RobotControlServer {
         yaw = 0;
         pitch = 0;
         el = 0;
-        ygain = 0;
-	    egain = 0;
+        g_ygain = 0;
+	    g_egain = 0;
         GLOBAL_SERVER_STATUS = ROBOT_DISCONNECT;
         GLOBAL_STATUS_CHANGED = true;
         watchdog_thread.join();
@@ -619,15 +635,15 @@ COMMANDER_REGISTER(m)
     m.instance<RobotControlServer>("RC")
         .def("stop", &RobotControlServer::stop_robot_loop, "A function that stops all motors and stops the robot loop")
         .def("start", &RobotControlServer::start_robot_loop, "A function that starts the robot control loop (in idle)")
-        .def("translate", &RobotControlServer::translate_robot, "A function that translates robot")
-        .def("resonance", &RobotControlServer::resonance_robot, "A function that translates robot")
-        .def("file", &RobotControlServer::change_file, "placeholder")
-        .def("receive_ST_angles", &RobotControlServer::receive_ST_angles, "placeholder")
-        .def("track", &RobotControlServer::track_robot, "placeholder")
-        .def("set_gains", &RobotControlServer::set_gains, "placeholder")
-        .def("set_heading", &RobotControlServer::set_heading, "placeholder")
+        .def("translate", &RobotControlServer::translate_robot, "A function that translates the robot")
+        .def("resonance", &RobotControlServer::resonance_robot, "A function that tests robot resonances")
+        .def("file", &RobotControlServer::change_file, "Change the name of the log file (unused).")
+        .def("receive_ST_angles", &RobotControlServer::receive_ST_angles, "Store the current angle offsets from the Star Tracker.")
+        .def("track", &RobotControlServer::track_robot, "Track the star, based on the received angles from the Star Tracker.")
+        .def("set_gains", &RobotControlServer::set_gains, "Set the gains for tracking alt/az, i.e. el/yaw")
+        .def("set_heading", &RobotControlServer::set_heading, "UNUSED - manual control only")
 		.def("print_level", &RobotControlServer::print_level, "placeholder")
 		.def("receive_LED_positions", &RobotControlServer::receive_LED, "placeholder")
-		.def("update_offsets", &RobotControlServer::offset_targets, "placeholder")
+		.def("update_offsets", &RobotControlServer::offset_targets, "Offset the roll, pitch, azimuth and altitude.")
         .def("disconnect", &RobotControlServer::disconnect, "placeholder");
 }

@@ -43,6 +43,7 @@ void RobotDriver::LinearYawRamp(double yaw_rate_target, double time) {
 }
 
 void RobotDriver::UpdateBFFVelocityAngle(double x, double y, double z, double r, double p, double s, double e) {
+	// Set the motor velocities, based on x,y,z, roll, pitch, yaw.
     Servo::Doubles motor_velocity_target_;
     Servo::Doubles actuator_velocity_target_;
     motor_velocity_target_.x = -y - s;                                                     //Motor 0
@@ -455,6 +456,7 @@ void RobotDriver::EngageStabiliser() {
 	leveller.enable_flag_ = false;
 	short_level_flag_ = false;
 
+	// The leveller pitch and roll estimates are converted to radians.
 	stabiliser.plat_pos_estimate_.p = leveller.pitch_estimate_filtered_*PI/180.0;
 	stabiliser.plat_pos_estimate_.r = leveller.roll_estimate_filtered_*PI/180.0;
 	stabiliser.opto_pos_estimate_.p = leveller.pitch_estimate_filtered_*PI/180.0;
