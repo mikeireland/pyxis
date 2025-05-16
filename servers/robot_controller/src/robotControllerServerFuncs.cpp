@@ -110,6 +110,10 @@ struct LEDs {
     double LED2_y;
 };
 
+struct Status {
+	double current_roll, current_pitch;
+};
+
 
 // !!! This is a heading , in principle based on a magnetometer (which wasn't
 // every installed??? 
@@ -231,6 +235,7 @@ void translate(RobotDriver *driver) {
 	if (!(loop_counter % 1000)) {
 		current_roll = 3600*driver->leveller.roll_estimate_filtered_;
 		current_pitch = 3600*driver->leveller.pitch_estimate_filtered_;
+		// !!! This is in status - delete the two lines below.
 		cout << "roll: " << current_roll << '\n';
 		cout << "pitch: " << current_pitch << '\n';
 	}
@@ -537,11 +542,6 @@ struct RobotControlServer {
         filename = file;
     }
 
-	void print_level() {
-		cout << current_roll << '\n';
-		cout << current_pitch << '\n';
-	}
-
     void receive_ST_angles(double azimuth, double altitude, double pos_angle) {
     	// Receives the star-tracker angles in arcseconds and stores them in 
     	// global variables az, alt and pos
@@ -595,10 +595,10 @@ struct RobotControlServer {
     }
 
 	int offset_targets(double azimuth, double altitude, double rollval, double pitchval) {
-		roll_target += rollval;
-		pitch_target += pitchval;
 		az_off += azimuth;
 		alt_off += altitude;
+		roll_target += rollval;
+		pitch_target += pitchval;
 		return 0;
 	}
 
@@ -608,6 +608,13 @@ struct RobotControlServer {
 		cout << measured.LED2_x << '\n';
 		cout << measured.LED2_y << '\n';
 		return 0;
+	}
+
+	Status status(){
+		Status s;
+		s.current_roll = current_roll;
+		s.current_pitch = current_pitch;
+		return s;
 	}
 };
 
@@ -626,6 +633,18 @@ namespace nlohmann {
             j.at("LED2_y").get_to(L.LED2_y);
         }
     };
+
+	struct adl_serializer<Status> {
+        static void to_json(json& j, const Status& L) {
+            j = json{{"current_roll", L.current_roll},
+			{"current_pitch", L.current_pitch}};
+        }
+
+        static void from_json(const json& j, Status& L) {
+			j.at("current_roll").get_to(L.current_roll);
+			j.at("current_pitch").get_to(L.current_pitch);
+        }
+    };
 }
 
 COMMANDER_REGISTER(m)
@@ -642,8 +661,7 @@ COMMANDER_REGISTER(m)
         .def("track", &RobotControlServer::track_robot, "Track the star, based on the received angles from the Star Tracker.")
         .def("set_gains", &RobotControlServer::set_gains, "Set the gains for tracking alt/az, i.e. el/yaw")
         .def("set_heading", &RobotControlServer::set_heading, "UNUSED - manual control only")
-		.def("print_level", &RobotControlServer::print_level, "placeholder")
 		.def("receive_LED_positions", &RobotControlServer::receive_LED, "placeholder")
-		.def("update_offsets", &RobotControlServer::offset_targets, "Offset the roll, pitch, azimuth and altitude.")
+		.def("update_offsets", &RobotControlServer::offset_targets, "Offset the azimuth and altitude, roll, pitch.")
         .def("disconnect", &RobotControlServer::disconnect, "placeholder");
 }
