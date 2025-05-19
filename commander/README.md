@@ -1,6 +1,9 @@
 # Commander
 
-Commander is a command line tool interface library.
+Commander is a command line tool interface library, based on the Pyxis project's
+commander written by Julien Tom Bernard, which in turn was based on earlier ZMQ
+work by Mike Ireland, and inspired by SUSI and CHARA code. The intent in this implementation
+is to limit dependencies and maximise simplicity. 
 
 ## Quick start
 
@@ -28,7 +31,8 @@ COMMANDER_REGISTER(m) {
 }
 ```
 
-Now, all you need is to compile the source file and run the executable with for instance the
+Now, all you need is to compile the source file including the library flag -lcommander, including
+the lib directory of this repository in the -L flag and run the executable with for instance the
 `commander::Server`:
 
 ```cpp
@@ -38,69 +42,43 @@ int main(int argc, char* argv[]) {
 }
 ```
 
-and use it as follow:
+and use it as follows:
 
 ```bash
 ./example --command add [2,3]
 5
 ```
 
+To run as a socket, you have to give the full address of the socket port, e.g.:
+
+```bash
+./example --socket tcp://127.0.0.1:3000
+```
+
 ## Installation
 
-### Dependencies
+### Dependencies and Deployment:
 
-`commander` require several dependencies such as `cmake`, `conan` and a C++ compiler.
-
-> **NOTE:** [just](https://just.systems/) can be used instead of calling the following commands.
-
-First, you will need to install conan and cmake using `pip`.
+`commander` requires a C++ compiler compatible with C++11, and the 4 libraries: nlohmann_json/3.10.5, 
+cppzmq/4.8.1, boost/1.78.0 and fmt/8.1.1. These can be installed as Ubuntu packages using:
 
 ```bash
-python -m pip install conan==1.59 cmake --user
+sudo apt-get install nlohmann-json3-dev libfmt-dev libzmq3-dev libboost-all-dev
+``` 
+
+To complile the library in the src directory, just type:
+
+```bash
+make
 ```
 
-> **NOTE:** `conan` 2 is out but we did not used it yet.
-
-Then you need to create the default profile and add the cosmic repository that own commander. Simply run the following script:
-
-```bash
-tools/configure_conan.sh
-```
-
-### Deployment
-
-Run:
+However, if you don't want to hack the Makefile for a new system, then you also need 
+to help us install autoconf and autotools. In this case, we'll want something like:
 
 ```bash
-conan create .
-```
-
-It will create `commander` package in your local conan cache.
-
-### Usage
-
-Create a `conanfile.py` or `conanfile.txt` and add `commander/0.1.0` dependency. See [conan documentation](https://docs.conan.io/en/latest/using_packages.html).
-
-And run the command:
-
-```bash
-conan install . -if build
-```
-
-This command will to your build system `commander` recipe by generating files to let cmake know how to use it.
-
-> **NOTE:** You can take a look at the `examples` directory to see how to use `commander` in a project.
-
-## Build example
-
-To build the example, you first need to deploy `commander` in your local cache. See [deployment](#deployment) section.
-
-Then run:
-
-```bash
-cd examples
-conan install . -if build
-conan build . -bf build
+./configure
+make
+sudo make install
 ```
 
 ## Build documentation

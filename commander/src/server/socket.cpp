@@ -3,6 +3,8 @@
 #include <fmt/core.h>
 #include <iostream>
 
+//#define DEBUG
+
 namespace commander::server
 {
 
@@ -32,30 +34,42 @@ namespace commander::server
             }
 
             auto command = std::string(static_cast<char*>(msg.data()), msg.size());
-
+            
+#ifdef DEBUG
             fmt::print("Received command: {}\n", command);
+#endif
 
             auto pos = command.find(' ');
             std::string name;
             json args;
 
-            if (pos == std::string::npos)
-                name = command;
-            else
-            {
-                name = command.substr(0, pos);
-                args = json::parse(command.substr(pos + 1));
+            try {
+                if (pos == std::string::npos)
+                    name = command;
+                else
+                {
+                    name = command.substr(0, pos);
+                    command = fmt::format("[{}]", command.substr(pos + 1));
+                    args = json::parse(command);
+                }
+
+                // Treat the exit command as a special case
+                if (name == "exit"){
+                    fmt::print("Exiting socket server\n");
+                    sock.send(zmq::message_t("Exiting!", 8), zmq::send_flags::none);
+                    break;
+                }
+                auto res = module_.execute(name, args).dump();
+#ifdef DEBUG
+                fmt::print("Sending response: {}\n", res);
+#endif
+
+                sock.send(zmq::message_t(res.c_str(), res.size()), zmq::send_flags::none);
+            } catch (const std::exception& e) {
+                std::string error = fmt::format("Error: {}", e.what());
+                fmt::print("{}\n", error);
+                sock.send(zmq::message_t(error.c_str(), error.size()), zmq::send_flags::none);
             }
-
-            auto res = module_.execute(name, args).dump();
-
-            fmt::print("Sending response: {}\n", res);
-
-            sock.send(zmq::message_t(res.c_str(), res.size()), zmq::send_flags::none);
-
         }
-
     }
-
-
 }

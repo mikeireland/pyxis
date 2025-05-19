@@ -634,6 +634,7 @@ namespace nlohmann {
         }
     };
 
+	template <>
 	struct adl_serializer<Status> {
         static void to_json(json& j, const Status& L) {
             j = json{{"current_roll", L.current_roll},
@@ -663,5 +664,6 @@ COMMANDER_REGISTER(m)
         .def("set_heading", &RobotControlServer::set_heading, "UNUSED - manual control only")
 		.def("receive_LED_positions", &RobotControlServer::receive_LED, "placeholder")
 		.def("update_offsets", &RobotControlServer::offset_targets, "Offset the azimuth and altitude, roll, pitch.")
-        .def("disconnect", &RobotControlServer::disconnect, "placeholder");
+        .def("disconnect", &RobotControlServer::disconnect, "placeholder")
+		.def("status", &RobotControlServer::status, "Get the current roll and pitch angles.");
 }

@@ -56,6 +56,23 @@ class FeedLabel(QLabel):
 
                 painter.drawEllipse(QPoint(int(x1),int(y1)),3,3) #Point as a 3x3 circle
 
+
+        # Highlight in the middle point -- edit by Qianhui
+        if len(self.point_ls) == 2:
+            x1, y1 = [], []
+            for point in self.point_ls:
+                px = point.x() - self.offset.x()
+                py = point.y() - self.offset.y()
+                if self.binning_flag:
+                    px /= 2
+                    py /= 2
+                    
+                y1.append(y + height*py)
+                x1.append(x + width*px)
+
+                painter.drawEllipse(QPoint( int(np.mean( np.array(x1) )), int(np.mean( np.array(y1) )) ),1,1)
+
+
     def changePixmap(self, img):
         self.dims = img.size()
         self.pixmap = QPixmap(img)

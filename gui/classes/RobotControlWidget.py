@@ -29,7 +29,7 @@ class RobotControlWidget(RawWidget):
         self.stop_button.setFixedWidth(200)
         self.stop_button.clicked.connect(self.stop_button_func)
         button_layout.addWidget(self.stop_button)
-        self.hard_stop_button = QPushButton("Hard Stop", self)
+        self.hard_stop_button = QPushButton("Disconnect", self)
         self.hard_stop_button.setFixedWidth(200)
         self.hard_stop_button.clicked.connect(self.hard_stop_button_func)
         button_layout.addWidget(self.hard_stop_button)
@@ -277,6 +277,7 @@ class RobotControlWidget(RawWidget):
     def start_button_func(self):
         self.send_to_server("RC.start")
         print("Sending 'Start' command")
+
 
     """ Save the file """
     def save_file(self):
