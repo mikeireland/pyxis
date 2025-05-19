@@ -5,6 +5,8 @@
 
 using namespace Comms;
 
+// #define DEBUG
+
 int SerialPort::max_packet_size_ = 128; 
 
 //Class constructor to sets up the serial connection to the teensy correctly
@@ -127,11 +129,14 @@ void SerialPort::ClosePort() {
 }
 
 void SerialPort::WriteMessage() {
+#ifdef DEBUG
+    std::cout << "write_buffer_ size: " << sizeof(write_buffer_) << "\n";
     std::cout << "send:";
             for(int i = 0; i < sizeof(write_buffer_); ++i) {
                 std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)write_buffer_[i] << std::dec << ':';
             }
             std::cout << "\n";
+#endif
     memcpy(last_pack_, write_buffer_, sizeof(write_buffer_));
     write(teensy_,write_buffer_,sizeof(write_buffer_));
     ClearWriteBuff();
@@ -151,11 +156,13 @@ int SerialPort::ReadMessage() {
         if (!read_buffer_[0]){
             return 1;
         }
+#ifdef DEBUG
         std::cout << "receive:";
         for(int i = 0; i < sizeof(read_buffer_); ++i) {
             std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)read_buffer_[i] << std::dec << ':';
         }
         std::cout << "\n";
+#endif
       
         int i = 0;
         while(i < sizeof(read_buffer_)){

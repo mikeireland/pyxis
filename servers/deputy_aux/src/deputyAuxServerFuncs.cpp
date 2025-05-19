@@ -5,6 +5,7 @@
 #include "SerialPort.h"
 
 #include <cstdlib>
+//#define PRINT_DEBUG
 
 using json = nlohmann::json;
 
@@ -103,11 +104,14 @@ struct DeputyAuxServer {
 	    PS.PC_A = teensy_port.PC_Current;
 	    PS.motor_V = teensy_port.Motor_Voltage;
 	    PS.motor_A = teensy_port.Motor_Current;
-	    
+
+#ifdef PRINT_DEBUG
+        cout << "Power Status: " << endl;
 	    cout << "PC Voltage (mV): " << PS.PC_V << endl;
 	    cout << "PC Current (mA): " << PS.PC_A << endl;
 	    cout << "Motor Voltage (mV): " << PS.motor_V << endl;
 	    cout << "Motor Current (mA): " << PS.motor_A << endl;
+#endif
     }
     
     /*
