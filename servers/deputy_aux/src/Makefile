@@ -1,9 +1,10 @@
 CC=g++
 
+PKG_CONFIG_PATH ?= /usr/lib/x86_64-linux-gnu/pkgconfig
 CFLAGS  = -std=c++17 -Wall -Wextra -ggdb -O1 -I../include -I../../../commander/include
-LDFLAGS = -L../../../lib -lcommander -lm -lzmq -lboost_program_options -lfmt -lfftw3  
-EXEC    = ChiefAuxServer
-OBJECTS = main.o chiefAuxGlobals.o chiefAuxServerFuncs.o Decode.o SerialPort.o
+LDFLAGS = -L../../../lib -L/usr/local/lib -lcommander -lm -lzmq -lboost_program_options -lfmt -lfftw3
+EXEC    = DeputyAuxServer
+OBJECTS = deputyAuxServerFuncs.o Decode.o SerialPort.o main.o
 
 # PREFIX is environment variable, but if it is not set, then set default value
 ifeq ($(PREFIX),)
@@ -14,8 +15,8 @@ endif
 
 all: ../bin/$(EXEC)
 
-../bin/$(EXEC): $(OBJECTS)
-	$(CC) -o ../bin/$@ $^ $(LDFLAGS)
+../bin/$(EXEC): $(OBJECTS) $(IMG_OBJ)
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 %.o: %.cpp 
 	$(CC) -o $@ -c $< $(CFLAGS)
