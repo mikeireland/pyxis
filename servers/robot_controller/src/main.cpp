@@ -11,6 +11,10 @@ using namespace std;
 double roll_gain = -0.08;
 double pitch_gain = -0.08;
 
+double roll_target = 0;
+double pitch_target = 0;
+
+
 // Main server function. Accepts one parameter: link to the camera config file.
 int main(int argc, char* argv[]) {
 
@@ -53,6 +57,18 @@ int main(int argc, char* argv[]) {
         pitch_gain = config["pitch_gain"].value_or(pitch_gain);
     } else {
         cout << "Pitch gain not found in config file, using default value" << endl;
+    }
+
+    // Add the roll and pitch target from the config file
+    if (config["roll_target"].is_number()) {
+        roll_target = config["roll_target"].value_or(roll_target);
+    } else {
+        cout << "Roll target not found in config file, using default value" << endl;
+    }
+    if (config["pitch_target"].is_number()) {
+        pitch_target = config["pitch_target"].value_or(pitch_target);
+    } else {
+        cout << "Pitch target not found in config file, using default value" << endl;
     }
 
 

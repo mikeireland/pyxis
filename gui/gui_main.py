@@ -318,7 +318,7 @@ logo_wig = QWidget()
 header = QHBoxLayout(logo_wig)
 logo = QLabel()
 qpix = QPixmap('assets/Pyxis_logo.png')
-qpix = qpix.scaledToWidth(250)
+qpix = qpix.scaledToWidth(50)
 logo.setPixmap(qpix)
 header.addWidget(logo)
 
@@ -338,7 +338,7 @@ ip_frame_ext.setLayout(vbox)
 ext_IP = pyxis_config["IP"]["External"]
 ip_connect = QLabel('External IP: %s'%(ext_IP))
 ip_connect.setStyleSheet("font-weight: bold; color: #ffd740; font-size:14px")
-vbox.addWidget(ip_connect)
+# vbox.addWidget(ip_connect)
 
 # Add Internal IP info
 ip_frame_int = QFrame()
@@ -349,22 +349,22 @@ for IP_name in IPs:
 	IP = IPs[IP_name]
 	ip_connect = QLabel('%s LAN IP: %s'%(IP_name,IP))
 	ip_connect.setStyleSheet("font-weight: bold; color: #ffd740; font-size:14px")
-	vbox.addWidget(ip_connect)
+	# vbox.addWidget(ip_connect)
 
 # Button to switch between IPs
-if pyxis_config["IP"]["UseExternal"]:
-	IP_button = QPushButton("Connect to Internal IP")
-	IP_button.setChecked(True)
-else:
-	IP_button = QPushButton("Connect to External IP")
-IP_button.setFixedWidth(220)
-IP_button.setCheckable(True)
-IP_button.setStyleSheet("QPushButton {background-color: #000000; border-color: #550000; color: #ffd740}")
+# if pyxis_config["IP"]["UseExternal"]:
+# 	IP_button = QPushButton("Connect to Internal IP")
+# 	IP_button.setChecked(True)
+# else:
+# 	IP_button = QPushButton("Connect to External IP")
+# IP_button.setFixedWidth(220)
+# IP_button.setCheckable(True)
+# IP_button.setStyleSheet("QPushButton {background-color: #000000; border-color: #550000; color: #ffd740}")
 
-header.addWidget(ip_frame_int)
-header.addWidget(ip_frame_ext)
-header.addSpacing(70)
-header.addWidget(IP_button)
+# header.addWidget(ip_frame_int)
+# header.addWidget(ip_frame_ext)
+# header.addSpacing(70)
+# header.addWidget(IP_button)
 
 ip_frame_ext.hide()
 
@@ -390,7 +390,7 @@ def change_IP():
         ip_frame_int.show()
         pyxis_app.change_IPs(IP_dict["Internal"])
 
-IP_button.clicked.connect(change_IP)
+# IP_button.clicked.connect(change_IP)
 vbox = QVBoxLayout(main)
 
 vbox.addWidget(logo_wig)

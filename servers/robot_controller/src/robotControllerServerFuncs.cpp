@@ -100,8 +100,6 @@ double current_roll = 0.0;
 double current_pitch = 0.0;
 double roll_error = 0.0;
 double pitch_error = 0.0;
-double roll_target = 3578.37;
-double pitch_target = -6217.54;
 
 // This is a heading gain
 double h_gain = 0.0;
