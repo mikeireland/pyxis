@@ -875,6 +875,12 @@ class ScienceCameraWidget(RawWidget):
         # Turn to 8 bit image
         img_data = np.clip(img_data.astype("float")*self.feed_window.contrast.getValue(), 0, 255, img_data)
         img_data = img_data.astype("uint8")
+        # For debuggging, check that we have data!!
+        # print("Image data shape: ", img_data.shape)
+        # print("Image data mean: ", np.mean(img_data))
+        # print("Image data min: ", np.min(img_data))
+        # print("Image data max: ", np.max(img_data))
+        # time.sleep(1)
         # Convert to QT and send to feed
         qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Grayscale8)
         self.feed_window.cam_feed.changePixmap(qimg)

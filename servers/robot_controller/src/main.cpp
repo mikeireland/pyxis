@@ -3,12 +3,13 @@
 #include <fstream>
 #include <iostream>
 #include "toml.hpp"
-//#include "Globals.h"
+#include "Globals.h"
 
 namespace co = commander;
 using namespace std;
 
-
+double roll_gain = -0.08;
+double pitch_gain = -0.08;
 
 // Main server function. Accepts one parameter: link to the camera config file.
 int main(int argc, char* argv[]) {
@@ -41,6 +42,19 @@ int main(int argc, char* argv[]) {
 
     // Parse the configuration file
     toml::table config = toml::parse_file(config_file);
+
+    // Add the roll and pitch gain from the config file
+    if (config["roll_gain"].is_number()) {
+        roll_gain = config["roll_gain"].value_or(roll_gain);
+    } else {
+        cout << "Roll gain not found in config file, using default value" << endl;
+    }
+    if (config["pitch_gain"].is_number()) {
+        pitch_gain = config["pitch_gain"].value_or(pitch_gain);
+    } else {
+        cout << "Pitch gain not found in config file, using default value" << endl;
+    }
+
 
     // Retrieve port and IP
     string port = config["port"].value_or("4200");

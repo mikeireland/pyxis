@@ -116,7 +116,7 @@
     num_delays = 3000 # Number of trial delays
     GD_window_size = 200 # Number of pixels in GD window (must be a factor of the total number of trial delays)
     grid_spacing = 10 # How many pixels per annotated grid element?
-    contrast_limits = [0.2,4.0] # Limits for the contrast slider
+    contrast_limits = [0.2,30.0] # Limits for the contrast slider
     GD_contrast_limits = [0.2,1000.0]
 
 [Dextra]

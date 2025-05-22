@@ -103,6 +103,19 @@ double pitch_error = 0.0;
 double roll_target = 3578.37;
 double pitch_target = -6217.54;
 
+// This is a heading gain
+double h_gain = 0.0;
+
+double g_ygain = 0.0;
+double g_egain = 0.0;
+
+double g_yint = 0.0;
+double g_eint = 0.0;
+
+// If we upgrade to an integral servo, we need the integrals of roll and pitch
+double roll_int = 0.0;
+double pitch_int = 0.0;
+
 struct LEDs {
     double LED1_x; 
     double LED1_y;

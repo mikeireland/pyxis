@@ -3,6 +3,7 @@ IP = "192.168.1.3"
 #mode = "Interactive"
 roll = "5000"
 pitch = "-800"
-
+roll_gain = -0.08
+pitch_gain = -0.08
 
 

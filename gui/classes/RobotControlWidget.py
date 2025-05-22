@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
 from RawWidget import RawWidget
+import json
 
 try:
     from PyQt5.QtWidgets import QPushButton, QHBoxLayout, \
@@ -33,6 +34,12 @@ class RobotControlWidget(RawWidget):
         self.hard_stop_button.setFixedWidth(200)
         self.hard_stop_button.clicked.connect(self.hard_stop_button_func)
         button_layout.addWidget(self.hard_stop_button)
+        # #Edited by Qianhui to add a help button
+        # self.help_button = QPushButton("Help", self)
+        # self.help_button.setFixedWidth(200)
+        # self.help_button.clicked.connect(self.help_button_func)
+        # button_layout.addWidget(self.help_button)
+
         self.full_window.addLayout(button_layout)
 
         self.full_window.addSpacing(30)
@@ -277,6 +284,12 @@ class RobotControlWidget(RawWidget):
     def start_button_func(self):
         self.send_to_server("RC.start")
         print("Sending 'Start' command")
+
+        
+    # """ Request help from the robot """
+    # def help_button_func(self):
+    #     recv = self.socket.send_command("help")
+    #     print(json.loads(recv))
 
 
     """ Save the file """
