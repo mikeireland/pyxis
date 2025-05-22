@@ -23,7 +23,7 @@ all: ../bin/$(EXEC)
 clean:
 	rm -rf *.o *.so
 	rm -rf *~
-	rm ../bin/$(EXEC)
+	rm -f ../bin/$(EXEC)
 
 install:
 	install -D ../bin/$(EXEC) $(PREFIX)/bin/
