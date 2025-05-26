@@ -117,15 +117,15 @@ void *runCam(void*) {
         int sleeptime = cam_config["sleep_time"].value_or(1000000);
 
 	    // Initialise FLIRCamera instance from the serial number
-		Spinnaker::CameraPtr pCam = cam_list.GetBySerial(serialNum);
-		if (pCam == NULL){
+		Spinnaker::CameraPtr pCam = cam_list.GetByDeviceID(serialNum);
+		if (pCam == nullptr){
 			// See if three are any cameras seen by GetCameras()
 			if (cam_list.GetSize() > 0) {
 				cerr << "Camera with serial number " << serialNum << " not found, but others are." << endl;
 				// Print the serial numbers of the cameras found
 				for (unsigned int i = 0; i < cam_list.GetSize(); i++) {
 					Spinnaker::CameraPtr cam = cam_list.GetByIndex(i);
-					cout << "Camera " << i << ": " << cam->GetUniqueID() << endl;
+					cout << "Camera " << i << ": " << cam->GetDeviceID() << endl;
 				}
 				cerr << "Please check the serial number in the configuration file." << endl;
 			} else {

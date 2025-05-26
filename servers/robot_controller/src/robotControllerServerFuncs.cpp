@@ -246,9 +246,6 @@ void translate(RobotDriver *driver) {
 	if (!(loop_counter % 1000)) {
 		current_roll = 3600*driver->leveller.roll_estimate_filtered_;
 		current_pitch = 3600*driver->leveller.pitch_estimate_filtered_;
-		// !!! This is in status - delete the two lines below.
-		cout << "roll: " << current_roll << '\n';
-		cout << "pitch: " << current_pitch << '\n';
 	}
 	
 	//This is where we set a target.
