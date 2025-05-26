@@ -270,13 +270,27 @@ string FLIRCameraServer::reconfigure_savedir(std::string savedir){
 // Connect to a camera, by starting up the runCam pThread
 string FLIRCameraServer::connectcam(){
 	string ret_msg;
-	if(GLOB_CAM_STATUS == 0){
+	if(GLOB_CAM_STATUS == CAM_DISCONNECTED){
+        // Set the camera status to connecting
+        pthread_mutex_lock(&GLOB_FLAG_LOCK);
+        GLOB_CAM_STATUS = CAM_CONNECTING;
+        pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 		pthread_create(&GLOB_CAMTHREAD, NULL, runCam, NULL);
-		ret_msg = "Connected Camera";
-		while (GLOB_CAM_STATUS!=2){
+        
+        // Wait until the camera is connected or has failed to connect
+        while (GLOB_CAM_STATUS == CAM_CONNECTING){
             usleep(1000);
         }
-	}else{
+
+        // If the camera is connected, set the status to connected
+        if (GLOB_CAM_STATUS == CAM_CONNECTED){
+            ret_msg = "Camera Connected";
+        } else if (GLOB_CAM_STATUS == CAM_DISCONNECTED){
+            // Join the thread to clean up
+            pthread_join(GLOB_CAMTHREAD, NULL);
+            ret_msg = "Camera Failed to Connect!";
+        } else ret_msg = "Invalid Camera Status!!!";
+	} else{
 		ret_msg = "Camera Already Connecting/Connected!";
 	}
 
@@ -286,9 +300,9 @@ string FLIRCameraServer::connectcam(){
 // Disconnect to a camera, by signalling and joining the runCam pThread
 string FLIRCameraServer::disconnectcam(){
 	string ret_msg;
-	if(GLOB_CAM_STATUS == 2){
+	if(GLOB_CAM_STATUS == CAM_CONNECTED){
 		pthread_mutex_lock(&GLOB_FLAG_LOCK);
-		GLOB_CAM_STATUS = 0;
+		GLOB_CAM_STATUS = CAM_DISCONNECTED;
 		pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 
 		pthread_join(GLOB_CAMTHREAD, NULL);
@@ -309,7 +323,7 @@ Inputs:
 */
 string FLIRCameraServer::startcam(int num_frames, int coadd_flag){
 	string ret_msg;
-	if(GLOB_CAM_STATUS == 2){
+	if(GLOB_CAM_STATUS == CAM_CONNECTED){
 		if(GLOB_RUNNING == 0){
 			if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
 			    if(coadd_flag == 1 and num_frames > 50){
@@ -339,7 +353,7 @@ string FLIRCameraServer::startcam(int num_frames, int coadd_flag){
 // Stop acquisition of the camera
 string FLIRCameraServer::stopcam(){
 	string ret_msg;
-	if(GLOB_CAM_STATUS == 2){
+	if(GLOB_CAM_STATUS == CAM_CONNECTED){
 		if(GLOB_RUNNING == 1){
 			if(GLOB_RECONFIGURE == 0 and GLOB_STOPPING == 0){
 				pthread_mutex_lock(&GLOB_FLAG_LOCK);

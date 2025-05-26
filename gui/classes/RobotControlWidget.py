@@ -249,7 +249,8 @@ class RobotControlWidget(RawWidget):
     """ Ask for server status (Currently does nothing!) """
     def ask_for_status(self):
         response = self.socket.send_command("RC.status")
-        print("Need status command here")
+        # !!! Qianhui please add the response["current_pitch"]
+        # and response["current_roll"] to the GUI
 
         if (self.socket.connected):
             self.status_light = "assets/green.svg"

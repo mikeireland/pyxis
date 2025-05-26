@@ -67,7 +67,12 @@ FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
 /* Function to setup and start the camera. MUST CALL BEFORE USING!!! */
 void FLIRCamera::InitCamera(){
     // Initialize camera
+    if (pCam == NULL){
+        cout << "You should never get to here! This block is an extra extra error check." << endl;
+        return;
+    }
     pCam->Init();
+    cout << "Camera Initialized" << endl;
 
     INodeMap& node_map = pCam->GetNodeMap();
     

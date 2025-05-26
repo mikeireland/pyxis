@@ -68,7 +68,7 @@ void *runCam(void*) {
 	
 	// Cam status of 1 indicates camera is starting up
 	pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    GLOB_CAM_STATUS = 1;
+    GLOB_CAM_STATUS = CAM_CONNECTING; //!!! This should have been set outside this function, but just in case...
     string config_file = GLOB_CONFIGFILE;
 	pthread_mutex_unlock(&GLOB_FLAG_LOCK);
 	
@@ -81,8 +81,8 @@ void *runCam(void*) {
     if (access(config_file.c_str(), R_OK) == -1) {
         cerr << "Config file is not readable" << endl;
         pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    	GLOB_CAM_STATUS = 0;
-    	string config_file = GLOB_CONFIGFILE;
+    	GLOB_CAM_STATUS = CAM_DISCONNECTED;
+    	pthread_mutex_unlock(&GLOB_FLAG_LOCK);
         pthread_exit(NULL);
     }
 
@@ -107,29 +107,56 @@ void *runCam(void*) {
     if(cam_list.GetSize() == 0) {
         cerr << "No camera connected" << endl;
         pthread_mutex_lock(&GLOB_FLAG_LOCK);
-    	GLOB_CAM_STATUS = 0;
-    	string config_file = GLOB_CONFIGFILE;
+    	GLOB_CAM_STATUS = CAM_DISCONNECTED;
+    	pthread_mutex_unlock(&GLOB_FLAG_LOCK);
         pthread_exit(NULL);
-    }else {
+    } else {
         // Get the settings for the particular camera
         toml::table cam_config = *config.get("FLIRcamera")->as_table();
         string serialNum = cam_config["cam_ID"].value_or("00000000");
         int sleeptime = cam_config["sleep_time"].value_or(1000000);
 
 	    // Initialise FLIRCamera instance from the serial number
-        FLIRCamera Fcam (cam_list.GetBySerial(serialNum), cam_config);
+		Spinnaker::CameraPtr pCam = cam_list.GetBySerial(serialNum);
+		if (pCam == NULL){
+			// See if three are any cameras seen by GetCameras()
+			if (cam_list.GetSize() > 0) {
+				cerr << "Camera with serial number " << serialNum << " not found, but others are." << endl;
+				// Print the serial numbers of the cameras found
+				for (unsigned int i = 0; i < cam_list.GetSize(); i++) {
+					Spinnaker::CameraPtr cam = cam_list.GetByIndex(i);
+					cout << "Camera " << i << ": " << cam->GetUniqueID() << endl;
+				}
+				cerr << "Please check the serial number in the configuration file." << endl;
+			} else {
+				cerr << "No cameras found!" << endl;
+			}
+			// Clear camera list before releasing system
+    		cam_list.Clear();
+
+    		// Release system
+    		system->ReleaseInstance();
+			// Signal that the camera is disconnected
+			// and exit the thread
+			pthread_mutex_lock(&GLOB_FLAG_LOCK);
+	    	GLOB_CAM_STATUS = CAM_DISCONNECTED;
+	    	pthread_mutex_unlock(&GLOB_FLAG_LOCK);
+	        pthread_exit(NULL);
+		}
+		cout << "Camera found" << endl;
+        FLIRCamera Fcam (pCam, cam_config);
         
 	    // Setup and start the camera
         Fcam.InitCamera();
 
         // Cam status of 2 indicates camera is waiting   
         pthread_mutex_lock(&GLOB_FLAG_LOCK);
-        GLOB_CAM_STATUS = 2;
+        GLOB_CAM_STATUS = CAM_CONNECTED;
         pthread_mutex_unlock(&GLOB_FLAG_LOCK);
         
 		cout << "Beginning Loop" << endl;
         // Run a waiting loop as long as the camera remains "waiting"
-        while (GLOB_CAM_STATUS==2){
+        while (GLOB_CAM_STATUS==CAM_CONNECTED){
         
             // Check if camera needs reconfiguring
         	if(GLOB_RECONFIGURE==1){
