@@ -7,6 +7,10 @@
 #include <functional>
 extern const double kPi; //Pi constant
 
+#define CAM_DISCONNECTED 0
+#define CAM_CONNECTING 1
+#define CAM_CONNECTED 2
+
 //Flags for server to communicate status.
 extern int GLOB_CAM_STATUS; // Overall camera status
 extern int GLOB_RECONFIGURE; // Do I need to reconfigure?

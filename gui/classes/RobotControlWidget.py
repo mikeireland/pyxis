@@ -34,11 +34,6 @@ class RobotControlWidget(RawWidget):
         self.hard_stop_button.setFixedWidth(200)
         self.hard_stop_button.clicked.connect(self.hard_stop_button_func)
         button_layout.addWidget(self.hard_stop_button)
-        # #Edited by Qianhui to add a help button
-        # self.help_button = QPushButton("Help", self)
-        # self.help_button.setFixedWidth(200)
-        # self.help_button.clicked.connect(self.help_button_func)
-        # button_layout.addWidget(self.help_button)
 
         self.full_window.addLayout(button_layout)
 
@@ -232,6 +227,51 @@ class RobotControlWidget(RawWidget):
         self.full_window.addLayout(content_layout)
         self.full_window.addSpacing(20)
 
+
+        # #Edited by Qianhui to add a status button and pitch&roll info showing
+        status_layout = QHBoxLayout()
+        hbox = QHBoxLayout()
+        lbl = QLabel("Status",self)
+        lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
+        hbox.addWidget(lbl)
+        status_layout.addLayout(hbox)
+        status_layout.addSpacing(20)
+
+        #This is the request status button
+        # hbox = QHBoxLayout()
+        # self.status_button = QPushButton("Request Status", self)
+        # self.status_button.setFixedWidth(200)
+        # self.status_button.clicked.connect(self.status_button_func)
+        # hbox.addWidget(self.status_button)
+        # hbox.setAlignment(Qt.AlignLeft)
+        # status_layout.addLayout(hbox)
+        # status_layout.addSpacing(20)
+
+        # Pitch and Roll info
+        hbox = QHBoxLayout()
+        self.pitch = QLabel("Pitch: ")
+        self.pitch.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
+        status_layout.addWidget(self.pitch)
+        status_layout.addSpacing(20)
+        self.pitchinfo = QLabel("NULL")
+        self.pitchinfo.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        hbox.addWidget(self.pitchinfo)
+        hbox.addSpacing(50)
+
+        self.roll = QLabel("Roll: ")
+        self.roll.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
+        hbox.addWidget(self.roll)
+        hbox.addSpacing(20)
+        self.rollinfo = QLabel("NULL")
+        self.rollinfo.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        hbox.addWidget(self.rollinfo)
+        hbox.addSpacing(50)
+        hbox.addStretch()
+        status_layout.addLayout(hbox)
+        status_layout.addSpacing(20)
+        self.full_window.addLayout(status_layout)
+
+
         # Save to file button
         hbox = QHBoxLayout()
         lbl = QLabel('Save to file: ', self)
@@ -249,13 +289,18 @@ class RobotControlWidget(RawWidget):
     """ Ask for server status (Currently does nothing!) """
     def ask_for_status(self):
         response = self.socket.send_command("RC.status")
-        print("Need status command here")
 
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
+            try: 
+                self.status_button_func()
+            # If the server is not responding, it will throw an exception
+            # and we will just ignore it.
+            except:
+                return
 
         else:
             self.status_light = "assets/red.svg"
@@ -264,6 +309,19 @@ class RobotControlWidget(RawWidget):
             self.svgWidget.load(self.status_light)
 
     """ UPDATE THESE TO PROPERLY DO THE REQUIRED THINGS! """
+        
+    """ Request status to the server """
+    def status_button_func(self):
+        if (self.socket.connected):
+            recv = self.send_to_server_with_response("RC.status")
+            recv = recv.strip("{}")
+            current_pitch = recv.split(",")[0].split(":")[1]
+            current_roll = recv.split(",")[1].split(":")[1]
+            self.pitchinfo.setText("{:.2f} ".format(float(current_pitch)))
+            self.rollinfo.setText("{:.2f} ".format(float(current_roll)))
+        else:
+            self.pitchinfo.setText("NULL")
+            self.rollinfo.setText("NULL")
 
     """ Level the robot """
     def level_button_func(self):
@@ -285,11 +343,6 @@ class RobotControlWidget(RawWidget):
         self.send_to_server("RC.start")
         print("Sending 'Start' command")
 
-        
-    # """ Request help from the robot """
-    # def help_button_func(self):
-    #     recv = self.socket.send_command("help")
-    #     print(json.loads(recv))
 
 
     """ Save the file """

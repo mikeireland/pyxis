@@ -3,7 +3,7 @@ IP = "192.168.1.4"
 
 [FLIRcamera]
 #cam_ID = "20031596"
-cam_ID = "20031590"
+cam_ID = "USB\\VID_1E10&SRL_20031590"
 
     [FLIRcamera.camera]
     adc_bit_depth = "Bit10" #"Bit10" is a good default

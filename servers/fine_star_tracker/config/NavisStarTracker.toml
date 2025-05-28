@@ -2,7 +2,7 @@ port = "4102"
 IP = "192.168.1.3"
 
 [FLIRcamera]
-cam_ID = "20186458"
+cam_ID = "USB\\VID_1E10&SRL_0134055A"
 sleep_time = 1000 #Time to sleep in waiting loop
 
     [FLIRcamera.camera]

@@ -19,7 +19,7 @@ class ClientSocket:
             self.tcpstring = "tcp://"+IP+":"+Port 
             print(self.tcpstring)   
             self.client.connect(self.tcpstring)
-            self.client.RCVTIMEO = 1000
+            self.client.RCVTIMEO = 5000
             self.connected=True
         except:
             print('ERROR: Could not connect to server. Please check that the server is running and IP is correct.')
