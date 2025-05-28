@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
+import time
 
 try:
     import zmq
@@ -50,8 +51,11 @@ class ClientSocket:
 
         #Receive the response
         try:
+            then = time.time()
             response = self.client.recv_string()
-
+            dt = time.time()-then 
+            if (dt > 0.5):
+                print(f"Long response time: {dt:.1f}s")
             if response == "success":
                 response = True
             elif response == "fail":

@@ -320,7 +320,7 @@ void track(RobotDriver *driver) {
 	
 	// Create a yaw velocity based on the target yaw velocity "yaw" and a PI servo loop
 	// based on the g_az.
-	angle_target.z = 0.0000014302*saturation(yaw + g_ygain*(g_az + az_off) + g_ygain*az_acc + h_gain*heading);
+	angle_target.z = 0.0000014302*saturation(yaw + g_ygain*(g_az + az_off) + g_yint*az_acc + h_gain*heading);
 	
 	// This is an integral term (not an acceleration)
 	alt_acc += 0.001*(g_alt + alt_off);
