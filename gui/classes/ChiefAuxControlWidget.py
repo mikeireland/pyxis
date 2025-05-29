@@ -374,9 +374,9 @@ class ChiefAuxControlWidget(RawWidget):
     def Piezo_click(self,index,voltage):
 
         if index == 4:
-            response = self.send_to_server_with_response("CA.moveSciPiezo [%s]"%(voltage))
+            response = self.send_to_server_with_response("CA.moveSciPiezo %s"%(voltage))
         elif index < 4:
-            response = self.send_to_server_with_response("CA.moveTipTiltPiezo [%s,%s]"%(index, voltage))
+            response = self.send_to_server_with_response("CA.moveTipTiltPiezo %s,%s"%(index, voltage))
         else:
             print("INDEX OUT OF RANGE")
             return 
@@ -410,7 +410,7 @@ class ChiefAuxControlWidget(RawWidget):
     """ Move the fine delay line stage """
     def FineStage_click(self,numSteps,freq):
         period = int(1e6/freq)
-        self.send_to_server("CA.moveSDC [%s,%s]"%(numSteps,period))
+        self.send_to_server("CA.moveSDC %s,%s"%(numSteps,period))
         return
     
     """ Home the fine delay line stage """

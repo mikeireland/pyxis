@@ -25,7 +25,7 @@ class FSTCameraWidget(BaseFLIRCameraWidget):
                 self.run_button.setText("Stop Camera")
                 print("Starting Camera")
                 num_frames = str(self.numframes_edit.text())
-                self.send_to_server("%s.start [%s,%s]"%(self.prefix,num_frames,self.coadd_flag))
+                self.send_to_server("%s.start %s,%s"%(self.prefix,num_frames,self.coadd_flag))
             else:
                 self.run_button.setText("Start Camera")
                 print("Stopping Camera")

@@ -472,7 +472,7 @@ class BaseFLIRCameraWidget(RawWidget):
         if self.Connect_button.isChecked():
             print("Disconnect Camera First!")
         else:
-            self.send_to_server('%s.resetUSBPort ["%s", "%s"]'%(self.prefix,self.USB_hub,self.USB_port))
+            self.send_to_server('%s.resetUSBPort "%s", "%s"'%(self.prefix,self.USB_hub,self.USB_port))
         return 
 
     """ Reconfigure the camera"""
@@ -494,7 +494,7 @@ class BaseFLIRCameraWidget(RawWidget):
                 print("Reconfiguring Camera")
 
                 response_str = json.dumps(response_dict)
-                self.send_to_server("%s.reconfigure_all [%s]"%(self.prefix,response_str))
+                self.send_to_server("%s.reconfigure_all %s"%(self.prefix,response_str))
 
         else:
             print("CAMERA NOT CONNECTED")
@@ -509,7 +509,7 @@ class BaseFLIRCameraWidget(RawWidget):
                 self.run_button.setText("Stop Camera")
                 print("Starting Camera")
                 num_frames = str(self.numframes_edit.text())
-                self.send_to_server("%s.start [%s,%s]"%(self.prefix,num_frames,self.coadd_flag))
+                self.send_to_server("%s.start %s,%s"%(self.prefix,num_frames,self.coadd_flag))
             else:
                 self.run_button.setText("Start Camera")
                 print("Stopping Camera")
@@ -555,7 +555,7 @@ class BaseFLIRCameraWidget(RawWidget):
     """ Fetch the next frame for the feed """
     def get_new_frame(self):
         # Get image from camera server
-        response = self.socket.send_command("%s.getlatestimage [%s,%s]"%(self.prefix,self.compression_param,self.feed_window.binning_flag))
+        response = self.socket.send_command("%s.getlatestimage %s,%s"%(self.prefix,self.compression_param,self.feed_window.binning_flag))
         # Load the data
         data = json.loads(json.loads(response))
         compressed_data = np.array(data["Image"]["data"], dtype=np.uint8)
