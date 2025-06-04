@@ -371,7 +371,7 @@ if __name__ == "__main__":
             if flag>0:
 
                 # WORK ON ANGLES -> return_message
-                return_message = "RC.receive_ST_angles [%s,%s,%s]"%(angles[0],angles[1],angles[2]) #angles
+                return_message = "RC.receive_ST_angles %s,%s,%s"%(angles[0],angles[1],angles[2]) #angles
 
                 #Send reply to robot
                 print(return_message)
