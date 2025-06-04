@@ -384,7 +384,11 @@ int FLIRCamera::GrabFrames(unsigned long num_frames, unsigned long start_index, 
       start_index - frame number index of where in the circular buffer to start saving images
 */
 int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
-{
+{   
+    //Ensure the start_index is within 999 files (Edited by Qianhui, need Mike to check)
+    //unsigned long file_index = start_index % 1000; /* End of edit*/
+    start_index = start_index % 1000; /* end of edit 2.0*/
+    
     // Pointer to the FITS file; defined in fitsio.h
     fitsfile *fptr;
 
