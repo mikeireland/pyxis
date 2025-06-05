@@ -101,7 +101,8 @@ QHYCamera::QHYCamera(qhyccd_handle *pCam_init, toml::table config_init){
     readout_mode = config["camera"]["readout_mode"].value_or(2);
 
     imsize = width*height;
-    buffer_size = config["camera"]["buffer_size"].value_or(0);
+    buffer_size = config["camera"]["buffer_size"].value_or(1);
+    num_savefiles = config["camera"]["num_savefiles"].value_or(1);
 
     savefilename_prefix = config["fits"]["filename_prefix"].value_or("");
     savefilename = savefilename_prefix + ".fits";

@@ -56,7 +56,8 @@ FLIRCamera::FLIRCamera(Spinnaker::CameraPtr pCam_init, toml::table config_init){
     black_level_min = config["bounds"]["black_level"][0].value_or(0.0);
     black_level_max = config["bounds"]["black_level"][1].value_or(0.0);
     
-    buffer_size = config["camera"]["buffer_size"].value_or(0);
+    buffer_size = config["camera"]["buffer_size"].value_or(1);
+    num_savefiles = config["camera"]["num_savefiles"].value_or(1);
     imsize = width*height;
 
     savefilename_prefix = config["fits"]["filename_prefix"].value_or("");
@@ -411,7 +412,7 @@ int FLIRCamera::SaveFITS(unsigned long num_images, unsigned long start_index)
 
     // Define filepath and name for the FITS file
     string file_path = "!" + savefilename + ".fits";
-
+ 
     // Configure FITS file
     int bitpix = config["fits"]["bitpix"].value_or(20);
     long naxis = 3; // 2D image over time

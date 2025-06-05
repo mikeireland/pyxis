@@ -16,6 +16,7 @@ sleep_time = 1000 #Time to sleep in waiting loop
     exposure_time = 400000 # in microseconds
     num_frames = 0 #Default number of frames to save per FITS file; 0 is continuous with no saving
     buffer_size = 20 #Size of circular buffer
+    num_savefiles = 1000
 
     [FLIRcamera.bounds]
     width = [32,3072]

@@ -66,6 +66,9 @@ class FLIRCamera {
 
         // Buffer size for image data
         unsigned int buffer_size;
+        
+        // Number of saved images
+        unsigned long num_savefiles;
 
         // Number of pixels in image
         unsigned int imsize;

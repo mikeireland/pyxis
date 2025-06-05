@@ -73,6 +73,9 @@ class QHYCamera {
 
         // Buffer size for image data
         int buffer_size;
+      
+        // Number of saved images
+        unsigned long num_savefiles;
 
         // Number of pixels in image
         int imsize;

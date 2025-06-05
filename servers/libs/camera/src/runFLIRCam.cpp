@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <fmt/core.h>
 #include <unistd.h>
 #include "FLIRCamera.h"
 #include "Spinnaker.h"
@@ -205,12 +206,12 @@ void *runCam(void*) {
 						// Save the data as a FITS file
 						cout << "Saving Data" << endl;
 
-						string save_no_str = std::to_string(save_no);
+						string save_no_str = fmt::format("{:04d}", save_no);
 						Fcam.savefilename = Fcam.savefilename_prefix + "_" + save_no_str;
 						
 						Fcam.SaveFITS(num_frames, buffer_no);
 						
-						save_no++;
+						save_no = (save_no + 1) % Fcam.num_savefiles;
 					}
 					
 					// Index of the next available spot in the circular buffer

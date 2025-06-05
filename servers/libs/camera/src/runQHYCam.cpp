@@ -2,6 +2,7 @@
 #include <string>
 #include <fstream>
 #include <unistd.h>
+#include <fmt/core.h>
 #include "QHYCamera.h"
 #include "qhyccd.h"
 #include "toml.hpp"
@@ -223,12 +224,12 @@ void *runCam(void*) {
 				    // Save the data as a FITS file
 				    cout << "Saving Data" << endl;
 
-				    string save_no_str = std::to_string(save_no);
+					string save_no_str = fmt::format("{:04d}", save_no);
 				    Qcam.savefilename = Qcam.savefilename_prefix + "_" + save_no_str;
 				    
 				    Qcam.SaveFITS(num_frames, buffer_no);
 				    
-				    save_no++;
+				    save_no = (save_no + 1) % Qcam.num_savefiles;
 			    }
 			    
 			    // Index of the next available spot in the circular buffer
