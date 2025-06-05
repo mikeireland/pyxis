@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
-import json
+import json, time
 from RawWidget import RawWidget
 
 try:
@@ -158,7 +158,10 @@ class DepAuxControlWidget(RawWidget):
             self.LED_status_text = "Voltage getting low"
             self.LED_status_label.setText(self.LED_status_text)
             self.LED_svgWidget.load(self.LED_status_light) 
-            QApplication.beep()    #Edit by Qianhui: beep when voltage is low
+            app = QApplication([])#Edit by Qianhui: beep when voltage is low
+            for i in range(5):
+                QApplication.beep()    
+                time.sleep(0.5)
 
 
 
