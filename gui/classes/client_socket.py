@@ -81,7 +81,7 @@ class ClientSocket:
             log_file_name = "Dextra_log.txt"
         elif self.Port.startswith("43"):
             log_file_name = "Sinistra_log.txt"
-        with open("../GUIcommand_log/"+log_file_name, "a") as log_file:
+        with open("GUIcommand_log/"+log_file_name, "a") as log_file:
             try:
                 log_file.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Sent: {command}\n")
             except:
@@ -96,7 +96,7 @@ class ClientSocket:
             log_file_name = "Dextra_log.txt"
         elif self.Port.startswith("43"):
             log_file_name = "Sinistra_log.txt"
-        with open("../GUIcommand_log/"+log_file_name, "a") as log_file:
+        with open("GUIcommand_log/"+log_file_name, "a") as log_file:
             if "Image" in response:
                 response = "Image received"
             if "Error" in response: #Only log errors responses
