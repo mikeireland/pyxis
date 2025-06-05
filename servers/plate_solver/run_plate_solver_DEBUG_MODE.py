@@ -95,22 +95,30 @@ def run_image(img_filename,config,target):
     folder_prefix = config["output_folder"]+"/"+prefix
 
     #Open FITS
-    hdul = fits.open(str(config["path_to_data"]+"/"+img_filename))
-    img = (hdul[0].data)[0]
+    #hdul = fits.open(str(config["path_to_data"]+"/"+img_filename))
+    #img = (hdul[0].data)[0].astype(np.float32)
     # Edited by Qianhui medians subtraction to remove stripes 
-    img = img - np.median(img, axis=1, keepdims=True)  
+    #img = img - np.median(img, axis=1, keepdims=True)  
     #Update the fits file with the medians subtracted image
-    hdul[0].data[0] = img
-    hdul.writeto(str(config["path_to_data"]+"/"+img_filename.replace(".fits", "_tmp.fits") ), overwrite=True)
+    #!!! This won't work because the inital data was uint16, and the subtraction will make it float32
+    #hdul[0].data[0] = img
+    #hdul.writeto(str(config["path_to_data"]+"/"+img_filename.replace(".fits", "_tmp.fits") ), overwrite=True)
+    
+    img = fits.getdata(str(config["path_to_data"]+"/"+img_filename))[0].astype(np.float32)
+    img -= np.median(img, axis=1, keepdims=True)
+    #img = nd.median_filter(img, size=(5, 5))
+    fits.writeto(str(config["path_to_data"]+"/"+img_filename.replace(".fits", "_tmp.fits") ), img, overwrite=True)
 
     #Get list of positions (extract centroids) via Tetra3
     lst = t3.get_centroids_from_image(img,bg_sub_mode=config["Tetra3"]["bg_sub_mode"], #!!!Question: there is subtract background here, even though the processed images are not saved
                                           sigma_mode=config["Tetra3"]["sigma_mode"],
-                                          filtsize=config["Tetra3"]["filt_size"])
+                                          filtsize=config["Tetra3"]["filt_size"], sigma=2.0)
 
     if len(lst) == 0:
         print("COULD NOT EXTRACT STARS")
         return (0,np.array([0,0,0]))
+    else:
+        print("Extracted %d stars"%len(lst))
 
     #Write .axy file for astrometry.net
     writeANxy(folder_prefix, lst.T[1], lst.T[0], dim=img.T.shape,
@@ -206,6 +214,7 @@ if __name__ == "__main__":
         else:
             print("ERROR")
     else:
-        print("Not a real file")
+        print("Not a real file...")
+        print("Attempted to open: %s"%(str(config["path_to_data"]+"/"+filename)))
         # time.sleep(1)
         

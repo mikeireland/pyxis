@@ -94,10 +94,15 @@ def run_image(img_filename,config,target,offset):
 
     folder_prefix = config["output_folder"]+"/"+prefix
 
-    #Open FITS
-    hdul = fits.open(str(config["path_to_data"]+"/"+img_filename))
-    img = (hdul[0].data)[0]
-    #img = hdul[0].data
+    # #Open FITS
+    # hdul = fits.open(str(config["path_to_data"]+"/"+img_filename))
+    # img = (hdul[0].data)[0]
+    # #img = hdul[0].data
+    
+    img = fits.getdata(str(config["path_to_data"]+"/"+img_filename))[0].astype(np.float32)
+    img -= np.median(img, axis=1, keepdims=True)
+    #img = nd.median_filter(img, size=(5, 5))
+    # fits.writeto(str(config["path_to_data"]+"/"+img_filename.replace(".fits", "_tmp.fits") ), img, overwrite=True)
 
     #Get list of positions (extract centroids) via Tetra3
     lst = t3.get_centroids_from_image(img,bg_sub_mode=config["Tetra3"]["bg_sub_mode"],
