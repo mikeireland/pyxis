@@ -30,11 +30,11 @@ class CoarseMetCameraWidget(BaseFLIRCameraWidget):
         if self.Connect_button.isChecked():       
             if self.enable_button.isChecked():
                 self.enable_button.setText("Disable metrology")
-                self.send_to_server("CM.enableLEDs [1]")
+                self.send_to_server("CM.enableLEDs 1")
                 print("Enabling Coarse Met Loop")
             else:
                 self.enable_button.setText("Enable metrology")
-                self.send_to_server("CM.enableLEDs [0]")
+                self.send_to_server("CM.enableLEDs 0")
                 print("Disabling Coarse Met Loop")
         else:
             self.enable_button.setChecked(False)

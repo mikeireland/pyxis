@@ -227,6 +227,64 @@ class RobotControlWidget(RawWidget):
         self.full_window.addLayout(content_layout)
         self.full_window.addSpacing(20)
 
+        # Edited by Qianhui to add a set_gain button
+        gain_layout = QHBoxLayout()
+        hbox = QHBoxLayout()
+        lbl = QLabel("az (yaw)",self)
+        lbl.setStyleSheet("QLabel {font-size: 15px}")
+        self.yaw_edit = QLineEdit("0.0")
+        self.yaw_edit.setFixedWidth(120)
+        hbox.addWidget(lbl)
+        hbox.addWidget(self.yaw_edit)
+        gain_layout.addLayout(hbox)
+        gain_layout.addSpacing(20)
+
+        hbox = QHBoxLayout()
+        lbl = QLabel("alt (el)",self)
+        lbl.setStyleSheet("QLabel {font-size: 15px}")
+        self.el_edit = QLineEdit("0.0")
+        self.el_edit.setFixedWidth(100)
+        hbox.addWidget(lbl)
+        hbox.addWidget(self.el_edit)
+        gain_layout.addLayout(hbox)
+        gain_layout.addSpacing(20)
+
+        hbox = QHBoxLayout()
+        lbl = QLabel("az (yaw) intergal",self)
+        lbl.setStyleSheet("QLabel {font-size: 15px}")
+        self.yint_edit = QLineEdit("0.0")
+        self.yint_edit.setFixedWidth(100)
+        hbox.addWidget(lbl)
+        hbox.addWidget(self.yint_edit)
+        gain_layout.addLayout(hbox)
+        gain_layout.addSpacing(20)
+
+        hbox = QHBoxLayout()
+        lbl = QLabel("alt (el) intergal",self)
+        lbl.setStyleSheet("QLabel {font-size: 15px}")
+        self.eint_edit = QLineEdit("0.0")
+        self.eint_edit.setFixedWidth(100)
+        hbox.addWidget(lbl)
+        hbox.addWidget(self.eint_edit)
+        gain_layout.addLayout(hbox)
+        gain_layout.addSpacing(20)
+
+        
+        
+        
+
+        # Connect the set_gain button to the server command
+        # This will send the alt and az values to the server
+        # to set the gain for the robot.
+        hbox = QHBoxLayout()
+        self.setgain_button = QPushButton("Set Gains", self)
+        self.setgain_button.setFixedWidth(200)
+        self.setgain_button.clicked.connect(lambda: self.set_gain_func(float(self.yaw_edit.text()), float(self.el_edit.text()), float(self.yint_edit.text()), float(self.eint_edit.text())))
+        hbox.addWidget(self.setgain_button)
+        gain_layout.addLayout(hbox)
+        gain_layout.addSpacing(450)
+        self.full_window.addLayout(gain_layout)
+
 
         # #Edited by Qianhui to add a status button and pitch&roll info showing
         status_layout = QHBoxLayout()
@@ -270,6 +328,7 @@ class RobotControlWidget(RawWidget):
         status_layout.addLayout(hbox)
         status_layout.addSpacing(20)
         self.full_window.addLayout(status_layout)
+
 
 
         # Save to file button
@@ -325,12 +384,12 @@ class RobotControlWidget(RawWidget):
 
     """ Level the robot """
     def level_button_func(self):
-        self.send_to_server("RC.track [0,0,0,0,0,0,0,0]")
+        self.send_to_server("RC.track 0,0,0,0,0,0,0,0")
         print("Sending 'Level' command")
 
     """ Stop the robot """
     def stop_button_func(self):
-        self.send_to_server("RC.translate [1,0,0,0,0,0,0,0]")
+        self.send_to_server("RC.translate 1,0,0,0,0,0,0,0")
         print("Sending 'Stop' command")
         
     """ Disconnect the robot """
@@ -348,14 +407,25 @@ class RobotControlWidget(RawWidget):
     """ Save the file """
     def save_file(self):
         filename = str(self.file_line_edit.text())
-        self.send_to_server("RC.file [%s]"%filename)
+        self.send_to_server("RC.file %s"%filename)
         print("Sending 'Save' command")        
+
+    """ Set the gain for the robot """
+    def set_gain_func(self, yaw_gain, el_gain, yaw_integral, el_integral):
+        command = ["0","0", "0", "0"] #The integration is set to zero for now.
+        command[0] = str(yaw_gain)
+        command[1] = str(el_gain)
+        command[2] = str(yaw_integral)
+        command[3] = str(el_integral)
+        str_command = ",".join(command)
+        self.send_to_server("RC.set_gains %s"%str_command)
+        print("Sending RC.set_gains %s"%str_command + " to the server")
 
     """ Move the robot along the required axis at a given velocity"""
     def move_func(self,axis,velocity):
         command = ["1","0","0","0","0","0","0","0"]
         command[axis+1] = str(velocity)
         str_command = ",".join(command)
-        self.send_to_server("RC.translate [%s]"%str_command)
+        self.send_to_server("RC.translate %s"%str_command)
         print("moving %s at %s"%(axis,velocity))
         return

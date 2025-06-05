@@ -633,7 +633,7 @@ class ScienceCameraWidget(RawWidget):
                 print("Reconfiguring Camera")
 
                 response_str = json.dumps(response_dict)
-                self.send_to_server("SC.reconfigure_all [%s]"%response_str)
+                self.send_to_server("SC.reconfigure_all %s"%response_str)
 
         else:
             print("CAMERA NOT CONNECTED")
@@ -657,7 +657,7 @@ class ScienceCameraWidget(RawWidget):
                 print("CURRENTLY FRINGE SCANNING!")                  
             else:
                 print("SETTING DARK MODE")
-                self.send_to_server("SC.enableDarks [%s]" %int(self.darks_button.isChecked()))
+                self.send_to_server("SC.enableDarks %s" %int(self.darks_button.isChecked()))
                 print(int(self.darks_button.isChecked()))  
         else:
             self.darks_button.setChecked(False)
@@ -681,7 +681,7 @@ class ScienceCameraWidget(RawWidget):
                 print("CURRENTLY FRINGE SCANNING!")     
             else:
                 print("SETTING FLUX1 MODE")
-                self.send_to_server("SC.enableFluxes [%s]" %int(self.flux1_button.isChecked()))
+                self.send_to_server("SC.enableFluxes %s" %int(self.flux1_button.isChecked()))
                 print(int(self.flux1_button.isChecked()))  
     
         else:
@@ -706,7 +706,7 @@ class ScienceCameraWidget(RawWidget):
                 print("CURRENTLY FRINGE SCANNING!")     
             else:
                 print("SETTING FLUX2 MODE")
-                self.send_to_server("SC.enableFluxes [%s]" %int(self.flux2_button.isChecked()*2))
+                self.send_to_server("SC.enableFluxes %s" %int(self.flux2_button.isChecked()*2))
                 print(int(self.flux2_button.isChecked()*2))  
         else:
             self.flux2_button.setChecked(False)
@@ -730,7 +730,7 @@ class ScienceCameraWidget(RawWidget):
                 print("CURRENTLY FRINGE SCANNING!")     
             else:
                 print("SETTING FOREGROUND MODE")
-                self.send_to_server("SC.enableForeground [%s]" %int(self.foreground_button.isChecked()))
+                self.send_to_server("SC.enableForeground %s" %int(self.foreground_button.isChecked()))
                 print(int(self.foreground_button.isChecked()))  
         else:
             self.foreground_button.setChecked(False)
@@ -755,12 +755,12 @@ class ScienceCameraWidget(RawWidget):
             else:  
                 if self.fringe_scan_button.isChecked():
                     self.socket.client.RCVTIMEO = 60000
-                    self.send_to_server("SC.enableFringeScan [1]")
+                    self.send_to_server("SC.enableFringeScan 1")
                     self.socket.client.RCVTIMEO = 3000
                     print("Starting Fringe Scanning")                 
                 else:
                     print("Stopping Fringe Scanning")
-                    self.send_to_server("SC.enableFringeScan [0]")
+                    self.send_to_server("SC.enableFringeScan 0")
         else:
             self.fringe_scan_button.setChecked(False)
             print("CAMERA NOT CONNECTED")        
@@ -785,10 +785,10 @@ class ScienceCameraWidget(RawWidget):
     def GD_servo_func(self):
         if self.Connect_button.isChecked():
             if self.GD_servo_button.isChecked():
-                self.send_to_server("SC.enableGDservo [1]")
+                self.send_to_server("SC.enableGDservo 1")
                 print("Beginning Servo Mode")
             else:
-                self.send_to_server("SC.enableGDservo [0]")
+                self.send_to_server("SC.enableGDservo 0")
                 print("Beginning Acquisition Mode")
         else:
             self.GD_servo_button.setChecked(False)
@@ -822,7 +822,7 @@ class ScienceCameraWidget(RawWidget):
                 self.run_button.setText("Stop Camera")
                 print("Starting Camera")
                 num_frames = str(self.numframes_edit.text())
-                self.send_to_server("SC.start [%s]"%(num_frames))
+                self.send_to_server("SC.start %s"%(num_frames))
             else:
                 self.run_button.setText("Start Camera")
                 print("Stopping Camera")
@@ -866,7 +866,7 @@ class ScienceCameraWidget(RawWidget):
     """ Fetch the next frame for the feed """
     def get_new_frame(self):
         # Get image from camera server
-        response = self.socket.send_command("SC.getlatestimage [%s,%s]"%(self.compression_param,self.feed_window.binning_flag))
+        response = self.socket.send_command("SC.getlatestimage %s,%s"%(self.compression_param,self.feed_window.binning_flag))
         # Load the data
         data = json.loads(json.loads(response))
         compressed_data = np.array(data["Image"]["data"], dtype=np.uint8)

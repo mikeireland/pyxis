@@ -4,8 +4,10 @@ import json
 from RawWidget import RawWidget
 
 try:
-    from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QLabel, QGridLayout
+    from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QLabel, QGridLayout, QApplication
     from PyQt5.QtSvg import QSvgWidget
+    #Edited by Qianhui
+    from PyQt5.QtCore import QTimer
 except:
     print("Please install PyQt5.")
     raise UserWarning
@@ -100,6 +102,13 @@ class DepAuxControlWidget(RawWidget):
         self.ask_for_status()
 
 
+        #Edited by Qianhui to add a watchdog timer monitoring the voltage
+        self.watchdog_timer = QTimer(self)
+        self.watchdog_timer.timeout.connect(self.getPower_func)
+        self.watchdog_timer.start(5000)  # Check every 5 seconds 
+
+
+
     """ Ask for server status, updating the power meters as required """
     def ask_for_status(self):
 
@@ -148,4 +157,9 @@ class DepAuxControlWidget(RawWidget):
             self.LED_status_light = "assets/red.svg"
             self.LED_status_text = "Voltage getting low"
             self.LED_status_label.setText(self.LED_status_text)
-            self.LED_svgWidget.load(self.LED_status_light)            
+            self.LED_svgWidget.load(self.LED_status_light) 
+            QApplication.beep()    #Edit by Qianhui: beep when voltage is low
+
+
+
+

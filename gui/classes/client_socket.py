@@ -12,6 +12,7 @@ class ClientSocket:
     def __init__(self,IP="127.0.0.1",Port="44010"):
         """A socket"""
         self.count=0
+        self.Port = Port
 
         try:
             self.context = zmq.Context()
@@ -39,14 +40,17 @@ class ClientSocket:
                 self.count += 1
                 return "Could not receive buffered response - connection still lost ({0:d} times).".format(self.count)
             self.connected=True
+            self.log_command("<Enter> is pressed")
             return "Connection re-established!"
 
         #Send a command to the client.
         try:
             self.client.send_string(command,zmq.NOBLOCK)
+            self.log_command(command)
         except:
             self.connected=False
             self.count += 1
+            self.log_command("Error sending command, connection lost ({0:d} times)".format(self.count))
             return 'Error sending command, connection lost ({0:d} times).'.format(self.count)
 
         #Receive the response
@@ -60,9 +64,44 @@ class ClientSocket:
                 response = True
             elif response == "fail":
                 response = False
-
+            self.log_response(response)
             return response
         except:
             self.connected=False
             self.count += 1
+            self.log_response("Error receiving response, connection lost ({0:d} times)".format(self.count))
             return 'Error receiving response, connection lost ({0:d} times)\nPress Enter to reconnect.'.format(self.count)
+        
+
+        #Edited by Qianhui: log all commands sent to the server with a timestamp
+    def log_command(self, command):
+        if self.Port.startswith("41"):
+            log_file_name = "Navis_log.txt"
+        elif self.Port.startswith("42"):
+            log_file_name = "Dextra_log.txt"
+        elif self.Port.startswith("43"):
+            log_file_name = "Sinistra_log.txt"
+        with open("../GUIcommand_log/"+log_file_name, "a") as log_file:
+            try:
+                log_file.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Sent: {command}\n")
+            except:
+                log_file.flush()
+            log_file.flush()
+
+    def log_response(self, response):
+        """Log the response received from the server."""
+        if self.Port.startswith("41"):
+            log_file_name = "Navis_log.txt"
+        elif self.Port.startswith("42"):
+            log_file_name = "Dextra_log.txt"
+        elif self.Port.startswith("43"):
+            log_file_name = "Sinistra_log.txt"
+        with open("../GUIcommand_log/"+log_file_name, "a") as log_file:
+            if "Image" in response:
+                response = "Image received"
+            if "Error" in response: #Only log errors responses
+                try:
+                    log_file.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Received: {response}\n")
+                except:
+                    log_file.flush()
+            log_file.flush()

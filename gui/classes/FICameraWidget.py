@@ -53,7 +53,7 @@ class FICameraWidget(BaseFLIRCameraWidget):
                 self.run_button.setText("Stop Camera")
                 print("Starting Camera")
                 num_frames = str(self.numframes_edit.text())
-                self.send_to_server("%s.start [%s,%s]"%(self.prefix,num_frames,self.coadd_flag))
+                self.send_to_server("%s.start %s,%s"%(self.prefix,num_frames,self.coadd_flag))
             else:
                 self.run_button.setText("Start Camera")
                 print("Stopping Camera")
@@ -72,19 +72,19 @@ class FICameraWidget(BaseFLIRCameraWidget):
                 if self.DextraTT_button.isChecked():
                     if self.SinistraTT_button.isChecked():
                         # RUN BOTH SERVOS
-                        self.send_to_server("FI.enable_tiptiltservo [3]")
+                        self.send_to_server("FI.enable_tiptiltservo 3")
                         print("Beginning Combined Tip/Tilt Servo Mode")
                     else:
                         # RUN ONLY DEXTRA SERVO
-                        self.send_to_server("FI.enable_tiptiltservo [1]")
+                        self.send_to_server("FI.enable_tiptiltservo 1")
                         print("Beginning Dextra Tip/Tilt Servo Mode")
                 elif self.SinistraTT_button.isChecked():
                     # RUN ONLY SINISTRA SERVO
-                    self.send_to_server("FI.enable_tiptiltservo [2]")
+                    self.send_to_server("FI.enable_tiptiltservo 2")
                     print("Beginning Sinistra Tip/Tilt Servo Mode")
                 else:
                     # DON'T RUN THE SERVOS
-                    self.send_to_server("FI.enable_tiptiltservo [0]")
+                    self.send_to_server("FI.enable_tiptiltservo 0")
                     print("Beginning Acquisition Mode")
                 self.socket.client.RCVTIMEO = 3000
             else:
@@ -101,11 +101,11 @@ class FICameraWidget(BaseFLIRCameraWidget):
         if self.Connect_button.isChecked():       
             if self.enable_button.isChecked():
                 self.enable_button.setText("Disable centroiding")
-                self.send_to_server("FI.enable_centroiding [1]")
+                self.send_to_server("FI.enable_centroiding 1")
                 print("Enabling Centroiding")
             else:
                 self.enable_button.setText("Enable centroiding")
-                self.send_to_server("FI.enable_centroiding [0]")
+                self.send_to_server("FI.enable_centroiding 0")
                 print("Disabling Centroiding")
         else:
             self.enable_button.setChecked(False)
