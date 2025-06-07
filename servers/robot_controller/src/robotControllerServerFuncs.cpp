@@ -36,86 +36,51 @@ Includes the main state machine based on GLOBAL_SERVER_STATUS
 #include <vector>
 #include "Globals.h"
 
-#define ROBOT_IDLE 1
-#define ROBOT_TRANSLATE 2
-#define ROBOT_RESONANCE 3
-#define ROBOT_TRACK 4
-#define ROBOT_DISCONNECT 5
-
-
 namespace co = commander;
 using namespace std;
-
 using namespace Control;
 
-using std::chrono::steady_clock;
-using std::chrono::duration_cast;
-using std::chrono::duration;
-using std::chrono::microseconds;
-using std::chrono::seconds;
 
 sched_param sch_params;
 
-auto time_point_start = steady_clock::now();
-auto time_point_current = steady_clock::now();
-auto now_time = steady_clock::now();
-auto last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-auto last_leveller_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-auto last_leveller_subtimepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-auto global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-auto packet_time = duration_cast<microseconds>(time_point_current-time_point_start).count();
-auto resonance_time = duration_cast<seconds>(time_point_current-time_point_start).count();
-auto last_resonance_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-
-int GLOBAL_SERVER_STATUS = 1;
-int loop_counter = 0;
-
-bool GLOBAL_STATUS_CHANGED = false;
-
-bool closed_loop_enable_flag = true;
-
-string filename = "state_file.csv";
+string g_filename = "state_file.csv";
+Status g_status = {0.0, 0.0}; // Current roll and pitch angles
 
 std::thread robot_controller_thread;
 std::thread watchdog_thread;
 
+// For the watchdog thread
 int alive_counter = 1;
 int last_alive_counter = 0;
 
-double velocity = 0.0;
-double x = 0.0;
-double y = 0.0;
-double z = 0.0;
-double roll = 0.0;
-double yaw = 0.0;
-double pitch = 0.0;
-double el = 0.0;
-double g_az = 0.0;
-double g_alt = 0.0;
-double g_posang = 0.0;
-double az_off = 0.0;
-double alt_off = 0.0;
+// A convenience local global vor zero velocities;
+Velocities g_zero_vel = {
+    0.0, // velocity
+    0.0, // x
+    0.0, // y
+    0.0, // z
+    0.0, // roll
+    0.0, // yaw
+    0.0, // pitch
+    0.0  // el
+};
+Velocities g_vel = g_zero_vel;
 
-double alt_acc = 0.0;
-double az_acc = 0.0;
-
-double current_roll = 0.0;
-double current_pitch = 0.0;
-double roll_error = 0.0;
-double pitch_error = 0.0;
-
-// This is a heading gain
+// Heading gain, plus gians and integral terms for yaw ane elevation control
 double h_gain = 0.0;
-
 double g_ygain = 0.0;
 double g_egain = 0.0;
-
 double g_yint = 0.0;
 double g_eint = 0.0;
 
-// If we upgrade to an integral servo, we need the integrals of roll and pitch
-double roll_int = 0.0;
-double pitch_int = 0.0;
+double g_esum = 0.0;
+double g_ysum = 0.0;
+
+double g_az = 0.0;
+double g_alt = 60.0;
+double g_posang = 0.0;
+double g_az_off = 0.0;
+double g_alt_off = 0.0;
 
 struct LEDs {
     double LED1_x; 
@@ -124,327 +89,8 @@ struct LEDs {
     double LED2_y;
 };
 
-struct Status {
-	double current_roll, current_pitch;
-};
-
-
 // A heading is a coarse angle in degrees, which is used to control the robot's direction
-double heading = 0.0;
-double f = 0.5;
-
-/*********** Utility Functions *****************/
-
-// This was the old resonance function.
-void resonance(RobotDriver *driver) {
-	Servo::Doubles velocity_target;
-	Servo::Doubles angle_target;
-	velocity_target.x = 0.001*velocity*x*sin(2*3.14159265*f*global_timepoint*0.000001);
-	velocity_target.y = 0.001*velocity*y*sin(2*3.14159265*f*global_timepoint*0.000001);
-	velocity_target.z = 0.001*velocity*z*sin(2*3.14159265*f*global_timepoint*0.000001);
-	angle_target.x = 0.001*velocity*roll*sin(2*3.14159265*f*global_timepoint*0.000001);
-	angle_target.y = 0.001*velocity*yaw*sin(2*3.14159265*f*global_timepoint*0.000001);
-	angle_target.z = 0.001*velocity*pitch*sin(2*3.14159265*f*global_timepoint*0.000001);
-	driver->SetNewStabiliserTarget(velocity_target,angle_target);
-	driver->stabiliser.enable_flag_ = true;
-	if (f > 5) {
-		driver->RequestAllStop(); 
-		driver->stabiliser.enable_flag_ = false;
-	}
-	if(global_timepoint-last_stabiliser_timepoint > 1000) {	
-		if(driver->stabiliser.enable_flag_) {
-			printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
-			cout << global_timepoint*0.000001 << '\n';
-			driver->StabiliserLoop();
-
-			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
-			//driver->UpdateBFFVelocity(velocity_target);
-			driver->UpdateActuatorVelocity(angle_target);
-			//driver->WriteLevellerStateToFileAlt(f, velocity_target);
-		}
-		last_stabiliser_timepoint = global_timepoint;
-		if (global_timepoint-last_resonance_timepoint > 5000000 && sin(2*3.14159265*f*global_timepoint*0.000001)<0.1) {
-			driver->RequestAllStop();
-			sleep(2);
-			f = f + 1;
-			cout << f << '\n';
-			time_point_start = steady_clock::now();
-			time_point_current = steady_clock::now();
-			last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-			global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-			last_resonance_timepoint = global_timepoint;
-		}
-
-	}
-}
-
-// This function makes a periodic change to the robot velocity of amplitude
-// "velocity" or 0.001 * "velocity" in order to test resonances. It is an update
-// to the original resonance function, which was not working correctly (why?)
-void unambig(RobotDriver *driver) {	
-	Servo::Doubles velocity_target;
-	Servo::Doubles angle_target;
-	velocity_target.x = 0.001*velocity*x*sin(2*3.14159265*f*global_timepoint*0.000001);
-	velocity_target.y = 0.001*velocity*y*sin(2*3.14159265*f*global_timepoint*0.000001);
-	velocity_target.z = 0.001*velocity*z*sin(2*3.14159265*f*global_timepoint*0.000001);
-	angle_target.x = velocity*roll*sin(2*3.14159265*f*global_timepoint*0.000001);
-	angle_target.y = velocity*pitch*sin(2*3.14159265*f*global_timepoint*0.000001);
-	angle_target.z = 0.001*velocity*yaw*sin(2*3.14159265*f*global_timepoint*0.000001);
-	driver->SetNewStabiliserTarget(velocity_target,angle_target);
-	driver->stabiliser.enable_flag_ = true;
-	
-	if(global_timepoint-last_stabiliser_timepoint > 1000) {
-		if (f>100) {
-			driver->RequestAllStop(); 
-			driver->stabiliser.enable_flag_ = false;
-			cout << global_timepoint*0.000001 << '\n';
-		}	
-		if(driver->stabiliser.enable_flag_) {
-                       //cout << global_timepoint*0.000001 << '\n';
-                       driver->teensy_port.ReadMessage();
-			driver->StabiliserLoop();
-
-			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
-			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, el);
-			//driver->UpdateActuatorVelocity(angle_target);
-			driver->LogSteps(global_timepoint, filename, f);
-			//driver->WriteStabiliserStateToFile();
-		}
-		if (global_timepoint-last_stabiliser_timepoint > 1500) {
-		    last_stabiliser_timepoint = global_timepoint;
-		} else {
-		    last_stabiliser_timepoint += 1000;
-		}
-		if (global_timepoint-last_resonance_timepoint > 5000000 && sin(2*3.14159265*f*global_timepoint*0.000001)<0.01) {
-			driver->RequestAllStop();
-			driver->teensy_port.SendAllRequests();
-			sleep(5);
-			f = f + 0.5;
-			cout << f << '\n';
-			time_point_start = steady_clock::now();
-			time_point_current = steady_clock::now();
-			last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-			global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-			last_resonance_timepoint = global_timepoint;
-		}
-		driver->teensy_port.SendAllRequests();
-
-	}
-}
-
-
-// Manual translation of robot, for coarse positioning.
-void translate(RobotDriver *driver) {
-	Servo::Doubles velocity_target;
-	Servo::Doubles angle_target;
-	driver->teensy_port.ReadMessage();
-	driver->PassAccelBytesToLeveller();
-	driver->leveller.UpdateTarget();
-	double elevation_target = 0.0000048481*el;
-	velocity_target.x = 0.001*velocity*x;
-	velocity_target.y = 0.001*velocity*y;
-	velocity_target.z = 0.001*velocity*z;
-	angle_target.x = roll;
-	angle_target.y = pitch;
-	angle_target.z = 0.0000014302*yaw;
-	if (!(loop_counter % 1000)) {
-		current_roll = 3600*driver->leveller.roll_estimate_filtered_;
-		current_pitch = 3600*driver->leveller.pitch_estimate_filtered_;
-	}
-	
-	//This is where we set a target.
-	driver->SetNewStabiliserTarget(velocity_target,angle_target);
-	driver->stabiliser.enable_flag_ = true;
-	if(1) {	
-		if(driver->stabiliser.enable_flag_) {
-			//printf("%ld\n",global_timepoint-last_stabiliser_timepoint);
-			//if  (global_timepoint < 10000000) {
-			//	velocity_target.x = 0;
-			//	velocity_target.y = 0;
-			//	velocity_target.z = 0;
-			//}
-			driver->StabiliserLoop();
-
-			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
-			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, elevation_target);
-			//driver->WriteLevellerStateToFileAlt(f, velocity_target);
-			driver->teensy_port.SendAllRequests();
-		//	driver->LogSteps(global_timepoint, filename, f);
-
-		}
-		last_stabiliser_timepoint = global_timepoint;
-	}
-}
-
-double saturation(double val) {
-    if (val > 5000.0) {
-        return 5000.0;
-    }
-    if (val < -5000.0) {
-        return -5000.0;
-    }
-    return val;
-}
-
-void track(RobotDriver *driver) {
-	// Track the star, based on the g_az and g_alt offsets received previously from
-	// the star tracker. This supercedes much of the machinery in the RobotDriver.
-	Servo::Doubles velocity_target;
-	Servo::Doubles angle_target;
-	
-	// Here we get the latest data (i.e. accelerometers) from the Teensy.
-	driver->teensy_port.ReadMessage();
-
-	// Send the raw data to the leveller object, so that it can compute acclerations.
-	driver->PassAccelBytesToLeveller();
-	
-	// Update our pitch and roll targets (internally in degrees)
-	driver->leveller.UpdateTarget();
-	
-	// The leveller simply estimates the roll and pitch in degrees. We save these
-	// in arcseconds. 
-	current_roll = 3600*driver->leveller.roll_estimate_filtered_;
-	current_pitch = 3600*driver->leveller.pitch_estimate_filtered_;
-	roll_error = g_roll_target - current_roll;
-	pitch_error = g_pitch_target - current_pitch;
-
-	// the constant on the following line is arc-seconds per radian.
-	double elevation_target = 0.0000048481*saturation(el + g_egain*(g_alt+alt_off) + g_eint*alt_acc);
-	velocity_target.x = 0.001*velocity*x;
-	velocity_target.y = 0.001*velocity*y;
-	velocity_target.z = 0.001*velocity*z;
-	
-	// Create velocities for pitch and roll, based on a proportional server and our
-	// errors.
-	angle_target.x = saturation(roll + g_roll_gain*roll_error);
-	angle_target.y = saturation(pitch + g_pitch_gain*pitch_error);
-	
-	// Create a yaw velocity based on the target yaw velocity "yaw" and a PI servo loop
-	// based on the g_az.
-	angle_target.z = 0.0000014302*saturation(yaw + g_ygain*(g_az + az_off) + g_yint*az_acc + h_gain*heading);
-	
-	// This is an integral term (not an acceleration)
-	alt_acc += 0.001*(g_alt + alt_off);
-	az_acc += 0.001*(g_az + az_off);
-				
-	// This requests accelerations and step counts (other parts commented out)
-	driver->StabiliserLoop();
-
-	//This sends all velocities to the teensy queue of requests.
-	driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, elevation_target);
-	
-	// This sends all request to the Teensy via USB2
-	driver->teensy_port.SendAllRequests();
-
-	last_stabiliser_timepoint = global_timepoint;
-}
-
-void ramp(RobotDriver *driver) {
-	Servo::Doubles velocity_target;
-	Servo::Doubles angle_target;
-	velocity_target.x = 0.001*velocity*x;
-	velocity_target.y = 0.001*velocity*y;
-	velocity_target.z = 0.001*velocity*z;
-	angle_target.x = velocity*roll;
-	angle_target.y = velocity*pitch;
-	angle_target.z = 0.001*velocity*yaw;
-	driver->SetNewStabiliserTarget(velocity_target,angle_target);
-	driver->stabiliser.enable_flag_ = true;
-	
-	if(1) {	
-		if(driver->stabiliser.enable_flag_) {
-		    if (global_timepoint*0.000001<2) {
-			    double scaler = (double) global_timepoint / 2000000.0;
-			    velocity_target.x = 0.001*velocity*x*scaler;
-			    velocity_target.y = 0.001*velocity*y*scaler;
-			    velocity_target.z = 0.001*velocity*z*scaler;
-			    angle_target.x = velocity*roll*scaler;
-			    angle_target.y = velocity*pitch*scaler;
-			    angle_target.z = 0.001*velocity*yaw*scaler;
-			    //
-			}
-			driver->StabiliserLoop();
-
-			//As a stress on the messaging, we update the velocity to the same value each time (this is a more realistic version of the system)
-			driver->UpdateBFFVelocityAngle(velocity_target.x, velocity_target.y, velocity_target.z, angle_target.x, angle_target.y, angle_target.z, el);
-			//driver->UpdateActuatorVelocity(angle_target);
-			driver->LogSteps(global_timepoint, filename, f);
-			//driver->WriteStabiliserStateToFile();
-		}
-		last_stabiliser_timepoint += 1000;
-
-	}
-}
-
-/*
-This is the main robot loop, that has an interior loop that is run about every 
-milli-second, which is forked as a thread from the RobotControlServer's start_robot_loop 
-*/
-int robot_loop() {
-	//Necessary global timing measures
-	
-    time_point_start = steady_clock::now();
-    time_point_current = steady_clock::now();
-    last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-    last_leveller_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-    last_leveller_subtimepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-    global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-    resonance_time = duration_cast<seconds>(time_point_current-time_point_start).count();
-    last_resonance_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-
-	RobotDriver* driver = new RobotDriver();
-	closed_loop_enable_flag = true;
-	//driver->EngageStabiliser();
-	time_point_start = steady_clock::now();
-	while(closed_loop_enable_flag) {
-		//Boolean to store if we have done anything on this loop and wait a little bit if we haven't
-		alive_counter++;
-		
-		if (GLOBAL_STATUS_CHANGED) {
-			time_point_start = steady_clock::now();
-			time_point_current = steady_clock::now();
-                       last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-                       last_leveller_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-                       last_leveller_subtimepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-			//last_resonance_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-			GLOBAL_STATUS_CHANGED = false;
-		}
-		time_point_current = steady_clock::now();
-		global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-
-		switch(GLOBAL_SERVER_STATUS) {
-			case ROBOT_IDLE:
-				usleep(10);
-				break;
-			case ROBOT_TRANSLATE:
-				translate(driver);
-				break;
-			case ROBOT_RESONANCE:
-				//resonance(driver);
-				unambig(driver);
-				break;
-			case ROBOT_TRACK:
-				track(driver);
-				break;
-			case ROBOT_DISCONNECT:
-			    cout << "disconnecting\n";
-			    translate(driver);
-			    closed_loop_enable_flag = false;
-			default:
-			    usleep(10);
-				break;
-		}
-		now_time = steady_clock::now();
-		usleep(duration_cast<microseconds>(time_point_current-now_time).count() + 1000);
-		//time_point_current = steady_clock::now();
-		loop_counter++;
-		
-	}
-
-	driver->teensy_port.ClosePort();
-	delete driver;
-    return 0;
-}
+double g_heading = 0.0;
 
 // This is the watchdog thread that checks if the robot loop is alive (i.e. hasn't hung) and
 // restarts it if it has. 
@@ -509,14 +155,8 @@ struct RobotControlServer {
 
 
     int stop_robot_loop() {
-        velocity = 0;
-        x = 0;
-        y = 0;
-        z = 0;
-        roll = 0;
-        yaw = 0;
-        pitch = 0;
-        el = 0;
+        // Set all the velocities to zero
+        g_vel = g_zero_vel;
         g_ygain = 0;
         g_egain=0;
         h_gain = 0;
@@ -527,32 +167,32 @@ struct RobotControlServer {
 
 
     void translate_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val, double el_val) {
-        velocity = vel;
-        x = x_val;
-        y = y_val;
-        z = z_val;
-        roll = roll_val;
-        yaw = yaw_val;
-        pitch = pitch_val;
-        el = el_val;
+        g_vel.velocity = vel;
+        g_vel.x = x_val;
+        g_vel.y = y_val;
+        g_vel.z = z_val;
+        g_vel.roll = roll_val;
+        g_vel.yaw = yaw_val;
+        g_vel.pitch = pitch_val;
+        g_vel.el = el_val;
         GLOBAL_STATUS_CHANGED = true;
         GLOBAL_SERVER_STATUS = ROBOT_TRANSLATE;
     }
 
     void resonance_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val) {
-        velocity = vel;
-        x = x_val;
-        y = y_val;
-        z = z_val;
-        roll = roll_val;
-        yaw = yaw_val;
-        pitch = pitch_val;
+        g_vel.velocity = vel;
+        g_vel.x = x_val;
+        g_vel.y = y_val;
+        g_vel.z = z_val;
+        g_vel.roll = roll_val;
+        g_vel.yaw = yaw_val;
+        g_vel.pitch = pitch_val;
         GLOBAL_STATUS_CHANGED = true;
         GLOBAL_SERVER_STATUS = ROBOT_RESONANCE;
     }
     
     void change_file(string file) {
-        filename = file;
+        g_filename = file;
     }
 
     void receive_ST_angles(double azimuth, double altitude, double pos_angle) {
@@ -566,39 +206,38 @@ struct RobotControlServer {
     void set_gains(double y, double e, double yi, double ei) {
     	// Set the gains for tracking altitude (callled "e" or elevation)
     	// and azimuth (called "y" or yaw) 
+        // Also set the sums to zero.
 	    g_ygain = y;
 	    g_egain = e;
 		g_yint = yi;
 		g_eint = ei;
+        g_esum = 0.0;
+        g_ysum = 0.0;
     }
     
     void set_heading(double h, double gain) {
-        heading = 60*h;
+        g_heading = 60*h; //!!! Why 60?
         h_gain = gain;
     }
 
     void track_robot(double vel, double x_val, double y_val, double z_val, double roll_val, double pitch_val, double yaw_val, double el_val) {
-        velocity = vel;
-        x = x_val;
-        y = y_val;
-        z = z_val;
-        roll = roll_val;
-        yaw = yaw_val;
-        pitch = pitch_val;
-        el = el_val;
+        g_vel.velocity = vel;
+        g_vel.velocity = vel;
+        g_vel.velocity = vel;
+        g_vel.x = x_val;
+        g_vel.y = y_val;
+        g_vel.z = z_val;
+        g_vel.roll = roll_val;
+        g_vel.yaw = yaw_val;
+        g_vel.pitch = pitch_val;
+        g_vel.el = el_val;
         GLOBAL_STATUS_CHANGED = true;
         GLOBAL_SERVER_STATUS = ROBOT_TRACK;
     }
-	// TO CHANGE
+
+	// Set everything to zero and stop threads.
     int disconnect() {
-        velocity = 0;
-        x = 0;
-        y = 0;
-        z = 0;
-        roll = 0;
-        yaw = 0;
-        pitch = 0;
-        el = 0;
+        g_vel = g_zero_vel;
         g_ygain = 0;
 	    g_egain = 0;
         GLOBAL_SERVER_STATUS = ROBOT_DISCONNECT;
@@ -608,8 +247,8 @@ struct RobotControlServer {
     }
 
 	int offset_targets(double azimuth, double altitude, double rollval, double pitchval) {
-		az_off += azimuth;
-		alt_off += altitude;
+		g_az_off += azimuth;
+		g_alt_off += altitude;
 		g_roll_target += rollval;
 		g_pitch_target += pitchval;
 		return 0;
@@ -626,10 +265,8 @@ struct RobotControlServer {
 	}
 
 	Status status(){
-		Status s;
-		s.current_roll = current_roll;
-		s.current_pitch = current_pitch;
-		return s;
+        // !!! Needs a thead-lock here.
+        return g_status;
 	}
 };
 
@@ -652,13 +289,13 @@ namespace nlohmann {
 	template <>
 	struct adl_serializer<Status> {
         static void to_json(json& j, const Status& L) {
-            j = json{{"current_roll", L.current_roll},
-			{"current_pitch", L.current_pitch}};
+            j = json{{"roll", L.roll},
+			{"pitch", L.pitch}};
         }
 
         static void from_json(const json& j, Status& L) {
-			j.at("current_roll").get_to(L.current_roll);
-			j.at("current_pitch").get_to(L.current_pitch);
+			j.at("roll").get_to(L.roll);
+			j.at("pitch").get_to(L.pitch);
         }
     };
 }

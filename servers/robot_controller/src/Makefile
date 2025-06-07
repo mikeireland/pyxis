@@ -4,7 +4,7 @@ PKG_CONFIG_PATH ?= /usr/lib/x86_64-linux-gnu/pkgconfig
 CFLAGS  = -std=c++17 -Wall -Wextra -ggdb -O1 -I../include -I../../../commander/include
 LDFLAGS = -L../../../lib -L/usr/local/lib -lcommander -lm -lzmq -lboost_program_options -lfmt -lfftw3 -lgsl
 EXEC    = robot_driver
-OBJECTS = main.o robotControllerServerFuncs.o RobotDriver.o Decode.o SerialPort.o Servo.o
+OBJECTS = main.o robotControllerServerFuncs.o Decode.o SerialPort.o robotThread.o
 
 # PREFIX is environment variable, but if it is not set, then set default value
 ifeq ($(PREFIX),)
