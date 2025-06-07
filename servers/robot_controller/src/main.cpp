@@ -1,3 +1,8 @@
+/*
+Although this is the "main" file, the server functions and initiation of the 
+robot controller are defined in the robotControllerServerFuncs.cpp file.
+*/
+
 #include <commander/commander.h>
 #include <string>
 #include <fstream>
@@ -8,12 +13,12 @@
 namespace co = commander;
 using namespace std;
 
-double roll_gain = -0.08;
-double pitch_gain = -0.08;
+// Global variables that are input from the config file on startip
+double g_roll_gain = -0.08;
+double g_pitch_gain = -0.08;
 
-double roll_target = 0;
-double pitch_target = 0;
-
+double g_roll_target = 0;
+double g_pitch_target = 0;
 
 // Main server function. Accepts one parameter: link to the camera config file.
 int main(int argc, char* argv[]) {
@@ -49,24 +54,24 @@ int main(int argc, char* argv[]) {
 
     // Add the roll and pitch gain from the config file
     if (config["roll_gain"].is_number()) {
-        roll_gain = config["roll_gain"].value_or(roll_gain);
+        g_roll_gain = config["roll_gain"].value_or(g_roll_gain);
     } else {
         cout << "Roll gain not found in config file, using default value" << endl;
     }
     if (config["pitch_gain"].is_number()) {
-        pitch_gain = config["pitch_gain"].value_or(pitch_gain);
+        g_pitch_gain = config["pitch_gain"].value_or(g_pitch_gain);
     } else {
         cout << "Pitch gain not found in config file, using default value" << endl;
     }
 
     // Add the roll and pitch target from the config file
     if (config["roll_target"].is_number()) {
-        roll_target = config["roll_target"].value_or(roll_target);
+        g_roll_target = config["roll_target"].value_or(g_roll_target);
     } else {
         cout << "Roll target not found in config file, using default value" << endl;
     }
     if (config["pitch_target"].is_number()) {
-        pitch_target = config["pitch_target"].value_or(pitch_target);
+        g_pitch_target = config["pitch_target"].value_or(g_pitch_target);
     } else {
         cout << "Pitch target not found in config file, using default value" << endl;
     }

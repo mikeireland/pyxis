@@ -1,25 +1,29 @@
 /*
 These functions below have the following roles, described here as there is no header
 file
+
 1) Utility functions:
 
-void resonance(RobotDriver *driver) : Drive the robot in sinusoidal resonances
-void unambig(RobotDriver *driver) : ??? to delete ???
+void resonance(RobotDriver *driver) : Drive the robot in sinusoidal resonances (not used)
+void ramp(RobotDriver *driver) : Engineering function (not used)
+
+void unambig(RobotDriver *driver) : An update of the "resonance" function.
 void translate(RobotDriver *driver) : Core moving of robot
 double saturation(double val) : filter
 void track(RobotDriver *driver) :
-void ramp(RobotDriver *driver) : Engineering function
-void stop(RobotDriver *driver) : ??? to delete ???
 
-2) The main robot loop
+2) The main robot loop, which is a std::thread
 
 robot_loop
 
 Includes the main state machine based on GLOBAL_SERVER_STATUS
 
-3) The class definition of struct RobotControlServer (why a struct and not a class?)
+3) The watchdog thread, which checks the robot loop is alive and restarts it if not
 
-4) The COMMANDER_REGISTER(m)
+4) The class definition of struct RobotControlServer (why a struct and not a class?)
+
+5) The COMMANDER_REGISTER(m) defines the commands that can be sent to the robot controller
+
 
 */
 #include <iostream>
@@ -34,7 +38,7 @@ Includes the main state machine based on GLOBAL_SERVER_STATUS
 
 #define ROBOT_IDLE 1
 #define ROBOT_TRANSLATE 2
-#define ROBOT_UNAMBIG 3
+#define ROBOT_RESONANCE 3
 #define ROBOT_TRACK 4
 #define ROBOT_DISCONNECT 5
 
@@ -58,7 +62,6 @@ auto now_time = steady_clock::now();
 auto last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 auto last_leveller_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 auto last_leveller_subtimepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-auto last_navigator_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 auto global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
 auto packet_time = duration_cast<microseconds>(time_point_current-time_point_start).count();
 auto resonance_time = duration_cast<seconds>(time_point_current-time_point_start).count();
@@ -126,12 +129,13 @@ struct Status {
 };
 
 
-// !!! This is a heading , in principle based on a magnetometer (which wasn't
-// every installed??? 
+// A heading is a coarse angle in degrees, which is used to control the robot's direction
 double heading = 0.0;
 double f = 0.5;
 
 /*********** Utility Functions *****************/
+
+// This was the old resonance function.
 void resonance(RobotDriver *driver) {
 	Servo::Doubles velocity_target;
 	Servo::Doubles angle_target;
@@ -174,9 +178,10 @@ void resonance(RobotDriver *driver) {
 	}
 }
 
-void unambig(RobotDriver *driver) {
-	// This function makes a periodic change to the robot velocity of amplitude
-	// "velocity" or 0.001 * "velocity" in order to test resonances.
+// This function makes a periodic change to the robot velocity of amplitude
+// "velocity" or 0.001 * "velocity" in order to test resonances. It is an update
+// to the original resonance function, which was not working correctly (why?)
+void unambig(RobotDriver *driver) {	
 	Servo::Doubles velocity_target;
 	Servo::Doubles angle_target;
 	velocity_target.x = 0.001*velocity*x*sin(2*3.14159265*f*global_timepoint*0.000001);
@@ -228,9 +233,8 @@ void unambig(RobotDriver *driver) {
 }
 
 
-
+// Manual translation of robot, for coarse positioning.
 void translate(RobotDriver *driver) {
-	// Manual translation of forob.
 	Servo::Doubles velocity_target;
 	Servo::Doubles angle_target;
 	driver->teensy_port.ReadMessage();
@@ -301,8 +305,8 @@ void track(RobotDriver *driver) {
 	// in arcseconds. 
 	current_roll = 3600*driver->leveller.roll_estimate_filtered_;
 	current_pitch = 3600*driver->leveller.pitch_estimate_filtered_;
-	roll_error = roll_target - current_roll;
-	pitch_error = pitch_target - current_pitch;
+	roll_error = g_roll_target - current_roll;
+	pitch_error = g_pitch_target - current_pitch;
 
 	// the constant on the following line is arc-seconds per radian.
 	double elevation_target = 0.0000048481*saturation(el + g_egain*(g_alt+alt_off) + g_eint*alt_acc);
@@ -312,8 +316,8 @@ void track(RobotDriver *driver) {
 	
 	// Create velocities for pitch and roll, based on a proportional server and our
 	// errors.
-	angle_target.x = saturation(roll + roll_gain*roll_error);
-	angle_target.y = saturation(pitch + pitch_gain*pitch_error);
+	angle_target.x = saturation(roll + g_roll_gain*roll_error);
+	angle_target.y = saturation(pitch + g_pitch_gain*pitch_error);
 	
 	// Create a yaw velocity based on the target yaw velocity "yaw" and a PI servo loop
 	// based on the g_az.
@@ -384,7 +388,6 @@ int robot_loop() {
     last_stabiliser_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
     last_leveller_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
     last_leveller_subtimepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
-    last_navigator_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
     global_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
     resonance_time = duration_cast<seconds>(time_point_current-time_point_start).count();
     last_resonance_timepoint = duration_cast<microseconds>(time_point_current-time_point_start).count();
@@ -416,7 +419,7 @@ int robot_loop() {
 			case ROBOT_TRANSLATE:
 				translate(driver);
 				break;
-			case ROBOT_UNAMBIG:
+			case ROBOT_RESONANCE:
 				//resonance(driver);
 				unambig(driver);
 				break;
@@ -443,6 +446,8 @@ int robot_loop() {
     return 0;
 }
 
+// This is the watchdog thread that checks if the robot loop is alive (i.e. hasn't hung) and
+// restarts it if it has. 
 void watchdog() {
 	//start up robot thread procedure
 	robot_controller_thread = std::thread(robot_loop);
@@ -543,7 +548,7 @@ struct RobotControlServer {
         yaw = yaw_val;
         pitch = pitch_val;
         GLOBAL_STATUS_CHANGED = true;
-        GLOBAL_SERVER_STATUS = ROBOT_UNAMBIG;
+        GLOBAL_SERVER_STATUS = ROBOT_RESONANCE;
     }
     
     void change_file(string file) {
@@ -605,11 +610,13 @@ struct RobotControlServer {
 	int offset_targets(double azimuth, double altitude, double rollval, double pitchval) {
 		az_off += azimuth;
 		alt_off += altitude;
-		roll_target += rollval;
-		pitch_target += pitchval;
+		g_roll_target += rollval;
+		g_pitch_target += pitchval;
 		return 0;
 	}
 
+	// Receive the LED positions from the coarse metrology, which should be used to offset the 
+	// y and z postions of the robot (!!! Not implemented yet !!!)
 	int receive_LED(LEDs measured) {
 		cout << measured.LED1_x << '\n';
 		cout << measured.LED1_y << '\n';
