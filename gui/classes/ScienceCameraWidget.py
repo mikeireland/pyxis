@@ -514,9 +514,6 @@ class ScienceCameraWidget(RawWidget):
         self.feedtimer = QTimer()
         self.GDtimer = QTimer()
         self.plottimer = QTimer()        
-        
-        self.ask_for_status()
-        self.get_params()
 
     """ Activated when "Refresh" is hit: ask for status and update configuration parameters """
     def refresh_click(self):
