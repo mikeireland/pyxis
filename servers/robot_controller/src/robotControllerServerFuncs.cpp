@@ -31,15 +31,12 @@ Includes the main state machine based on GLOBAL_SERVER_STATUS
 #include <string>
 #include <pthread.h>
 #include <commander/commander.h>
-#include "RobotDriver.h"
 #include <time.h>
 #include <vector>
 #include "Globals.h"
 
 namespace co = commander;
 using namespace std;
-using namespace Control;
-
 
 sched_param sch_params;
 
@@ -266,6 +263,8 @@ struct RobotControlServer {
 
 	Status status(){
         // !!! Needs a thead-lock here.
+        g_status.loop_counter = loop_counter;
+        g_status.loop_status = GLOBAL_SERVER_STATUS;
         return g_status;
 	}
 };
@@ -290,12 +289,17 @@ namespace nlohmann {
 	struct adl_serializer<Status> {
         static void to_json(json& j, const Status& L) {
             j = json{{"roll", L.roll},
-			{"pitch", L.pitch}};
+			{"pitch", L.pitch},
+            {"loop_status", L.loop_status},
+            {"loop_counter", L.loop_counter}
+            };
         }
 
         static void from_json(const json& j, Status& L) {
 			j.at("roll").get_to(L.roll);
 			j.at("pitch").get_to(L.pitch);
+            j.at("loop_status").get_to(L.loop_status);
+            j.at("loop_counter").get_to(L.loop_counter);
         }
     };
 }

@@ -3,7 +3,7 @@ Plate solves a given file (from the command line), and returns an AltAz attitude
 
 Uses Tetra3 and astrometry.net programs to solve
 """
-import os, sys
+import os, sys, subprocess
 import time
 import conversion
 import tetra3 as t3
@@ -137,7 +137,15 @@ def run_image(img_filename,config,target):
         os.remove("%s.wcs"%folder_prefix)
     
     #Run astrometry.net
-    os.system("./astrometry/solver/astrometry-engine %s.axy -c astrometry.cfg"%folder_prefix)
+    # os.system("./astrometry/solver/astrometry-engine %s.axy -c astrometry.cfg"%folder_prefix)
+    #Edited by Qianhui: use subprocess to run astrometry-engine, so the output can be captured in log file
+    result = subprocess.run(
+            ["./astrometry/solver/astrometry-engine", f"{folder_prefix}.axy", "-c", "astrometry.cfg"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+    print(result.stdout) 
 
     if not(os.path.exists("%s.wcs"%folder_prefix)):
         print("DID NOT SOLVE")
@@ -173,6 +181,10 @@ def get_image(input_folder):
 ###############################################################################
 
 if __name__ == "__main__":
+    #Edited by Qianhui: redirect stdout and stderr to a log file, instead of printing to the console
+    log_file = open("plate_solver_DEBUG_log.txt", "a")
+    sys.stdout = log_file
+    sys.stderr = log_file
 
     #Retrieve the filename from command line, checking for the number of arguments
     if len(sys.argv) == 3:
@@ -201,7 +213,7 @@ if __name__ == "__main__":
     filename = "data/"+str(image_name)
     
     if os.path.exists(str(config["path_to_data"]+"/"+filename)):
-        print("Filename Exists. Running solver")
+        print("%s exists. Running solver"%(str(config["path_to_data"]+"/"+filename)))
 
         #run image
         flag,angles = run_image(filename,config,target)

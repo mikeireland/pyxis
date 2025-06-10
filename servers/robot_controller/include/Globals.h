@@ -33,6 +33,7 @@ struct Motors
 struct Status {
 	double roll;
     double pitch;
+    int loop_status, loop_counter;
 };
 
 // The header for robotThread.cpp, which contains the main robot loop

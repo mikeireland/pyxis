@@ -380,14 +380,14 @@ if __name__ == "__main__":
 
                 #Send reply to robot
                 print(return_message)
-                robot_control_socket.send_string(return_message)
                 try:
+                    robot_control_socket.send_string(return_message) #Edited by Qianhui: moved this line here to avoid failing to send the command
                     message = robot_control_socket.recv()
                     print("Robot response: %s" % message)
                 except:
                     print("Could not communicate with robot")
             else:
-                print("ERROR")
+                print("ERROR in run_image, could not solve")
         else:
             print("Not a real file")
             time.sleep(1)

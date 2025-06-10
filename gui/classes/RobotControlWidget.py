@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
 from RawWidget import RawWidget
-import json
+import json, time
 
 try:
     from PyQt5.QtWidgets import QPushButton, QHBoxLayout, \
@@ -14,7 +14,7 @@ except:
 
 class RobotControlWidget(RawWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
-
+        self.level_flag = 0
         super(RobotControlWidget,self).__init__(config,IP,parent)
 
         button_layout = QHBoxLayout()
@@ -344,6 +344,8 @@ class RobotControlWidget(RawWidget):
         self.full_window.addLayout(hbox)
         
         self.ask_for_status()
+        self.leveling_status()
+        
 
     """ Ask for server status (Currently does nothing!) """
     def ask_for_status(self):
@@ -366,6 +368,7 @@ class RobotControlWidget(RawWidget):
             self.status_text = "Socket Not Connected"
             self.status_label.setText(self.status_text)
             self.svgWidget.load(self.status_light)
+            self.level_flag = 0
 
     """ UPDATE THESE TO PROPERLY DO THE REQUIRED THINGS! """
         
@@ -373,9 +376,15 @@ class RobotControlWidget(RawWidget):
     def status_button_func(self):
         if (self.socket.connected):
             recv = self.send_to_server_with_response("RC.status")
-            recv = recv.strip("{}")
-            current_pitch = recv.split(",")[0].split(":")[1]
-            current_roll = recv.split(",")[1].split(":")[1]
+            recv = json.loads(recv)
+            if "roll" in recv:
+                current_roll = recv["roll"]
+            else:
+                current_roll = "0.0"
+            if "pitch" in recv:
+                current_pitch = recv["pitch"]
+            else:
+                current_pitch = "0.0"
             self.pitchinfo.setText("{:.2f} ".format(float(current_pitch)))
             self.rollinfo.setText("{:.2f} ".format(float(current_roll)))
         else:
@@ -386,16 +395,19 @@ class RobotControlWidget(RawWidget):
     def level_button_func(self):
         self.send_to_server("RC.track 0,0,0,0,0,0,0,0")
         print("Sending 'Level' command")
+        self.level_flag = 1
 
     """ Stop the robot """
     def stop_button_func(self):
         self.send_to_server("RC.translate 1,0,0,0,0,0,0,0")
         print("Sending 'Stop' command")
+        self.level_flag = 0
         
     """ Disconnect the robot """
     def hard_stop_button_func(self):
         self.send_to_server("RC.disconnect")
         print("Sending 'Disconnect' command")
+        self.level_flag = 0
         
     """ Start the robot """
     def start_button_func(self):
@@ -429,3 +441,13 @@ class RobotControlWidget(RawWidget):
         self.send_to_server("RC.translate %s"%str_command)
         print("moving %s at %s"%(axis,velocity))
         return
+    
+    def leveling_status(self):
+        if self.level_flag == 1:
+            self.level_button.setChecked(True)
+            self.level_button.setText("Levelling")
+        else:
+            self.level_button.setChecked(False)
+            self.level_button.setText("Level")
+        time.sleep(5)
+

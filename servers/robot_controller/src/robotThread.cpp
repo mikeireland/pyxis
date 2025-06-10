@@ -340,6 +340,9 @@ milli-second, which is forked as a thread from the RobotControlServer's start_ro
 int robot_loop() {
     // Initialise the communication port to the Teensy
     teensy_port = new Comms::SerialPort(128);
+
+	// Reset the loop counter
+	loop_counter = 0;
 	
 	//Necessary global timing measures (why needed?)
     time_point_start = steady_clock::now();
