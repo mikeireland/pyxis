@@ -344,8 +344,6 @@ class RobotControlWidget(RawWidget):
 
     """ Ask for server status (Currently does nothing!) """
     def ask_for_status(self):
-        response = self.socket.send_command("RC.status")
-
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
@@ -356,7 +354,7 @@ class RobotControlWidget(RawWidget):
             # If the server is not responding, it will throw an exception
             # and we will just ignore it.
             except:
-                return
+                return    
 
         else:
             self.status_light = "assets/red.svg"
@@ -382,9 +380,23 @@ class RobotControlWidget(RawWidget):
                 current_pitch = "0.0"
             self.pitchinfo.setText("{:.2f} ".format(float(current_pitch)))
             self.rollinfo.setText("{:.2f} ".format(float(current_roll)))
+
+            #Check the loop status, if it is levelling, change the button text
+            if "loop_status" in recv:
+                loop_status = recv["loop_status"]
+            else:
+                loop_status = 1
+            if loop_status == 4:
+                self.level_button.setChecked(True)
+                self.level_button.setText("Levelling")
+            else:
+                self.level_button.setChecked(False)
+                self.level_button.setText("Level")
         else:
             self.pitchinfo.setText("NULL")
             self.rollinfo.setText("NULL")
+            self.level_button.setChecked(False)
+            self.level_button.setText("Level")
 
     """ Level the robot """
     def level_button_func(self):
@@ -437,12 +449,5 @@ class RobotControlWidget(RawWidget):
         print("moving %s at %s"%(axis,velocity))
         return
     
-    def leveling_status(self):
-        if self.level_flag == 1:
-            self.level_button.setChecked(True)
-            self.level_button.setText("Levelling")
-        else:
-            self.level_button.setChecked(False)
-            self.level_button.setText("Level")
-        time.sleep(5)
+
 
