@@ -181,7 +181,6 @@ class PyxisGui(QTabWidget):
 
             #For each sub tab
             for item in config[tab]:
-
                 sub_config = config[tab][item]
                 name = sub_config["name"]
 
@@ -192,11 +191,10 @@ class PyxisGui(QTabWidget):
                 #The following line is where all the different tabs connect to their servers
                 #It uses the class names "module_type" from port_setup.toml
                 if use_external:
-                	self.sub_tab_widgets[tab][name] = widget_module(sub_config,self.ext_IPs[tab])
+                    self.sub_tab_widgets[tab][name] = widget_module(sub_config, self.ext_IPs[tab])
                 else:
-	                self.sub_tab_widgets[tab][name] = widget_module(sub_config,self.int_IPs[tab]) #!!! This is where the int_IPs is the default
-                self.tab_widgets[tab].addTab(self.sub_tab_widgets[tab][name],sub_config["tab_name"])
-
+                    self.sub_tab_widgets[tab][name] = widget_module(sub_config, self.int_IPs[tab]) 
+                self.tab_widgets[tab].addTab(self.sub_tab_widgets[tab][name], sub_config["tab_name"])
                 #Add status indicator to dashboard
                 status_layout = QHBoxLayout()
                 self.status_lights[tab][name] = QSvgWidget(self.sub_tab_widgets[tab][name].status_light)
@@ -211,7 +209,6 @@ class PyxisGui(QTabWidget):
 
                 status_grid_layout.addWidget(port_label,i,0)
                 status_grid_layout.addLayout(status_layout,i,1)
-
                 i+=1
 
             status_grid.setLayout(status_grid_layout)

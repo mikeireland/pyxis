@@ -329,8 +329,6 @@ class RobotControlWidget(RawWidget):
         status_layout.addSpacing(20)
         self.full_window.addLayout(status_layout)
 
-
-
         # Save to file button
         hbox = QHBoxLayout()
         lbl = QLabel('Save to file: ', self)
@@ -342,9 +340,6 @@ class RobotControlWidget(RawWidget):
         hbox.addWidget(self.file_line_edit)
         hbox.addWidget(self.file_submit_button)
         self.full_window.addLayout(hbox)
-        
-        self.ask_for_status()
-        self.leveling_status()
         
 
     """ Ask for server status (Currently does nothing!) """

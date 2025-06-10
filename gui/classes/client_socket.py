@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+"""
+To test:
+
+import client_socket as cs
+cl = cs.ClientSocket(IP="150.203.91.206", Port="4100")
+"""
 from __future__ import print_function, division
 import time
 
@@ -13,35 +19,38 @@ class ClientSocket:
         """A socket"""
         self.count=0
         self.Port = Port
-
         try:
             self.context = zmq.Context()
             self.client = self.context.socket(zmq.REQ)
             self.tcpstring = "tcp://"+IP+":"+Port 
-            print(self.tcpstring)   
             self.client.connect(self.tcpstring)
             self.client.RCVTIMEO = 5000
             self.connected=True
+            print('Connected to server at {0}'.format(self.tcpstring))
         except:
-            print('ERROR: Could not connect to server. Please check that the server is running and IP is correct.')
+            print('Could not connect to server at {0}'.format(self.tcpstring))
             self.connected=False
 
     def send_command(self, command):
         """Send a command"""
         #If we aren't connected and the user pressed <Enter>, just try to reconnect
-        if (self.connected==False) and ((len(command)==0) or (len(command.split(".")[1])==0)):
-            try:
-                self.client = self.context.socket(zmq.REQ)
-                self.client.connect(self.tcpstring)
-                self.client.RCVTIMEO = 5000
-                self.client.send_string(command,zmq.NOBLOCK)
-                self.client.recv()
-            except:
-                self.count += 1
-                return "Could not receive buffered response - connection still lost ({0:d} times).".format(self.count)
-            self.connected=True
-            self.log_command("<Enter> is pressed")
-            return "Connection re-established!"
+        if (self.connected==False):
+            if ((len(command)==0) or (len(command.split(".")[1])==0)):
+                try:
+                    self.client = self.context.socket(zmq.REQ)
+                    self.client.connect(self.tcpstring)
+                    self.client.RCVTIMEO = 5000
+                    self.client.send_string(command,zmq.NOBLOCK)
+                    self.client.recv()
+                except:
+                    self.count += 1
+                    return "Could not receive buffered response - connection still lost ({0:d} times).".format(self.count)
+                self.connected=True
+                self.log_command("<Enter> is pressed")
+                return "Connection re-established!"
+            else:
+                self.log_command("Connection lost, but command is not empty. Not reconnecting.")
+                return "Connection lost, but command is not empty. Not reconnecting."
 
         #Send a command to the client.
         try:

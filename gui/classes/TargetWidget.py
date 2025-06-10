@@ -139,8 +139,6 @@ class TargetWidget(RawWidget):
         Coord_layout.addStretch()
 
         self.full_window.addLayout(Coord_layout)
-        self.ask_for_status()
-
 
     """ Ask for the server's status and update the current target coordinates"""
     def ask_for_status(self):

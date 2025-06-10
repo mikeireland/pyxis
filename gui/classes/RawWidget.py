@@ -20,8 +20,8 @@ class RawWidget(QWidget):
         self.name = config["name"]
         self.port = config["port"]
         self.prefix = config["prefix"]
-        self.socket = ClientSocket(IP=IP, Port=self.port)
 
+        self.socket = ClientSocket(IP=IP, Port=self.port)
         #Layout the common elements
         self.full_window = QVBoxLayout()
         self.full_window.setSpacing(3)
@@ -80,7 +80,6 @@ class RawWidget(QWidget):
         self.full_window.addLayout(status_layout)
 
         self.setLayout(self.full_window)
-
 
     """ Basic function to ask the for the server status to see if it's alive
         (and to potentially do things)

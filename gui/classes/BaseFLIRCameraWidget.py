@@ -370,8 +370,6 @@ class BaseFLIRCameraWidget(RawWidget):
         self.sidePanel.addLayout(hbox)
 
         self.feedtimer = QTimer()
-        self.ask_for_status()
-        self.get_params()
 
     """ Activated when "Refresh" is hit: ask for status and update configuration parameters """
     def refresh_click(self):

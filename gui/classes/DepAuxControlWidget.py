@@ -99,26 +99,20 @@ class DepAuxControlWidget(RawWidget):
         
         self.full_window.addLayout(Power_hbox)
         self.full_window.addStretch()
-        self.ask_for_status()
-
-
+        
         #Edited by Qianhui to add a watchdog timer monitoring the voltage
         self.watchdog_timer = QTimer(self)
         self.watchdog_timer.timeout.connect(self.getPower_func)
         self.watchdog_timer.start(5000)  # Check every 5 seconds 
 
-
-
     """ Ask for server status, updating the power meters as required """
     def ask_for_status(self):
-
-        self.getPower_func()
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
-
+            self.getPower_func()
         else:
             self.status_light = "assets/red.svg"
             self.status_text = "Socket Not Connected"
@@ -137,6 +131,10 @@ class DepAuxControlWidget(RawWidget):
 
     """ Get and set the power meters """
     def getPower_func(self):
+        #Only get the power if the socket is connected
+        if not self.socket.connected:
+            print("Socket not connected, cannot get power.")
+            return
         power_str = self.send_to_server_with_response("DA.reqpower")
         print("Sending 'getPower' command")
         try:
