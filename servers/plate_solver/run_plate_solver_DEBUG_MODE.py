@@ -16,6 +16,7 @@ import tomli
 import glob
 import zmq
 import json
+import sep
 
 """
 Function that takes a list of star positions and creates a .axy file for Astrometry.net
@@ -109,10 +110,16 @@ def run_image(img_filename,config,target):
     #img = nd.median_filter(img, size=(5, 5))
     fits.writeto(str(config["path_to_data"]+"/"+img_filename.replace(".fits", "_tmp.fits") ), img, overwrite=True)
 
-    #Get list of positions (extract centroids) via Tetra3
-    lst = t3.get_centroids_from_image(img,bg_sub_mode=config["Tetra3"]["bg_sub_mode"], #!!!Question: there is subtract background here, even though the processed images are not saved
-                                          sigma_mode=config["Tetra3"]["sigma_mode"],
-                                          filtsize=config["Tetra3"]["filt_size"], sigma=2.0)
+    # #Get list of positions (extract centroids) via Tetra3
+    # lst = t3.get_centroids_from_image(img,bg_sub_mode=config["Tetra3"]["bg_sub_mode"], 
+    #                                       sigma_mode=config["Tetra3"]["sigma_mode"],
+    #                                       filtsize=config["Tetra3"]["filt_size"], sigma=2.0)
+    
+    #Edited by Qianhui: Get a list of positions via Source Extractor instead of Tetra3
+    bkg = sep.Background(img)
+    img_sub = img - bkg
+
+    lst = sep.extract(img_sub, thresh=2, err=bkg.globalrms, minarea=5, deblend_cont=0.5)
 
     if len(lst) == 0:
         print("COULD NOT EXTRACT STARS")
@@ -121,7 +128,7 @@ def run_image(img_filename,config,target):
         print("Extracted %d stars"%len(lst))
 
     #Write .axy file for astrometry.net
-    writeANxy(folder_prefix, lst.T[1], lst.T[0], dim=img.T.shape,
+    writeANxy(folder_prefix, lst['x'], lst['y'], dim=img.T.shape, #lst.T[1], lst.T[0] is x, y from Tetra3
               depth=config["Astrometry"]["depth"],
               scale_bounds=(config["Astrometry"]["FOV_min"],
                             config["Astrometry"]["FOV_max"]),

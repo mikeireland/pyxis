@@ -14,7 +14,7 @@ import numpy as np
 import pytomlpp
 import glob
 import zmq
-import json
+import json, sep
 
 """
 Function that takes a list of star positions and creates a .axy file for Astrometry.net
@@ -104,10 +104,16 @@ def run_image(img_filename,config,target,offset):
     #img = nd.median_filter(img, size=(5, 5))
     # fits.writeto(str(config["path_to_data"]+"/"+img_filename.replace(".fits", "_tmp.fits") ), img, overwrite=True)
 
-    #Get list of positions (extract centroids) via Tetra3
-    lst = t3.get_centroids_from_image(img,bg_sub_mode=config["Tetra3"]["bg_sub_mode"],
-                                          sigma_mode=config["Tetra3"]["sigma_mode"],
-                                          filtsize=config["Tetra3"]["filt_size"])
+    # #Get list of positions (extract centroids) via Tetra3
+    # lst = t3.get_centroids_from_image(img,bg_sub_mode=config["Tetra3"]["bg_sub_mode"],
+    #                                       sigma_mode=config["Tetra3"]["sigma_mode"],
+    #                                       filtsize=config["Tetra3"]["filt_size"])
+
+    #Edited by Qianhui: Get a list of positions via Source Extractor instead of Tetra3
+    bkg = sep.Background(img)
+    img_sub = img - bkg
+
+    lst = sep.extract(img_sub, thresh=1.8, err=bkg.globalrms, minarea=5, deblend_cont=0.5)
 
     # If no extraction, return error
     if len(lst) == 0:
