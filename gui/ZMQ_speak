@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+"""
+ZMQ shell interface to talk to the any client
+"""
+
+import zmq
+import sys
+import json
+# Check if the user provided a port number
+server_port = 4100
+if len(sys.argv) > 1:
+    try:
+        server_port = int(sys.argv[1])
+    except ValueError:
+        print("Invalid port number. Using default port 4100.")
+else:
+    print("No port number provided. Using default port 4100.")  
+
+# Second argument is the IP address. Default is 'pyxis'.
+if len(sys.argv) > 2:
+    server_ip = sys.argv[2]
+else:
+    server_ip = 'pyxis'
+print(f"Using server IP: {server_ip}")
+
+context = zmq.Context()
+socket = context.socket(zmq.REQ)
+socket.connect(f"tcp://{server_ip}:{server_port}")
+
+print(f"ZMQ shell interface to talk to a server on port {server_port}")
+
+cmd_sz = 10  # finite size command with blanks filled
+
+while True:
+    cmd = input(f"ZMQ ({server_port}) >> ")
+    socket.send_string(cmd)
+    
+    #  Get the reply.
+    resp = socket.recv().decode("ascii")
+    # print(f"== Reply: [{resp}]")
+    try:
+        resp = json.loads(resp)
+        if isinstance(resp, dict):
+            print(json.dumps(resp, indent=4))
+        else:
+            print(resp)
+    except json.JSONDecodeError:
+        print(resp)
+    if resp == "BYE!":
+        break

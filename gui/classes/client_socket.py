@@ -15,20 +15,22 @@ except:
     raise UserWarning
 
 class ClientSocket:
-    def __init__(self,IP="127.0.0.1",Port="44010"):
+    def __init__(self,IP="127.0.0.1",Port="44010",TIMEOUT=5000, logdir="GUIcommand_log"):
         """A socket"""
         self.count=0
         self.Port = Port
+        self.TIMEOUT = TIMEOUT
+        self.logdir = logdir
         try:
             self.context = zmq.Context()
             self.client = self.context.socket(zmq.REQ)
             self.tcpstring = "tcp://"+IP+":"+Port 
             self.client.connect(self.tcpstring)
-            self.client.RCVTIMEO = 5000
+            self.client.RCVTIMEO = self.TIMEOUT
             self.connected=True
-            print('Connected to server at {0}'.format(self.tcpstring))
+            print('Socket open to server at {0}'.format(self.tcpstring))
         except:
-            print('Could not connect to server at {0}'.format(self.tcpstring))
+            print('Could not open socket at {0}'.format(self.tcpstring))
             self.connected=False
 
     def send_command(self, command):
@@ -39,14 +41,14 @@ class ClientSocket:
                 try:
                     self.client = self.context.socket(zmq.REQ)
                     self.client.connect(self.tcpstring)
-                    self.client.RCVTIMEO = 5000
+                    self.client.RCVTIMEO = self.TIMEOUT
                     self.client.send_string(command,zmq.NOBLOCK)
                     self.client.recv()
                 except:
                     self.count += 1
                     return "Could not receive buffered response - connection still lost ({0:d} times).".format(self.count)
                 self.connected=True
-                self.log_command("<Enter> is pressed")
+                self.log_command("Empty command received, reconnected to server.")
                 return "Connection re-established!"
             else:
                 self.log_command("Connection lost, but command is not empty. Not reconnecting.")
@@ -90,7 +92,7 @@ class ClientSocket:
             log_file_name = "Dextra_log.txt"
         elif self.Port.startswith("43"):
             log_file_name = "Sinistra_log.txt"
-        with open("GUIcommand_log/"+log_file_name, "a") as log_file:
+        with open(self.logdir + "/"+log_file_name, "a") as log_file:
             try:
                 log_file.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Sent: {command}\n")
             except:
