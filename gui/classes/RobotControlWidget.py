@@ -14,7 +14,7 @@ except:
 
 class RobotControlWidget(RawWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
-        self.level_flag = 0
+
         super(RobotControlWidget,self).__init__(config,IP,parent)
 
         button_layout = QHBoxLayout()
@@ -361,7 +361,6 @@ class RobotControlWidget(RawWidget):
             self.status_text = "Socket Not Connected"
             self.status_label.setText(self.status_text)
             self.svgWidget.load(self.status_light)
-            self.level_flag = 0
 
     """ UPDATE THESE TO PROPERLY DO THE REQUIRED THINGS! """
         
@@ -402,19 +401,19 @@ class RobotControlWidget(RawWidget):
     def level_button_func(self):
         self.send_to_server("RC.track 0,0,0,0,0,0,0,0")
         print("Sending 'Level' command")
-        self.level_flag = 1
+
 
     """ Stop the robot """
     def stop_button_func(self):
         self.send_to_server("RC.translate 1,0,0,0,0,0,0,0")
         print("Sending 'Stop' command")
-        self.level_flag = 0
+
         
     """ Disconnect the robot """
     def hard_stop_button_func(self):
         self.send_to_server("RC.disconnect")
         print("Sending 'Disconnect' command")
-        self.level_flag = 0
+
         
     """ Start the robot """
     def start_button_func(self):

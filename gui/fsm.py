@@ -34,10 +34,11 @@ config = collections.OrderedDict({k: {key: value for key, value in sorted(config
 
 #Define our client class
 class Client:
-    def __init__(self, name, IP, port):
+    def __init__(self, name, IP, port, prefix):
         self.name = name
         self.IP = IP
         self.port = port
+        self.prefix = prefix
         self.status = {}  # Dictionary to hold client status
         self.nerrors = 0  # Number of errors encountered
         self.isalive = True #Assume alive until proven otherwise
@@ -61,9 +62,9 @@ class FSM:
             if not name.startswith('_'):
                 self.command_dict[name] = method
 
-    def _add_client(self, name, IP, port):
+    def _add_client(self, name, IP, port, prefix=""):
         """Add a new client to the FSM"""
-        self.clients[name] = Client(name, IP, port)
+        self.clients[name] = Client(name, IP, port, prefix)
 
     def _remove_client(self, name):
         """Remove a client from the FSM"""
@@ -91,12 +92,42 @@ class FSM:
             }
         return status_dict
     
+    def reconnect(self, client_name):
+        """Reconnect a specific client by name"""
+        try: 
+            client_name = str(json.loads(client_name))
+        except json.JSONDecodeError:
+            return "Invalid client name format. Please provide a valid JSON string."
+        if client_name in self.clients:
+            client = self.clients[client_name]
+            # Set nerrors to 0, and the _run loop will reconnect.
+            client.isalive = True
+            client.nerrors = 0
+        else:
+            return f"Client {client_name} not found."
+        
+    def reboot(self, reboot_client_name):
+        """waiting for Jon to implement this"""
+        time.sleep(2)  # Simulate a reboot delay
+        if reboot_client_name in fsm.clients:
+            reboot_client = fsm.clients[reboot_client_name]
+            reboot_client.isalive = True  # Reset the client's alive status, assuming reboot was successful
+            reboot_client.socket.connected = True  # Reset the connection status
+            reboot_client.nerrors = 0
+            print(f"Rebooted client {reboot_client.name} at {reboot_client.IP}:{reboot_client.port}")
+        else:
+            print(f"Client {reboot_client_name} not found for reboot.")
+    
     def _run(self):
         """Run the FSM server, listening for commands, and checking on clients
         one at a time """
         self.keepgoing = True
         while self.keepgoing:
+            # Record the start time, as we want to run this at 2 Hz maximum.
             loop_start = time.time()
+            
+            # Check for incoming commands from the FSM socket
+            # We use zmq.NOBLOCK to avoid blocking the loop if no command is received.
             try:
                 message = self.socket.recv_string(flags=zmq.NOBLOCK)
                 print(f"Received command: {message}")
@@ -111,6 +142,7 @@ class FSM:
             except:
                 print("Error processing command, sending error response.")
                 self.socket.send_string("Error processing command")
+            
             #Now check the status of one client at a time
             for client_name, client in self.clients.items():
                 if client.isalive:
@@ -118,12 +150,13 @@ class FSM:
                         try:
                             #Check if the client is alive by sending a status command.
                             #We expect a json structure as a response.
-                            response = client.socket.send_command("status")
+                            #The client_socket will handle the connection and disconnection.
+                            response = client.socket.send_command(client.prefix + ".status")
                             client.status = json.loads(response) 
                         except Exception as e:
                             print(f"Error checking client {client_name}: {e}")
                     elif client.nerrors < 5:
-                        # By convenction, sending an empty command will try to reconnect
+                        # By convention, sending an empty command will try to reconnect
                         client.socket.send_command("")
                         if client.socket.connected:
                             client.isalive = True
@@ -136,6 +169,8 @@ class FSM:
                         print(f"Client {client_name} is not responding with status, marking as dead after {client.nerrors} errors.")
                 else:
                     # Here we could implement something to automatically try to restart the client.
+                    """This needs Jon who has ideas on how to do this."""
+                    # self.reboot(client)
                     pass
             # Wait until the next clock tick.
             time.sleep(max(0, 0.5 - (time.time() - loop_start)))  # Adjust sleep time to maintain a 10Hz loop
@@ -156,7 +191,7 @@ for robot in config:
             IP = pyxis_config["IP"]["External"]
         else:
             IP = pyxis_config["IP"][robot]
-        fsm._add_client(sub_config["name"], IP, sub_config["port"])
+        fsm._add_client(sub_config["name"], IP, sub_config["port"], prefix = sub_config["prefix"])
 
 if __name__ == "__main__":
     # Print the FSM clients for debugging
