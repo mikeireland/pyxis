@@ -151,7 +151,7 @@ class FSM:
                             #Check if the client is alive by sending a status command.
                             #We expect a json structure as a response.
                             #The client_socket will handle the connection and disconnection.
-                            response = client.socket.send_command(client.prefix + ".status")
+                            response = client.socket.send_command(client.prefix + ".status")#Error receiving response
                             client.status = json.loads(response) 
                         except Exception as e:
                             print(f"Error checking client {client_name}: {e}")

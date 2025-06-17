@@ -15,7 +15,7 @@ except:
     raise UserWarning
 
 class ClientSocket:
-    def __init__(self,IP="127.0.0.1",Port="44010",TIMEOUT=5000, logdir="GUIcommand_log"):
+    def __init__(self,IP="127.0.0.1",Port="44010",TIMEOUT=5000, logdir="/home/pyxisuser/pyxis/gui/GUIcommand_log"):
         """A socket"""
         self.count=0
         self.Port = Port
@@ -86,6 +86,8 @@ class ClientSocket:
 
         #Edited by Qianhui: log all commands sent to the server with a timestamp
     def log_command(self, command):
+        if self.Port.startswith("40"):
+            log_file_name = "FSM_log.txt"
         if self.Port.startswith("41"):
             log_file_name = "Navis_log.txt"
         elif self.Port.startswith("42"):
@@ -101,13 +103,15 @@ class ClientSocket:
 
     def log_response(self, response):
         """Log the response received from the server."""
+        if self.Port.startswith("40"):
+            log_file_name = "FSM_log.txt"
         if self.Port.startswith("41"):
             log_file_name = "Navis_log.txt"
         elif self.Port.startswith("42"):
             log_file_name = "Dextra_log.txt"
         elif self.Port.startswith("43"):
             log_file_name = "Sinistra_log.txt"
-        with open("GUIcommand_log/"+log_file_name, "a") as log_file:
+        with open(self.logdir+ "/"+log_file_name, "a") as log_file:
             if "Image" in response:
                 response = "Image received"
             if "Error" in response: #Only log errors responses
