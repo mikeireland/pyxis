@@ -7,6 +7,7 @@ cl = cs.ClientSocket(IP="150.203.91.206", Port="4100")
 """
 from __future__ import print_function, division
 import time
+import sys
 
 try:
     import zmq
@@ -15,7 +16,7 @@ except:
     raise UserWarning
 
 class ClientSocket:
-    def __init__(self,IP="127.0.0.1",Port="44010",TIMEOUT=5000, logdir="/home/pyxisuser/pyxis/gui/GUIcommand_log"):
+    def __init__(self,IP="127.0.0.1",Port="44010",TIMEOUT=5000, logdir="/Users/mireland/pyxis/pyxis/gui/GUIcommand_log"):
         """A socket"""
         self.count=0
         self.Port = Port
