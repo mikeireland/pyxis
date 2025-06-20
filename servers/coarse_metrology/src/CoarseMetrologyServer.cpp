@@ -79,7 +79,7 @@ LEDs CalcLEDPosition(cv::Mat img, cv::Mat dark){
         result.LED2_y = p.p2.y;
 
     } catch (const cv::Exception& e) {
-        std::cout << e.what() << std::endl;
+        std:cout << e.what() << std::endl;
     }   
 
     return result;
@@ -111,8 +111,11 @@ int CM_Callback (unsigned short* data){
             GLOB_CM_LEDs = positions;
             pthread_mutex_unlock(&GLOB_CM_FLAG_LOCK);
             
+            cout << "LED1: (" << positions.LED1_x << ", " << positions.LED1_y << ")" << endl;
+            cout << "LED2: (" << positions.LED2_x << ", " << positions.LED2_y << ")" << endl;
+
             //ZMQ CLIENT SEND TO DEPUTY ROBOT positions
-            RB_SOCKET->send<int>("RC.receive_LED_positions", positions);
+            //RB_SOCKET->send<int>("RC.receive_LED_positions", positions);
             
             //ZMQ CLIENT SEND TO AUX TURN OFF LED
             DA_SOCKET->send<int>("DA.LEDOff");

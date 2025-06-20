@@ -135,29 +135,41 @@ Point2D<double>
 ImageProcessSubMatInterp::get_location(const cv::Mat &image_off,
                                        const cv::Mat &image_on) {
 
+    cv::Mat image_on_float, image_off_float, diff_image;
     // auto sub_image_off = image_off(sub_rect);
     // auto sub_image_on = image_on(sub_rect);
     // diff the images the highlight LEDs
-    cv::subtract(image_on, image_off, diff_image);
+    image_on.convertTo(image_on_float, CV_32F);
+    image_off.convertTo(image_off_float, CV_32F);
+    cv::subtract(image_on_float, image_off_float, diff_image);
+    //Edited by Qianhui: save the image for debugging
+    cv::imwrite("/home/pyxisuser/pyxis/servers/coarse_metrology/data/image_on.tiff", image_on_float);
+    cv::imwrite("/home/pyxisuser/pyxis/servers/coarse_metrology/data/diff_image.tiff", diff_image);//end of edit
 
     if (do_gauss)
         cv::GaussianBlur(diff_image, diff_image,
                          cv::Size(gauss_radius, gauss_radius), 0, 0,
                          cv::BORDER_DEFAULT);
     if (do_median)
-        cv::medianBlur(diff_image, diff_image, 3);
+        cv::medianBlur(diff_image, diff_image, 5);//Edited by Qianhui: changed the median filter size from 3 to 5
 
     //diff_image.convertTo(diff_image, CV_32F);
+    //Edited by Qianhui: save the image for debugging
+    cv::imwrite("/home/pyxisuser/pyxis/servers/coarse_metrology/data/diff_image_med.tiff", diff_image);
+    cv::imwrite("/home/pyxisuser/pyxis/servers/coarse_metrology/data/diff_image_med.exr", diff_image);//end of edit
 
     Point2D<int> p;
     Point2D<double> p_ret;
 
     // take maximum, find centroid in region, then set a circle around centroid to 0, and repeat
     cv::minMaxLoc(diff_image, nullptr, nullptr, nullptr, &p.p1);
-    p_ret.p1 = interp(diff_image, p.p1);
+    //p_ret.p1 = interp(diff_image, p.p1); // !!! Fails at the edge of the image
+    p_ret.p1 = p.p1;
+    //NB This next line looks like it will fail if the circle is too close to the edge of the image.
     cv::circle(diff_image, p.p1, 20, cv::Scalar(0, 0, 0), cv::FILLED);
     cv::minMaxLoc(diff_image, nullptr, nullptr, nullptr, &p.p2);
-    p_ret.p2 = interp(diff_image, p.p2);
+    //p_ret.p2 = interp(diff_image, p.p2); // !!! Fails at the edge of the image
+    p_ret.p2 = p.p2;
 
     return p_ret;
 }
