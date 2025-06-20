@@ -6,6 +6,7 @@ import collections
 import importlib
 import faulthandler
 import argparse
+from subprocess import call
 
 faulthandler.enable()
 
@@ -400,7 +401,7 @@ logo_wig = QWidget()
 header = QHBoxLayout(logo_wig)
 logo = QLabel()
 qpix = QPixmap('assets/Pyxis_logo.png')
-qpix = qpix.scaledToWidth(50)
+qpix = qpix.scaledToWidth(80)
 logo.setPixmap(qpix)
 header.addWidget(logo)
 

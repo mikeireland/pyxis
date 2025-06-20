@@ -18,7 +18,7 @@ class CoarseMetCameraWidget(BaseFLIRCameraWidget):
         # Button to enable the metrology loop
         self.numframes_edit.setText("0")
         hbox = QHBoxLayout()
-        self.enable_button = QPushButton("Enable Metrology", self)
+        self.enable_button = QPushButton("LED flash", self)
         self.enable_button.setCheckable(True)
         self.enable_button.setFixedWidth(200)
         self.enable_button.clicked.connect(self.enable_met_loop_button_func)
@@ -29,13 +29,13 @@ class CoarseMetCameraWidget(BaseFLIRCameraWidget):
     def enable_met_loop_button_func(self):
         if self.Connect_button.isChecked():       
             if self.enable_button.isChecked():
-                self.enable_button.setText("Disable metrology")
+                self.enable_button.setText("Disable flash")
                 self.send_to_server("CM.enableLEDs 1")
-                print("Enabling Coarse Met Loop")
+                print("Enabling LED flash")
             else:
-                self.enable_button.setText("Enable metrology")
+                self.enable_button.setText("LED flash")
                 self.send_to_server("CM.enableLEDs 0")
-                print("Disabling Coarse Met Loop")
+                print("Disabling LED flash")
         else:
             self.enable_button.setChecked(False)
             print("CAMERA NOT CONNECTED")

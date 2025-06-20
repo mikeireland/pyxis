@@ -15,6 +15,7 @@ cam_ID = "USB\\VID_1E10&SRL_20031592"
     exposure_time = 3000 # in microseconds
     num_frames = 0 #Default number of frames to save per FITS file; 0 is continuous with no saving
     buffer_size = 50 #Size of circular buffer
+    num_savefiles = 100
 
     [FLIRcamera.bounds]
     width = [32,1440]
