@@ -7,6 +7,7 @@ cl = cs.ClientSocket(IP="150.203.91.206", Port="4100")
 """
 from __future__ import print_function, division
 import time
+import os
 
 try:
     import zmq
@@ -14,12 +15,20 @@ except:
     print("Please install zmq, e.g. with 'pip install --user zmq' if you don't have sudo privliges.")
     raise UserWarning
 
+# Default directory is the GUIcommand_log directory in the directory where the script is run.
+# This is where the log files will be saved.
+import os
+
 class ClientSocket:
-    def __init__(self,IP="127.0.0.1",Port="44010",TIMEOUT=5000, logdir="/home/pyxisuser/pyxis/gui/GUIcommand_log"):
+    def __init__(self,IP="127.0.0.1",Port="44010",TIMEOUT=5000, logdir=None):
         """A socket"""
         self.count=0
         self.Port = Port
         self.TIMEOUT = TIMEOUT
+        if logdir is None:
+            logdir = os.path.dirname(os.path.abspath(__file__)) + "/GUIcommand_log"
+            if not os.path.exists(logdir):
+                os.makedirs(logdir)
         self.logdir = logdir
         try:
             self.context = zmq.Context()
