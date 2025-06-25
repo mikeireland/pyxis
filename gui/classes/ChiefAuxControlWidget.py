@@ -318,7 +318,7 @@ class ChiefAuxControlWidget(RawWidget):
     def ask_for_status(self):
         #As this is on a continuous timer, only do anything if we are
         #connected
-        response = self.send_to_server_with_response("CA.requestStatus")
+        response = self.send_to_server_with_response("CA.status")
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)

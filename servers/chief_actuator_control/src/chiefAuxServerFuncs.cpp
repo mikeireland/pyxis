@@ -486,7 +486,8 @@ namespace nlohmann {
 COMMANDER_REGISTER(m)
 {
     m.instance<ChiefAuxServer>("CA")
-        .def("requestStatus", &ChiefAuxServer::requestStatus, "Get information on all actuators and power")
+        // .def("requestStatus", &ChiefAuxServer::requestStatus, "Get information on all actuators and power")
+        .def("status", &ChiefAuxServer::requestStatus, "Get information on all actuators and power") //rename the command to algin with FSM
 		.def("moveSDC", &ChiefAuxServer::moveSDC, "Move fine stage [steps, period (us)]")
         .def("homeSDC", &ChiefAuxServer::homeSDC, "Home fine stage")
         .def("SDCpos", &ChiefAuxServer::getSDCpos, "Get fine stage position")
