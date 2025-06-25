@@ -4,7 +4,7 @@ from BaseFLIRCameraWidget import BaseFLIRCameraWidget, FeedWindow
 
 try:
     from PyQt5.QtWidgets import QPushButton, QHBoxLayout
-    from PyQt5.QtCore import QPoint
+    # from PyQt5.QtCore import QPoint
 except:
     print("Please install PyQt5.")
     raise UserWarning
