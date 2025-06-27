@@ -5,6 +5,10 @@ import pytomlpp
 import collections
 import importlib
 import faulthandler
+import cProfile
+import pstats, io
+
+
 # import argparse
 
 faulthandler.enable()
@@ -143,11 +147,11 @@ class PyxisGui(QTabWidget):
         self.line_edit = QLineEdit("")
         self.line_edit.returnPressed.connect(self.command_enter)
         # #Next, the status button
-        # self.status_button = QPushButton("Status", self)
-        # self.status_button.clicked.connect(self.status_click)
+        self.status_button = QPushButton("Status", self)
+        self.status_button.clicked.connect(self.status_click)
         hbox.addWidget(lbl)
         hbox.addWidget(self.line_edit)
-        # hbox.addWidget(self.status_button)
+        hbox.addWidget(self.status_button)
         side_input.addLayout(hbox)
 
         #Next, the response box
@@ -279,9 +283,9 @@ class PyxisGui(QTabWidget):
         return fsm_status_dict
     
 
-    def get_indicators(self, fsm_status_dict, name, tab):
+    def get_indicators(self, isalive, connected, name, tab):
         #Get alive status from FSM status response
-        if fsm_status_dict[name]["isalive"] == "True":
+        if isalive == "True":
             self.alive_light[tab][name].load("assets/green.svg")
             self.alive_text[tab][name].setText("Alive")
         else:
@@ -289,7 +293,7 @@ class PyxisGui(QTabWidget):
             self.alive_text[tab][name].setText("Dead")
 
         #Get connection status from FSM status response
-        if fsm_status_dict[name]["connected"] == "True":
+        if connected == "True":
             self.connect_light[tab][name].load("assets/green.svg")
             self.connect_text[tab][name].setText("Connected")
         else:
@@ -320,7 +324,7 @@ class PyxisGui(QTabWidget):
                 for item in config[tab]:
                     sub_config = config[tab][item]
                     name = sub_config["name"]
-                    self.get_indicators(fsm_status_dict, name, tab)
+                    self.get_indicators(fsm_status_dict[name]["isalive"], fsm_status_dict[name]["connected"], name, tab)
             self.dashboard_mainStatus.setText("PYXIS STATUS: Refreshed")
             # """Start worker thread"""
             # self.fsm_worker = FSMStatusWorker(self.fsm_socket)
@@ -403,25 +407,20 @@ class PyxisGui(QTabWidget):
         self.line_edit.setText("")
 
     # """What happens when you click the status button"""
-    # def status_click(self):
-    #     fsm_status_dict = self.get_status_from_fsm()
-    #     self.fsm_worker = FSMStatusWorker(self.fsm_socket)
-    #     self.fsm_worker.result_ready.connect(self.handle_status_click_result)
-    #     self.fsm_worker.start()
-
-    # def handle_status_click_result(self, fsm_status_dict):
+    def status_click(self):
+        fsm_status_dict = self.get_status_from_fsm()
         #print out the status in a readable format
-        # navis_dict = {k: v for k, v in fsm_status_dict.items() if "Navis" in k or "CoarseMet" in k}
-        # self.response_label.append("-"*10  + "Navis" + "-"*10)
-        # self.response_label.append(str(navis_dict))
+        navis_dict = {k: v for k, v in fsm_status_dict.items() if "Navis" in k or "CoarseMet" in k}
+        self.response_label.append("-"*10  + "Navis" + "-"*10)
+        self.response_label.append(str(navis_dict))
 
-        # dextra_dict = {k: v for k, v in fsm_status_dict.items() if "Dextra" in k and "CoarseMet" not in k}
-        # self.response_label.append("-"*10  + "Dextra" + "-"*10)
-        # self.response_label.append(str(dextra_dict))
+        dextra_dict = {k: v for k, v in fsm_status_dict.items() if "Dextra" in k and "CoarseMet" not in k}
+        self.response_label.append("-"*10  + "Dextra" + "-"*10)
+        self.response_label.append(str(dextra_dict))
 
-        # sinistra_dict = {k: v for k, v in fsm_status_dict.items() if "Sinistra" in k and "CoarseMet" not in k}
-        # self.response_label.append("-"*10  + "Sinistra" + "-"*10)
-        # self.response_label.append(str(sinistra_dict))
+        sinistra_dict = {k: v for k, v in fsm_status_dict.items() if "Sinistra" in k and "CoarseMet" not in k}
+        self.response_label.append("-"*10  + "Sinistra" + "-"*10)
+        self.response_label.append(str(sinistra_dict))
 
 
 # Start application

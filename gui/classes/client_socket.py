@@ -20,7 +20,7 @@ except:
 import os
 
 class ClientSocket:
-    def __init__(self,IP="127.0.0.1",Port="44010",TIMEOUT=5000, logdir=None):
+    def __init__(self,IP="127.0.0.1",Port="44010",TIMEOUT=1000, logdir=None):
         """A socket"""
         self.count=0
         self.Port = Port

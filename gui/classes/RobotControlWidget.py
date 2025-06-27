@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
 from RawWidget import RawWidget
-import json, time
+import json
 
 try:
     from PyQt5.QtWidgets import QPushButton, QHBoxLayout, \
@@ -342,25 +342,19 @@ class RobotControlWidget(RawWidget):
         self.full_window.addLayout(hbox)
         
 
-    """ Ask for server status (Currently does nothing!) """
-    def ask_for_status(self):
-        if (self.socket.connected):
-            self.status_light = "assets/green.svg"
-            self.svgWidget.load(self.status_light)
-            self.status_text = "Socket Connected"
-            self.status_label.setText(self.status_text)
-            try: 
-                self.status_button_func()
-            # If the server is not responding, it will throw an exception
-            # and we will just ignore it.
-            except:
-                return    
+    """ Ask for server status """
+    # def ask_for_status(self):
+    #     if (self.socket.connected):
+    #         self.status_light = "assets/green.svg"
+    #         self.svgWidget.load(self.status_light)
+    #         self.status_text = "Socket Connected"
+    #         self.status_label.setText(self.status_text)
 
-        else:
-            self.status_light = "assets/red.svg"
-            self.status_text = "Socket Not Connected"
-            self.status_label.setText(self.status_text)
-            self.svgWidget.load(self.status_light)
+    #     else:
+    #         self.status_light = "assets/red.svg"
+    #         self.status_text = "Socket Not Connected"
+    #         self.status_label.setText(self.status_text)
+    #         self.svgWidget.load(self.status_light)
 
     """ UPDATE THESE TO PROPERLY DO THE REQUIRED THINGS! """
         
