@@ -157,7 +157,28 @@ class FSM:
             
         else:
             return("Pyxis service is deactived, no need to stop.")
-    
+        
+    def get_LEDs(self):
+        """Get the positions of the LEDs on both deputy"""
+        led_positions = {
+            "DexCoarseMet": {"LED1": "NULL", "LED2": "NULL"},
+            "SinCoarseMet": {"LED1": "NULL", "LED2": "NULL"}
+        }
+        try:
+            # Get DextraCoarseMet LEDs
+            dex_response = self.clients["DextraCoarseMet"].socket.send_command("CM.getLEDs")
+            dex_leds = json.loads(dex_response)
+            led_positions["DexCoarseMet"]["LED1"] = (dex_leds["LED1_x"], dex_leds["LED1_y"])
+            led_positions["DexCoarseMet"]["LED2"] = (dex_leds["LED2_x"], dex_leds["LED2_y"])
+            # Get SinistraCoarseMet LEDs
+            sin_response = self.clients["SinistraCoarseMet"].socket.send_command("CM.getLEDs")
+            sin_leds = json.loads(sin_response)
+            led_positions["SinCoarseMet"]["LED1"] = (sin_leds["LED1_x"], sin_leds["LED1_y"])
+            led_positions["SinCoarseMet"]["LED2"] = (sin_leds["LED2_x"], sin_leds["LED2_y"])
+        except Exception as e:
+            print(f"Error getting LED positions: {e}")
+        return led_positions
+
     def _run(self):
         """Run the FSM server, listening for commands, and checking on clients
         one at a time """
