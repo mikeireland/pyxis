@@ -157,16 +157,23 @@ ImageProcessSubMatInterp::get_location(const cv::Mat &image_on,
     
     Point2D<int> p;
     Point2D<double> p_ret;
+    double maxVal1, maxVal2;
 
     // take maximum, find centroid in region, then set a circle around centroid to 0, and repeat
-    cv::minMaxLoc(diff_image, nullptr, nullptr, nullptr, &p.p1);
+    cv::minMaxLoc(diff_image, nullptr, &maxVal1, nullptr, &p.p1);
     //p_ret.p1 = interp(diff_image, p.p1); // !!! Fails at the edge of the image
     p_ret.p1 = p.p1;
     //NB This next line looks like it will fail if the circle is too close to the edge of the image.
     cv::circle(diff_image, p.p1, 20, cv::Scalar(0, 0, 0), cv::FILLED);
-    cv::minMaxLoc(diff_image, nullptr, nullptr, nullptr, &p.p2);
+    cv::minMaxLoc(diff_image, nullptr, &maxVal2, nullptr, &p.p2);
     //p_ret.p2 = interp(diff_image, p.p2); // !!! Fails at the edge of the image
     p_ret.p2 = p.p2;
+
+    if (maxVal2 < led_ratio_threshold * maxVal1) {
+        // Second peak is too weak, likely noise
+        p.p2 = cv::Point(-1, -1); // Obiously this is not found.
+        std::cout << "Second maximal is too weak, likely noise. Not both LEDs are found" << std::endl;
+    }
 
     return p_ret;
 }
