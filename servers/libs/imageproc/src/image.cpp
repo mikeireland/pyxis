@@ -132,20 +132,18 @@ Point2D<int> ImageProcessSubMat::operator()(const cv::Mat &image_off,
 }
 
 Point2D<double>
-ImageProcessSubMatInterp::get_location(const cv::Mat &image_off,
-                                       const cv::Mat &image_on) {
+ImageProcessSubMatInterp::get_location(const cv::Mat &image_on,
+                                       const cv::Mat &image_off) {
 
-    cv::Mat image_on_float, image_off_float, diff_image;
+    // cv::Mat image_on_float, image_off_float, diff_image;
     // auto sub_image_off = image_off(sub_rect);
     // auto sub_image_on = image_on(sub_rect);
     // diff the images the highlight LEDs
-    image_on.convertTo(image_on_float, CV_32F);
-    image_off.convertTo(image_off_float, CV_32F);
-    cv::subtract(image_on_float, image_off_float, diff_image);
+    cv::subtract(image_on, image_off, diff_image);
     //Edited by Qianhui: save the image for debugging
-    cv::imwrite("/home/pyxisuser/pyxis/servers/coarse_metrology/data/image_on.tiff", image_on_float);
-    cv::imwrite("/home/pyxisuser/pyxis/servers/coarse_metrology/data/diff_image.tiff", diff_image);//end of edit
-
+    // cv::imwrite("/home/pyxisuser/pyxis/servers/coarse_metrology/data/image_on.tiff", image_on);
+    // cv::imwrite("/home/pyxisuser/pyxis/servers/coarse_metrology/data/image_off.tiff", image_off);
+    
     if (do_gauss)
         cv::GaussianBlur(diff_image, diff_image,
                          cv::Size(gauss_radius, gauss_radius), 0, 0,
@@ -155,9 +153,8 @@ ImageProcessSubMatInterp::get_location(const cv::Mat &image_off,
 
     //diff_image.convertTo(diff_image, CV_32F);
     //Edited by Qianhui: save the image for debugging
-    cv::imwrite("/home/pyxisuser/pyxis/servers/coarse_metrology/data/diff_image_med.tiff", diff_image);
-    cv::imwrite("/home/pyxisuser/pyxis/servers/coarse_metrology/data/diff_image_med.exr", diff_image);//end of edit
-
+    // cv::imwrite("/home/pyxisuser/pyxis/servers/coarse_metrology/data/diff_image_med.tiff", diff_image);
+    
     Point2D<int> p;
     Point2D<double> p_ret;
 
@@ -174,14 +171,13 @@ ImageProcessSubMatInterp::get_location(const cv::Mat &image_off,
     return p_ret;
 }
 
-Point2D<double> ImageProcessSubMatInterp::operator()(const cv::Mat &image_off,
-                                                     const cv::Mat &image_on) {
-    auto p = get_location(image_off(sub_rect), image_on(sub_rect));
-
-    p.p1.x += sub_rect.x;
-    p.p1.y += sub_rect.y;
-    p.p2.x += sub_rect.x;
-    p.p2.y += sub_rect.y;
+Point2D<double> ImageProcessSubMatInterp::operator()(const cv::Mat &image_on,
+                                                     const cv::Mat &image_off) {
+    // auto p = get_location(image_off(sub_rect), image_on(sub_rect));
+    // p.p1.x += sub_rect.x;
+    // p.p1.y += sub_rect.y;
+    // p.p2.x += sub_rect.x;
+    // p.p2.y += sub_rect.y;
 
     // if (image_on.at<int>(p.p1) < threshold || image_on.at<int>(p.p2) <
     // threshold)
@@ -192,6 +188,7 @@ Point2D<double> ImageProcessSubMatInterp::operator()(const cv::Mat &image_off,
     // fmt::print("sub_rect: ({}, {}), ({}, {})\n", sub_rect.x, sub_rect.y,
     // sub_rect.width, sub_rect.height);
 
+    auto p = get_location(image_on, image_off);// Upper lines are commented out by Qianhui, I don't get it, why the previous code needs to sub_rect???
     auto x_min = std::min(p.p1.x, p.p2.x);
     auto x_max = std::max(p.p1.x, p.p2.x);
     auto y_min = std::min(p.p1.y, p.p2.y);
@@ -202,7 +199,7 @@ Point2D<double> ImageProcessSubMatInterp::operator()(const cv::Mat &image_off,
     y_min = y_min < 20 ? 0 : y_min - margin;
     y_max = y_max > image_on.rows - 20 ? image_on.rows : y_max + margin;
 
-    sub_rect = cv::Rect(x_min, y_min, x_max - x_min, y_max - y_min);
+    // sub_rect = cv::Rect(x_min, y_min, x_max - x_min, y_max - y_min);
 
     return p;
 }

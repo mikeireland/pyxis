@@ -99,13 +99,21 @@ int CM_Callback (unsigned short* data){
         int height = GLOB_IMSIZE/GLOB_WIDTH;
 
         cv::Mat img (height,GLOB_WIDTH,CV_16U,data);
+        cv::Mat img_float;
+        img.convertTo(img_float, CV_32F);//Edit by Qianhui: convert to float for processing
+
+        std::cout << "img type: " << img_float.type() << " (should be " << CV_32F << " for 32F)" << std::endl;
+        std::cout << "img size: " << img_float.rows << " x " << img_float.cols << std::endl;
 
         //If LED is ON
         if (GLOB_CM_ONFLAG){
             
+            cv::Mat dark_float;
+            GLOB_CM_IMG_DARK.convertTo(dark_float, CV_32F);//Edit by Qianhui: convert to float for processing
+
             cout << "LED On" << endl;
             pthread_mutex_lock(&GLOB_CM_IMG_LOCK);
-            LEDs positions = CalcLEDPosition(img,GLOB_CM_IMG_DARK);
+            LEDs positions = CalcLEDPosition(img_float,dark_float);//Pass the float images to CalcLEDPosition function
             pthread_mutex_unlock(&GLOB_CM_IMG_LOCK);
             pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
             GLOB_CM_LEDs = positions;
