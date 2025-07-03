@@ -58,9 +58,9 @@ struct ImageProcessSubMat {
 
 // too lazy to do inheritance
 struct ImageProcessSubMatInterp {
-    bool do_gauss = false;
+    bool do_gauss = true;
     bool do_median = true;
-    double led_ratio_threshold = 0.7; // The second LED must be at least 70% of the first LED brightness to be considered valid
+    double led_ratio_threshold = 0.9; // The second LED must be at least 90% of the first LED brightness to be considered valid
     int gauss_radius = 21;
     std::size_t margin = 20;
     int threshold = 10;

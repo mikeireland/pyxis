@@ -171,7 +171,7 @@ ImageProcessSubMatInterp::get_location(const cv::Mat &image_on,
 
     if (maxVal2 < led_ratio_threshold * maxVal1) {
         // Second peak is too weak, likely noise
-        p.p2 = cv::Point(-1, -1); // Obiously this is not found.
+        p_ret.p2 = cv::Point(-1, -1); // Obiously this is not found.
         std::cout << "Second maximal is too weak, likely noise. Not both LEDs are found" << std::endl;
     }
 

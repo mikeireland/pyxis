@@ -102,9 +102,6 @@ int CM_Callback (unsigned short* data){
         cv::Mat img_float;
         img.convertTo(img_float, CV_32F);//Edit by Qianhui: convert to float for processing
 
-        std::cout << "img type: " << img_float.type() << " (should be " << CV_32F << " for 32F)" << std::endl;
-        std::cout << "img size: " << img_float.rows << " x " << img_float.cols << std::endl;
-
         //If LED is ON
         if (GLOB_CM_ONFLAG){
             
@@ -121,6 +118,16 @@ int CM_Callback (unsigned short* data){
             
             cout << "LED1: (" << positions.LED1_x << ", " << positions.LED1_y << ")" << endl;
             cout << "LED2: (" << positions.LED2_x << ", " << positions.LED2_y << ")" << endl;
+
+            // Log LED positions to file
+            std::ofstream logfile("/home/pyxisuser/pyxis/servers/coarse_metrology/data/led_positions.log", std::ios::app);
+            if (logfile.is_open()) {
+                logfile << std::fixed << std::setprecision(2)
+                        << "LED1: " << positions.LED1_x << "," << positions.LED1_y << ","
+                        << "LED2: " << positions.LED2_x << "," << positions.LED2_y << ","
+                        << "Timestamp: " << std::time(nullptr) << std::endl; // Add timestamp
+                logfile.close();
+    }
 
             //ZMQ CLIENT SEND TO DEPUTY ROBOT positions
             //RB_SOCKET->send<int>("RC.receive_LED_positions", positions);
