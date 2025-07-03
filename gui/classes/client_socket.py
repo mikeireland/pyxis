@@ -18,9 +18,10 @@ except:
 # Default directory is the GUIcommand_log directory in the directory where the script is run.
 # This is where the log files will be saved.
 import os
+TIMEOUT = 2000  # Default timeout for socket operations in milliseconds
 
 class ClientSocket:
-    def __init__(self,IP="127.0.0.1",Port="44010",TIMEOUT=1000, logdir=None):
+    def __init__(self,IP="127.0.0.1",Port="44010",TIMEOUT=TIMEOUT, logdir=None):
         """A socket"""
         self.count=0
         self.Port = Port
@@ -42,7 +43,7 @@ class ClientSocket:
             print('Could not open socket at {0}'.format(self.tcpstring))
             self.connected=False
 
-    def send_command(self, command):
+    def send_command(self, command, rcvtimeo = TIMEOUT):
         """Send a command"""
         #If we aren't connected and the user pressed <Enter>, just try to reconnect
         if (self.connected==False):
@@ -50,7 +51,7 @@ class ClientSocket:
                 try:
                     self.client = self.context.socket(zmq.REQ)
                     self.client.connect(self.tcpstring)
-                    self.client.RCVTIMEO = self.TIMEOUT
+                    self.client.RCVTIMEO = rcvtimeo
                     self.client.send_string(command,zmq.NOBLOCK)
                     self.client.recv()
                 except:
