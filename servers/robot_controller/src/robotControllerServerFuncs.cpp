@@ -261,6 +261,43 @@ struct RobotControlServer {
 		return 0;
 	}
 
+
+    int receive_AlignmentError(double dlt_p_x, double dlt_p_y) {
+        double y_offset = dlt_p_x;
+        double z_offset = dlt_p_y;
+        double y_mov = 0;
+        double z_mov = 0;
+
+        // make robot move to reduce the offset
+        if (y_offset < 1e-6 && y_offset > -1e-6) {
+            y_mov = 0; // Y axis is aligned, no movement needed
+        }
+        else{
+            y_mov = y_offset; ;
+            if (y_mov > 10.0) y_mov = 10.0;
+            if (y_mov < -10.0) y_mov = -10.0;//cap the velocity to 10cm/s
+        }
+
+        // If the z_offset is zero, no movement is needed, otherwise move in the z direction
+        if (z_offset < 1e-6 && z_offset > -1e-6) {
+            z_mov = 0; // Z axis is aligned, no movement needed
+        }
+        else{
+            z_mov = z_offset;
+            if (z_mov > 10.0) z_mov = 10.0;
+            if (z_mov < -10.0) z_mov = -10.0; //cap the velocity to 10cm/s
+        }
+
+    
+        translate_robot(1, 0, y_mov, z_mov, 0.0, 0.0, 0.0, 0.0);
+        std::cout << ", moving robot to reduce alignment error: "
+                    << "y_offset: " << y_offset << ", z_offset: " << z_offset;
+
+        return 0;
+    }
+
+
+
 	Status status(){
         // !!! Needs a thead-lock here.
         g_status.loop_counter = loop_counter;
@@ -319,7 +356,8 @@ COMMANDER_REGISTER(m)
         .def("set_gains", &RobotControlServer::set_gains, "Set the gains for tracking alt/az, i.e. el/yaw")
         .def("set_heading", &RobotControlServer::set_heading, "UNUSED - manual control only")
 		.def("receive_LED_positions", &RobotControlServer::receive_LED, "placeholder")
-		.def("update_offsets", &RobotControlServer::offset_targets, "Offset the azimuth and altitude, roll, pitch.")
+		.def("receive_AlignmentError", &RobotControlServer::receive_AlignmentError, "Receive the Alignment offset from the coarse metrology.")
+        .def("update_offsets", &RobotControlServer::offset_targets, "Offset the azimuth and altitude, roll, pitch.")
         .def("disconnect", &RobotControlServer::disconnect, "placeholder")
-		.def("status", &RobotControlServer::status, "Get the current roll and pitch angles.");
+		.def("status", &RobotControlServer::status, "Get the status of all axes including roll and pitch.");
 }

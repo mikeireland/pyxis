@@ -31,8 +31,9 @@ struct Motors
 
 // Status that can be returned through the server
 struct Status {
-	double roll;
-    double pitch;
+	double roll, pitch; // Current roll and pitch angles
+    double yaw, el; // Current yaw and elevation angles
+    double dx, dy, dz; // Current x, y, z offsets
     int loop_status, loop_counter;
 };
 

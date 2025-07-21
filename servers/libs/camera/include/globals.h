@@ -22,6 +22,7 @@ extern int GLOB_NUMFRAMES; // Number of frames per FITS file
 extern int GLOB_COADD; // Flag as to whether to coadd frames on save
 extern int GLOB_IMSIZE; // Size of one image in pixels
 extern int GLOB_WIDTH; // Width of image in pixels
+extern double GLOB_PIX_PER_RAD; // Pixels per radian (GLOB_PIX_PER_RAD)
 
 extern int GLOB_WIDTH_MAX;
 extern int GLOB_WIDTH_MIN;

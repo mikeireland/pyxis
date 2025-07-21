@@ -20,47 +20,10 @@ struct LinearGradientInterp {
     double inverse_linear_interp(cv::Point2d p1, cv::Point2d p2, double y);
 };
 
-struct CentroidInterp {
-    int interp_size = 3;
-    cv::Point2d operator()(const cv::Mat &image, const cv::Rect &sub_rect);
-    cv::Point2d operator()(const cv::Mat &image, const cv::Point &center) {
-        return operator()(image, cv::Rect(center.x - (interp_size-1)/2, center.y - (interp_size-1)/2, interp_size, interp_size));
-    }
-    void meshgrid(const cv::Mat &x, const cv::Mat &y, cv::Mat &X, cv::Mat &Y) {
-        cv::repeat(x.reshape(1, 1), y.total(), 1, X);
-        cv::repeat(y.reshape(1, 1).t(), 1, x.total(), Y);
-    }
-};
-
-struct ImageProcessBasic {
-    bool do_gauss = false;
-    int gauss_radius = 21;
-
-    cv::Mat diff_image;
-
-    Point2D<int> operator()(const cv::Mat &image_off, const cv::Mat &image_on);
-};
-
-struct ImageProcessSubMat {
-    bool do_gauss = false;
-    int gauss_radius = 21;
-    std::size_t margin = 20;
-    int threshold = 10;
-
-    cv::Mat diff_image;
-
-    cv::Rect_<int> sub_rect{cv::Point_<int>{0, 0}, cv::Point_<int>{1440, 1080}};
-
-    Point2D<int> operator()(const cv::Mat &image_off, const cv::Mat &image_on);
-    Point2D<int> get_location(const cv::Mat &image_off,
-                              const cv::Mat &image_on);
-};
-
-// too lazy to do inheritance
 struct ImageProcessSubMatInterp {
     bool do_gauss = true;
     bool do_median = true;
-    double led_ratio_threshold = 0.9; // The second LED must be at least 90% of the first LED brightness to be considered valid
+    double led_ratio_threshold = 0.6; // The second LED must be at least 96% of the first LED brightness to be considered valid
     int gauss_radius = 21;
     std::size_t margin = 20;
     int threshold = 10;
@@ -83,35 +46,26 @@ private:
     InterpFunc interp;
 };
 
-// too lazy to do inheritance
-struct ImageProcessSubMatInterpSingle {
-    
-    bool do_gauss = true;
-    int gauss_radius = 21;
-    std::size_t margin = 500;
-    
-    int centroid_interp_size = 3;
 
+cv::Point2d angle_to_center(const cv::Point2d& LEDposition, double img_width, double img_height, double pix_per_rad = 2.0);
 
-    using InterpFunc =
-        std::function<cv::Point2d(const cv::Mat &, const cv::Point &)>;
+double estimate_d(const cv::Point2d& alpha_1, const cv::Point2d& alpha_2);
 
-    explicit ImageProcessSubMatInterpSingle(const int& height, const int& width, InterpFunc func = CentroidInterp())
-        : imheight(height), imwidth(width), interp(func){};
-        
-    int imheight;
-    int imwidth;
+cv::Point2d rotate90(const cv::Point2d& v);
 
-    cv::Rect_<int> sub_rect{cv::Point_<int>{0, 0}, cv::Point_<int>{imwidth, imheight}};
-    
-    
-    
-    cv::Point2d operator()(const cv::Mat &image);
-    cv::Point2d get_location(const cv::Mat &image);
+cv::Point2d get_alpha_t(const cv::Point2d& alpha_1, const cv::Point2d& alpha_2, double beta, double gamma);
 
-private:
-    InterpFunc interp;
-
+struct AlignmentError {
+    cv::Point2d alpha_1;
+    cv::Point2d alpha_2;
+    cv::Point2d dlt_p;
 };
+
+AlignmentError compute_alignment_error(
+    const cv::Point2d& LED1, const cv::Point2d& LED2,
+    double beta, double gamma,
+    const cv::Point2d& x0, const cv::Point2d& alpha_c,
+    double width, double imsize, double pix_per_rad
+);
 
 } // namespace image
