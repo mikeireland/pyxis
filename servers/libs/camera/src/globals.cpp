@@ -17,6 +17,7 @@ int GLOB_NUMFRAMES = 0;
 int GLOB_COADD = 0;
 int GLOB_IMSIZE = 0;
 int GLOB_WIDTH = 0;
+double GLOB_PIX_PER_RAD = 1000.0;//Need to be corrected
 
 // Bounds
 int GLOB_WIDTH_MAX = 0;

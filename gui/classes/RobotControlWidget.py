@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
 from RawWidget import RawWidget
-import json, time
+import json
 
 try:
     from PyQt5.QtWidgets import QPushButton, QHBoxLayout, \
         QVBoxLayout, QLabel, QLineEdit, QGridLayout
-    from PyQt5.QtCore import Qt
+    from PyQt5.QtCore import Qt, QTimer
 except:
     print("Please install PyQt5.")
     raise UserWarning
@@ -294,6 +294,8 @@ class RobotControlWidget(RawWidget):
         hbox.addWidget(lbl)
         status_layout.addLayout(hbox)
         status_layout.addSpacing(20)
+        self.status_timer = QTimer(self)
+        self.status_timer.timeout.connect(self.status_button_func)
 
         #This is the request status button
         # hbox = QHBoxLayout()
@@ -342,19 +344,13 @@ class RobotControlWidget(RawWidget):
         self.full_window.addLayout(hbox)
         
 
-    """ Ask for server status (Currently does nothing!) """
+    """ Ask for server status """
     def ask_for_status(self):
         if (self.socket.connected):
             self.status_light = "assets/green.svg"
             self.svgWidget.load(self.status_light)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
-            try: 
-                self.status_button_func()
-            # If the server is not responding, it will throw an exception
-            # and we will just ignore it.
-            except:
-                return    
 
         else:
             self.status_light = "assets/red.svg"
@@ -407,6 +403,7 @@ class RobotControlWidget(RawWidget):
     def stop_button_func(self):
         self.send_to_server("RC.translate 1,0,0,0,0,0,0,0")
         print("Sending 'Stop' command")
+        self.status_timer.stop()
 
         
     """ Disconnect the robot """
@@ -419,6 +416,7 @@ class RobotControlWidget(RawWidget):
     def start_button_func(self):
         self.send_to_server("RC.start")
         print("Sending 'Start' command")
+        self.status_timer.start(1000)
 
 
 

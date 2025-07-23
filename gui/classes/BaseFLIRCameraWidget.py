@@ -453,7 +453,8 @@ class BaseFLIRCameraWidget(RawWidget):
         if self.Connect_button.isChecked():
             self.Connect_button.setText("Disconnect")
             print("Camera is now Connected")
-            self.send_to_server("%s.connect"%self.prefix)
+            # self.send_to_server("%s.connect"%self.prefix)
+            self.socket.send_command("%s.connect"%self.prefix, rcvtimeo=3000)
             time.sleep(2)
             self.get_params()
 
@@ -464,7 +465,8 @@ class BaseFLIRCameraWidget(RawWidget):
         else:
             self.Connect_button.setText("Connect")
             print("Disconnecting Camera")
-            self.send_to_server("%s.disconnect"%self.prefix)
+            # self.send_to_server("%s.disconnect"%self.prefix)
+            self.socket.send_command("%s.disconnect"%self.prefix, rcvtimeo=3000)
 
     def toggle_USB(self):
         if self.Connect_button.isChecked():

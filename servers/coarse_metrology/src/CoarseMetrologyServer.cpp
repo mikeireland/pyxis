@@ -55,6 +55,20 @@ namespace nlohmann {
     };
 }
 
+
+namespace nlohmann {
+    template <>
+    struct adl_serializer<cv::Point2d> {
+        static void to_json(json& j, const cv::Point2d& p) {
+            j = json{{"x", p.x}, {"y", p.y}};
+        }
+        static void from_json(const json& j, cv::Point2d& p) {
+            j.at("x").get_to(p.x);
+            j.at("y").get_to(p.y);
+        }
+    };
+}
+
 /* Function to calculate the LED positions from an image
 Inputs:
     img - OpenCV image to process
@@ -65,12 +79,11 @@ Outputs:
 */
 LEDs CalcLEDPosition(cv::Mat img, cv::Mat dark){
 
-    // Function to take image array and find the two LED positions
-    static image::ImageProcessSubMatInterp ipb;
-    
     LEDs result;
-
     try {
+        // Function to take image array and find the two LED positions
+        static image::ImageProcessSubMatInterp ipb;
+
         auto p = ipb(img, dark);
         
         result.LED1_x = p.p1.x;
@@ -80,6 +93,7 @@ LEDs CalcLEDPosition(cv::Mat img, cv::Mat dark){
 
     } catch (const cv::Exception& e) {
         std:cout << e.what() << std::endl;
+        result.LED1_x = result.LED1_y = result.LED2_x = result.LED2_y = -1;
     }   
 
     return result;
@@ -99,13 +113,18 @@ int CM_Callback (unsigned short* data){
         int height = GLOB_IMSIZE/GLOB_WIDTH;
 
         cv::Mat img (height,GLOB_WIDTH,CV_16U,data);
+        cv::Mat img_float;
+        img.convertTo(img_float, CV_32F);//Edit by Qianhui: convert to float for processing
 
         //If LED is ON
         if (GLOB_CM_ONFLAG){
             
+            cv::Mat dark_float;
+            GLOB_CM_IMG_DARK.convertTo(dark_float, CV_32F);//Edit by Qianhui: convert to float for processing
+
             cout << "LED On" << endl;
             pthread_mutex_lock(&GLOB_CM_IMG_LOCK);
-            LEDs positions = CalcLEDPosition(img,GLOB_CM_IMG_DARK);
+            LEDs positions = CalcLEDPosition(img_float,dark_float);//Pass the float images to CalcLEDPosition function
             pthread_mutex_unlock(&GLOB_CM_IMG_LOCK);
             pthread_mutex_lock(&GLOB_CM_FLAG_LOCK);
             GLOB_CM_LEDs = positions;
@@ -113,6 +132,18 @@ int CM_Callback (unsigned short* data){
             
             cout << "LED1: (" << positions.LED1_x << ", " << positions.LED1_y << ")" << endl;
             cout << "LED2: (" << positions.LED2_x << ", " << positions.LED2_y << ")" << endl;
+
+            // Log LED positions to file
+            auto t = std::time(nullptr);
+            auto tm = *std::localtime(&t);
+            std::ofstream logfile("/home/pyxisuser/pyxis/servers/coarse_metrology/data/led_positions.log", std::ios::app);
+            if (logfile.is_open()) {
+                logfile << std::fixed << std::setprecision(2)
+                        << "LED1: " << positions.LED1_x << "," << positions.LED1_y << ","
+                        << "LED2: " << positions.LED2_x << "," << positions.LED2_y << ","
+                        << "Timestamp: " << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << std::endl; // Add timestamp
+                logfile.close();
+    }
 
             //ZMQ CLIENT SEND TO DEPUTY ROBOT positions
             //RB_SOCKET->send<int>("RC.receive_LED_positions", positions);
@@ -186,6 +217,42 @@ struct CoarseMet: FLIRCameraServer{
         return ret_LEDs;
     }
 
+    // Calculate the alignment error based on the LED positions and angles
+    json getAlignmentError(){
+
+        //Example of parameters, needs to be calibrated:
+        double beta = 0.5;
+        double gamma = 0.02;
+        cv::Point2d x0 = cv::Point2d(0.1, 45.0);
+        cv::Point2d alpha_c = cv::Point2d(0.002, -0.001);
+
+        // Get LED positions
+        LEDs leds = getLEDpositions();
+        cv::Point2d LED1(leds.LED1_x, leds.LED1_y);
+        cv::Point2d LED2(leds.LED2_x, leds.LED2_y);
+
+        // Call the image library function
+        auto err = image::compute_alignment_error(
+            LED1, LED2, beta, gamma, x0, alpha_c,
+            GLOB_WIDTH, GLOB_IMSIZE, GLOB_PIX_PER_RAD
+        ); 
+
+        // return alpha_1, alpha_2, dlt_p (all cv::Point2d)
+        if (err.dlt_p == cv::Point2d(-1, -1) && 
+            err.alpha_1 == cv::Point2d(0,0) && 
+            err.alpha_2 == cv::Point2d(0,0)) {
+            std::cerr << "Alignment error calculation failed. Please check if both LEDs are in sight." << std::endl;
+        }
+
+        json j;
+        j["alpha_1"] = {{"x", err.alpha_1.x}, {"y", err.alpha_1.y}};
+        j["alpha_2"] = {{"x", err.alpha_2.x}, {"y", err.alpha_2.y}};
+        j["dlt_p"]   = {{"x", err.dlt_p.x},   {"y", err.dlt_p.y}};
+
+        
+        return j;
+    }
+
     /*
     Function to enable the coarse metrology
     Input:
@@ -227,6 +294,7 @@ COMMANDER_REGISTER(m)
         .def("getparams", &CoarseMet::getparams, "Get all parameters")
         .def("resetUSBPort", &CoarseMet::resetUSBPort, "Reset the USB port on the HUB [string HUB name, string port number]")
         .def("getLEDs", &CoarseMet::getLEDpositions, "Get positions of two LEDs")
+        .def("getAlignmentError", &CoarseMet::getAlignmentError, "Calculate the alignment error based on LEDs in coarse metrology camera. Make sure the parameters are calibrated.")
         .def("enableLEDs", &CoarseMet::enableCoarseMetLEDs, "Enable the blinking and measuring loop [flag]");
 
 }
