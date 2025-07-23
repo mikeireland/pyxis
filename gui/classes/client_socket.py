@@ -7,11 +7,8 @@ cl = cs.ClientSocket(IP="150.203.91.206", Port="4100")
 """
 from __future__ import print_function, division
 import time
-<<<<<<< HEAD
 import sys
-=======
 import os
->>>>>>> c15ca9e45708cc6854a1de7a3ad16419c9f008d0
 
 try:
     import zmq
@@ -25,11 +22,7 @@ import os
 TIMEOUT = 2000  # Default timeout for socket operations in milliseconds
 
 class ClientSocket:
-<<<<<<< HEAD
-    def __init__(self,IP="127.0.0.1",Port="44010",TIMEOUT=5000, logdir="/Users/mireland/pyxis/pyxis/gui/GUIcommand_log"):
-=======
     def __init__(self,IP="127.0.0.1",Port="44010",TIMEOUT=TIMEOUT, logdir=None):
->>>>>>> c15ca9e45708cc6854a1de7a3ad16419c9f008d0
         """A socket"""
         self.count=0
         self.Port = Port
