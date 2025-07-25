@@ -7,6 +7,7 @@ cl = cs.ClientSocket(IP="150.203.91.206", Port="4100")
 """
 from __future__ import print_function, division
 import time
+import sys
 import os
 
 try:

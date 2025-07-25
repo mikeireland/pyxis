@@ -23,6 +23,8 @@ cv::Point2d LinearGradientInterp::operator()(const cv::Mat &image,
     cv::Mat sumx, sumy;
     cv::reduce(img, sumx, 0, cv::REDUCE_SUM, CV_32FC1);
     cv::reduce(img, sumy, 1, cv::REDUCE_SUM, CV_32FC1);
+    // This "interp" function is a lambda that takes a cv::Mat and returns a double.
+    // it is only available in this scope.
     auto interp = [this](const cv::Mat &v) {
         double diff[2];
         double ret;
