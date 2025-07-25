@@ -276,11 +276,15 @@ class PyxisGui(QTabWidget):
 
     """Get the alive status from the FSM server"""
     def get_status_from_fsm(self):
-        fsm_status = self.fsm_socket.send_command("status")
-        fsm_status_str = fsm_status.decode() if isinstance(fsm_status, bytes) else fsm_status
-        fsm_status_str = fsm_status_str.replace("True", '"True"').replace("False", '"False"').replace("'", '"')
-        fsm_status_dict = json.loads(fsm_status_str)
-        return fsm_status_dict
+        if not self.fsm_socket.connected:
+            self.response_label.append("FSM is not connected. Trying to connect...")
+            self.connect_fsm()
+        else:
+            fsm_status = self.fsm_socket.send_command("status")
+            fsm_status_str = fsm_status.decode() if isinstance(fsm_status, bytes) else fsm_status
+            fsm_status_str = fsm_status_str.replace("True", '"True"').replace("False", '"False"').replace("'", '"')
+            fsm_status_dict = json.loads(fsm_status_str)
+            return fsm_status_dict
     
 
     def get_indicators(self, isalive, connected, name, tab):
@@ -489,24 +493,24 @@ ip_frame_ext.hide()
 pyxis_app = PyxisGui(pyx_IPs=IP_dict, use_external=pyxis_config["IP"]["UseExternal"])
 
 """ Function to change between internal and external IPs"""
-def change_IP():
+# def change_IP():
 
-    if IP_button.isChecked():
-        print("Connecting to External IP")
-        IP_button.setStyleSheet("QPushButton {background-color: #550000; border-color: #550000; color: #ffd740}")
-        IP_button.setText("Connect to Internal IP")
-        ip_frame_int.hide()
-        ip_frame_ext.show()
-        pyxis_app.change_IPs(IP_dict["External"])
+#     if IP_button.isChecked():
+#         print("Connecting to External IP")
+#         IP_button.setStyleSheet("QPushButton {background-color: #550000; border-color: #550000; color: #ffd740}")
+#         IP_button.setText("Connect to Internal IP")
+#         ip_frame_int.hide()
+#         ip_frame_ext.show()
+#         pyxis_app.change_IPs(IP_dict["External"])
 
 
-    else:
-        print("Connecting to Internal IP")
-        IP_button.setStyleSheet("QPushButton {background-color: #550000; border-color: #550000; color: #ffd740}")
-        IP_button.setText("Connect to External IP")
-        ip_frame_ext.hide()
-        ip_frame_int.show()
-        pyxis_app.change_IPs(IP_dict["Internal"])
+#     else:
+#         print("Connecting to Internal IP")
+#         IP_button.setStyleSheet("QPushButton {background-color: #550000; border-color: #550000; color: #ffd740}")
+#         IP_button.setText("Connect to External IP")
+#         ip_frame_ext.hide()
+#         ip_frame_int.show()
+#         pyxis_app.change_IPs(IP_dict["Internal"])
 
 # IP_button.clicked.connect(change_IP)
 vbox = QVBoxLayout(main)

@@ -77,6 +77,7 @@ class StarTrackerState(Enum):
     SLEW_BLIND=1
     SLEW_CLOSE=2
     MONITORING=3
+    STOP = 4
 
 class FSM:
     """Finite State Machine class that holds the state of all clients"""
@@ -95,9 +96,9 @@ class FSM:
         # Here we initialize the states of the FSM
         self.dextra_coarse_met_state = CoarseMetState.STOP #I will wait for the user to start the alignment process
         self.sinistra_coarse_met_state = CoarseMetState.STOP #I will wait for the user to start the alignment process
-        self.dextra_star_tracker_state = StarTrackerState.RESET
-        self.sinistra_star_tracker_state = StarTrackerState.RESET
-        self.navis_star_tracker_state = StarTrackerState.RESET
+        self.dextra_star_tracker_state = StarTrackerState.STOP
+        self.sinistra_star_tracker_state = StarTrackerState.STOP
+        self.navis_star_tracker_state = StarTrackerState.STOP
 
     def _add_client(self, name, IP, port, prefix=""):
         """Add a new client to the FSM"""
@@ -151,14 +152,14 @@ class FSM:
             reboot_client.socket.connected = True  # Reset the connection status
             reboot_client.nerrors = 0
             # Here we can implement the actual reboot command, e.g., using systemctl
-            if reboot_client_name in systemctl_commands:
-                if call(["systemctl", "is-active", systemctl_commands[reboot_client_name]]) != 0:
-                    call(["systemctl", "restart", systemctl_commands[reboot_client_name]])
-                    return(f"Rebooting {reboot_client_name}. Please wait...")
-                else:
-                    return(f"Client {reboot_client_name} is already active, no need to restart.")
-            else:
-                return(f"No systemctl command defined for {reboot_client_name}. Cannot reboot.")
+            # if reboot_client_name in systemctl_commands:
+            #     if call(["systemctl", "is-active", systemctl_commands[reboot_client_name]]) != 0:
+            #         call(["systemctl", "restart", systemctl_commands[reboot_client_name]])
+            #         return(f"Rebooting {reboot_client_name}. Please wait...")
+            #     else:
+            #         return(f"Client {reboot_client_name} is already active, no need to restart.")
+            # else:
+            #     return(f"No systemctl command defined for {reboot_client_name}. Cannot reboot.")
         else:
             return(f"Client {reboot_client_name} not found.")
          
@@ -245,7 +246,7 @@ class FSM:
             elif self._is_zero(alpha_1) and self._is_zero(alpha_2) and self._is_zero(dlt_p):
                 print(f"Alignment is already perfect in {deputyMet_name}. No need to adjust.")
                 return True
-            #Pass the misalignment to the robot controller
+            #Pass the misalignment to the corresponding robot controller
             else:
                 if self.clients[deputyRC_name].socket.connected:
                     cmd = f'RC.receive_AlignmentError {dlt_p_x} {dlt_p_y}'
@@ -268,8 +269,14 @@ class FSM:
         """Stop the pupil alignment process of the specified deputy"""
         if deputy_name == "Dextra":
             self.dextra_coarse_met_state = CoarseMetState.STOP
+            if self.clients["DextraRobotControl"].socket.connected:
+                self.clients["DextraRobotControl"].socket.send_command("RC.stop")
+                self.clients["DextraRobotControl"].socket.send_command("RC.disconnect")
         elif deputy_name == "Sinistra":
             self.sinistra_coarse_met_state = CoarseMetState.STOP
+            if self.clients["SinistraRobotControl"].socket.connected:
+                self.clients["SinistraRobotControl"].socket.send_command("RC.stop")
+                self.clients["SinistraRobotControl"].socket.send_command("RC.disconnect")
         else:
             print(f"Unknown deputy name: {deputy_name}. Cannot stop alignment process. Choose Dextra or Sinistra.")
         return None
@@ -371,7 +378,6 @@ class FSM:
                         ledpositions = self.get_LEDs(CoarseMet)
                         led1 = ledpositions["LED1"]
                         led2 = ledpositions["LED2"]
-                        print(f"LED positions in {CoarseMet}: LED1: {led1}, LED2: {led2}")
 
                         # If we have sensible LED positions, we can transition to AQUIRING
                         if "NULL" not in led1 and "NULL" not in led2:
@@ -382,10 +388,10 @@ class FSM:
                                 # means we are a long way out, we basically wait for the user to move the robot
                                 # appropriately (they will know we are in this state on the FSM tab of the GUI)
                                 setattr(self, state_attr, CoarseMetState.RESET)
-                                print(f"LEDs in {CoarseMet} are not found, staying in FINDING_LEDS state.")
-                                print("User should start LED flashing and adjust the robot to ensure the LEDs fall in metrology camera.")
+                                print(f"LEDs in {CoarseMet} are not sensible, staying in FINDING_LEDS state.")
                         else:
                             setattr(self, state_attr, CoarseMetState.RESET)
+                            print(f"LEDs in {CoarseMet} are not found, returning to RESET state.")
 
                     elif CMstate == CoarseMetState.AQUIRING or CMstate == CoarseMetState.TRACKING:
                         # Here we operate the pupil alignment process.
@@ -393,6 +399,9 @@ class FSM:
                         #If the alignment process was failed, we reset the state to RESET.
                         if not result:
                             setattr(self, state_attr, CoarseMetState.RESET)
+                            print(f"Alignment process failed in {CoarseMet}, returning state to RESET.")
+                        else:
+                            print(f"{CoarseMet} pupil alignment process is running, state is {CMstate}.")
                     
                     time.sleep(0.5)  # Sleep to avoid busy waiting
 
@@ -402,8 +411,35 @@ class FSM:
                     self.reconnect(CoarseMet)
                     setattr(self, state_attr, CoarseMetState.RESET)
                     time.sleep(0.5)  # Sleep to avoid busy waiting
+                else:
+                    pass  # If the state is STOP, we do nothing
 
-
+            if self.clients["NavisStarTracker"].socket.connected and self.navis_star_tracker_state != StarTrackerState.STOP:
+                if self.navis_star_tracker_state == StarTrackerState.RESET:
+                    # If the NavisStarTracker is connected, and the camera is running, we can transition to SLEW_BLIND
+                    if self.clients["NavisStarTracker"].status == "Camera Waiting":
+                        print("Navis Star Tracker camera is waiting, please start exposure.")
+                    elif "Camera Running" in self.clients["NavisStarTracker"].status:
+                        # If the camera is running, we can transition to SLEW_BLIND
+                        self.navis_star_tracker_state = StarTrackerState.SLEW_BLIND
+                        print("Navis Star Tracker state changed to SLEW_BLIND.")
+                    else:
+                        #The server is not connected to the camera. The user should connect the camera.
+                        print("Navis Star Tracker is not connected to camera.")
+                elif self.navis_star_tracker_state == StarTrackerState.SLEW_BLIND:
+                    # We can start the slewing process. I don't know what needs to be implemented for slew_blind.
+                    #If the target is close to the current position, we can transition to SLEW_CLOSE
+                    pass
+                elif self.navis_star_tracker_state == StarTrackerState.SLEW_CLOSE:
+                    #I still don't know what needs to be implemented for slew_close.
+                    #For Navis star tracker, there is no monitoring mode.
+                    pass
+            elif self.navis_star_tracker_state != StarTrackerState.STOP:
+                # If the NavisStarTracker is not connected, we try to connect to it.
+                print("Navis Star Tracker is not connected to FSM, trying to reconnect.")
+                self.reconnect("NavisStarTracker")
+                self.navis_star_tracker_state = StarTrackerState.RESET
+                time.sleep(0.5)
             
             
 

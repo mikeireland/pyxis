@@ -261,10 +261,10 @@ struct RobotControlServer {
 		return 0;
 	}
 
-
+    //Added by Qianhui: receive the misalignment error from the coarse metrology and move correctly
     int receive_AlignmentError(double dlt_p_x, double dlt_p_y) {
-        double y_offset = dlt_p_x;
-        double z_offset = dlt_p_y;
+        double y_offset = dlt_p_y;
+        double z_offset = dlt_p_x;
         double y_mov = 0;
         double z_mov = 0;
 
@@ -273,9 +273,9 @@ struct RobotControlServer {
             y_mov = 0; // Y axis is aligned, no movement needed
         }
         else{
-            y_mov = y_offset; ;
-            if (y_mov > 10.0) y_mov = 10.0;
-            if (y_mov < -10.0) y_mov = -10.0;//cap the velocity to 10cm/s
+            y_mov = -y_offset; ;
+            if (y_mov > 7.0) y_mov = 7.0;
+            if (y_mov < -7.0) y_mov = -7.0;//cap the velocity to 10mm/s
         }
 
         // If the z_offset is zero, no movement is needed, otherwise move in the z direction
@@ -283,16 +283,16 @@ struct RobotControlServer {
             z_mov = 0; // Z axis is aligned, no movement needed
         }
         else{
-            z_mov = z_offset;
-            if (z_mov > 10.0) z_mov = 10.0;
-            if (z_mov < -10.0) z_mov = -10.0; //cap the velocity to 10cm/s
+            z_mov = -z_offset;
+            if (z_mov > 7.0) z_mov = 7.0;
+            if (z_mov < -7.0) z_mov = -7.0; //cap the velocity to 10cm/s
         }
 
     
         translate_robot(1, 0, y_mov, z_mov, 0.0, 0.0, 0.0, 0.0);
         std::cout << ", moving robot to reduce alignment error: "
-                    << "y_offset: " << y_offset << ", z_offset: " << z_offset;
-
+                    << "vel(y): " << y_mov << ", vel(z): " << z_mov;
+        translate_robot(1,0,0,0,0,0,0,0);
         return 0;
     }
 

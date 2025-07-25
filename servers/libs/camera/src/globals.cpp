@@ -17,7 +17,8 @@ int GLOB_NUMFRAMES = 0;
 int GLOB_COADD = 0;
 int GLOB_IMSIZE = 0;
 int GLOB_WIDTH = 0;
-double GLOB_PIX_PER_RAD = 1000.0;//Need to be corrected
+double GLOB_PIX_PER_RAD = 7.6/3.45*1000; //Pixels per radian, 7.6mm/3.45um = 2200 pixels/radian
+
 
 // Bounds
 int GLOB_WIDTH_MAX = 0;

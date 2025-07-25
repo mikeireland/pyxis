@@ -75,9 +75,15 @@ ImageProcessSubMatInterp::get_location(const cv::Mat &image_on,
     p_ret.p2 = p.p2;
 
     if (maxVal2 < led_ratio_threshold * maxVal1) {
-        // Second peak is too weak, likely noise
+        // Second peak is too weak, likely noise. led_ratio_threshold is defined in the image.hpp
         p_ret.p2 = cv::Point(-1, -1); // Obiously this is not found.
         std::cout << "Second maximal is too weak, likely noise. Not both LEDs are found" << std::endl;
+    }
+    else {
+        // If both LEDs are found, we make the left-hand LED as LED1
+        if (p_ret.p1.x > p_ret.p2.x) {
+            std::swap(p_ret.p1, p_ret.p2);
+        }
     }
 
     return p_ret;
@@ -222,10 +228,10 @@ AlignmentError compute_alignment_error(
         std::cout << "Movement in Y and Z (mm): " << dlt_p << std::endl;
 
         // Return the difference vector
-        return AlignmentError{alpha_1, alpha_2, dlt_p};
+        return AlignmentError{alpha_1, alpha_2, dlt_p, alpha_t, exp_alpha_t};
     } catch (const std::exception& e) {
         std::cerr << "Exception in compute_alignment_error: " << e.what() << std::endl;
-        return AlignmentError{cv::Point2d(0,0), cv::Point2d(0,0), cv::Point2d(-1, -1)};
+        return AlignmentError{cv::Point2d(0,0), cv::Point2d(0,0), cv::Point2d(-1, -1), cv::Point2d(0,0), cv::Point2d(0,0)};
     }
 }
 

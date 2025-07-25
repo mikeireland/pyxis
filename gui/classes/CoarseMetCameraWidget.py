@@ -25,6 +25,22 @@ class CoarseMetCameraWidget(BaseFLIRCameraWidget):
         hbox.addWidget(self.enable_button)
         self.sidePanel.addLayout(hbox)
 
+        hbox = QHBoxLayout()
+        self.align_button = QPushButton("Start Align", self)
+        self.align_button.setCheckable(True)
+        self.align_button.setFixedWidth(200)
+        self.align_button.clicked.connect(self.pupil_align_loop_button_func)
+        hbox.addWidget(self.align_button)
+        self.sidePanel.addLayout(hbox)
+
+        if config["name"] == "DextraCoarseMet":
+            self.deputy = "Dextra"
+        elif config["name"] == "SinistraCoarseMet":
+            self.deputy = "Sinistra" 
+        else:
+            self.deputy = "UnknownDeputy"
+            print("WARNING: Unknown deputy name, using 'UnknownDeputy'")
+
     """ Function to enable the metrology loop """
     def enable_met_loop_button_func(self):
         if self.Connect_button.isChecked():       
@@ -39,3 +55,26 @@ class CoarseMetCameraWidget(BaseFLIRCameraWidget):
         else:
             self.enable_button.setChecked(False)
             print("CAMERA NOT CONNECTED")
+
+    """ Function to start the pupil alignment loop """
+    def pupil_align_loop_button_func(self):
+        if self.Connect_button.isChecked():
+            try:
+                if self.align_button.isChecked():
+                    self.align_button.setText("Stop Align")
+                    self.fsm_socket.send_string(f"start_CMalign {self.deputy}")
+                    reply = self.fsm_socket.recv_string()
+                    self.response_label.append("Asking FSM to start pupil alignment for" + self.deputy)
+                    self.response_label.append("FSM reply:"+ str(reply))
+                else:
+                    self.align_button.setText("Start Align")
+                    self.fsm_socket.send_string(f"stop_CMalign {self.deputy}")
+                    reply = self.fsm_socket.recv_string()
+                    self.response_label.append("Asking FSM to stopping pupil alignment for " + self.deputy)
+                    self.response_label.append("FSM reply:"+ str(reply))
+            except Exception as e:
+                self.response_label.append(f"Error communicating with FSM server: {e}")
+                self.align_button.setChecked(False)
+        else:
+            self.align_button.setChecked(False)
+            self.response_label.append("CAMERA NOT CONNECTED")
