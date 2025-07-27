@@ -9,6 +9,8 @@ with required utility function.
 #include <fstream>
 
 constexpr double PI = 3.14159265358979323846;
+constexpr double DEG_TO_RAD = PI / 180.0;
+constexpr double ARCSEC_TO_RAD = DEG_TO_RAD / 3600.0; // Arcseconds to radians conversion factor
 
 using std::chrono::steady_clock;
 using std::chrono::duration_cast;
@@ -142,6 +144,7 @@ void RequestStepCounts() {
 
 void UpdateBFFVelocityAngle(double x, double y, double z, double r, double p, double s, double e) {
 	// Set the motor velocities, based on x,y,z, roll, pitch, yaw.
+	// Units are SI (m/s and rad/s, with the exception of "s" for spin)
     Doubles motor_velocity_target_;
     Doubles actuator_velocity_target_;
     motor_velocity_target_.x = -y - s;                                                     //Motor 0
@@ -216,12 +219,13 @@ void translate() {
 	UpdateStepCounts();
 	
 	// These should convert velocities from mm/s and arcsec/sec to the Teensy format.
-	double elevation_target = 0.0000048481*g_vel.el;
+	double elevation_target = ARCSEC_TO_RAD*g_vel.el;
 	velocity_target.x = 0.001*g_vel.velocity*g_vel.x;
 	velocity_target.y = 0.001*g_vel.velocity*g_vel.y;
 	velocity_target.z = 0.001*g_vel.velocity*g_vel.z;
 	angle_target.x = g_vel.roll;
 	angle_target.y = g_vel.pitch;
+	// The yaw is converted to m/s of the wheels, which isn't very self-consistent!
 	angle_target.z = 0.0000014302*g_vel.yaw;
 	
 	RequestAccelerations();
@@ -264,6 +268,9 @@ void track() {
 	
 	// Update our pitch and roll targets (internally in degrees)
 	UpdateTarget();
+
+	// Update the step counts from the Teensy.
+	UpdateStepCounts();
 	
 	// The leveller simply estimates the roll and pitch in degrees. We save these
 	// in arcseconds. 
@@ -273,7 +280,7 @@ void track() {
 	pitch_error = g_pitch_target - g_status.pitch;
 
 	// the constant on the following line is arc-seconds per radian.
-	double elevation_target = 0.0000048481*saturation(g_vel.el + g_egain*(g_alt+g_alt_off) + g_eint*g_esum);
+	double elevation_target = ARCSEC_TO_RAD*saturation(g_vel.el + g_egain*(g_alt+g_alt_off) + g_eint*g_esum);
 	velocity_target.x = 0.001*g_vel.velocity*g_vel.x;
 	velocity_target.y = 0.001*g_vel.velocity*g_vel.y;
 	velocity_target.z = 0.001*g_vel.velocity*g_vel.z;
@@ -284,7 +291,7 @@ void track() {
 	angle_target.y = saturation(g_vel.pitch + g_pitch_gain*pitch_error);
 	
 	// Create a yaw velocity based on the target yaw velocity "yaw" and a PI servo loop
-	// based on the g_az.
+	// based on the g_az. !!! TODO: Change this constant.
 	angle_target.z = 0.0000014302*saturation(g_vel.yaw + g_ygain*(g_az + g_az_off) + g_yint*g_ysum + h_gain*g_heading);
 	
 	// This is an integral term, i.e. a sum.

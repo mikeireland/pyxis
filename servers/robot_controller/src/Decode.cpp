@@ -1,7 +1,7 @@
 #include "Decode.h"
 
 //Takes in the two bytes representing a the signed integer version of the robot velocity
-//and converts it to to a physical velocity as a double precision float
+//and converts it to to a physical velocity in SI Uniges (m/s) as a double precision float
 double VelocityBytesToPhysicalDouble(unsigned char byte0, unsigned char byte1) {
   short int v_temp = (byte0 << 8) | (byte1 << 0);
   double v_double_temp = (double) v_temp;
