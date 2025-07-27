@@ -24,6 +24,7 @@
 #define Raw3Wr 0x23
 #define Raw4Wr 0x24
 #define Raw5Wr 0x25
+#define Raw6Wr 0x26
 
 //Read accelerometer axes
 #define Acc0ReX 0xA0
@@ -63,10 +64,11 @@
 #define Acc4Wr 0xE3
 #define Acc5Wr 0xF3
 
-//Write step count
+//Write step count to the serial port
 #define Step0Wr 0x30
 #define Step1Wr 0x31
 #define Step2Wr 0x32
 #define Step3Wr 0x33
 #define Step4Wr 0x34
 #define Step5Wr 0x35
+#define Step6Wr 0x36

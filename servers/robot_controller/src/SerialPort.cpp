@@ -222,6 +222,13 @@ int SerialPort::ReadMessage() {
                 step_count5_in_[3] = read_buffer_[i+4];
                 i += 5;
                 break;
+            case Step6Wr:
+                step_count6_in_[0] = read_buffer_[i+1];
+                step_count6_in_[1] = read_buffer_[i+2];
+                step_count6_in_[2] = read_buffer_[i+3];
+                step_count6_in_[3] = read_buffer_[i+4];
+                i += 5;
+                break;
             case Acc0Wr:
                 accelerometer0_in_.x[0] = read_buffer_[i+1];
                 accelerometer0_in_.x[1] = read_buffer_[i+2];
@@ -325,6 +332,11 @@ int SerialPort::ReadMessage() {
             case Raw5Wr:
                 actuator_velocities_in_.z[0] = read_buffer_[i+1];
                 actuator_velocities_in_.z[1] = read_buffer_[i+2];
+                i += 3;
+                break;
+            case Raw6Wr:
+                goniometer_velocity_in_[0] = read_buffer_[i+1];
+                goniometer_velocity_in_[1] = read_buffer_[i+2];
                 i += 3;
                 break;
             case ID:

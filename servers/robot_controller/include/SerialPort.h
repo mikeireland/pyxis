@@ -60,6 +60,7 @@ namespace Comms
             VelBytes actuator_velocities_in_; //For these take x,y,z == 0,1,2
             
             unsigned char goniometer_velocity_out_ [2];
+            unsigned char goniometer_velocity_in_ [2];
 
             AccelBytes accelerometer0_in_;//Byte arrays to store the incoming accelerations
             AccelBytes accelerometer1_in_;
@@ -75,6 +76,7 @@ namespace Comms
             unsigned char step_count3_in_[4] = {0x00};//Actuators 0,1,2 and indexes 3,4,5
             unsigned char step_count4_in_[4] = {0x00};
             unsigned char step_count5_in_[4] = {0x00};
+            unsigned char step_count6_in_[4] = {0x00};//Goniometer steps.
 
             unsigned char device_id_; //bytes to store the current device being commed with
             unsigned char device_firmware_v_;

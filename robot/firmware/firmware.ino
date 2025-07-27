@@ -186,6 +186,13 @@ class Controller {
               ReportError(SchedFull);
               break;
             }
+          case Raw6Wr:
+            if(ScheduleToNextFree(Raw6Wr) == 0){ 
+              break;
+            } else {
+              ReportError(SchedFull);
+              break;
+            }
           case Step0Wr:
             if(ScheduleToNextFree(Step0Wr) == 0){ 
               break;
@@ -223,6 +230,13 @@ class Controller {
             }
           case Step5Wr:
             if(ScheduleToNextFree(Step5Wr) == 0){ 
+              break;
+            } else {
+              ReportError(SchedFull);
+              break;
+            }
+          case Step6Wr:
+            if(ScheduleToNextFree(Step6Wr) == 0){ 
               break;
             } else {
               ReportError(SchedFull);
@@ -362,6 +376,9 @@ class Controller {
         case 5:
           port.write_buffer_[temp_] = Raw5Wr;
           break;
+        case 6:
+          port.write_buffer_[temp_] = Raw6Wr;
+          break;
       }
       short int v_temp = 1000000*motor_driver.motor_vels_[index];
       ShortIntToBytes(v_temp, &port.write_buffer_[temp_+1], &port.write_buffer_[temp_+2]);
@@ -413,6 +430,9 @@ class Controller {
         case 5:
           port.write_buffer_[temp_] = Step5Wr;
           break;
+        case 6:
+          port.write_buffer_[temp_] = Step6Wr;
+          break;  
       }
       
         IntToBytes(motor_driver.step_count_[index], &port.write_buffer_[temp_+1], &port.write_buffer_[temp_+2], &port.write_buffer_[temp_+3], &port.write_buffer_[temp_+4]);
@@ -563,6 +583,10 @@ class Controller {
         WriteVel(5);
         sched_[sched_state_] = EMPTY;
         break;
+      case Raw6Wr:
+        WriteVel(6);
+        sched_[sched_state_] = EMPTY;
+        break;
       case Step0Wr:
         WriteSteps(0);
         sched_[sched_state_] = EMPTY;
@@ -585,6 +609,10 @@ class Controller {
         break;
       case Step5Wr:
         WriteSteps(5);
+        sched_[sched_state_] = EMPTY;
+        break;
+      case Step6Wr:
+        WriteSteps(6);
         sched_[sched_state_] = EMPTY;
         break;
       case RUNTIME:

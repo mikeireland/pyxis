@@ -110,7 +110,7 @@ void RequestAccelerations() {
     //teensy_port.Request(Acc5Wr);
 }
 
-//Pull all of the step counts from the device (30 Bytes of return data)
+//Pull all of the step counts from the device (35 Bytes of return data)
 void RequestStepCounts() {
     teensy_port->Request(Step0Wr);
     teensy_port->Request(Step1Wr);
@@ -118,6 +118,7 @@ void RequestStepCounts() {
     teensy_port->Request(Step3Wr);
     teensy_port->Request(Step4Wr);
     teensy_port->Request(Step5Wr);
+	teensy_port->Request(Step6Wr);
 }
 
 void UpdateBFFVelocityAngle(double x, double y, double z, double r, double p, double s, double e) {

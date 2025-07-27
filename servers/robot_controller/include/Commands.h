@@ -25,6 +25,7 @@
 #define Raw3Wr 0x23
 #define Raw4Wr 0x24
 #define Raw5Wr 0x25
+#define Raw6Wr 0x26
 
 //Read accelerometer axes
 #define Acc0ReX 0xA0
@@ -71,6 +72,7 @@
 #define Step3Wr 0x33
 #define Step4Wr 0x34
 #define Step5Wr 0x35
+#define Step6Wr 0x36 
 
 
 #endif
