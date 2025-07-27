@@ -23,7 +23,7 @@ struct LinearGradientInterp {
 struct ImageProcessSubMatInterp {
     bool do_gauss = true;
     bool do_median = true;
-    double led_ratio_threshold = 0.6; // The second LED must be at least 96% of the first LED brightness to be considered valid
+    double led_ratio_threshold = 0.6; // The second LED must be at least 60% of the first LED brightness to be considered valid
     int gauss_radius = 21;
     std::size_t margin = 20;
     int threshold = 10;
@@ -59,6 +59,8 @@ struct AlignmentError {
     cv::Point2d alpha_1;
     cv::Point2d alpha_2;
     cv::Point2d dlt_p;
+    cv::Point2d alpha_t;     
+    cv::Point2d exp_alpha_t; 
 };
 
 AlignmentError compute_alignment_error(

@@ -16,16 +16,26 @@ except:
     print("Please install PyQt5.")
     raise UserWarning
 
+import sys,pytomlpp, zmq
+#Load config file to set up FSM connection
+if len(sys.argv) > 1:
+    config = pytomlpp.load(sys.argv[1])
+else:
+    config = pytomlpp.load("port_setup.toml")
+pyxis_config = config["Pyxis"]
+ext_IP = pyxis_config["IP"]["External"]
+FSM_port = pyxis_config["IP"]["FSM_port"]
 
 """ QT class for holding the camera feed """
 class FeedLabel(QLabel):
-    def __init__(self, img, point_ls, offset):
+    def __init__(self, img, point_ls, offset, owner=None):
         super(FeedLabel, self).__init__()
         self.pixmap = QPixmap(img)
         self.dims = (100,100)
         self.offset = offset
         self.point_ls = point_ls #List of points to draw over feed
         self.binning_flag = 0
+        self.owner = owner
 
     def paintEvent(self, event):
 
@@ -43,8 +53,23 @@ class FeedLabel(QLabel):
         height = scaledPix.height()/self.dims.height()
 
         # Draw points if needed
-        if len(self.point_ls) > 0:
-            for point in self.point_ls:
+        # if len(self.point_ls) > 0:
+        #     for point in self.point_ls:
+        #         px = point.x() - self.offset.x()
+        #         py = point.y() - self.offset.y()
+        #         if self.binning_flag:
+        #             px /= 2
+        #             py /= 2
+                    
+        #         y1 = y + height*py
+        #         x1 = x + width*px
+
+        #         painter.drawEllipse(QPoint(int(x1),int(y1)),3,3) #Point as a 3x3 circle
+
+        # Draw dynamic points (alpha_t and expected_alpha_t)
+        if self.owner:
+            if getattr(self.owner, "alpha_t_point", None):
+                point = self.owner.alpha_t_point
                 px = point.x() - self.offset.x()
                 py = point.y() - self.offset.y()
                 if self.binning_flag:
@@ -53,25 +78,23 @@ class FeedLabel(QLabel):
                     
                 y1 = y + height*py
                 x1 = x + width*px
-
-                painter.drawEllipse(QPoint(int(x1),int(y1)),3,3) #Point as a 3x3 circle
-
-
-        # Highlight in the middle point -- edit by Qianhui
-        if len(self.point_ls) == 2:
-            x1, y1 = [], []
-            for point in self.point_ls:
+                painter.setBrush(Qt.red)
+                painter.setPen(Qt.red)
+                painter.drawEllipse(QPoint(int(x1),int(y1)),3,3)
+            if getattr(self.owner, "expected_alpha_t_point", None):
+                point = self.owner.expected_alpha_t_point
                 px = point.x() - self.offset.x()
                 py = point.y() - self.offset.y()
                 if self.binning_flag:
                     px /= 2
                     py /= 2
                     
-                y1.append(y + height*py)
-                x1.append(x + width*px)
-
-                painter.drawEllipse(QPoint( int(np.mean( np.array(x1) )), int(np.mean( np.array(y1) )) ),1,1)
-
+                y1 = y + height*py
+                x1 = x + width*px
+                painter.setBrush(Qt.red)
+                painter.setPen(Qt.red)
+                painter.drawLine(int(x1-2), int(y1-2), int(x1+2), int(y1+2))
+                painter.drawLine(int(x1-2), int(y1+2), int(x1+2), int(y1-2))
 
     def changePixmap(self, img):
         self.dims = img.size()
@@ -80,14 +103,14 @@ class FeedLabel(QLabel):
 
 """ QT Class for the camera feed window """
 class FeedWindow(QWidget):
-    def __init__(self, name, contrast_min, contrast_max, point_ls=[], offset=QPoint(0,0)):
+    def __init__(self, name, contrast_min, contrast_max, point_ls=[], offset=QPoint(0,0), owner=None):
         super(FeedWindow, self).__init__()
 
         # Label
         self.resize(900, 500)
         self.setWindowTitle("%s Camera Feed"%name)
         hbox = QHBoxLayout()
-        self.cam_feed = FeedLabel("assets/camtest1.png",point_ls,offset)
+        self.cam_feed = FeedLabel("assets/camtest1.png",point_ls,offset, owner=owner)
         self.binning_flag = 0
 
         mainvbox = QVBoxLayout()
@@ -178,6 +201,10 @@ class BaseFLIRCameraWidget(RawWidget):
 
         super(BaseFLIRCameraWidget,self).__init__(config,IP,parent)
 
+        context = zmq.Context()
+        self.fsm_socket = context.socket(zmq.REQ)
+        self.fsm_socket.connect(f"tcp://{ext_IP}:{FSM_port}")
+
         self.feed_refresh_time = int(config["feed_refresh_time"]*1000)
         self.compression_param = config["compression_param"]
         contrast_min = config["contrast_limits"][0]
@@ -185,6 +212,20 @@ class BaseFLIRCameraWidget(RawWidget):
 
         self.USB_hub = config["USB_hub"]
         self.USB_port = config["USB_port"]
+
+        self.alpha_t_point = None
+        self.expected_alpha_t_point = None
+
+        #Read in coarse metrology camera parameters
+        if self.prefix == "CM":
+            beta = float(config["beta"])  
+            gamma = float(config["gamma"])  
+            x0_x = float(config["x0"][0])
+            x0_y = float(config["x0"][1])
+            alpha_c_x = float(config["alpha_c"][0])
+            alpha_c_y = float(config["alpha_c"][1])
+            self.get_alignerr_cmd = f'%s.getAlignmentError {beta},{gamma},{{"x":{x0_x},"y":{x0_y}}},{{"x":{alpha_c_x},"y":{alpha_c_y}}}'%self.prefix
+            
 
         # Set points to draw over camera feed
         target_list = config["annotated_point_list"]
@@ -196,7 +237,7 @@ class BaseFLIRCameraWidget(RawWidget):
 
         offset = QPoint(config["offset"][0],config["offset"][1])
 
-        self.feed_window = FeedWindow(self.name, contrast_min, contrast_max, target_qpoint_list, offset)
+        self.feed_window = FeedWindow(self.name, contrast_min, contrast_max, target_qpoint_list, offset, owner=self)
 
         hbox0 = QHBoxLayout()
         vbox0 = QVBoxLayout()
@@ -571,10 +612,30 @@ class BaseFLIRCameraWidget(RawWidget):
         qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Grayscale8)
         self.feed_window.cam_feed.changePixmap(qimg)
 
+        # Update the alpha_t point from coarse metrology camera if it exists
+        if self.prefix == "CM":
+            try:
+                response = self.socket.send_command(self.get_alignerr_cmd)
+                result = json.loads(response)
+                alpha_t_pix = result["alpha_t"]
+                expected_alpha_t_pix = result["exp_alpha_t"] 
+
+                # Convert to QPoint 
+                width = int(self.width_edit.text())
+                height = int(self.height_edit.text())
+                self.alpha_t_point = QPoint(width/2 + float(alpha_t_pix["x"]), height/2 + float(alpha_t_pix["y"]))
+                self.expected_alpha_t_point = QPoint(width/2. + float(expected_alpha_t_pix["x"]), height/2. + float(expected_alpha_t_pix["y"]))
+                # print(f"Alpha_t: {self.alpha_t_point}, Expected alpha_t: {self.expected_alpha_t_point}",
+                #     time.strftime("%Y-%m-%d %H:%M:%S"))
+                self.feed_window.cam_feed.repaint()
+            except Exception as e:
+                print(f"Cannot fetch alpha_t and expected alpha_t: {e}")
+                self.alpha_t_point = None
+                self.expected_alpha_t_point = None
+
     """ Are we coadding? """
     def set_coadd(self):
         if self.coadd_button.isChecked():
             self.coadd_flag = 1
         else:
             self.coadd_flag = 0
-

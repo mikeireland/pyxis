@@ -218,13 +218,13 @@ struct CoarseMet: FLIRCameraServer{
     }
 
     // Calculate the alignment error based on the LED positions and angles
-    json getAlignmentError(){
+    json getAlignmentError(
+        double beta, 
+        double gamma,
+        cv::Point2d x0,
+        cv::Point2d alpha_c
 
-        //Example of parameters, needs to be calibrated:
-        double beta = 0.5;
-        double gamma = 0.02;
-        cv::Point2d x0 = cv::Point2d(0.1, 45.0);
-        cv::Point2d alpha_c = cv::Point2d(0.002, -0.001);
+    ){
 
         // Get LED positions
         LEDs leds = getLEDpositions();
@@ -245,11 +245,12 @@ struct CoarseMet: FLIRCameraServer{
         }
 
         json j;
-        j["alpha_1"] = {{"x", err.alpha_1.x}, {"y", err.alpha_1.y}};
-        j["alpha_2"] = {{"x", err.alpha_2.x}, {"y", err.alpha_2.y}};
-        j["dlt_p"]   = {{"x", err.dlt_p.x},   {"y", err.dlt_p.y}};
+        j["alpha_1"] = {{"x", err.alpha_1.x}, {"y", err.alpha_1.y}};//in unit of radians
+        j["alpha_2"] = {{"x", err.alpha_2.x}, {"y", err.alpha_2.y}};// in unit of radians
+        j["dlt_p"]   = {{"x", err.dlt_p.x},   {"y", err.dlt_p.y}};//in unit of mm, "x" is offset in Z direction (vertical), "y" is offset in Y direction (horizontal)
+        j["alpha_t"] = {{"x", err.alpha_t.x * GLOB_PIX_PER_RAD}, {"y", err.alpha_t.y * GLOB_PIX_PER_RAD}};//in unit of pixels
+        j["exp_alpha_t"] = {{"x", err.exp_alpha_t.x * GLOB_PIX_PER_RAD}, {"y", err.exp_alpha_t.y * GLOB_PIX_PER_RAD}};//in unit of pixels
 
-        
         return j;
     }
 
@@ -294,7 +295,8 @@ COMMANDER_REGISTER(m)
         .def("getparams", &CoarseMet::getparams, "Get all parameters")
         .def("resetUSBPort", &CoarseMet::resetUSBPort, "Reset the USB port on the HUB [string HUB name, string port number]")
         .def("getLEDs", &CoarseMet::getLEDpositions, "Get positions of two LEDs")
-        .def("getAlignmentError", &CoarseMet::getAlignmentError, "Calculate the alignment error based on LEDs in coarse metrology camera. Make sure the parameters are calibrated.")
+        .def("getAlignmentError", &CoarseMet::getAlignmentError, 
+            "Calculate the alignment error based on LEDs in coarse metrology camera. Return alpha_1, alpha_2, delta_p, alpha_t, expected alpha_t (all 2D vectors).")
         .def("enableLEDs", &CoarseMet::enableCoarseMetLEDs, "Enable the blinking and measuring loop [flag]");
 
 }

@@ -72,6 +72,10 @@
     offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
     USB_hub = "ykush -s YK55735" #Command for YKush to locate the correct USB hub
     USB_port = "2" #USB port number on the hub
+    beta = 0.3 # distance ratio of d(beam injection to lower LED) on d(LEDs)
+    gamma = 0 # horizontal offset between beam and LEDs
+    x0 = [-50, -50] # vector of the beam injection, pointing from the coarse metrology camera (mm)
+    alpha_c = [0, 0] # calibrated correction for any angular deviation from the optical axis of the injection lens
 
     [Navis.SinistraCoarseMet]
     tab_name = "Sinistra Coarse Met Camera"
@@ -87,6 +91,10 @@
     offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
     USB_hub = "ykush -s YK55735" #Command for YKush to locate the correct USB hub
     USB_port = "1" #USB port number on the hub
+    beta = 0.3 # distance ratio of d(beam injection to lower LED) on d(LEDs)
+    gamma = 0 # horizontal offset between beam and LEDs
+    x0 = [-50, -50] # vector of the beam injection, pointing from the coarse metrology camera (mm)
+    alpha_c = [0, 0] # calibrated correction for any angular deviation from the optical axis of the injection lens
 
     [Navis.FiberInjection]
     tab_name = "Fiber Injection Camera"

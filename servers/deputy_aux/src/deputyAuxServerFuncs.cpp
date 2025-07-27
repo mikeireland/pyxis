@@ -158,6 +158,7 @@ COMMANDER_REGISTER(m)
         .def("LEDOn", &DeputyAuxServer::turnLEDOn, "Turn on the LED")
         .def("LEDOff", &DeputyAuxServer::turnLEDOff, "Turn off the LED")
         .def("heading", &DeputyAuxServer::getHeading, "Get the latest compass heading")
-        .def("reqpower", &DeputyAuxServer::requestPower, "Request power values");
+        .def("reqpower", &DeputyAuxServer::requestPower, "Request power values")
+        .def("status", &DeputyAuxServer::requestPower, "Get current PC voltage"); // Qianhui added this line so DA.status exists.
 
 }
