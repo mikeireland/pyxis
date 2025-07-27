@@ -236,8 +236,9 @@ int SerialPort::ReadMessage() {
                 accelerometer0_in_.y[1] = read_buffer_[i+4];
                 accelerometer0_in_.z[0] = read_buffer_[i+5];
                 accelerometer0_in_.z[1] = read_buffer_[i+6];
+                // Error checking for accelerometer 0
                 if (AccelerationBytesToPhysicalDouble(accelerometer0_in_.x[0],accelerometer0_in_.x[1]) < -4) {
-                    std::cout << "receive:";
+                    std::cout << "receive0:";
                     for(int i = 0; i < sizeof(read_buffer_); ++i) {
                         std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)read_buffer_[i] << std::dec << ':';
                     }
@@ -253,7 +254,7 @@ int SerialPort::ReadMessage() {
                 accelerometer1_in_.z[0] = read_buffer_[i+5];
                 accelerometer1_in_.z[1] = read_buffer_[i+6];
                 if (AccelerationBytesToPhysicalDouble(accelerometer1_in_.x[0],accelerometer1_in_.x[1]) < -4) {
-                    std::cout << "receive:";
+                    std::cout << "receive1:";
                     for(int i = 0; i < sizeof(read_buffer_); ++i) {
                         std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)read_buffer_[i] << std::dec << ':';
                     }
@@ -269,7 +270,7 @@ int SerialPort::ReadMessage() {
                 accelerometer2_in_.z[0] = read_buffer_[i+5];
                 accelerometer2_in_.z[1] = read_buffer_[i+6];
                 if (AccelerationBytesToPhysicalDouble(accelerometer2_in_.x[0],accelerometer2_in_.x[1]) < -4) {
-                    std::cout << "receive:";
+                    std::cout << "receive2:";
                     for(int i = 0; i < sizeof(read_buffer_); ++i) {
                         std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)read_buffer_[i] << std::dec << ':';
                     }
