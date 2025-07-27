@@ -35,13 +35,18 @@ Includes the main state machine based on GLOBAL_SERVER_STATUS
 #include <vector>
 #include "Globals.h"
 
+
 namespace co = commander;
 using namespace std;
 
 sched_param sch_params;
 
 string g_filename = "state_file.csv";
-Status g_status = {0.0, 0.0}; // Current roll and pitch angles
+// Status of 2 angles, 7 offsets and loop status. Initialised to zero.
+Status g_status = {0.0, 0.0, 
+                   {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, // delta_motors
+                   ROBOT_IDLE, 0}; // loop_status and loop_counter
+std::mutex GLOB_STATUS_LOCK;
 
 std::thread robot_controller_thread;
 std::thread watchdog_thread;
@@ -292,16 +297,19 @@ struct RobotControlServer {
         translate_robot(1, 0, y_mov, z_mov, 0.0, 0.0, 0.0, 0.0);
         std::cout << ", moving robot to reduce alignment error: "
                     << "vel(y): " << y_mov << ", vel(z): " << z_mov;
-        translate_robot(1,0,0,0,0,0,0,0);
+        //translate_robot(1,0,0,0,0,0,0,0);
         return 0;
     }
 
 
 
 	Status status(){
-        // !!! Needs a thead-lock here.
+        // Lock the global status mutex to ensure thread safety
+        std::lock_guard<std::mutex> lock(GLOB_STATUS_LOCK);
+        // Update the global status with the current loop status and counter
         g_status.loop_counter = loop_counter;
         g_status.loop_status = GLOBAL_SERVER_STATUS;
+        // Unlock is automatic when going out of scope
         return g_status;
 	}
 };
@@ -327,6 +335,7 @@ namespace nlohmann {
         static void to_json(json& j, const Status& L) {
             j = json{{"roll", L.roll},
 			{"pitch", L.pitch},
+            {"delta_motors", L.delta_motors},
             {"loop_status", L.loop_status},
             {"loop_counter", L.loop_counter}
             };
@@ -335,6 +344,7 @@ namespace nlohmann {
         static void from_json(const json& j, Status& L) {
 			j.at("roll").get_to(L.roll);
 			j.at("pitch").get_to(L.pitch);
+            j.at("delta_motors").get_to(L.delta_motors);
             j.at("loop_status").get_to(L.loop_status);
             j.at("loop_counter").get_to(L.loop_counter);
         }

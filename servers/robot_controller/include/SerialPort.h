@@ -82,8 +82,6 @@ namespace Comms
             unsigned char device_firmware_v_;
             int device_file_index_ = 0;
 
-
-
         private:
             unsigned char write_buffer_ [128];
             unsigned char read_buffer_ [128];

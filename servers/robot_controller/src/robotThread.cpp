@@ -39,8 +39,6 @@ struct Leveller {
 	Doubles acc0_latest_measurements_;
 	Doubles acc1_latest_measurements_;
 	Doubles acc2_latest_measurements_;
-	Motors motor_steps_measurement_;
-	Motors actuator_steps_measurement_;
 };
 
 Leveller leveller;
@@ -61,6 +59,27 @@ void PassAccelBytesToLeveller() {
 	leveller.acc2_latest_measurements_.x = AccelerationBytesToPhysicalDouble(teensy_port->accelerometer2_in_.x[0],teensy_port->accelerometer2_in_.x[1]);
 	leveller.acc2_latest_measurements_.y = AccelerationBytesToPhysicalDouble(teensy_port->accelerometer2_in_.y[0],teensy_port->accelerometer2_in_.y[1]);
 	leveller.acc2_latest_measurements_.z = -AccelerationBytesToPhysicalDouble(teensy_port->accelerometer2_in_.z[0],teensy_port->accelerometer2_in_.z[1]);
+}
+
+void UpdateStepCounts(){
+	// Using BytesToInt from Decode.cpp, we convert the step counts from the Teensy to integers.
+	// This is very painful - code should be refactored to use a loop in the future!!!
+	// Update the step counts in the g_status struct.
+	std::lock_guard<std::mutex> lock(GLOB_STATUS_LOCK);
+	g_status.delta_motors[0] = BytesToInt(teensy_port->step_count0_in_[0], teensy_port->step_count0_in_[1],
+							  teensy_port->step_count0_in_[2], teensy_port->step_count0_in_[3]);
+	g_status.delta_motors[1] = BytesToInt(teensy_port->step_count1_in_[0], teensy_port->step_count1_in_[1],
+							  teensy_port->step_count1_in_[2], teensy_port->step_count1_in_[3]);
+	g_status.delta_motors[2] = BytesToInt(teensy_port->step_count2_in_[0], teensy_port->step_count2_in_[1],
+							  teensy_port->step_count2_in_[2], teensy_port->step_count2_in_[3]);
+	g_status.delta_motors[3] = BytesToInt(teensy_port->step_count3_in_[0], teensy_port->step_count3_in_[1],
+							  teensy_port->step_count3_in_[2], teensy_port->step_count3_in_[3]);
+	g_status.delta_motors[4] = BytesToInt(teensy_port->step_count4_in_[0], teensy_port->step_count4_in_[1],
+							  teensy_port->step_count4_in_[2], teensy_port->step_count4_in_[3]);
+	g_status.delta_motors[5] = BytesToInt(teensy_port->step_count5_in_[0], teensy_port->step_count5_in_[1],
+							  teensy_port->step_count5_in_[2], teensy_port->step_count5_in_[3]);
+	g_status.delta_motors[6] = BytesToInt(teensy_port->step_count6_in_[0], teensy_port->step_count6_in_[1],
+							  teensy_port->step_count6_in_[2], teensy_port->step_count6_in_[3]);
 }
 
 // Update the target for the levelling control loop.
@@ -168,8 +187,9 @@ void LogSteps(int t_step, std::string filename, double f) {
 	
 	if(!stabiliser_file_open_flag_){
 		//Create a new file and write the state to it
-		output << "time" << ',' << "freq" << ',' << "M0_steps" << ',' << "M1_steps" << ',' << "M2_steps" << ',' 
-			<< "LA0_steps" << ',' << "LA1_steps" << ',' << "LA2_steps" << ',' 
+		output << "time" << ',' << "freq" << ',' 
+			//<< "M0_steps" << ',' << "M1_steps" << ',' << "M2_steps" << ',' 
+			//<< "LA0_steps" << ',' << "LA1_steps" << ',' << "LA2_steps" << ',' 
 			<< "accelerometer0_x" << ',' << "accelerometer0_y" << ',' << "accelerometer0_z" << ','
 			   << "accelerometer1_x" << ',' << "accelerometer1_y" << ',' << "accelerometer1_z" << ','
 			   << "accelerometer2_x" << ',' << "accelerometer2_y" << ',' << "accelerometer2_z" 
@@ -177,8 +197,8 @@ void LogSteps(int t_step, std::string filename, double f) {
 		//Set the flag to say that the leveller state file is already open for this run
 		stabiliser_file_open_flag_ = true;
 	}
-	output << t_step << ',' << f << ',' << leveller.motor_steps_measurement_.motor_0 << ',' << leveller.motor_steps_measurement_.motor_1 << ','  << leveller.motor_steps_measurement_.motor_2 << ',' 
-			   << leveller.actuator_steps_measurement_.motor_0 << ',' << leveller.actuator_steps_measurement_.motor_1 << ',' << leveller.actuator_steps_measurement_.motor_2 << ',' 
+	output << t_step << ',' << f << ',' << g_status.delta_motors[0] << ',' << g_status.delta_motors[1] << ','  << g_status.delta_motors[2] << ',' 
+			   << g_status.delta_motors[3] << ',' << g_status.delta_motors[4] << ',' << g_status.delta_motors[5] << ',' 
 			   << leveller.acc0_latest_measurements_.x << ',' << leveller.acc0_latest_measurements_.y << ',' << leveller.acc0_latest_measurements_.z << ','
 			   << leveller.acc1_latest_measurements_.x << ',' << leveller.acc1_latest_measurements_.y << ',' << leveller.acc1_latest_measurements_.z << ','
 		 	   << leveller.acc2_latest_measurements_.x << ',' << leveller.acc2_latest_measurements_.y << ',' << leveller.acc2_latest_measurements_.z 
@@ -193,6 +213,9 @@ void translate() {
 	teensy_port->ReadMessage();
 	PassAccelBytesToLeveller(); 
 	UpdateTarget(); 	
+	UpdateStepCounts();
+	
+	// These should convert velocities from mm/s and arcsec/sec to the Teensy format.
 	double elevation_target = 0.0000048481*g_vel.el;
 	velocity_target.x = 0.001*g_vel.velocity*g_vel.x;
 	velocity_target.y = 0.001*g_vel.velocity*g_vel.y;
@@ -200,11 +223,6 @@ void translate() {
 	angle_target.x = g_vel.roll;
 	angle_target.y = g_vel.pitch;
 	angle_target.z = 0.0000014302*g_vel.yaw;
-	// Update the current roll every 1000 cycles (why not more often?)
-	if (!(loop_counter % 1000)) {
-		g_status.roll = 3600*roll_estimate_filtered_;
-		g_status.pitch = 3600*pitch_estimate_filtered_;
-	}
 	
 	RequestAccelerations();
 	RequestStepCounts();
@@ -214,6 +232,11 @@ void translate() {
 	
 	teensy_port->SendAllRequests();
 	last_stabiliser_timepoint = global_timepoint;
+
+	// Update the status. 
+	std::lock_guard<std::mutex> lock(GLOB_STATUS_LOCK);
+	g_status.roll = 3600*roll_estimate_filtered_;
+	g_status.pitch = 3600*pitch_estimate_filtered_;
 }
 
 double saturation(double val) {

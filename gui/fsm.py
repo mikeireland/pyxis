@@ -216,7 +216,7 @@ class FSM:
             deputyRC_name = "SinistraRobotControl"
 
         if self.clients[deputyMet_name].socket.connected:
-            response = self.clients[deputyMet_name].socket.send_command("CM.getAlignmentError")
+            response = self.clients[deputyMet_name].socket.send_command('CM.getAlignmentError 0.3, 0, {"x": -50, "y": -50}, {"x": 0, "y": 0}')
             # Parse the JSON response
             try:
                 result = json.loads(response)
@@ -249,7 +249,7 @@ class FSM:
             #Pass the misalignment to the corresponding robot controller
             else:
                 if self.clients[deputyRC_name].socket.connected:
-                    cmd = f'RC.receive_AlignmentError {dlt_p_x} {dlt_p_y}'
+                    cmd = f'RC.receive_AlignmentError {dlt_p_x}, {-dlt_p_y}'
                     self.clients[deputyRC_name].socket.send_command(cmd)
                     print(f"Sending misalignment to {deputyRC_name}. Delta_p: {dlt_p}")
                     return True

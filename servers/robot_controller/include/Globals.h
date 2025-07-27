@@ -1,3 +1,4 @@
+#include <mutex>
 // These are parameters read in from the toml file in main.cpp, and used in robotControllerServerFuncs.cpp
 extern double g_roll_gain;
 extern double g_pitch_gain;
@@ -22,20 +23,13 @@ struct Doubles
     double z = 0;
 };
 
-struct Motors
-{
-    double motor_0 = 0; 
-    double motor_1 = 0;
-    double motor_2 = 0;
-};
-
 // Status that can be returned through the server
 struct Status {
-	double roll, pitch; // Current roll and pitch angles
-    double yaw, el; // Current yaw and elevation angles
-    double dx, dy, dz; // Current x, y, z offsets
+	double roll, pitch; // Current roll and pitch angles from accelerometers.
+    double delta_motors[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; // Motor delta-steps
     int loop_status, loop_counter;
 };
+
 
 // The header for robotThread.cpp, which contains the main robot loop
 #define ROBOT_IDLE 1
@@ -49,6 +43,7 @@ extern int loop_counter;
 extern Velocities g_vel, g_zero_vel;
 
 extern Status g_status;
+extern std::mutex GLOB_STATUS_LOCK;
 
 // Heading gain, plus gians and integral terms for yaw ane elevation control
 extern double h_gain;
