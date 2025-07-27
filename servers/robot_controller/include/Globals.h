@@ -26,7 +26,7 @@ struct Doubles
 // Status that can be returned through the server
 struct Status {
 	double roll, pitch; // Current roll and pitch angles from accelerometers.
-    double delta_motors[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; // Motor delta-steps
+    int delta_motors[7] = {0, 0, 0, 0, 0, 0, 0}; // Motor delta-steps
     int loop_status, loop_counter;
 };
 

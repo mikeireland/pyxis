@@ -44,7 +44,7 @@ sched_param sch_params;
 string g_filename = "state_file.csv";
 // Status of 2 angles, 7 offsets and loop status. Initialised to zero.
 Status g_status = {0.0, 0.0, 
-                   {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, // delta_motors
+                   {0, 0, 0, 0, 0, 0, 0}, // delta_motors
                    ROBOT_IDLE, 0}; // loop_status and loop_counter
 std::mutex GLOB_STATUS_LOCK;
 
