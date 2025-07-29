@@ -414,23 +414,9 @@ class RobotControlWidget(RawWidget):
         
     """ Start the robot """
     def start_button_func(self):
-        if (self.socket.connected):
-            recv = self.send_to_server_with_response("RC.status")
-            recv = json.loads(recv)
-            try:
-                loop_counter = recv["loop_counter"]
-                if loop_counter == 0:
-                    self.send_to_server("RC.start")
-                    print("Sending 'Start' command")
-                    self.status_timer.start(1000)
-                else:
-                    print("Robot is already started.")
-            except KeyError:
-                print("Error: Could not retrieve loop_counter from server response.")
-                print("Please check the server status or connection.")
-        else:
-            print("Robot is not connected, trying to reconnect now.")
-            self.send_to_server(" ")
+        self.send_to_server("RC.start")
+        print("Sending 'Start' command")
+        self.status_timer.start(1000)
 
 
 

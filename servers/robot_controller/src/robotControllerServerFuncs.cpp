@@ -147,6 +147,14 @@ struct RobotControlServer {
 	*/
 	//TO CHANGE
     int start_robot_loop() {
+        // If the robot is not in IDLE state (which means the robot was started before),
+        // then we only reset the status to ROBOT_IDLE without starting another watchdog thread.
+        if (GLOBAL_SERVER_STATUS != ROBOT_IDLE) {
+            GLOBAL_SERVER_STATUS = ROBOT_IDLE;
+            GLOBAL_STATUS_CHANGED = true;
+            return 0;
+        }
+        // If the robot is in IDLE status, we start the watchdog thread and set the status to ROBOT_IDLE.
         GLOBAL_SERVER_STATUS = ROBOT_IDLE;
         GLOBAL_STATUS_CHANGED = true;
         watchdog_thread = std::thread(watchdog);
@@ -351,7 +359,7 @@ namespace nlohmann {
 }
 
 COMMANDER_REGISTER(m)
-{
+{ 
     // You can register a function or any other callable object as
     // long as the signature is deductible from the type.
     m.instance<RobotControlServer>("RC")
