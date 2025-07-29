@@ -198,7 +198,7 @@ class FSM:
         return all(abs(v) < 1e-6 for v in vec.values())
     
     def _exceed_limits(self, dlt_p):
-        MAX_MOVE = 50
+        MAX_MOVE = 80 #in unit of mm
         """Check if the misalignment exceeds the limits"""
         if abs(dlt_p["x"]) > MAX_MOVE or abs(dlt_p["y"]) > MAX_MOVE:
             print("Y or Z misalignment exceeds safety limits, please check manually.")
@@ -207,29 +207,36 @@ class FSM:
             return False
         
     def pupil_aquiring(self, deputyMet_name):
-        """Start the pupil alignment process"""
+        """Start the pupil alignment process by passing misalignment between Coarse Metrology and Robot Control"""
         if deputyMet_name == "DextraCoarseMet":
             state_attr = "dextra_coarse_met_state"
             deputyRC_name = "DextraRobotControl"
+            sub_config = config['Navis']['DextraCoarseMet']
         else:
             state_attr = "sinistra_coarse_met_state"
             deputyRC_name = "SinistraRobotControl"
+            sub_config = config['Navis']['SinistraCoarseMet']
+        beta, gamma, x0, alpha_c = sub_config["beta"], sub_config["gamma"], sub_config["x0"], sub_config["alpha_c"]
+        x0_json = json.dumps({"x": x0[0], "y": x0[1]})
+        alpha_c_json = json.dumps({"x": alpha_c[0], "y": alpha_c[1]})
 
         if self.clients[deputyMet_name].socket.connected:
-            response = self.clients[deputyMet_name].socket.send_command('CM.getAlignmentError 0.3, 0, {"x": -50, "y": -50}, {"x": 0, "y": 0}')
+            cmd = f'CM.getAlignmentError {beta}, {gamma}, {x0_json}, {alpha_c_json}'
+            response = self.clients[deputyMet_name].socket.send_command(cmd)
+            print("Sending command: "+cmd)
             # Parse the JSON response
             try:
                 result = json.loads(response)
                 alpha_1 = result["alpha_1"]
                 alpha_2 = result["alpha_2"]
                 dlt_p = result["dlt_p"]
-                dlt_p_x = dlt_p["x"]
-                dlt_p_y = dlt_p["y"]
+                v_offset = dlt_p["x"] # vertical offset
+                h_offset = dlt_p["y"] # horizontal offset
             except Exception as e:
                 print(f"Error parsing alignment error response: {e} (response: {response})")
                 return False
 
-            if abs(dlt_p_x) < 5 and abs(dlt_p_y) < 5:
+            if abs(v_offset) < 5 and abs(h_offset) < 5:
                 print(f"Alignment is within 5mm in {deputyMet_name}. Coarse Metrlogy state is TRACKING now.")
                 setattr(self, state_attr, CoarseMetState.TRACKING)
             else:
@@ -239,17 +246,18 @@ class FSM:
             if self._exceed_limits(dlt_p):
                 return False
             #check if the calculated misalignment is reasonable
-            elif self._is_zero(alpha_1) and self._is_zero(alpha_2) and dlt_p_x == -1 and dlt_p_y == -1:
+            elif self._is_zero(alpha_1) and self._is_zero(alpha_2) and v_offset == -1 and h_offset == -1:
                 print(f"Something went wrong in the image:compute_alignment_error in {deputyMet_name}. Cannot proceed")
                 return False
             # check if the misalignment is already zero
             elif self._is_zero(alpha_1) and self._is_zero(alpha_2) and self._is_zero(dlt_p):
                 print(f"Alignment is already perfect in {deputyMet_name}. No need to adjust.")
                 return True
+            
             #Pass the misalignment to the corresponding robot controller
             else:
                 if self.clients[deputyRC_name].socket.connected:
-                    cmd = f'RC.receive_AlignmentError {dlt_p_x}, {-dlt_p_y}'
+                    cmd = f'RC.receive_AlignmentError {v_offset}, {h_offset}'
                     self.clients[deputyRC_name].socket.send_command(cmd)
                     print(f"Sending misalignment to {deputyRC_name}. Delta_p: {dlt_p}")
                     return True
@@ -258,6 +266,7 @@ class FSM:
                     print("Please ensure this deputy is awake and Pyxis is running. Trying to reconnect now.")
                     self.reconnect(deputyRC_name)
                     return False
+                    
         else:
             print(f"{deputyMet_name} is not connected, cannot start pupil alignment process.")
             print("Trying to reconnect to the deputy metrology camera.")
@@ -271,12 +280,10 @@ class FSM:
             self.dextra_coarse_met_state = CoarseMetState.STOP
             if self.clients["DextraRobotControl"].socket.connected:
                 self.clients["DextraRobotControl"].socket.send_command("RC.stop")
-                self.clients["DextraRobotControl"].socket.send_command("RC.disconnect")
         elif deputy_name == "Sinistra":
             self.sinistra_coarse_met_state = CoarseMetState.STOP
             if self.clients["SinistraRobotControl"].socket.connected:
                 self.clients["SinistraRobotControl"].socket.send_command("RC.stop")
-                self.clients["SinistraRobotControl"].socket.send_command("RC.disconnect")
         else:
             print(f"Unknown deputy name: {deputy_name}. Cannot stop alignment process. Choose Dextra or Sinistra.")
         return None
