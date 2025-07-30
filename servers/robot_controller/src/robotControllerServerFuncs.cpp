@@ -149,12 +149,15 @@ struct RobotControlServer {
     int start_robot_loop() {
         // If the robot is not in IDLE state (which means the robot was started before),
         // then we only reset the status to ROBOT_IDLE without starting another watchdog thread.
-        if (GLOBAL_SERVER_STATUS != ROBOT_IDLE) {
+        if (GLOBAL_SERVER_STATUS == ROBOT_TRANSLATE ||
+            GLOBAL_SERVER_STATUS == ROBOT_RESONANCE ||
+            GLOBAL_SERVER_STATUS == ROBOT_TRACK) {
+            // Reset the status to IDLE
             GLOBAL_SERVER_STATUS = ROBOT_IDLE;
             GLOBAL_STATUS_CHANGED = true;
             return 0;
         }
-        // If the robot is in IDLE status, we start the watchdog thread and set the status to ROBOT_IDLE.
+        // If the robot is in IDLE or DISCONNNECT status, we start the watchdog thread and set the status to ROBOT_IDLE.
         GLOBAL_SERVER_STATUS = ROBOT_IDLE;
         GLOBAL_STATUS_CHANGED = true;
         watchdog_thread = std::thread(watchdog);
