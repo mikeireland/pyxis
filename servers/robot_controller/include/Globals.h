@@ -1,4 +1,14 @@
 #include <mutex>
+
+constexpr double PI = 3.14159265358979323846;
+constexpr double DEG_TO_RAD = PI / 180.0;
+constexpr double ARCSEC_TO_RAD = DEG_TO_RAD / 3600.0; // Arcseconds to radians conversion factor
+constexpr double ROBOT_RADIUS = 0.295; // Radius of the robot in meters, from centre to the wheels.
+constexpr double ACT_RADIUS = 0.1705; // Radius of the actuators in meters, from centre of robot to the actuators.
+constexpr double SIN30 = 0.5; // sin(30 degrees)
+constexpr double COS30 = 0.8660254037844386; // cos(30 degrees) = sqrt(3)/2
+
+
 // These are parameters read in from the toml file in main.cpp, and used in robotControllerServerFuncs.cpp
 extern double g_roll_gain;
 extern double g_pitch_gain;
@@ -23,13 +33,21 @@ struct Doubles
     double z = 0;
 };
 
+#define ST_IDLE 0
+#define ST_WAITING 1
+#define ST_MOVING 2
+#define ST_TRACKING 3
+
+
 // Status that can be returned through the server
 struct Status {
 	double roll, pitch; // Current roll and pitch angles from accelerometers.
     int delta_motors[7] = {0, 0, 0, 0, 0, 0, 0}; // Motor delta-steps
     int loop_status, loop_counter;
+    int st_status = ST_IDLE; 
 };
 
+// A structure to hold the LEDs positions
 
 // The header for robotThread.cpp, which contains the main robot loop
 #define ROBOT_IDLE 1
@@ -58,6 +76,8 @@ extern double g_az;
 extern double g_alt;
 extern double g_az_off;
 extern double g_alt_off;
+extern double g_yaw_target;
+extern double g_el_target;
 
 // Log filename
 extern std::string g_filename;

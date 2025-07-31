@@ -8,10 +8,6 @@ with required utility function.
 #include <cmath>
 #include <fstream>
 
-constexpr double PI = 3.14159265358979323846;
-constexpr double DEG_TO_RAD = PI / 180.0;
-constexpr double ARCSEC_TO_RAD = DEG_TO_RAD / 3600.0; // Arcseconds to radians conversion factor
-
 using std::chrono::steady_clock;
 using std::chrono::duration_cast;
 using std::chrono::microseconds;
@@ -144,15 +140,16 @@ void RequestStepCounts() {
 
 void UpdateBFFVelocityAngle(double x, double y, double z, double r, double p, double s, double e) {
 	// Set the motor velocities, based on x,y,z, roll, pitch, yaw.
-	// Units are SI (m/s and rad/s, with the exception of "s" for spin)
+	// Units are SI (m/s and rad/s)
     Doubles motor_velocity_target_;
     Doubles actuator_velocity_target_;
-    motor_velocity_target_.x = -y - s;                                                     //Motor 0
-    motor_velocity_target_.y = ( -x * sin(PI / 3) + y * cos(PI / 3)) - s;   //Motor 1
-    motor_velocity_target_.z = (x * sin(PI / 3) + y * cos(PI / 3)) - s;   //Motor 2
-    actuator_velocity_target_.x = z + (0.00027778)*((1.0/388.0)*r - (1.0/672.0)*p); //Actuator 0
-    actuator_velocity_target_.y = z + (1.0/336.0)*(0.00027778)*p;                                  //Actuator 1
-    actuator_velocity_target_.z = z + (0.00027778)*(- (1.0/388.0)*r - (1.0/672.0)*p);
+    motor_velocity_target_.x = -y - s * ROBOT_RADIUS;                     	//Motor 0
+    motor_velocity_target_.y = ( -x * sin(PI / 3) + y * cos(PI / 3)) - s *  ROBOT_RADIUS;   //Motor 1
+    motor_velocity_target_.z = (x * sin(PI / 3) + y * cos(PI / 3)) - s * ROBOT_RADIUS;   //Motor 2
+ 	actuator_velocity_target_.x = z + ACT_RADIUS*(  COS30*r - SIN30*p); //Actuator 0
+    actuator_velocity_target_.y = z + ACT_RADIUS*p;                                  //Actuator 1
+    actuator_velocity_target_.z = z + ACT_RADIUS*(- COS30*r - SIN30*p);
+	// The function below converts m/s to 15mm/s (the max speed) divided by 2^15 (the largest signed 2 byte int).
     PhysicalDoubleToVelocityBytes(motor_velocity_target_.x,
                                   &teensy_port->motor_velocities_out_.x[0],
                                   &teensy_port->motor_velocities_out_.x[1]);
@@ -218,15 +215,14 @@ void translate() {
 	UpdateTarget(); 	
 	UpdateStepCounts();
 	
-	// These should convert velocities from mm/s and arcsec/sec to the Teensy format.
+	// These should convert velocities from mm/s and arcsec/sec to m/s and rad/s.
 	double elevation_target = ARCSEC_TO_RAD*g_vel.el;
 	velocity_target.x = 0.001*g_vel.velocity*g_vel.x;
 	velocity_target.y = 0.001*g_vel.velocity*g_vel.y;
 	velocity_target.z = 0.001*g_vel.velocity*g_vel.z;
-	angle_target.x = g_vel.roll;
-	angle_target.y = g_vel.pitch;
-	// The yaw is converted to m/s of the wheels, which isn't very self-consistent!
-	angle_target.z = 0.0000014302*g_vel.yaw;
+	angle_target.x = ARCSEC_TO_RAD*g_vel.roll; 
+	angle_target.y = ARCSEC_TO_RAD*g_vel.pitch; 
+	angle_target.z = ARCSEC_TO_RAD*g_vel.yaw;
 	
 	RequestAccelerations();
 	RequestStepCounts();
@@ -259,6 +255,7 @@ void track() {
 	Doubles velocity_target;
 	Doubles angle_target;
 	double roll_error, pitch_error;
+	double is_tracking = 0.0;
 	
 	// Here we get the latest data (i.e. accelerometers) from the Teensy.
 	teensy_port->ReadMessage();
@@ -272,6 +269,30 @@ void track() {
 	// Update the step counts from the Teensy.
 	UpdateStepCounts();
 	
+	// Now that we have updated steps, if we are in ST_MOVING, lets see if we are close enough to the target.
+	if (g_status.st_status == ST_MOVING) {
+		// First check elevation. !!! Qianhui check signs. Also we should stop when we are close enough to the target.
+		if ( (g_vel.el > 0.0) && (g_status.delta_motors[6] >= g_el_target) ) {
+			g_vel.el = 0.0;	
+		} else if ( (g_vel.el < 0.0) && (g_status.delta_motors[6] <= g_el_target) ) {
+			g_vel.el = 0.0;
+		}
+		// Now check yaw.
+		double current_yaw_steps = g_status.delta_motors[0] + g_status.delta_motors[1] + g_status.delta_motors[2];
+		if ( (g_vel.yaw > 0.0) && (current_yaw_steps >= g_yaw_target) ) {
+			g_vel.yaw = 0.0;
+		} else if ( (g_vel.yaw < 0.0) && (current_yaw_steps <= g_yaw_target) ) {
+			g_vel.yaw = 0.0;
+		}
+		// If both velocities have been set to zero, we are done with our big movement.
+		// Set integral term sums to zero!
+		if ( (g_vel.el == 0.0) && (g_vel.yaw == 0.0) ) {
+			g_status.st_status = ST_TRACKING;
+			g_ysum = 0.0;
+			g_esum = 0.0;
+		}
+	}
+
 	// The leveller simply estimates the roll and pitch in degrees. We save these
 	// in arcseconds. 
 	g_status.roll = 3600*roll_estimate_filtered_;
@@ -280,19 +301,22 @@ void track() {
 	pitch_error = g_pitch_target - g_status.pitch;
 
 	// the constant on the following line is arc-seconds per radian.
-	double elevation_target = ARCSEC_TO_RAD*saturation(g_vel.el + g_egain*(g_alt+g_alt_off) + g_eint*g_esum);
+	if (g_status.st_status == ST_TRACKING) is_tracking = 1.0;
+	double elevation_target = ARCSEC_TO_RAD*saturation(g_vel.el + 
+		is_tracking*(g_egain*(g_alt+g_alt_off) + g_eint*g_esum));
 	velocity_target.x = 0.001*g_vel.velocity*g_vel.x;
 	velocity_target.y = 0.001*g_vel.velocity*g_vel.y;
 	velocity_target.z = 0.001*g_vel.velocity*g_vel.z;
 	
 	// Create velocities for pitch and roll, based on a proportional server and our
-	// errors.
-	angle_target.x = saturation(g_vel.roll + g_roll_gain*roll_error);
-	angle_target.y = saturation(g_vel.pitch + g_pitch_gain*pitch_error);
+	// errors. Convert to radians/s.
+	angle_target.x = ARCSEC_TO_RAD*saturation(g_vel.roll + g_roll_gain*roll_error);
+	angle_target.y = ARCSEC_TO_RAD*saturation(g_vel.pitch + g_pitch_gain*pitch_error);
 	
 	// Create a yaw velocity based on the target yaw velocity "yaw" and a PI servo loop
-	// based on the g_az. !!! TODO: Change this constant.
-	angle_target.z = 0.0000014302*saturation(g_vel.yaw + g_ygain*(g_az + g_az_off) + g_yint*g_ysum + h_gain*g_heading);
+	// based on the g_az. 
+	angle_target.z = ARCSEC_TO_RAD*saturation(g_vel.yaw + 
+		is_tracking*(g_ygain*(g_az + g_az_off) + g_yint*g_ysum) + h_gain*g_heading);
 	
 	// This is an integral term, i.e. a sum.
 	g_esum += 0.001*(g_alt + g_alt_off);
@@ -363,7 +387,7 @@ void unambig() {
 
 	}
 }
-
+ 
 /*
 This is the main robot loop, that has an interior loop that is run about every 
 milli-second, which is forked as a thread from the RobotControlServer's start_robot_loop 

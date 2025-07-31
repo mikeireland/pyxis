@@ -45,7 +45,7 @@ string g_filename = "state_file.csv";
 // Status of 2 angles, 7 offsets and loop status. Initialised to zero.
 Status g_status = {0.0, 0.0, 
                    {0, 0, 0, 0, 0, 0, 0}, // delta_motors
-                   ROBOT_IDLE, 0}; // loop_status and loop_counter
+                   ROBOT_IDLE, 0, ST_IDLE}; // loop_status and loop_counter
 std::mutex GLOB_STATUS_LOCK;
 
 std::thread robot_controller_thread;
@@ -83,6 +83,9 @@ double g_alt = 60.0;
 double g_posang = 0.0;
 double g_az_off = 0.0;
 double g_alt_off = 0.0;
+
+double g_yaw_target = 0.0;
+double g_el_target = 0.0;
 
 struct LEDs {
     double LED1_x; 
@@ -214,6 +217,43 @@ struct RobotControlServer {
 	    g_az = 206265.0*azimuth;
 	    g_alt = 206265.0*altitude;
 	    g_posang = 206265.0*pos_angle;
+        // If the Star Tracker is in waiting state and the robot is tracking, set the robot velocity, set the 
+        // target step counts, and set the Star Tracker state to MOVING.
+        if ((g_status.st_status == ST_WAITING) && (GLOBAL_SERVER_STATUS == ROBOT_TRACK)) {    
+            // If we are less than 1800 arcsec away in both axes (0.5 degrees), we move to traking mode right away.
+            if ((std::abs(g_az) < 1800) && (std::abs(g_alt) < 1800))
+            {
+                std::lock_guard<std::mutex> lock(GLOB_STATUS_LOCK);
+                g_status.st_status = ST_TRACKING; 
+                return;
+            }
+            // If we are more than 1800 arcsec away in either axis, slew at 1 degree/s.
+            // We need to know arcseconds per step for yaw.
+            double arcsec_per_yaw_step = 295E-9/ROBOT_RADIUS/ARCSEC_TO_RAD/3;
+            int current_yaw_steps = g_status.delta_motors[0] + g_status.delta_motors[1] + g_status.delta_motors[2];
+            g_yaw_target = current_yaw_steps + g_az * arcsec_per_yaw_step;
+            if (g_az > 1800)
+                g_vel.yaw = -3600;
+            else if (g_az < -1800)
+                g_vel.yaw = 3600; 
+            else
+                g_vel.yaw = 0.0;
+            
+            // We need to know arcseconds per step for elevation.
+            double arcsec_per_el_step = 0.090;
+            g_el_target = g_status.delta_motors[6] + g_alt * arcsec_per_el_step;
+            if (g_alt > 1800)
+                g_vel.el = -3600; 
+            else if (g_alt < -1800)
+                g_vel.el = 3600; 
+            else
+                g_vel.el = 0.0;
+
+            // Lock the mutex to ensure thread safety
+            std::lock_guard<std::mutex> lock(GLOB_STATUS_LOCK);
+            g_status.st_status = ST_MOVING;
+            std::cout << "RobotControllerServer: Star Tracker angles received, moving robot.\n";
+        }
     }
 
     void set_gains(double y, double e, double yi, double ei) {
@@ -266,7 +306,7 @@ struct RobotControlServer {
 		g_pitch_target += pitchval;
 		return 0;
 	}
-
+ 
 	// Receive the LED positions from the coarse metrology, which should be used to offset the 
 	// y and z postions of the robot (!!! Not implemented yet !!!)
 	int receive_LED(LEDs measured) {
@@ -311,12 +351,18 @@ struct RobotControlServer {
         return 0;
     }
 
-
+    void set_st_state(int state) {
+        // Set the Star Tracker state, which is used to control the robot's behaviour
+        // when the Star Tracker is in different states.
+        std::lock_guard<std::mutex> lock(GLOB_STATUS_LOCK);
+        g_status.st_status = state;
+    }
 
 	Status status(){
         // Lock the global status mutex to ensure thread safety
         std::lock_guard<std::mutex> lock(GLOB_STATUS_LOCK);
         // Update the global status with the current loop status and counter
+        // Other parts of the status are already changed as they are updated in the robot loop.
         g_status.loop_counter = loop_counter;
         g_status.loop_status = GLOBAL_SERVER_STATUS;
         // Unlock is automatic when going out of scope
@@ -347,7 +393,8 @@ namespace nlohmann {
 			{"pitch", L.pitch},
             {"delta_motors", L.delta_motors},
             {"loop_status", L.loop_status},
-            {"loop_counter", L.loop_counter}
+            {"loop_counter", L.loop_counter},
+            {"st_status", L.st_status} 
             };
         }
 
@@ -357,6 +404,7 @@ namespace nlohmann {
             j.at("delta_motors").get_to(L.delta_motors);
             j.at("loop_status").get_to(L.loop_status);
             j.at("loop_counter").get_to(L.loop_counter);
+            j.at("st_status").get_to(L.st_status);
         }
     };
 }
@@ -379,5 +427,6 @@ COMMANDER_REGISTER(m)
 		.def("receive_AlignmentError", &RobotControlServer::receive_AlignmentError, "Receive the Alignment offset [vertical, hortizontal].")
         .def("update_offsets", &RobotControlServer::offset_targets, "Offset the azimuth and altitude, roll, pitch.")
         .def("disconnect", &RobotControlServer::disconnect, "placeholder")
-		.def("status", &RobotControlServer::status, "Get the status of all axes including roll and pitch.");
+		.def("status", &RobotControlServer::status, "Get the status of all axes including roll and pitch.")
+        .def("set_st", &RobotControlServer::set_st_state, "Set the Star Tracker state.");
 }
