@@ -198,7 +198,7 @@ class FSM:
         return all(abs(v) < 1e-6 for v in vec.values())
     
     def _exceed_limits(self, dlt_p):
-        MAX_MOVE = 80 #in unit of mm
+        MAX_MOVE = 100 #in unit of mm
         """Check if the misalignment exceeds the limits"""
         if abs(dlt_p["x"]) > MAX_MOVE or abs(dlt_p["y"]) > MAX_MOVE:
             print("Y or Z misalignment exceeds safety limits, please check manually.")
@@ -421,31 +421,31 @@ class FSM:
                 else:
                     pass  # If the state is STOP, we do nothing
 
-            if self.clients["NavisStarTracker"].socket.connected and self.navis_star_tracker_state != StarTrackerState.STOP:
-                if self.navis_star_tracker_state == StarTrackerState.RESET:
-                    # If the NavisStarTracker is connected, and the camera is running, we can transition to SLEW_BLIND
-                    if self.clients["NavisStarTracker"].status == "Camera Waiting":
-                        print("Navis Star Tracker camera is waiting, please start exposure.")
-                    elif "Camera Running" in self.clients["NavisStarTracker"].status:
-                        # If the camera is running, we can transition to SLEW_BLIND
-                        self.navis_star_tracker_state = StarTrackerState.SLEW_BLIND
-                        print("Navis Star Tracker state changed to SLEW_BLIND.")
-                    else:
-                        #The server is not connected to the camera. The user should connect the camera.
-                        print("Navis Star Tracker is not connected to camera.")
-                elif self.navis_star_tracker_state == StarTrackerState.SLEW_BLIND:
-                    # We can start the slewing process. I don't know what needs to be implemented for slew_blind.
-                    #If the target is close to the current position, we can transition to SLEW_CLOSE
-                    pass
-                elif self.navis_star_tracker_state == StarTrackerState.SLEW_CLOSE:
-                    #I still don't know what needs to be implemented for slew_close.
-                    #For Navis star tracker, there is no monitoring mode.
-                    pass
-            elif self.navis_star_tracker_state != StarTrackerState.STOP:
-                # If the NavisStarTracker is not connected, we try to connect to it.
-                print("Navis Star Tracker is not connected to FSM, trying to reconnect.")
-                self.reconnect("NavisStarTracker")
-                self.navis_star_tracker_state = StarTrackerState.RESET
+            # if self.clients["NavisStarTracker"].socket.connected and self.navis_star_tracker_state != StarTrackerState.STOP:
+            #     if self.navis_star_tracker_state == StarTrackerState.RESET:
+            #         # If the NavisStarTracker is connected, and the camera is running, we can transition to SLEW_BLIND
+            #         if self.clients["NavisStarTracker"].status == "Camera Waiting":
+            #             print("Navis Star Tracker camera is waiting, please start exposure.")
+            #         elif "Camera Running" in self.clients["NavisStarTracker"].status:
+            #             # If the camera is running, we can transition to SLEW_BLIND
+            #             self.navis_star_tracker_state = StarTrackerState.SLEW_BLIND
+            #             print("Navis Star Tracker state changed to SLEW_BLIND.")
+            #         else:
+            #             #The server is not connected to the camera. The user should connect the camera.
+            #             print("Navis Star Tracker is not connected to camera.")
+            #     elif self.navis_star_tracker_state == StarTrackerState.SLEW_BLIND:
+            #         # We can start the slewing process. Move for the specific steps and open eyes again.
+            #         #If the target is close to the current position, we can transition to SLEW_CLOSE
+            #         self.clients["NavisRobotControl"].socket.send_command("RC.track") #parameters missing
+            #     elif self.navis_star_tracker_state == StarTrackerState.SLEW_CLOSE:
+            #         #I still don't know what needs to be implemented for slew_close.
+            #         #For Navis star tracker, there is no monitoring mode.
+            #         pass
+            # elif self.navis_star_tracker_state != StarTrackerState.STOP:
+            #     # If the NavisStarTracker is not connected, we try to connect to it.
+            #     print("Navis Star Tracker is not connected to FSM, trying to reconnect.")
+            #     self.reconnect("NavisStarTracker")
+            #     self.navis_star_tracker_state = StarTrackerState.RESET
                 time.sleep(0.5)
             
             

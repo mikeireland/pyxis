@@ -232,7 +232,7 @@ struct RobotControlServer {
             // We need to know arcseconds per step for yaw.
             double arcsec_per_yaw_step = 295E-9/ROBOT_RADIUS/ARCSEC_TO_RAD/3;
             int current_yaw_steps = g_status.delta_motors[0] + g_status.delta_motors[1] + g_status.delta_motors[2];
-            g_yaw_target = current_yaw_steps + g_az * arcsec_per_yaw_step;
+            g_yaw_target = current_yaw_steps + g_az / arcsec_per_yaw_step;
             if (g_az > 1800)
                 g_vel.yaw = -3600;
             else if (g_az < -1800)
@@ -242,7 +242,7 @@ struct RobotControlServer {
             
             // We need to know arcseconds per step for elevation.
             double arcsec_per_el_step = 0.090;
-            g_el_target = g_status.delta_motors[6] + g_alt * arcsec_per_el_step;
+            g_el_target = g_status.delta_motors[6] + g_alt / arcsec_per_el_step;
             if (g_alt > 1800)
                 g_vel.el = -3600; 
             else if (g_alt < -1800)

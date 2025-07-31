@@ -147,7 +147,7 @@ void UpdateBFFVelocityAngle(double x, double y, double z, double r, double p, do
     motor_velocity_target_.y = ( -x * sin(PI / 3) + y * cos(PI / 3)) - s *  ROBOT_RADIUS;   //Motor 1
     motor_velocity_target_.z = (x * sin(PI / 3) + y * cos(PI / 3)) - s * ROBOT_RADIUS;   //Motor 2
  	actuator_velocity_target_.x = z + ACT_RADIUS*(  COS30*r - SIN30*p); //Actuator 0
-    actuator_velocity_target_.y = z + ACT_RADIUS*p;                                  //Actuator 1
+    actuator_velocity_target_.y = z + ACT_RADIUS*p;                     //Actuator 1
     actuator_velocity_target_.z = z + ACT_RADIUS*(- COS30*r - SIN30*p);
 	// The function below converts m/s to 15mm/s (the max speed) divided by 2^15 (the largest signed 2 byte int).
     PhysicalDoubleToVelocityBytes(motor_velocity_target_.x,
@@ -272,16 +272,19 @@ void track() {
 	// Now that we have updated steps, if we are in ST_MOVING, lets see if we are close enough to the target.
 	if (g_status.st_status == ST_MOVING) {
 		// First check elevation. !!! Qianhui check signs. Also we should stop when we are close enough to the target.
-		if ( (g_vel.el > 0.0) && (g_status.delta_motors[6] >= g_el_target) ) {
+		if ( (g_vel.el > 0.0) && (g_status.delta_motors[6] <= g_el_target) ) {
+			// Print out the current elevation target and delta_motors[6] for debugging.
+			std::cout << "Elevation target: " << g_el_target << ", current steps: " << g_status.delta_motors[6] << '\n';
+			// Set the elevation velocity to zero.	
 			g_vel.el = 0.0;	
-		} else if ( (g_vel.el < 0.0) && (g_status.delta_motors[6] <= g_el_target) ) {
+		} else if ( (g_vel.el < 0.0) && (g_status.delta_motors[6] >= g_el_target) ) {
 			g_vel.el = 0.0;
 		}
 		// Now check yaw.
 		double current_yaw_steps = g_status.delta_motors[0] + g_status.delta_motors[1] + g_status.delta_motors[2];
-		if ( (g_vel.yaw > 0.0) && (current_yaw_steps >= g_yaw_target) ) {
+		if ( (g_vel.yaw > 0.0) && (current_yaw_steps <= g_yaw_target) ) {
 			g_vel.yaw = 0.0;
-		} else if ( (g_vel.yaw < 0.0) && (current_yaw_steps <= g_yaw_target) ) {
+		} else if ( (g_vel.yaw < 0.0) && (current_yaw_steps >= g_yaw_target) ) {
 			g_vel.yaw = 0.0;
 		}
 		// If both velocities have been set to zero, we are done with our big movement.
