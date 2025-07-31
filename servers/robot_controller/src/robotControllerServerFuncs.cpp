@@ -225,6 +225,7 @@ struct RobotControlServer {
             {
                 std::lock_guard<std::mutex> lock(GLOB_STATUS_LOCK);
                 g_status.st_status = ST_TRACKING; 
+                std::cout << "RobotControllerServer: Star Tracker angles are less than 0.5deg, moving to tracking mode.\n";
                 return;
             }
             // If we are more than 1800 arcsec away in either axis, slew at 1 degree/s.
@@ -252,7 +253,11 @@ struct RobotControlServer {
             // Lock the mutex to ensure thread safety
             std::lock_guard<std::mutex> lock(GLOB_STATUS_LOCK);
             g_status.st_status = ST_MOVING;
-            std::cout << "RobotControllerServer: Star Tracker angles received, moving robot.\n";
+            std::cout << "Yaw: current steps = " << current_yaw_steps
+                    << ", target steps = " << g_yaw_target << std::endl;
+            std::cout << "Elevation: current steps = " << g_status.delta_motors[6]
+                    << ", target steps = " << g_el_target << std::endl;
+            std::cout << "Current star tracker status is:" << g_status.st_status << std::endl;
         }
     }
 
