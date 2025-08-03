@@ -135,7 +135,7 @@ class DepAuxControlWidget(RawWidget):
         if not self.socket.connected:
             print("Socket not connected, cannot get power.")
             return
-        power_str = self.send_to_server_with_response("DA.reqpower")
+        power_str = self.socket.send_command("DA.reqpower")
         try:
             power_dict = json.loads(power_str)
         except:

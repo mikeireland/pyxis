@@ -62,6 +62,8 @@ extern Velocities g_vel, g_zero_vel;
 
 extern Status g_status;
 extern std::mutex GLOB_STATUS_LOCK;
+void MoveSingleActuator(int actuator_index, double velocity);
+void MoveSingleMotor(int motor_index, double velocity);
 
 // Heading gain, plus gians and integral terms for yaw ane elevation control
 extern double h_gain;

@@ -56,7 +56,7 @@ SerialPort::SerialPort(int device_id_target) {
 
 void SerialPort::OpenPort() {
     char device_file_buffer [64] = {""};
-    while((teensy_ < 0) && (device_file_index_ < 16)) {
+    while((teensy_ < 0) && (device_file_index_ < 4)) {
         printf("/dev/ttyACM%d",device_file_index_);
         sprintf(device_file_buffer,"/dev/ttyACM%d",device_file_index_);
         teensy_ = open(device_file_buffer,O_RDWR | O_NOCTTY);
@@ -113,8 +113,9 @@ void SerialPort::OpenPort() {
         device_file_index_ = device_file_index_ + 1;
         usleep(10);
     }
-    if(device_file_index_ == 16) {
-        printf("WARNING: teensy could not be found\n");
+    if(device_file_index_ == 4) {
+        printf("ERROR: teensy could not be found\n");
+        exit(1);
     }
 }
 

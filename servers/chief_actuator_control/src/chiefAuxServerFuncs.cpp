@@ -16,7 +16,7 @@ using std::chrono::milliseconds;
 
 using namespace std;
 
-Comms::SerialPort teensy_port(127);
+Comms::SerialPort teensy_port(130);
 
 /*
 Struct to hold piezo voltages and displacements

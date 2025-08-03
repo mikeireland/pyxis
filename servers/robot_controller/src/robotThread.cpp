@@ -180,6 +180,67 @@ void UpdateBFFVelocityAngle(double x, double y, double z, double r, double p, do
 	teensy_port->Request(SetRaw6);	
 }
 
+
+// Move a single actuator (index 0, 1, or 2) at the given velocity (in m/s)
+void MoveSingleActuator(int actuator_index, double velocity) {
+    // Zero velocities for all actuators
+    double actuator_velocities[3] = {0.0, 0.0, 0.0};
+    // Set the desired actuator's velocity
+    if (actuator_index >= 0 && actuator_index < 3) {
+        actuator_velocities[actuator_index] = velocity;
+    } else {
+        std::cerr << "Invalid actuator index: " << actuator_index << std::endl;
+        return;
+    }
+
+    // Convert to bytes and queue the request for each actuator
+    PhysicalDoubleToVelocityBytes(actuator_velocities[0],
+            &teensy_port->actuator_velocities_out_.x[0],
+            &teensy_port->actuator_velocities_out_.x[1]);
+    teensy_port->Request(SetRaw3);
+	PhysicalDoubleToVelocityBytes(actuator_velocities[1],
+            &teensy_port->actuator_velocities_out_.y[0],
+            &teensy_port->actuator_velocities_out_.y[1]);
+    teensy_port->Request(SetRaw4);
+	PhysicalDoubleToVelocityBytes(actuator_velocities[2],
+            &teensy_port->actuator_velocities_out_.z[0],
+            &teensy_port->actuator_velocities_out_.z[1]);
+    teensy_port->Request(SetRaw5);
+    
+
+    teensy_port->SendAllRequests();
+}
+
+// Move a single motor (index 0, 1, or 2) at the given velocity (in m/s)
+void MoveSingleMotor(int motor_index, double velocity) {
+    // Zero velocities for all actuators
+    double motor_velocities[3] = {0.0, 0.0, 0.0};
+    // Set the desired actuator's velocity
+    if (motor_index >= 0 && motor_index < 3) {
+        motor_velocities[motor_index] = velocity;
+    } else {
+        std::cerr << "Invalid actuator index: " << motor_index << std::endl;
+        return;
+    }
+
+    // Convert to bytes and queue the request for each actuator
+    PhysicalDoubleToVelocityBytes(motor_velocities[0],
+            &teensy_port->motor_velocities_out_.x[0],
+            &teensy_port->motor_velocities_out_.x[1]);
+    teensy_port->Request(SetRaw0);
+	PhysicalDoubleToVelocityBytes(motor_velocities[1],
+            &teensy_port->motor_velocities_out_.y[0],
+            &teensy_port->motor_velocities_out_.y[1]);
+    teensy_port->Request(SetRaw1);
+	PhysicalDoubleToVelocityBytes(motor_velocities[2],
+            &teensy_port->motor_velocities_out_.z[0],
+            &teensy_port->motor_velocities_out_.z[1]);
+    teensy_port->Request(SetRaw2);
+    
+
+    teensy_port->SendAllRequests();
+}
+
 bool stabiliser_file_open_flag_ = false;
 void LogSteps(int t_step, std::string filename, double f) {
 	std::ofstream output; 

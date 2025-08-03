@@ -294,32 +294,32 @@ struct RobotControlServer {
     }
 
 	// Set everything to zero and stop threads.
-    int disconnect() {
+    void disconnect() {
         g_vel = g_zero_vel;
         g_ygain = 0;
 	    g_egain = 0;
         GLOBAL_SERVER_STATUS = ROBOT_DISCONNECT;
         GLOBAL_STATUS_CHANGED = true;
         watchdog_thread.join();
-        return 0;
+        return;
     }
 
-	int offset_targets(double azimuth, double altitude, double rollval, double pitchval) {
+	void offset_targets(double azimuth, double altitude, double rollval, double pitchval) {
 		g_az_off += azimuth;
 		g_alt_off += altitude;
 		g_roll_target += rollval;
 		g_pitch_target += pitchval;
-		return 0;
+		return;
 	}
  
 	// Receive the LED positions from the coarse metrology, which should be used to offset the 
 	// y and z postions of the robot (!!! Not implemented yet !!!)
-	int receive_LED(LEDs measured) {
+	void receive_LED(LEDs measured) {
 		cout << measured.LED1_x << '\n';
 		cout << measured.LED1_y << '\n';
 		cout << measured.LED2_x << '\n';
 		cout << measured.LED2_y << '\n';
-		return 0;
+		return;
 	}
 
     //Added by Qianhui: receive the misalignment error from the coarse metrology and move correctly
@@ -373,6 +373,13 @@ struct RobotControlServer {
         // Unlock is automatic when going out of scope
         return g_status;
 	}
+
+    void move_single_actuator(int actuator_index, double velocity) {
+        MoveSingleActuator(actuator_index, velocity);
+    }
+    void move_single_motor(int motor_index, double velocity) {
+        MoveSingleMotor(motor_index, velocity);
+}
 };
 
 namespace nlohmann {
@@ -414,6 +421,8 @@ namespace nlohmann {
     };
 }
 
+
+
 COMMANDER_REGISTER(m)
 { 
     // You can register a function or any other callable object as
@@ -431,7 +440,9 @@ COMMANDER_REGISTER(m)
 		.def("receive_LED_positions", &RobotControlServer::receive_LED, "placeholder")
 		.def("receive_AlignmentError", &RobotControlServer::receive_AlignmentError, "Receive the Alignment offset [vertical, hortizontal].")
         .def("update_offsets", &RobotControlServer::offset_targets, "Offset the azimuth and altitude, roll, pitch.")
-        .def("disconnect", &RobotControlServer::disconnect, "placeholder")
+        .def("disconnect", &RobotControlServer::disconnect, "Disconnect from the robot controller and stop all threads.")
 		.def("status", &RobotControlServer::status, "Get the status of all axes including roll and pitch.")
-        .def("set_st", &RobotControlServer::set_st_state, "Set the Star Tracker state.");
+        .def("set_st", &RobotControlServer::set_st_state, "Set the Star Tracker state.")
+        .def("move_actuator", &RobotControlServer::move_single_actuator, "Move a single actuator [index 0/1/2, velocity m/s].")
+        .def("move_motor", &RobotControlServer::move_single_motor, "Move a single motor [index 0/1/2, velocity m/s].");
 }

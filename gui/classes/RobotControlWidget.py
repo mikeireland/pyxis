@@ -297,15 +297,6 @@ class RobotControlWidget(RawWidget):
         self.status_timer = QTimer(self)
         self.status_timer.timeout.connect(self.status_button_func)
 
-        #This is the request status button
-        # hbox = QHBoxLayout()
-        # self.status_button = QPushButton("Request Status", self)
-        # self.status_button.setFixedWidth(200)
-        # self.status_button.clicked.connect(self.status_button_func)
-        # hbox.addWidget(self.status_button)
-        # hbox.setAlignment(Qt.AlignLeft)
-        # status_layout.addLayout(hbox)
-        # status_layout.addSpacing(20)
 
         # Pitch and Roll info
         hbox = QHBoxLayout()
@@ -363,7 +354,7 @@ class RobotControlWidget(RawWidget):
     """ Request status to the server """
     def status_button_func(self):
         if (self.socket.connected):
-            recv = self.send_to_server_with_response("RC.status")
+            recv = self.socket.send_command("RC.status")
             recv = json.loads(recv)
             if "roll" in recv:
                 current_roll = recv["roll"]
@@ -375,23 +366,9 @@ class RobotControlWidget(RawWidget):
                 current_pitch = "0.0"
             self.pitchinfo.setText("{:.2f} ".format(float(current_pitch)))
             self.rollinfo.setText("{:.2f} ".format(float(current_roll)))
-
-            #Check the loop status, if it is levelling, change the button text
-            if "loop_status" in recv:
-                loop_status = recv["loop_status"]
-            else:
-                loop_status = 1
-            if loop_status == 4:
-                self.level_button.setChecked(True)
-                self.level_button.setText("Levelling")
-            else:
-                self.level_button.setChecked(False)
-                self.level_button.setText("Level")
         else:
             self.pitchinfo.setText("NULL")
             self.rollinfo.setText("NULL")
-            self.level_button.setChecked(False)
-            self.level_button.setText("Level")
 
     """ Level the robot """
     def level_button_func(self):
