@@ -317,9 +317,35 @@ class RobotControlWidget(RawWidget):
         self.rollinfo.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
         hbox.addWidget(self.rollinfo)
         hbox.addSpacing(50)
+
+        self.robot = QLabel("Robot: ")
+        self.robot.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
+        hbox.addWidget(self.robot)
+        hbox.addSpacing(20)
+        self.robot_status = QLabel("NULL")
+        self.robot_status.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        hbox.addWidget(self.robot_status)
+        hbox.addSpacing(50)
+
+        self.star_track = QLabel("Star track: ")
+        self.star_track.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
+        hbox.addWidget(self.star_track)
+        hbox.addSpacing(20)
+        self.st_status = QLabel("NULL")
+        self.st_status.setStyleSheet("QLabel {font-size: 20px; font-weight: bold; color: #ffd740}")
+        hbox.addWidget(self.st_status)
+        hbox.addSpacing(50)
+
+        self.st_status_button = QPushButton("Set ST", self)
+        self.st_status_button.setFixedWidth(100)
+        self.st_status_button.clicked.connect(lambda: self.set_st_func(int(self.st_edit.text())))
+        hbox.addWidget(self.st_status_button)
+        self.st_edit = QLineEdit("1")
+        self.st_edit.setFixedWidth(70)
+        hbox.addWidget(self.st_edit)
+        hbox.addSpacing(50)
         hbox.addStretch()
         status_layout.addLayout(hbox)
-        status_layout.addSpacing(20)
         self.full_window.addLayout(status_layout)
 
         # Save to file button
@@ -353,6 +379,8 @@ class RobotControlWidget(RawWidget):
         
     """ Request status to the server """
     def status_button_func(self):
+        rc_status_list = ["NULL", "IDLE", "Translate", "Resonance", "Track", "Disconnect"]
+        st_status_list = [ "IDLE", "Waiting", "Moving", "Tracking"]
         if (self.socket.connected):
             recv = self.socket.send_command("RC.status")
             recv = json.loads(recv)
@@ -364,11 +392,32 @@ class RobotControlWidget(RawWidget):
                 current_pitch = recv["pitch"]
             else:
                 current_pitch = "0.0"
+            if "loop_status" in recv:
+                loop_sttaus_number = int(recv["loop_status"])
+                current_loop_status = rc_status_list[loop_sttaus_number]
+            if "st_status" in recv:
+                st_status_number = int(recv["st_status"])
+                current_st_status = st_status_list[st_status_number]
             self.pitchinfo.setText("{:.2f} ".format(float(current_pitch)))
             self.rollinfo.setText("{:.2f} ".format(float(current_roll)))
+            self.robot_status.setText(current_loop_status)
+            self.st_status.setText(current_st_status)
         else:
             self.pitchinfo.setText("NULL")
             self.rollinfo.setText("NULL")
+            self.robot_status.setText("NULL")
+            self.st_status.setText("NULL")
+
+    """ Set the star tracker status """
+    def set_st_func(self, new_st_status):
+        if (self.socket.connected):
+            if new_st_status in [0, 1, 2, 3]:
+                recv = self.socket.send_command("RC.set_st %d"%new_st_status)
+            else:
+                print("Invalid star tracker status. Please use 0, 1, 2, or 3.")
+                return
+        
+            
 
     """ Level the robot """
     def level_button_func(self):
@@ -380,12 +429,13 @@ class RobotControlWidget(RawWidget):
     def stop_button_func(self):
         self.send_to_server("RC.translate 1,0,0,0,0,0,0,0")
         print("Sending 'Stop' command")
-        self.status_timer.stop()
-
         
     """ Disconnect the robot """
     def hard_stop_button_func(self):
         self.send_to_server("RC.disconnect")
+        self.status_timer.stop()
+        self.set_st_func(0)
+        self.status_button_func()
         print("Sending 'Disconnect' command")
 
         
