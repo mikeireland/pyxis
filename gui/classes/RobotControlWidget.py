@@ -383,25 +383,32 @@ class RobotControlWidget(RawWidget):
         st_status_list = [ "IDLE", "Waiting", "Moving", "Tracking"]
         if (self.socket.connected):
             recv = self.socket.send_command("RC.status")
-            recv = json.loads(recv)
-            if "roll" in recv:
-                current_roll = recv["roll"]
-            else:
-                current_roll = "0.0"
-            if "pitch" in recv:
-                current_pitch = recv["pitch"]
-            else:
-                current_pitch = "0.0"
-            if "loop_status" in recv:
-                loop_sttaus_number = int(recv["loop_status"])
-                current_loop_status = rc_status_list[loop_sttaus_number]
-            if "st_status" in recv:
-                st_status_number = int(recv["st_status"])
-                current_st_status = st_status_list[st_status_number]
-            self.pitchinfo.setText("{:.2f} ".format(float(current_pitch)))
-            self.rollinfo.setText("{:.2f} ".format(float(current_roll)))
-            self.robot_status.setText(current_loop_status)
-            self.st_status.setText(current_st_status)
+            try:
+                recv = json.loads(recv)
+                if "roll" in recv:
+                    current_roll = recv["roll"]
+                else:
+                    current_roll = "0.0"
+                if "pitch" in recv:
+                    current_pitch = recv["pitch"]
+                else:
+                    current_pitch = "0.0"
+                if "loop_status" in recv:
+                    loop_sttaus_number = int(recv["loop_status"])
+                    current_loop_status = rc_status_list[loop_sttaus_number]
+                if "st_status" in recv:
+                    st_status_number = int(recv["st_status"])
+                    current_st_status = st_status_list[st_status_number]
+                self.pitchinfo.setText("{:.2f} ".format(float(current_pitch)))
+                self.rollinfo.setText("{:.2f} ".format(float(current_roll)))
+                self.robot_status.setText(current_loop_status)
+                self.st_status.setText(current_st_status)
+            except json.JSONDecodeError:
+                print("Error decoding JSON response from server.")
+                self.pitchinfo.setText("NULL")
+                self.rollinfo.setText("NULL")
+                self.robot_status.setText("NULL")
+                self.st_status.setText("NULL")
         else:
             self.pitchinfo.setText("NULL")
             self.rollinfo.setText("NULL")
