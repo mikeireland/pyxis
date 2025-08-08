@@ -15,6 +15,12 @@ bg_sub_mode = "local_mean" #"Continuous" is default
 sigma_mode = "global_root_square" #"Mono16" is default
 filt_size = 15 #Size of filter
 
+[SExtractor]
+filter_kernel = [[1, 1], [1, 1]]
+thresh = 1.6
+deblend_cont = 0.2
+minarea = 6
+
 [Astrometry]
 depth = 10 #How many stars to match?
 FOV_min = 0.7 #minimum estimate of FOV in degrees
@@ -26,4 +32,4 @@ ref_pix_y = 1024 #y reference pixel for WCS solution
     flag = 0
     ra = 0
     dec = 0
-    rad = 10 #Make this small to increase speed, but increase chance of failure. The radius in degrees to search for the solution centred at ra/dec
+    rad = 5 #Make this small to increase speed, but increase chance of failure. The radius in degrees to search for the solution centred at ra/dec

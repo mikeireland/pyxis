@@ -196,14 +196,14 @@ class TargetWidget(RawWidget):
     """ Function to send the coordinates of the target to the server """
     def set_target_func(self):
         #Edited by Qianhui: check the coordinates > +45deg before sending to the server
-        if float(self.new_DEC.text().split('=')[1]) > 45.0:
+        if float(self.ALT.text().split('=')[1]) > 45.0:
             self.send_to_server("TS.setCoordinates %s,%s"%(str(float(self.new_RA.text().split('=')[1])),str(float(self.new_DEC.text().split('=')[1]))))
             self.send_to_server('TS.setTargetName "%s"'%self.new_Target_Name.text().split('=')[1])
             self.current_Target_Name.setText(str(self.new_Target_Name.text()))
             self.current_RA.setText(str(self.new_RA.text()))
             self.current_DEC.setText(str(self.new_DEC.text()))
         else:
-            self.response_label.append("Target DEC must be > +45 degrees. Please observe a different target.")
+            self.response_label.append("Target must be +45 degrees above the horizon. Please observe a different target.")
         
 
 

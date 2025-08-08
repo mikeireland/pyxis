@@ -19,6 +19,12 @@ bg_sub_mode = "local_mean" #"Continuous" is default
 sigma_mode = "global_root_square" #"Mono16" is default
 filt_size = 15 #Size of filter
 
+[SExtractor]
+filter_kernel = [[1,2,1],[2,4,2],[1,2,1]]
+thresh = 2
+deblend_cont = 0.8
+minarea = 6
+
 [Astrometry]
 depth = 10 #How many stars to match?
 FOV_min = 4 #minimum estimate of FOV in degrees
