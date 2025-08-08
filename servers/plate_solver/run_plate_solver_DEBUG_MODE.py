@@ -118,8 +118,14 @@ def run_image(img_filename,config,target):
     #Edited by Qianhui: Get a list of positions via Source Extractor instead of Tetra3
     bkg = sep.Background(img)
     img_sub = img - bkg
+    filter_kernel = np.array([[1,2,1],[2,4,2],[1,2,1]])#default filter kernel from sep website
 
-    lst = sep.extract(img_sub, thresh=2, err=bkg.globalrms, minarea=5, deblend_cont=0.5)
+    lst = sep.extract(img_sub, thresh=2, err=bkg.globalrms, minarea=6, filter_kernel=filter_kernel, deblend_cont=0.8)
+    print("Found %d sources"%len(lst))
+    # sort the list of sources based on the flux
+    flux = lst['flux']
+    sort_indices = np.argsort(flux)[::-1] 
+    lst = lst[sort_indices]
 
     if len(lst) == 0:
         print("COULD NOT EXTRACT STARS")

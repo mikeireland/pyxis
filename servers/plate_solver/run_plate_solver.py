@@ -112,16 +112,22 @@ def run_image(img_filename,config,target,offset):
     #Edited by Qianhui: Get a list of positions via Source Extractor instead of Tetra3
     bkg = sep.Background(img)
     img_sub = img - bkg
+    filter_kernel = np.array([[1,2,1],[2,4,2],[1,2,1]])#default filter kernel from sep website
 
-    lst = sep.extract(img_sub, thresh=1.8, err=bkg.globalrms, minarea=5, deblend_cont=0.5)
-
+    lst = sep.extract(img_sub, thresh=2, err=bkg.globalrms, minarea=6, filter_kernel=filter_kernel, deblend_cont=0.8)
+    print("Found %d sources"%len(lst))
+    # sort the list of sources based on the flux
+    flux = lst['flux']
+    sort_indices = np.argsort(flux)[::-1] 
+    lst = lst[sort_indices]
+    
     # If no extraction, return error
     if len(lst) == 0:
         print("COULD NOT EXTRACT STARS")
         return (0,np.array([0,0,0]))
 
     #Write .axy file for astrometry.net
-    writeANxy(folder_prefix, lst.T[1], lst.T[0], dim=img.T.shape,
+    writeANxy(folder_prefix, lst['x'], lst['y'], dim=img.T.shape,
               depth=config["Astrometry"]["depth"],
               scale_bounds=(config["Astrometry"]["FOV_min"],
                             config["Astrometry"]["FOV_max"]),
