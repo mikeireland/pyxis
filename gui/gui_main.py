@@ -112,12 +112,12 @@ class PyxisGui(QTabWidget):
         self.connect_fsm_button.clicked.connect(self.connect_fsm)
         hbox.addWidget(self.connect_fsm_button)
 
-        self.power_button = QPushButton("START SERVERS", self)
-        self.power_button.clicked.connect(self.power)
-        self.power_button.setCheckable(True)
-        self.power_button.setStyleSheet("QPushButton {background-color: #005500;border-color: #005500; color: #ffd740}")
-        self.power_button.setFixedWidth(200)
-        hbox.addWidget(self.power_button)
+        # self.power_button = QPushButton("START SERVERS", self)
+        # self.power_button.clicked.connect(self.power)
+        # self.power_button.setCheckable(True)
+        # self.power_button.setStyleSheet("QPushButton {background-color: #005500;border-color: #005500; color: #ffd740}")
+        # self.power_button.setFixedWidth(200)
+        # hbox.addWidget(self.power_button)
 
         listBox.addLayout(hbox)
 
@@ -216,7 +216,7 @@ class PyxisGui(QTabWidget):
                 # status_layout = QHBoxLayout()
                 self.status_lights[tab][name] = QSvgWidget(self.sub_tab_widgets[tab][name].status_light)
                 # self.status_lights[tab][name].setFixedSize(25,25)
-                self.status_texts[tab][name] = QLabel(self.sub_tab_widgets[tab][name].status_text, self)
+                self.status_texts[tab][name] = QLabel("", self)
                 # status_layout.addWidget(self.status_lights[tab][name])
                 # status_layout.addWidget(self.status_texts[tab][name])
 
@@ -280,11 +280,14 @@ class PyxisGui(QTabWidget):
             self.response_label.append("FSM is not connected. Trying to connect...")
             self.connect_fsm()
         else:
-            fsm_status = self.fsm_socket.send_command("status")
-            fsm_status_str = fsm_status.decode() if isinstance(fsm_status, bytes) else fsm_status
-            fsm_status_str = fsm_status_str.replace("True", '"True"').replace("False", '"False"').replace("'", '"')
-            fsm_status_dict = json.loads(fsm_status_str)
-            return fsm_status_dict
+            try:
+                fsm_status = self.fsm_socket.send_command("status")
+                fsm_status_str = fsm_status.decode() if isinstance(fsm_status, bytes) else fsm_status
+                fsm_status_str = fsm_status_str.replace("True", '"True"').replace("False", '"False"').replace("'", '"')
+                fsm_status_dict = json.loads(fsm_status_str)
+                return fsm_status_dict
+            except Exception as e:
+                return ({"error": str(e)})
     
 
     def get_indicators(self, isalive, connected, name, tab):
@@ -321,19 +324,18 @@ class PyxisGui(QTabWidget):
         tab_index = self.currentIndex()
 
         if tab_index == 0:
-            #ASK TO REFRESH FINITE STATE MACHINE STATUS HERE
-            self.dashboard_mainStatus.setText("PYXIS STATUS: WAIT! Refreshing...")
-            fsm_status_dict = self.get_status_from_fsm()
-            for tab in config:
-                for item in config[tab]:
-                    sub_config = config[tab][item]
-                    name = sub_config["name"]
-                    self.get_indicators(fsm_status_dict[name]["isalive"], fsm_status_dict[name]["connected"], name, tab)
-            self.dashboard_mainStatus.setText("PYXIS STATUS: Refreshed")
-            # """Start worker thread"""
-            # self.fsm_worker = FSMStatusWorker(self.fsm_socket)
-            # self.fsm_worker.result_ready.connect(self.handle_fsm_status)
-            # self.fsm_worker.start()
+            try:
+                #ASK TO REFRESH FINITE STATE MACHINE STATUS HERE
+                self.dashboard_mainStatus.setText("PYXIS STATUS: WAIT! Refreshing...")
+                fsm_status_dict = self.get_status_from_fsm()
+                for tab in config:
+                    for item in config[tab]:
+                        sub_config = config[tab][item]
+                        name = sub_config["name"]
+                        self.get_indicators(fsm_status_dict[name]["isalive"], fsm_status_dict[name]["connected"], name, tab)
+                self.dashboard_mainStatus.setText("PYXIS STATUS: Refreshed")
+            except Exception as e:
+                self.dashboard_mainStatus.setText("PYXIS STATUS: ERROR refreshing")
 
         else:
             tab = list(config.items())[tab_index-1][0]
@@ -373,22 +375,22 @@ class PyxisGui(QTabWidget):
         return
 
     """ Button to start or kill all servers. CURRENTLY DOES NOTHING"""
-    def power(self):
-        if not self.fsm_socket.connected:
-            self.response_label.append("FSM is not connected. Cannot reboot.")
-            return
-        else:
-            if self.power_button.isChecked():
-                response = self.fsm_socket.send_command("start_pyxis")
-                self.response_label.append(f"Response: {response}")
-                self.power_button.setText("Kill Servers")
-                self.power_button.setStyleSheet("QPushButton {background-color: #550000; border-color: #550000; color: #ffd740}")
-            else:
-                response = self.fsm_socket.send_command("stop_pyxis")
-                self.response_label.append(f"Response: {response}")
-                self.power_button.setText("Start Servers")
-                self.power_button.setStyleSheet("QPushButton {background-color: #005500; border-color: #005500; color: #ffd740}")
-            return
+    # def power(self):
+    #     if not self.fsm_socket.connected:
+    #         self.response_label.append("FSM is not connected. Cannot reboot.")
+    #         return
+    #     else:
+    #         if self.power_button.isChecked():
+    #             response = self.fsm_socket.send_command("start_pyxis")
+    #             self.response_label.append(f"Response: {response}")
+    #             self.power_button.setText("Kill Servers")
+    #             self.power_button.setStyleSheet("QPushButton {background-color: #550000; border-color: #550000; color: #ffd740}")
+    #         else:
+    #             response = self.fsm_socket.send_command("stop_pyxis")
+    #             self.response_label.append(f"Response: {response}")
+    #             self.power_button.setText("Start Servers")
+    #             self.power_button.setStyleSheet("QPushButton {background-color: #005500; border-color: #005500; color: #ffd740}")
+    #         return
 
     """ Send a command to the FSM server """
     # def send_to_FSM_server(self, text):
@@ -412,19 +414,22 @@ class PyxisGui(QTabWidget):
 
     # """What happens when you click the status button"""
     def status_click(self):
-        fsm_status_dict = self.get_status_from_fsm()
-        #print out the status in a readable format
-        navis_dict = {k: v for k, v in fsm_status_dict.items() if "Navis" in k or "CoarseMet" in k}
-        self.response_label.append("-"*10  + "Navis" + "-"*10)
-        self.response_label.append(str(navis_dict))
+        try:
+            fsm_status_dict = self.get_status_from_fsm()
+            #print out the status in a readable format
+            navis_dict = {k: v for k, v in fsm_status_dict.items() if "Navis" in k or "CoarseMet" in k}
+            self.response_label.append("-"*10  + "Navis" + "-"*10)
+            self.response_label.append(str(navis_dict))
 
-        dextra_dict = {k: v for k, v in fsm_status_dict.items() if "Dextra" in k and "CoarseMet" not in k}
-        self.response_label.append("-"*10  + "Dextra" + "-"*10)
-        self.response_label.append(str(dextra_dict))
+            dextra_dict = {k: v for k, v in fsm_status_dict.items() if "Dextra" in k and "CoarseMet" not in k}
+            self.response_label.append("-"*10  + "Dextra" + "-"*10)
+            self.response_label.append(str(dextra_dict))
 
-        sinistra_dict = {k: v for k, v in fsm_status_dict.items() if "Sinistra" in k and "CoarseMet" not in k}
-        self.response_label.append("-"*10  + "Sinistra" + "-"*10)
-        self.response_label.append(str(sinistra_dict))
+            sinistra_dict = {k: v for k, v in fsm_status_dict.items() if "Sinistra" in k and "CoarseMet" not in k}
+            self.response_label.append("-"*10  + "Sinistra" + "-"*10)
+            self.response_label.append(str(sinistra_dict))
+        except Exception as e:
+            self.response_label.append(f"Error getting status: {str(e)}")
 
 
 # Start application

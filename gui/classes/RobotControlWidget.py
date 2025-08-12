@@ -382,8 +382,8 @@ class RobotControlWidget(RawWidget):
         rc_status_list = ["NULL", "IDLE", "Translate", "Resonance", "Track", "Disconnect"]
         st_status_list = [ "IDLE", "Waiting", "Moving", "Tracking"]
         if (self.socket.connected):
-            recv = self.socket.send_command("RC.status")
             try:
+                recv = self.socket.send_command("RC.status")
                 recv = json.loads(recv)
                 if "roll" in recv:
                     current_roll = recv["roll"]

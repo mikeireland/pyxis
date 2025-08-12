@@ -397,6 +397,7 @@ if __name__ == "__main__":
 
                 #Send reply to robot
                 print(return_message)
+                print("Delta Azimuth: {:.2f}, Delta Altitude: {:.2f}, Position Angle: {:.2f} in radians".format(angles[0], angles[1], angles[2]))
                 try:
                     robot_control_socket.send_string(return_message) #Edited by Qianhui: moved this line here to avoid failing to send the command
                     message = robot_control_socket.recv()

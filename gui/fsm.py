@@ -302,8 +302,10 @@ class FSM:
         """Run the FSM server, listening for commands, and checking on clients
         one at a time """
         self.keepgoing = True
-        last_status_check = time.time()
+        check_interval = 0.5  # Check status every 0.5 seconds
+        error_threshold = 3  # Number of errors before marking a client as dead
         while self.keepgoing:
+            now = time.time()
             # Record the start time, as we want to run this at 2 Hz maximum.
             # loop_start = time.time()
             
@@ -325,8 +327,9 @@ class FSM:
                 self.socket.send_string("Error processing command")
             
             #Now check the status of one client at a time
-            if time.time() - last_status_check > 0.5:
-                for client_name, client in self.clients.items():
+            for client_name, client in self.clients.items():
+                if now - client.last_check_time > check_interval:
+                    client.last_check_time = now  # Update the last check time
                     if client.isalive:
                         if client.socket.connected:
                             try:
@@ -337,7 +340,7 @@ class FSM:
                                 client.status = json.loads(response) 
                             except Exception as e:
                                 print(f"Error checking server {client_name}: {e}, response: {response}")
-                        elif client.nerrors < 5:
+                        elif client.nerrors < error_threshold:
                             # By convention, sending an empty command will try to reconnect
                             client.socket.send_command("")
                             if client.socket.connected:
@@ -410,14 +413,14 @@ class FSM:
                         else:
                             print(f"{CoarseMet} pupil alignment process is running, state is {CMstate}.")
                     
-                    time.sleep(0.5)  # Sleep to avoid busy waiting
+                    time.sleep(0.01)  # Sleep to avoid busy waiting
 
                 elif CMstate != CoarseMetState.STOP:
                     # If the DextraCoarseMet is not connected, we try to connect to it.
                     print(f"{CoarseMet} is not connected to FSM, trying to reconnect.")
                     self.reconnect(CoarseMet)
                     setattr(self, state_attr, CoarseMetState.RESET)
-                    time.sleep(0.5)  # Sleep to avoid busy waiting
+                    time.sleep(0.01)  # Sleep to avoid busy waiting
                 else:
                     pass  # If the state is STOP, we do nothing
 
@@ -446,7 +449,7 @@ class FSM:
             #     print("Navis Star Tracker is not connected to FSM, trying to reconnect.")
             #     self.reconnect("NavisStarTracker")
             #     self.navis_star_tracker_state = StarTrackerState.RESET
-                time.sleep(0.5)
+                time.sleep(0.05)
             
             
 
@@ -471,7 +474,8 @@ if __name__ == "__main__":
     # Print the FSM clients for debugging
     for client_name, client in fsm.clients.items():
         print(f"Client: {client_name}, IP: {client.IP}, Port: {client.port}, Alive: {client.isalive}, Connected: {client.socket.connected}")
-    
+        client.last_check_time = 0  # Initialize last check time for each client
+        client.nerrors = 0  # Initialize error count for each client
     # # Example of how to access a specific client
     # if "NavisRobotControl" in fsm.clients:
     #     navis_robot_control = fsm.clients["NavisRobotControl"]
