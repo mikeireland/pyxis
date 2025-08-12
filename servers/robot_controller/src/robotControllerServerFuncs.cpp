@@ -217,6 +217,11 @@ struct RobotControlServer {
 	    g_az = 206265.0*azimuth;
 	    g_alt = 206265.0*altitude;
 	    g_posang = 206265.0*pos_angle;
+        //Edited by Qianhui: normalise tha azimuth and altitude angles to be within -180 degrees to 180 degrees
+        double az_offset_deg = g_az / 3600.0 ;
+        while (az_offset_deg > 180.0) az_offset_deg -= 360.0;
+        while (az_offset_deg < -180.0) az_offset_deg += 360.0;
+        g_az = az_offset_deg * 3600.0; // Convert back to arcseconds
         // If the Star Tracker is in waiting state and the robot is tracking, set the robot velocity, set the 
         // target step counts, and set the Star Tracker state to MOVING.
         if ((g_status.st_status == ST_WAITING) && (GLOBAL_SERVER_STATUS == ROBOT_TRACK)) {    
