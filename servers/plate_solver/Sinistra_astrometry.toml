@@ -19,10 +19,16 @@ bg_sub_mode = "local_mean" #"Continuous" is default
 sigma_mode = "global_root_square" #"Mono16" is default
 filt_size = 15 #Size of filter
 
+[SExtractor]
+filter_kernel = [[1,2,1],[2,4,2],[1,2,1]]
+thresh = 2
+deblend_cont = 0.8
+minarea = 6
+
 [Astrometry]
 depth = 10 #How many stars to match?
-FOV_min = 5 #minimum estimate of FOV in degrees
-FOV_max = 6 #maximum estimate of FOV in degrees
+FOV_min = 4 #minimum estimate of FOV in degrees
+FOV_max = 8 #maximum estimate of FOV in degrees
 #ref_pix_x = 700 #x reference pixel for WCS solution
 #ref_pix_y = 500 #y reference pixel for WCS solution
 ref_pix_x = 707 #x reference pixel for WCS solution
