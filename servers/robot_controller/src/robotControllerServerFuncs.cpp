@@ -94,6 +94,14 @@ struct LEDs {
     double LED2_y;
 };
 
+struct Movements {
+    double x;
+    double y;
+    double z;
+    double az;
+    double el;
+};
+
 // A heading is a coarse angle in degrees, which is used to control the robot's direction
 double g_heading = 0.0;
 
@@ -384,7 +392,51 @@ struct RobotControlServer {
     }
     void move_single_motor(int motor_index, double velocity) {
         MoveSingleMotor(motor_index, velocity);
+    }
+
+    int origin_delta_motors[7] = {0, 0, 0, 0, 0, 0, 0};
+    void set_origin() {
+        for (int i = 0; i < 7; ++i) {
+            origin_delta_motors[i] = g_status.delta_motors[i];
+        }
+        std::cout << "Origin set to current step counts." << std::endl;
+    }
+
+    Movements get_movement() {
+    // Calculate the culmulated movement of the robot in x, y, z, azimuth and elevation
+        Movements m;
+
+        // Use difference from origin
+        // calulate the total azimuth in degrees
+        double arcsec_per_yaw_step = 295E-9/ROBOT_RADIUS/ARCSEC_TO_RAD/3;
+        m.az = (g_status.delta_motors[0] - origin_delta_motors[0] +
+                g_status.delta_motors[1] - origin_delta_motors[1] +
+                g_status.delta_motors[2] - origin_delta_motors[2]) * arcsec_per_yaw_step/3600.0;
+        
+        // Calculate the total elevation in degrees
+        double arcsec_per_el_step = 0.090;
+        m.el = (g_status.delta_motors[6] - origin_delta_motors[6]) * arcsec_per_el_step/3600.0;
+
+        // Calculate the total movement in x, y, z in mm
+        double mm_per_step = 295E-9* 1000; //millieter/step
+        m.x = -mm_per_step *COS30 * (2.0/3)* (g_status.delta_motors[1] - origin_delta_motors[1]) +
+            mm_per_step * COS30 * (2.0/3) * (g_status.delta_motors[2] - origin_delta_motors[2]);
+
+        m.y = -mm_per_step * (2.0/3) * (g_status.delta_motors[0] - origin_delta_motors[0]) + 
+            mm_per_step * (1.0/3) * (g_status.delta_motors[1] - origin_delta_motors[1]) + 
+            mm_per_step * (1.0/3) * (g_status.delta_motors[2] - origin_delta_motors[2]);
+
+        double mm_per_step_z = 39E-6; // millimeter/step for z
+        m.z = (g_status.delta_motors[3]+
+            g_status.delta_motors[4] +
+            g_status.delta_motors[5]) * mm_per_step_z /3;
+
+        std::cout << "get_movement (mm or deg): x = " << m.x << ", y = " << m.y
+                << ", z = " << m.z << ", az = " << m.az
+                << ", el = " << m.el << std::endl;
+        return m;
 }
+
 };
 
 namespace nlohmann {
@@ -424,6 +476,22 @@ namespace nlohmann {
             j.at("st_status").get_to(L.st_status);
         }
     };
+
+    template <>
+    struct adl_serializer<Movements> {
+        static void to_json(json& j, const Movements& m) {
+            j = json{{"x", m.x}, {"y", m.y}, {"z", m.z}, {"az", m.az}, {"el", m.el}};
+        }
+
+        static void from_json(const json& j, Movements& m) {
+            j.at("x").get_to(m.x);
+            j.at("y").get_to(m.y);
+            j.at("z").get_to(m.z);
+            j.at("az").get_to(m.az);
+            j.at("el").get_to(m.el);
+        }
+};
+
 }
 
 
@@ -449,5 +517,7 @@ COMMANDER_REGISTER(m)
 		.def("status", &RobotControlServer::status, "Get the status of all axes including roll and pitch.")
         .def("set_st", &RobotControlServer::set_st_state, "Set the Star Tracker state.")
         .def("move_actuator", &RobotControlServer::move_single_actuator, "Move a single actuator [index 0/1/2, velocity m/s].")
-        .def("move_motor", &RobotControlServer::move_single_motor, "Move a single motor [index 0/1/2, velocity m/s].");
+        .def("move_motor", &RobotControlServer::move_single_motor, "Move a single motor [index 0/1/2, velocity m/s].")
+        .def("set_origin", &RobotControlServer::set_origin, "Set the current step counts as origin for the robot movement.")
+        .def("get_movement", &RobotControlServer::get_movement, "Get the culmulated movement of the robot in x, y, z (mm), azimuth and elevation (deg).");
 }

@@ -479,9 +479,12 @@ class RobotControlWidget(RawWidget):
         
     """ Start the robot """
     def start_button_func(self):
-        self.send_to_server("RC.start")
-        print("Sending 'Start' command")
-        self.status_timer.start(1000)
+        try:
+            self.send_to_server("RC.start")
+            print("Sending 'Start' command")
+            self.status_timer.start(1000)
+        except Exception as e:
+            print("Error starting the robot: ", e)
 
 
 
