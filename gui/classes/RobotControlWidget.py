@@ -16,6 +16,11 @@ class RobotControlWidget(RawWidget):
     def __init__(self, config, IP='127.0.0.1', parent=None):
 
         super(RobotControlWidget,self).__init__(config,IP,parent)
+        self.level_mode = False
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.refresh_button.setText("Status") #Change the refresh button to status button
+        self.refresh_button.clicked.disconnect()  # Remove previous connections
+        self.refresh_button.clicked.connect(self.print_status)
 
         button_layout = QHBoxLayout()
         self.start_button = QPushButton("Start", self)
@@ -23,12 +28,15 @@ class RobotControlWidget(RawWidget):
         self.start_button.clicked.connect(self.start_button_func)
         button_layout.addWidget(self.start_button)
         self.level_button = QPushButton("Level", self)
+        self.level_button.setCheckable(True)
         self.level_button.setFixedWidth(200)
         self.level_button.clicked.connect(self.level_button_func)
         button_layout.addWidget(self.level_button)
         self.stop_button = QPushButton("Stop", self)
         self.stop_button.setFixedWidth(200)
         self.stop_button.clicked.connect(self.stop_button_func)
+        self.stop_button.clicked.connect(lambda: self.level_button.setChecked(False))  # Uncheck level button when stop is pressed
+        self.stop_button.clicked.connect(self.level_button_func)
         button_layout.addWidget(self.stop_button)
         self.hard_stop_button = QPushButton("Disconnect", self)
         self.hard_stop_button.setFixedWidth(200)
@@ -54,15 +62,17 @@ class RobotControlWidget(RawWidget):
         
         hbox = QHBoxLayout()
         lbl = QLabel('X Translation', self)
-        self.Robot_X_edit = QLineEdit("0.0")
+        self.Robot_X_edit = QLineEdit("3.0")
         self.Robot_X_edit.setFixedWidth(120)
         self.Robot_X_L_button = QPushButton("<<", self)
         self.Robot_X_L_button.pressed.connect(lambda: self.move_func(0,-float(self.Robot_X_edit.text())))
         self.Robot_X_L_button.released.connect(self.stop_button_func)
+        self.Robot_X_L_button.released.connect(self.level_button_func)
         self.Robot_X_L_button.setFixedWidth(50)
         self.Robot_X_R_button = QPushButton(">>", self)
         self.Robot_X_R_button.pressed.connect(lambda: self.move_func(0,float(self.Robot_X_edit.text())))
         self.Robot_X_R_button.released.connect(self.stop_button_func)
+        self.Robot_X_R_button.released.connect(self.level_button_func)
         self.Robot_X_R_button.setFixedWidth(50)
         hbox.addStretch()
         hbox.addWidget(lbl)
@@ -78,15 +88,17 @@ class RobotControlWidget(RawWidget):
         # Y Translation
         hbox = QHBoxLayout()
         lbl = QLabel('Y Translation', self)
-        self.Robot_Y_edit = QLineEdit("0.0")
+        self.Robot_Y_edit = QLineEdit("3.0")
         self.Robot_Y_edit.setFixedWidth(120)
         self.Robot_Y_L_button = QPushButton("<<", self)
         self.Robot_Y_L_button.pressed.connect(lambda: self.move_func(1,-float(self.Robot_Y_edit.text())))
         self.Robot_Y_L_button.released.connect(self.stop_button_func)
+        self.Robot_Y_L_button.released.connect(self.level_button_func)
         self.Robot_Y_L_button.setFixedWidth(50)
         self.Robot_Y_R_button = QPushButton(">>", self)
         self.Robot_Y_R_button.pressed.connect(lambda: self.move_func(1,float(self.Robot_Y_edit.text())))
         self.Robot_Y_R_button.released.connect(self.stop_button_func)
+        self.Robot_Y_R_button.released.connect(self.level_button_func)
         self.Robot_Y_R_button.setFixedWidth(50)
         hbox.addStretch()
         hbox.addWidget(lbl)
@@ -102,15 +114,17 @@ class RobotControlWidget(RawWidget):
         # Z Translation
         hbox = QHBoxLayout()
         lbl = QLabel('Z Translation', self)
-        self.Robot_Z_edit = QLineEdit("0.0")
+        self.Robot_Z_edit = QLineEdit("3.0")
         self.Robot_Z_edit.setFixedWidth(120)
         self.Robot_Z_L_button = QPushButton("<<", self)
         self.Robot_Z_L_button.pressed.connect(lambda: self.move_func(2,-float(self.Robot_Z_edit.text())))
         self.Robot_Z_L_button.released.connect(self.stop_button_func)
+        self.Robot_Z_L_button.released.connect(self.level_button_func)
         self.Robot_Z_L_button.setFixedWidth(50)
         self.Robot_Z_R_button = QPushButton(">>", self)
         self.Robot_Z_R_button.pressed.connect(lambda: self.move_func(2,float(self.Robot_Z_edit.text())))
         self.Robot_Z_R_button.released.connect(self.stop_button_func)
+        self.Robot_Z_R_button.released.connect(self.level_button_func)
         self.Robot_Z_R_button.setFixedWidth(50)
         hbox.addStretch()
         hbox.addWidget(lbl)
@@ -132,10 +146,12 @@ class RobotControlWidget(RawWidget):
         self.Robot_roll_L_button = QPushButton("<<", self)
         self.Robot_roll_L_button.pressed.connect(lambda: self.move_func(3,-float(self.Robot_roll_edit.text())))
         self.Robot_roll_L_button.released.connect(self.stop_button_func)
+        self.Robot_roll_L_button.released.connect(self.level_button_func)
         self.Robot_roll_L_button.setFixedWidth(50)
         self.Robot_roll_R_button = QPushButton(">>", self)
         self.Robot_roll_R_button.pressed.connect(lambda: self.move_func(3,float(self.Robot_roll_edit.text())))
         self.Robot_roll_R_button.released.connect(self.stop_button_func)
+        self.Robot_roll_R_button.released.connect(self.level_button_func)
         self.Robot_roll_R_button.setFixedWidth(50)
         hbox.addStretch()
         hbox.addWidget(lbl)
@@ -157,10 +173,12 @@ class RobotControlWidget(RawWidget):
         self.Robot_pitch_L_button = QPushButton("<<", self)
         self.Robot_pitch_L_button.pressed.connect(lambda: self.move_func(4,-float(self.Robot_pitch_edit.text())))
         self.Robot_pitch_L_button.released.connect(self.stop_button_func)
+        self.Robot_pitch_L_button.released.connect(self.level_button_func)
         self.Robot_pitch_L_button.setFixedWidth(50)
         self.Robot_pitch_R_button = QPushButton(">>", self)
         self.Robot_pitch_R_button.pressed.connect(lambda: self.move_func(4,float(self.Robot_pitch_edit.text())))
         self.Robot_pitch_R_button.released.connect(self.stop_button_func)
+        self.Robot_pitch_R_button.released.connect(self.level_button_func)
         self.Robot_pitch_R_button.setFixedWidth(50)
         hbox.addStretch()
         hbox.addWidget(lbl)
@@ -177,15 +195,17 @@ class RobotControlWidget(RawWidget):
         hbox = QHBoxLayout()
         lbl = QLabel('Yaw', self)
         lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.Robot_yaw_edit = QLineEdit("0.0")
+        self.Robot_yaw_edit = QLineEdit("1000.0")
         self.Robot_yaw_edit.setFixedWidth(120)
         self.Robot_yaw_L_button = QPushButton("<<", self)
         self.Robot_yaw_L_button.pressed.connect(lambda: self.move_func(5,-float(self.Robot_yaw_edit.text())))
         self.Robot_yaw_L_button.released.connect(self.stop_button_func)
+        self.Robot_yaw_L_button.released.connect(self.level_button_func)
         self.Robot_yaw_L_button.setFixedWidth(50)
         self.Robot_yaw_R_button = QPushButton(">>", self)
         self.Robot_yaw_R_button.pressed.connect(lambda: self.move_func(5,float(self.Robot_yaw_edit.text())))
         self.Robot_yaw_R_button.released.connect(self.stop_button_func)
+        self.Robot_yaw_R_button.released.connect(self.level_button_func)
         self.Robot_yaw_R_button.setFixedWidth(50)
         hbox.addStretch()
         hbox.addWidget(lbl)
@@ -207,10 +227,12 @@ class RobotControlWidget(RawWidget):
         self.Robot_gon_L_button = QPushButton("<<", self)
         self.Robot_gon_L_button.pressed.connect(lambda: self.move_func(6,-float(self.Robot_gon_edit.text())))
         self.Robot_gon_L_button.released.connect(self.stop_button_func)
+        self.Robot_gon_L_button.released.connect(self.level_button_func)
         self.Robot_gon_L_button.setFixedWidth(50)
         self.Robot_gon_R_button = QPushButton(">>", self)
         self.Robot_gon_R_button.pressed.connect(lambda: self.move_func(6,float(self.Robot_gon_edit.text())))
         self.Robot_gon_R_button.released.connect(self.stop_button_func)
+        self.Robot_gon_R_button.released.connect(self.level_button_func)
         self.Robot_gon_R_button.setFixedWidth(50)
         hbox.addStretch()
         hbox.addWidget(lbl)
@@ -232,45 +254,47 @@ class RobotControlWidget(RawWidget):
         hbox = QHBoxLayout()
         lbl = QLabel("az (yaw)",self)
         lbl.setStyleSheet("QLabel {font-size: 15px}")
+        lbl.setFixedWidth(70)
         self.yaw_edit = QLineEdit("0.0")
-        self.yaw_edit.setFixedWidth(120)
+        self.yaw_edit.setFixedWidth(70)
         hbox.addWidget(lbl)
         hbox.addWidget(self.yaw_edit)
+        hbox.addSpacing(20)
         gain_layout.addLayout(hbox)
-        gain_layout.addSpacing(20)
+        
 
         hbox = QHBoxLayout()
         lbl = QLabel("alt (el)",self)
         lbl.setStyleSheet("QLabel {font-size: 15px}")
+        lbl.setFixedWidth(70)
         self.el_edit = QLineEdit("0.0")
-        self.el_edit.setFixedWidth(100)
+        self.el_edit.setFixedWidth(70)
         hbox.addWidget(lbl)
         hbox.addWidget(self.el_edit)
+        hbox.addSpacing(20)
         gain_layout.addLayout(hbox)
-        gain_layout.addSpacing(20)
 
         hbox = QHBoxLayout()
         lbl = QLabel("az (yaw) intergal",self)
         lbl.setStyleSheet("QLabel {font-size: 15px}")
+        lbl.setFixedWidth(130)
         self.yint_edit = QLineEdit("0.0")
-        self.yint_edit.setFixedWidth(100)
+        self.yint_edit.setFixedWidth(70)
         hbox.addWidget(lbl)
         hbox.addWidget(self.yint_edit)
+        hbox.addSpacing(20)
         gain_layout.addLayout(hbox)
-        gain_layout.addSpacing(20)
 
         hbox = QHBoxLayout()
         lbl = QLabel("alt (el) intergal",self)
         lbl.setStyleSheet("QLabel {font-size: 15px}")
+        lbl.setFixedWidth(130)
         self.eint_edit = QLineEdit("0.0")
-        self.eint_edit.setFixedWidth(100)
+        self.eint_edit.setFixedWidth(70)
         hbox.addWidget(lbl)
         hbox.addWidget(self.eint_edit)
+        hbox.addSpacing(20)
         gain_layout.addLayout(hbox)
-        gain_layout.addSpacing(20)
-
-        
-        
         
 
         # Connect the set_gain button to the server command
@@ -278,25 +302,19 @@ class RobotControlWidget(RawWidget):
         # to set the gain for the robot.
         hbox = QHBoxLayout()
         self.setgain_button = QPushButton("Set Gains", self)
-        self.setgain_button.setFixedWidth(200)
+        self.setgain_button.setFixedWidth(150)
         self.setgain_button.clicked.connect(lambda: self.set_gain_func(float(self.yaw_edit.text()), float(self.el_edit.text()), float(self.yint_edit.text()), float(self.eint_edit.text())))
         hbox.addWidget(self.setgain_button)
+        hbox.addSpacing(400)
+        hbox.addStretch()
         gain_layout.addLayout(hbox)
-        gain_layout.addSpacing(450)
         self.full_window.addLayout(gain_layout)
 
 
-        # #Edited by Qianhui to add a status button and pitch&roll info showing
+        # #Edited by Qianhui to add pitch&roll info showing
         status_layout = QHBoxLayout()
-        hbox = QHBoxLayout()
-        lbl = QLabel("Status",self)
-        lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
-        hbox.addWidget(lbl)
-        status_layout.addLayout(hbox)
-        status_layout.addSpacing(20)
         self.status_timer = QTimer(self)
         self.status_timer.timeout.connect(self.status_button_func)
-
 
         # Pitch and Roll info
         hbox = QHBoxLayout()
@@ -426,10 +444,21 @@ class RobotControlWidget(RawWidget):
         
             
 
-    """ Level the robot """
+    """ Level the robot. Not finished yet! (13th August 2025) """
     def level_button_func(self):
-        self.send_to_server("RC.track 0,0,0,0,0,0,0,0")
-        print("Sending 'Level' command")
+        if self.socket.connected:
+            if self.level_button.isChecked():
+                self.level_button.setText("Stop Level")
+                self.send_to_server("RC.track 1,0,0,0,0,0,0,0")
+                print("Sending 'Level' command")
+            else:
+                self.level_button.setText("Level")
+                self.send_to_server("RC.translate 0,0,0,0,0,0,0,0")
+                print("Stopping 'Level' command")
+        else:
+            print("Not connected to server, cannot level the robot.")
+            self.level_button.setText("Level")
+            self.level_button.setChecked(False)
 
 
     """ Stop the robot """
@@ -444,6 +473,8 @@ class RobotControlWidget(RawWidget):
         self.set_st_func(0)
         self.status_button_func()
         print("Sending 'Disconnect' command")
+        self.level_button.setText("Level")
+        self.level_button.setChecked(False)
 
         
     """ Start the robot """
@@ -480,5 +511,37 @@ class RobotControlWidget(RawWidget):
         print("moving %s at %s"%(axis,velocity))
         return
     
+    """When the keyboard is pressed, move corresponding axis"""
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_A:
+            self.move_func(0,-float(self.Robot_X_edit.text()))
+        if event.key() == Qt.Key_D:
+            self.move_func(0,float(self.Robot_X_edit.text()))
+        if event.key() == Qt.Key_W:
+            self.move_func(1,-float(self.Robot_Y_edit.text()))
+        if event.key() == Qt.Key_S:
+            self.move_func(1,float(self.Robot_Y_edit.text()))
+        if event.key() == Qt.Key_Down:
+            self.move_func(2,-float(self.Robot_Z_edit.text()))
+        if event.key() == Qt.Key_Up:
+            self.move_func(2,float(self.Robot_Z_edit.text()))
+        if event.key() == Qt.Key_Left:
+            self.move_func(5,-float(self.Robot_yaw_edit.text()))
+        if event.key() == Qt.Key_Right:
+            self.move_func(5,float(self.Robot_yaw_edit.text()))
+    
+    """When the keyboard is released, stop the robot"""
+    def keyReleaseEvent(self, event):
+        if event.key() in [Qt.Key_A, Qt.Key_D, Qt.Key_W, Qt.Key_S, Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
+            self.stop_button_func()
+            self.level_button_func()
 
-
+    def print_status(self):
+        if self.socket.connected:
+            try:
+                recv = self.socket.send_command("RC.status")
+                self.response_label.append(recv)
+            except json.JSONDecodeError:
+                self.response_label.append("*** Error receiving status ***")
+        else:
+            self.response_label.append("*** Not connected to server ***")
