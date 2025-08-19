@@ -415,7 +415,7 @@ struct RobotControlServer {
         
         // Calculate the total elevation in degrees
         double arcsec_per_el_step = 0.090;
-        m.el = (g_status.delta_motors[6] - origin_delta_motors[6]) * arcsec_per_el_step/3600.0;
+        m.el = g_status.delta_motors[6] * arcsec_per_el_step/3600.0;
 
         // Calculate the total movement in x, y, z in mm
         double mm_per_step = 295E-9* 1000; //millieter/step
@@ -431,9 +431,9 @@ struct RobotControlServer {
             g_status.delta_motors[4] +
             g_status.delta_motors[5]) * mm_per_step_z /3;
 
-        std::cout << "get_movement (mm or deg): x = " << m.x << ", y = " << m.y
-                << ", z = " << m.z << ", az = " << m.az
-                << ", el = " << m.el << std::endl;
+        // std::cout << "get_movement (mm or deg): x = " << m.x << ", y = " << m.y
+        //         << ", z = " << m.z << ", az = " << m.az
+        //         << ", el = " << m.el << std::endl;
         return m;
 }
 

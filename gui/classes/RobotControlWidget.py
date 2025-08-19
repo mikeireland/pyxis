@@ -290,7 +290,7 @@ class RobotControlWidget(RawWidget):
         self.elmove.setFixedWidth(40)
         hbox.addWidget(self.elmove)
         hbox.addSpacing(5)
-        elmove_label = QLabel("deg from origin", self)
+        elmove_label = QLabel("deg from vertical", self)
         hbox.addWidget(elmove_label)
         hbox.addStretch()
         config_grid.addLayout(hbox,3,1)
