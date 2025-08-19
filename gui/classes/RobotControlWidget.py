@@ -49,17 +49,25 @@ class RobotControlWidget(RawWidget):
 
         # Motor control layout
         content_layout = QVBoxLayout()
+        motor_controls_hbox = QHBoxLayout()
         lbl = QLabel("Motor Controls (velocity in units of mm/s or arcsec/s):",self)
         lbl.setStyleSheet("QLabel {font-size: 20px; font-weight: bold}")
-        content_layout.addWidget(lbl)
-        content_layout.addSpacing(30)
+        motor_controls_hbox.addWidget(lbl)
+        motor_controls_hbox.addSpacing(10)
+        #Add a set_origin button behind the motor controls words
+        self.set_origin_button = QPushButton("Set As Origin", self)
+        self.set_origin_button.setFixedWidth(160)
+        self.set_origin_button.clicked.connect(self.set_origin_func)
+        motor_controls_hbox.addWidget(self.set_origin_button)
+        motor_controls_hbox.addStretch()
+        content_layout.addLayout(motor_controls_hbox)
         config_grid = QGridLayout()
         config_grid.setColumnMinimumWidth(0,150)
         config_grid.setColumnMinimumWidth(1,50)
         config_grid.setColumnMinimumWidth(2,140)
         config_grid.setVerticalSpacing(5)
 
-        
+        # X Translation
         hbox = QHBoxLayout()
         lbl = QLabel('X Translation', self)
         self.Robot_X_edit = QLineEdit("3.0")
@@ -82,6 +90,14 @@ class RobotControlWidget(RawWidget):
         hbox.addWidget(self.Robot_X_edit)
         hbox.addSpacing(10)
         hbox.addWidget(self.Robot_X_R_button)
+        #Show X movement away from the origin
+        hbox.addSpacing(20)
+        self.xmove = QLabel("0")
+        self.xmove.setFixedWidth(40)
+        hbox.addWidget(self.xmove)
+        hbox.addSpacing(5)
+        xmove_label = QLabel("mm from origin  ", self)
+        hbox.addWidget(xmove_label)
         hbox.addStretch()
         config_grid.addLayout(hbox,0,0)
 
@@ -108,6 +124,14 @@ class RobotControlWidget(RawWidget):
         hbox.addWidget(self.Robot_Y_edit)
         hbox.addSpacing(10)
         hbox.addWidget(self.Robot_Y_R_button)
+        #Show Y movement away from the origin
+        hbox.addSpacing(20)
+        self.ymove = QLabel("0")
+        self.ymove.setFixedWidth(40)
+        hbox.addWidget(self.ymove)
+        hbox.addSpacing(5)
+        ymove_label = QLabel("mm from origin  ", self)
+        hbox.addWidget(ymove_label)
         hbox.addStretch()
         config_grid.addLayout(hbox,1,0)
 
@@ -134,12 +158,20 @@ class RobotControlWidget(RawWidget):
         hbox.addWidget(self.Robot_Z_edit)
         hbox.addSpacing(10)
         hbox.addWidget(self.Robot_Z_R_button)
+        #Show Z movement away from the lowest limit
+        hbox.addSpacing(20)
+        self.zmove = QLabel("0")
+        self.zmove.setFixedWidth(40)
+        hbox.addWidget(self.zmove)
+        hbox.addSpacing(5)
+        zmove_label = QLabel("mm from bottom", self)
+        hbox.addWidget(zmove_label)
         hbox.addStretch()
         config_grid.addLayout(hbox,2,0)
 
         # Roll movement
         hbox = QHBoxLayout()
-        lbl = QLabel('Roll', self)
+        lbl = QLabel('   Roll   ', self)
         lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.Robot_roll_edit = QLineEdit("0.0")
         self.Robot_roll_edit.setFixedWidth(120)
@@ -161,12 +193,13 @@ class RobotControlWidget(RawWidget):
         hbox.addWidget(self.Robot_roll_edit)
         hbox.addSpacing(10)
         hbox.addWidget(self.Robot_roll_R_button)
+        hbox.addSpacing(160)
         hbox.addStretch()
         config_grid.addLayout(hbox,0,1)
 
         # Pitch movement
         hbox = QHBoxLayout()
-        lbl = QLabel('Pitch', self)
+        lbl = QLabel('  Pitch   ', self)
         lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.Robot_pitch_edit = QLineEdit("0.0")
         self.Robot_pitch_edit.setFixedWidth(120)
@@ -188,12 +221,13 @@ class RobotControlWidget(RawWidget):
         hbox.addWidget(self.Robot_pitch_edit)
         hbox.addSpacing(10)
         hbox.addWidget(self.Robot_pitch_R_button)
+        hbox.addSpacing(160)
         hbox.addStretch()
         config_grid.addLayout(hbox,1,1)
 
         # Yaw movement
         hbox = QHBoxLayout()
-        lbl = QLabel('Yaw', self)
+        lbl = QLabel('   Yaw   ', self)
         lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.Robot_yaw_edit = QLineEdit("1000.0")
         self.Robot_yaw_edit.setFixedWidth(120)
@@ -215,6 +249,14 @@ class RobotControlWidget(RawWidget):
         hbox.addWidget(self.Robot_yaw_edit)
         hbox.addSpacing(10)
         hbox.addWidget(self.Robot_yaw_R_button)
+        #Show Yaw movement away from the origin
+        hbox.addSpacing(20)
+        self.yawmove = QLabel("0")
+        self.yawmove.setFixedWidth(40)
+        hbox.addWidget(self.yawmove)
+        hbox.addSpacing(5)
+        yawmove_label = QLabel("deg from origin", self)
+        hbox.addWidget(yawmove_label)
         hbox.addStretch()
         config_grid.addLayout(hbox,2,1)
         
@@ -242,6 +284,14 @@ class RobotControlWidget(RawWidget):
         hbox.addWidget(self.Robot_gon_edit)
         hbox.addSpacing(10)
         hbox.addWidget(self.Robot_gon_R_button)
+        #Show Elevation movement away from the origin
+        hbox.addSpacing(20)
+        self.elmove = QLabel("0")
+        self.elmove.setFixedWidth(40)
+        hbox.addWidget(self.elmove)
+        hbox.addSpacing(5)
+        elmove_label = QLabel("deg from origin", self)
+        hbox.addWidget(elmove_label)
         hbox.addStretch()
         config_grid.addLayout(hbox,3,1)
 
@@ -421,6 +471,11 @@ class RobotControlWidget(RawWidget):
                 self.rollinfo.setText("{:.2f} ".format(float(current_roll)))
                 self.robot_status.setText(current_loop_status)
                 self.st_status.setText(current_st_status)
+
+                if current_loop_status != "Disconnect":
+                    self.update_movement()
+                else:
+                    pass  # Do not update movement if disconnected
             except json.JSONDecodeError:
                 print("Error decoding JSON response from server.")
                 self.pitchinfo.setText("NULL")
@@ -548,3 +603,33 @@ class RobotControlWidget(RawWidget):
                 self.response_label.append("*** Error receiving status ***")
         else:
             self.response_label.append("*** Not connected to server ***")
+
+    def set_origin_func(self):
+        if self.socket.connected:
+            try:
+                recv = self.socket.send_command("RC.set_origin")
+                self.response_label.append(recv)
+            except json.JSONDecodeError:
+                self.response_label.append("*** Error setting origin ***")
+        else:
+            self.response_label.append("*** Not connected to server ***")
+
+    def update_movement(self):
+        if self.socket.connected:
+            try:
+                recv = self.socket.send_command("RC.get_movement")
+                recv = json.loads(recv)
+                if "x" in recv:
+                    self.xmove.setText("{:.1f}".format(float(recv["x"])))
+                if "y" in recv:
+                    self.ymove.setText("{:.1f}".format(float(recv["y"])))
+                if "z" in recv:
+                    self.zmove.setText("{:.1f}".format(float(recv["z"])))
+                if "az" in recv:
+                    self.yawmove.setText("{:.1f}".format(float(recv["az"])))
+                if "el" in recv:
+                    self.elmove.setText("{:.1f}".format(float(recv["el"])))
+            except json.JSONDecodeError:
+                self.response_label.append("*** Error receiving movement data ***")
+        else:
+            pass  # Do not update movement if not connected
