@@ -437,6 +437,17 @@ struct RobotControlServer {
         return m;
 }
 
+    void set_el_90() {
+        // Reset the elevation to vertical by calling receive_ST_angles.
+        double arcsec_per_el_step = 0.090;
+        double el_angle = g_status.delta_motors[6] * arcsec_per_el_step * ARCSEC_TO_RAD;
+        GLOBAL_SERVER_STATUS = ROBOT_TRACK;
+        GLOBAL_STATUS_CHANGED = true;
+        g_status.st_status = ST_WAITING;
+        receive_ST_angles(0.0, -el_angle, 0.0);
+        std::cout << "Setting elevation to 90 degrees" << std::endl;
+}
+
 };
 
 namespace nlohmann {
@@ -519,5 +530,6 @@ COMMANDER_REGISTER(m)
         .def("move_actuator", &RobotControlServer::move_single_actuator, "Move a single actuator [index 0/1/2, velocity m/s].")
         .def("move_motor", &RobotControlServer::move_single_motor, "Move a single motor [index 0/1/2, velocity m/s].")
         .def("set_origin", &RobotControlServer::set_origin, "Set the current step counts as origin for the robot movement.")
-        .def("get_movement", &RobotControlServer::get_movement, "Get the culmulated movement of the robot in x, y, z (mm), azimuth and elevation (deg).");
+        .def("get_movement", &RobotControlServer::get_movement, "Get the culmulated movement of the robot in x, y, z (mm), azimuth and elevation (deg).")
+        .def("set_el_90", &RobotControlServer::set_el_90, "Align the elevation to vertical by moving the goniometer to zero step count.");
 }
