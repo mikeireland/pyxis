@@ -571,6 +571,14 @@ class RobotControlWidget(RawWidget):
     
     """When the keyboard is pressed, move corresponding axis"""
     def keyPressEvent(self, event):
+        # If the command line is focused, do not activate the event to move robot
+        if self.line_edit.hasFocus():
+            super().keyPressEvent(event)
+            return
+        if self.file_line_edit.hasFocus():
+            super().keyPressEvent(event)
+            return
+
         if event.key() == Qt.Key_A:
             self.move_func(0,-float(self.Robot_X_edit.text()))
         if event.key() == Qt.Key_D:
@@ -590,6 +598,14 @@ class RobotControlWidget(RawWidget):
     
     """When the keyboard is released, stop the robot"""
     def keyReleaseEvent(self, event):
+        # If the command line is focused, do not activate the event to move robot
+        if self.line_edit.hasFocus():
+            super().keyReleaseEvent(event)
+            return
+        if self.file_line_edit.hasFocus():
+            super().keyReleaseEvent(event)
+            return
+
         if event.key() in [Qt.Key_A, Qt.Key_D, Qt.Key_W, Qt.Key_S, Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             self.stop_button_func()
             self.level_button_func()
