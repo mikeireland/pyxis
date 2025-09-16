@@ -105,7 +105,7 @@ class PyxisGui(QTabWidget):
         self.tab_widgets["dashboard"].setLayout(listBox)
 
         hbox = QHBoxLayout()
-        self.fsm_socket = ClientSocket(self.ext_IPs["FSM"], self.FSM_port) #Changed by Qianhui: connect to FSM through external IP
+        self.fsm_socket = ClientSocket(self.ext_IPs["FSM"], self.FSM_port, TIMEOUT=5000) #Changed by Qianhui: connect to FSM through external IP
 
         self.connect_fsm_button = QPushButton("Connect to FSM", self)
         self.connect_fsm_button.setFixedWidth(200)
@@ -276,18 +276,17 @@ class PyxisGui(QTabWidget):
 
     """Get the alive status from the FSM server"""
     def get_status_from_fsm(self):
-        if not self.fsm_socket.connected:
-            self.response_label.append("FSM is not connected. Trying to connect...")
-            self.connect_fsm()
-        else:
-            try:
-                fsm_status = self.fsm_socket.send_command("status")
-                fsm_status_str = fsm_status.decode() if isinstance(fsm_status, bytes) else fsm_status
-                fsm_status_str = fsm_status_str.replace("True", '"True"').replace("False", '"False"').replace("'", '"')
-                fsm_status_dict = json.loads(fsm_status_str)
-                return fsm_status_dict
-            except Exception as e:
-                return ({"error": str(e)})
+        try:
+            fsm_status = self.fsm_socket.send_command("status")
+            if not fsm_status:
+                self.response_label.append("FSM returned empty response")
+                return {}
+            fsm_status_str = fsm_status.decode() if isinstance(fsm_status, bytes) else fsm_status
+            fsm_status_str = fsm_status_str.replace("True", '"True"').replace("False", '"False"').replace("'", '"')
+            fsm_status_dict = json.loads(fsm_status_str)
+            return fsm_status_dict
+        except Exception as e:
+            return ({"error": str(e)})
     
 
     def get_indicators(self, isalive, connected, name, tab):
@@ -309,14 +308,12 @@ class PyxisGui(QTabWidget):
 
     
     def reboot_click(self, name):
-        if not self.fsm_socket.connected:
-            self.response_label.append("FSM is not connected. Cannot reboot.")
-            return
-        else:
-            command = "reboot "+ name #send the name as argument to the reboot func in the FSM
+        try:
+            command = "reboot " + name
             response = self.fsm_socket.send_command(command)
             self.response_label.append(f"Response: {response}")
-       
+        except Exception as e:
+            self.response_label.append(f"Reboot failed: {str(e)}")
 
 
     """ Function to refresh the status of all clients """

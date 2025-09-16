@@ -314,6 +314,12 @@ class FSM:
             try:
                 message = self.socket.recv_string(flags=zmq.NOBLOCK)
                 print(f"Received command: {message}")
+
+                # Handle empty message as a connection ping
+                if not message.strip():
+                    self.socket.send_string("CONNECT_FSM")
+                    continue
+
                 command, *args = message.split()
                 if command in self.command_dict:
                     response = self.command_dict[command](*args)
@@ -456,18 +462,19 @@ class FSM:
 #Initialise the FSM with the port from the config
 fsm = FSM(pyxis_config['IP']['FSM_port'])
 
-if pyxis_config["IP"]["UseExternal"]:
-    use_external = True 
-else:
-    use_external = False    
+# if pyxis_config["IP"]["UseExternal"]:
+#     use_external = True 
+# else:
+#     use_external = False 
+# FSM is only run on the local machine so it always connects to other servers via internal IP   
 for robot in config:
     #For each sub tab
     for item in config[robot]:
         sub_config = config[robot][item]
-        if use_external:
-            IP = pyxis_config["IP"]["External"]
-        else:
-            IP = pyxis_config["IP"][robot]
+        # if use_external:
+        #     IP = pyxis_config["IP"]["External"]
+        # else:
+        IP = pyxis_config["IP"][robot]
         fsm._add_client(sub_config["name"], IP, sub_config["port"], prefix = sub_config["prefix"])
 
 if __name__ == "__main__":
