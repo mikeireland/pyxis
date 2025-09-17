@@ -80,20 +80,55 @@ void UpdateStepCounts(){
 							  teensy_port->step_count6_in_[2], teensy_port->step_count6_in_[3]);
 }
 
+// Check the three accelerometer readings and drop out anyone that is too different from the others
+// Return the mean value of the remaining accelerometers
+double robust_mean(double a, double b, double c) {
+	double vals_[3] = {a, b, c};
+	double mean = (a + b + c) / 3.0;
+	double threshold = 0.2 * fabs(mean); // 20% threshold
+
+	int count = 0;
+	double sum = 0.0;
+
+	for (int i = 0; i < 3; ++i) {
+        if (std::abs(vals_[i] - mean) < threshold) {
+            sum += vals_[i];
+            count++;
+        }
+    }
+    return (count > 0) ? (sum / count) : mean;
+}
+
 // Update the target for the levelling control loop.
 void UpdateTarget() {
 	Doubles acc_estimate_;
-	// Combine the accelerations.
-	acc_estimate_.x = (-1*leveller.acc0_latest_measurements_.x+1*leveller.acc1_latest_measurements_.y
-                           +leveller.acc2_latest_measurements_.x)/3.0;
+	// Combine the accelerations. Ideally the accelerometers should also be calibrated
+	// against each other with the zero positions stored in the toml file.
+	// !!! Qianhui !!!
+	acc_estimate_.x = robust_mean(-1*leveller.acc0_latest_measurements_.x,
+								   1*leveller.acc1_latest_measurements_.y,
+								   leveller.acc2_latest_measurements_.x);
 
-    acc_estimate_.y = (-1*leveller.acc0_latest_measurements_.y-1*leveller.acc1_latest_measurements_.x
-                                                             +leveller.acc2_latest_measurements_.y)/3.0;
+	acc_estimate_.y = robust_mean(-1*leveller.acc0_latest_measurements_.y,
+								   -1*leveller.acc1_latest_measurements_.x,
+								   leveller.acc2_latest_measurements_.y);
+
+	//We flip the sign on the z component so that gravity is measured downwards
+	acc_estimate_.z = robust_mean(leveller.acc0_latest_measurements_.z,
+								  leveller.acc1_latest_measurements_.z,
+								  leveller.acc2_latest_measurements_.z);
+
+
+	// acc_estimate_.x = (-1*leveller.acc0_latest_measurements_.x+1*leveller.acc1_latest_measurements_.y
+    //                        +leveller.acc2_latest_measurements_.x)/3.0;
+
+    // acc_estimate_.y = (-1*leveller.acc0_latest_measurements_.y-1*leveller.acc1_latest_measurements_.x
+    //                                                          +leveller.acc2_latest_measurements_.y)/3.0;
 
     //We flip the sign on the z component so that gravity is measured downwards
-    acc_estimate_.z = (leveller.acc0_latest_measurements_.z
-                       +leveller.acc1_latest_measurements_.z
-                       +leveller.acc2_latest_measurements_.z)/3.0;
+    // acc_estimate_.z = (leveller.acc0_latest_measurements_.z
+    //                    +leveller.acc1_latest_measurements_.z
+    //                    +leveller.acc2_latest_measurements_.z)/3.0;
 	
 					   // Here we average the last 10 measurements.
 	for(int i = 1; i <= 9; i++) {
