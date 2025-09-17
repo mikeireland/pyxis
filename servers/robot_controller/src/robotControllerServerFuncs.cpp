@@ -356,7 +356,7 @@ struct RobotControlServer {
             z_vel = 0; // Z axis is aligned, no movement needed
         }
         else{
-            z_vel = -z_offset/10.0; // Divide by 10 to reduce the speed
+            z_vel = z_offset/10.0; // Divide by 10 to reduce the speed
             if (z_vel > 3.0) z_vel = 3.0;
             if (z_vel < -3.0) z_vel = -3.0; //cap the velocity to 10cm/s
         }

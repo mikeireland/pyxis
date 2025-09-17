@@ -212,10 +212,12 @@ class FSM:
             state_attr = "dextra_coarse_met_state"
             deputyRC_name = "DextraRobotControl"
             sub_config = config['Navis']['DextraCoarseMet']
+            sign = -1 #Dextra CoarseMetCam is rotated 90 degree clockwise
         else:
             state_attr = "sinistra_coarse_met_state"
             deputyRC_name = "SinistraRobotControl"
             sub_config = config['Navis']['SinistraCoarseMet']
+            sign = +1 #Sinistra CoarseMetCam is rotated 90 degree counter-clockwise
         beta, gamma, x0, alpha_c = sub_config["beta"], sub_config["gamma"], sub_config["x0"], sub_config["alpha_c"]
         x0_json = json.dumps({"x": x0[0], "y": x0[1]})
         alpha_c_json = json.dumps({"x": alpha_c[0], "y": alpha_c[1]})
@@ -257,7 +259,7 @@ class FSM:
             #Pass the misalignment to the corresponding robot controller
             else:
                 if self.clients[deputyRC_name].socket.connected:
-                    cmd = f'RC.receive_AlignmentError {v_offset}, {h_offset}'
+                    cmd = f'RC.receive_AlignmentError {sign * v_offset}, {h_offset}'
                     self.clients[deputyRC_name].socket.send_command(cmd)
                     print(f"Sending misalignment to {deputyRC_name}. Delta_p: {dlt_p}")
                     return True
@@ -462,19 +464,19 @@ class FSM:
 #Initialise the FSM with the port from the config
 fsm = FSM(pyxis_config['IP']['FSM_port'])
 
-# if pyxis_config["IP"]["UseExternal"]:
-#     use_external = True 
-# else:
-#     use_external = False 
+if pyxis_config["IP"]["UseExternal"]:
+    use_external = True 
+else:
+    use_external = False 
 # FSM is only run on the local machine so it always connects to other servers via internal IP   
 for robot in config:
     #For each sub tab
     for item in config[robot]:
         sub_config = config[robot][item]
-        # if use_external:
-        #     IP = pyxis_config["IP"]["External"]
-        # else:
-        IP = pyxis_config["IP"][robot]
+        if use_external:
+            IP = pyxis_config["IP"]["External"]
+        else:
+            IP = pyxis_config["IP"][robot]
         fsm._add_client(sub_config["name"], IP, sub_config["port"], prefix = sub_config["prefix"])
 
 if __name__ == "__main__":
