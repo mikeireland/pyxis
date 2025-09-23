@@ -198,10 +198,10 @@ class FSM:
         return all(abs(v) < 1e-6 for v in vec.values())
     
     def _exceed_limits(self, dlt_p):
-        MAX_MOVE = 100 #in unit of mm
+        MAX_MOVE = 1000 #in unit of mm
         """Check if the misalignment exceeds the limits"""
         if abs(dlt_p["x"]) > MAX_MOVE or abs(dlt_p["y"]) > MAX_MOVE:
-            print("Y or Z misalignment exceeds safety limits, please check manually.")
+            print("Y or Z misalignment exceeds safety limits (1 meter), please check manually.")
             return True
         else:
             return False
