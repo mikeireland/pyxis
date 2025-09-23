@@ -7,6 +7,7 @@ with required utility function.
 #include <iostream>
 #include <cmath>
 #include <fstream>
+#include <algorithm>
 
 using std::chrono::steady_clock;
 using std::chrono::duration_cast;
@@ -84,19 +85,28 @@ void UpdateStepCounts(){
 // Return the mean value of the remaining accelerometers
 double robust_mean(double a, double b, double c) {
 	double vals_[3] = {a, b, c};
-	double mean = (a + b + c) / 3.0;
-	double threshold = 0.2 * fabs(mean); // 20% threshold
-
-	int count = 0;
-	double sum = 0.0;
-
-	for (int i = 0; i < 3; ++i) {
-        if (std::abs(vals_[i] - mean) < threshold) {
-            sum += vals_[i];
-            count++;
-        }
+	// sort a, b, c from smallest to largest
+	std::sort(vals_, vals_ + 3);
+	// Now vals_[0] <= vals_[1] <= vals_[2]
+	// std::cout << " All accelerometer values: " << a << ", " << b << ", " << c << std::endl;
+	
+	double threshold = 0.15;
+	// Check if there is any outlier
+    if ((vals_[1] - vals_[0]) > std::max(threshold, (vals_[2] - vals_[1]) * 3)) {
+        // vals_[0] is an outlier
+		// std::cout << "The smallest is an outlier" << std::endl;
+        return (vals_[1] + vals_[2]) / 2.0;
     }
-    return (count > 0) ? (sum / count) : mean;
+    else if ((vals_[2] - vals_[1]) > std::max(threshold, (vals_[1] - vals_[0]) * 3)) {
+        // vals_[2] is an outlier
+		// std::cout << "The biggest is an outlier" << std::endl;
+        return (vals_[0] + vals_[1]) / 2.0;
+    }
+    // No outliers or all three are very different
+    else {
+		// std::cout << "No outlier" << std::endl;
+        return (vals_[0] + vals_[1] + vals_[2]) / 3.0;
+    }
 }
 
 // Update the target for the levelling control loop.
