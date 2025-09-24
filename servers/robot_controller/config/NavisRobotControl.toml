@@ -6,6 +6,9 @@ pitch_target = 300
 roll_gain = -0.05
 pitch_gain = -0.05
 
-z_acc_offset = 0.04177880072649895
-x_acc_offset = 0.6165382087389462
-y_acc_offset = 0.22228297720067516
+z_acc_offset1 = 0.006502242505655086
+z_acc_offset2 = 0.04442601107057491
+x_acc_offset1 = 0.5968672275579202
+x_acc_offset2 = 0.6336624787478393
+y_acc_offset1 = 0.041157354656842865
+y_acc_offset2 = 0.2431188950077874

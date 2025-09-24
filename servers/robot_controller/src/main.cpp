@@ -20,9 +20,12 @@ double g_pitch_gain = -0.08;
 double g_roll_target = 0;
 double g_pitch_target = 0;
 
-double g_z_acc_offset = 0.0;
-double g_x_acc_offset = 0.0;
-double g_y_acc_offset = 0.0;
+double g_z_acc_offset1 = 0;
+double g_x_acc_offset1 = 0;
+double g_y_acc_offset1 = 0;
+double g_z_acc_offset2 = 0;
+double g_x_acc_offset2 = 0;
+double g_y_acc_offset2 = 0;
 
 // Main server function. Accepts one parameter: link to the camera config file.
 int main(int argc, char* argv[]) {
@@ -79,18 +82,33 @@ int main(int argc, char* argv[]) {
     } else {
         cout << "Pitch target not found in config file, using default value" << endl;
     }
-    if (config["z_acc_offset"].is_number()) {
-        g_z_acc_offset = config["z_acc_offset"].value_or(g_z_acc_offset);
+    if (config["z_acc_offset1"].is_number()) {
+        g_z_acc_offset1 = config["z_acc_offset1"].value_or(g_z_acc_offset1);
     } else {
         cout << "Z accelerometer offset not found in config file, using default value" << endl;
     }
-    if (config["x_acc_offset"].is_number()) {
-        g_x_acc_offset = config["x_acc_offset"].value_or(g_x_acc_offset);
+    if (config["x_acc_offset1"].is_number()) {
+        g_x_acc_offset1 = config["x_acc_offset1"].value_or(g_x_acc_offset1);
     } else {
         cout << "X accelerometer offset not found in config file, using default value" << endl;
     }
-    if (config["y_acc_offset"].is_number()) {
-        g_y_acc_offset = config["y_acc_offset"].value_or(g_y_acc_offset);
+    if (config["y_acc_offset1"].is_number()) {
+        g_y_acc_offset1 = config["y_acc_offset1"].value_or(g_y_acc_offset1);
+    } else {
+        cout << "Y accelerometer offset not found in config file, using default value" << endl;
+    }
+    if (config["z_acc_offset2"].is_number()) {
+        g_z_acc_offset2 = config["z_acc_offset2"].value_or(g_z_acc_offset2);
+    } else {
+        cout << "Z accelerometer offset not found in config file, using default value" << endl;
+    }
+    if (config["x_acc_offset2"].is_number()) {
+        g_x_acc_offset2 = config["x_acc_offset2"].value_or(g_x_acc_offset2);
+    } else {
+        cout << "X accelerometer offset not found in config file, using default value" << endl;
+    }
+    if (config["y_acc_offset2"].is_number()) {
+        g_y_acc_offset2 = config["y_acc_offset2"].value_or(g_y_acc_offset2);
     } else {
         cout << "Y accelerometer offset not found in config file, using default value" << endl;
     }

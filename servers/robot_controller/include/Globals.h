@@ -14,9 +14,12 @@ extern double g_roll_gain;
 extern double g_pitch_gain;
 extern double g_roll_target;
 extern double g_pitch_target;
-extern double g_x_acc_offset;
-extern double g_y_acc_offset;
-extern double g_z_acc_offset;
+extern double g_x_acc_offset1;
+extern double g_x_acc_offset2;
+extern double g_y_acc_offset1;
+extern double g_y_acc_offset2;
+extern double g_z_acc_offset1;
+extern double g_z_acc_offset2;
 
 // For the watchdog thread
 extern int alive_counter;
