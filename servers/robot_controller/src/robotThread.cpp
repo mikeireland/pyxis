@@ -83,14 +83,20 @@ void UpdateStepCounts(){
 
 // Check the three accelerometer readings and drop out anyone that is too different from the others
 // Return the mean value of the remaining accelerometers
-double robust_mean(double a, double b, double c) {
+double robust_mean(double a, double b, double c, double acc_offset) {
 	double vals_[3] = {a, b, c};
 	// sort a, b, c from smallest to largest
 	std::sort(vals_, vals_ + 3);
-	// Now vals_[0] <= vals_[1] <= vals_[2]
-	// std::cout << " All accelerometer values: " << a << ", " << b << ", " << c << std::endl;
+	// std::cout << " All accelerometer values: " << vals_[0] << ',' << vals_[1] << ',' << vals_[2] << std::endl;
+	// Apply the systematic offset to the most extreme value
+	if ((vals_[1]-vals_[0]) > (vals_[2]-vals_[1])) {
+		vals_[0] = vals_[0] + acc_offset;
+	} else {
+		vals_[2] = vals_[2] - acc_offset;
+	}
+	// std::cout << " All accelerometer values after offset correction: " << vals_[0] << ',' << vals_[1] << ',' << vals_[2] << std::endl;
 	
-	double threshold = 0.15;
+	double threshold = 0.10; //0.1 rad/s in x & y axis, 0.1g in z axis
 	// Check if there is any outlier
     if ((vals_[1] - vals_[0]) > std::max(threshold, (vals_[2] - vals_[1]) * 3)) {
         // vals_[0] is an outlier
@@ -117,16 +123,16 @@ void UpdateTarget() {
 	// !!! Qianhui !!!
 	acc_estimate_.x = robust_mean(-1*leveller.acc0_latest_measurements_.x,
 								   1*leveller.acc1_latest_measurements_.y,
-								   leveller.acc2_latest_measurements_.x);
+								   leveller.acc2_latest_measurements_.x, g_x_acc_offset);
 
 	acc_estimate_.y = robust_mean(-1*leveller.acc0_latest_measurements_.y,
 								   -1*leveller.acc1_latest_measurements_.x,
-								   leveller.acc2_latest_measurements_.y);
+								   leveller.acc2_latest_measurements_.y, g_y_acc_offset);
 
 	//We flip the sign on the z component so that gravity is measured downwards
 	acc_estimate_.z = robust_mean(leveller.acc0_latest_measurements_.z,
 								  leveller.acc1_latest_measurements_.z,
-								  leveller.acc2_latest_measurements_.z);
+								  leveller.acc2_latest_measurements_.z, g_z_acc_offset);
 
 
 	// acc_estimate_.x = (-1*leveller.acc0_latest_measurements_.x+1*leveller.acc1_latest_measurements_.y
