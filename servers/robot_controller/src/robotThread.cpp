@@ -8,6 +8,8 @@ with required utility function.
 #include <cmath>
 #include <fstream>
 #include <algorithm>
+// #include <fstream>
+// #include <string>
 
 using std::chrono::steady_clock;
 using std::chrono::duration_cast;
@@ -81,12 +83,25 @@ void UpdateStepCounts(){
 							  teensy_port->step_count6_in_[2], teensy_port->step_count6_in_[3]);
 }
 
+//saving readings to a file for measuring offsets
+// void save_abc_to_file(double a, double b, double c, const std::string& filename) {
+//     std::ofstream outfile;
+//     outfile.open(filename, std::ios::app); // append mode
+//     if (outfile.is_open()) {
+//         outfile << a << ", " << b << ", " << c << std::endl;
+//         outfile.close();
+//     } else {
+//         std::cerr << "Unable to open file: " << filename << std::endl;
+//     }
+// }
+
 // Check the three accelerometer readings and drop out anyone that is too different from the others
 // Return the mean value of the remaining accelerometers
 double robust_mean(double a, double b, double c, double acc_offset) {
 	double vals_[3] = {a, b, c};
 	// sort a, b, c from smallest to largest
 	std::sort(vals_, vals_ + 3);
+	// save_abc_to_file(vals_[0], vals_[1], vals_[2], "/tmp/testAcc_values.txt");
 	// std::cout << " All accelerometer values: " << vals_[0] << ',' << vals_[1] << ',' << vals_[2] << std::endl;
 	// Apply the systematic offset to the most extreme value
 	if ((vals_[1]-vals_[0]) > (vals_[2]-vals_[1])) {
