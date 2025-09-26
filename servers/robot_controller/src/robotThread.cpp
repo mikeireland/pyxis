@@ -97,8 +97,9 @@ void UpdateStepCounts(){
 
 // Check the three accelerometer readings and drop out anyone that is too different from the others
 // Return the mean value of the remaining accelerometers
-double robust_mean(double a, double b, double c, double acc_offset1, double acc_offset2) {
+double robust_mean(double a, double b, double c, double acc_offset0, double acc_offset1, double acc_offset2) {
 	// save_abc_to_file(a, b, c, "/tmp/testAcc_values.txt");
+	a -= acc_offset0;
 	b -= acc_offset1;
 	c -= acc_offset2;
 	double vals_[3] = {a, b, c};
@@ -134,16 +135,16 @@ void UpdateTarget() {
 	// !!! Qianhui !!!
 	acc_estimate_.x = robust_mean(-1*leveller.acc0_latest_measurements_.x,
 								   1*leveller.acc1_latest_measurements_.y,
-								   leveller.acc2_latest_measurements_.x, g_x_acc_offset1, g_x_acc_offset2);
+								   leveller.acc2_latest_measurements_.x, g_x_acc_offset0, g_x_acc_offset1, g_x_acc_offset2);
 
 	acc_estimate_.y = robust_mean(-1*leveller.acc0_latest_measurements_.y,
 								   -1*leveller.acc1_latest_measurements_.x,
-								   leveller.acc2_latest_measurements_.y, g_y_acc_offset1, g_y_acc_offset2);
+								   leveller.acc2_latest_measurements_.y, g_y_acc_offset0, g_y_acc_offset1, g_y_acc_offset2);
 
 	//We flip the sign on the z component so that gravity is measured downwards
 	acc_estimate_.z = robust_mean(leveller.acc0_latest_measurements_.z,
 								  leveller.acc1_latest_measurements_.z,
-								  leveller.acc2_latest_measurements_.z, g_z_acc_offset1, g_z_acc_offset2);
+								  leveller.acc2_latest_measurements_.z, g_z_acc_offset0, g_z_acc_offset1, g_z_acc_offset2);
 
 
 	// acc_estimate_.x = (-1*leveller.acc0_latest_measurements_.x+1*leveller.acc1_latest_measurements_.y
