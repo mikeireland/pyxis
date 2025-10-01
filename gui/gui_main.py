@@ -5,8 +5,7 @@ import pytomlpp
 import collections
 import importlib
 import faulthandler
-import cProfile
-import pstats, io
+import os
 
 
 # import argparse
@@ -521,7 +520,9 @@ vbox.addWidget(logo_wig)
 vbox.addWidget(pyxis_app)
 
 main.setWindowTitle("Pyxis Control")
-app.setWindowIcon(QIcon('assets/telescope.jpg'))
+icon_path = os.path.join(os.path.dirname(__file__), 'assets', 'telescope.jpg')
+if os.path.exists(icon_path):
+    app.setWindowIcon(QIcon(icon_path))
 
 main.show()
 
