@@ -16,7 +16,7 @@ class CoarseMetCameraWidget(BaseFLIRCameraWidget):
         super(CoarseMetCameraWidget,self).__init__(config,IP=IP,parent=parent)
 
         # Button to enable the metrology loop
-        self.numframes_edit.setText("0")
+        self.numframes_edit.setText("1")
         hbox = QHBoxLayout()
         self.enable_button = QPushButton("LED flash", self)
         self.enable_button.setCheckable(True)

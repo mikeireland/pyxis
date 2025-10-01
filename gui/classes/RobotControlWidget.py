@@ -562,6 +562,15 @@ class RobotControlWidget(RawWidget):
 
     """ Move the robot along the required axis at a given velocity"""
     def move_func(self,axis,velocity):
+        # Prevent lifting z axis when it is at the top
+        if axis == 2 and velocity > 0:
+            try:
+                if float(self.zmove.text()) >= 40: #Maximum Z height (mm)
+                    self.response_label.append("Z axis is at the top, cannot lift further.")
+                    return
+            except ValueError:
+                self.response_label.append("Invalid Z position value.")
+                return
         command = ["1","0","0","0","0","0","0","0"]
         command[axis+1] = str(velocity)
         str_command = ",".join(command)
@@ -640,7 +649,7 @@ class RobotControlWidget(RawWidget):
                 if "y" in recv:
                     self.ymove.setText("{:.1f}".format(float(recv["y"])))
                 if "z" in recv:
-                    self.zmove.setText("{:.1f}".format(float(recv["z"])))
+                    self.zmove.setText("{:.1f}".format(-float(recv["z"])))
                 if "az" in recv:
                     self.yawmove.setText("{:.1f}".format(float(recv["az"])))
                 if "el" in recv:

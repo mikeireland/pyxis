@@ -1,7 +1,7 @@
 port = "4100"
 IP = "192.168.1.3"
 #mode = "Interactive"
-roll_target = -6340
+roll_target = -6400
 pitch_target = 300
 roll_gain = -0.05
 pitch_gain = -0.05

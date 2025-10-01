@@ -93,7 +93,7 @@
     USB_port = "1" #USB port number on the hub
     beta = 0.7 # distance ratio of d(beam injection to left LED) on d(LEDs)
     gamma = 0 # horizontal offset between beam and LEDs
-    x0 = [-55.9810, 48.6647] # vector of the beam injection, pointing from the coarse metrology camera (mm)
+    x0 = [55.9810, 48.6647] # vector of the beam injection, pointing from the coarse metrology camera (mm)
     alpha_c = [0.0262, -0.0077] # calibrated correction for any angular deviation from the optical axis of the injection lens
 
     [Navis.FiberInjection]
