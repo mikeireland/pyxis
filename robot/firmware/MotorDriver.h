@@ -17,6 +17,10 @@ class MotorDriver {
       39,40,41 //Linear actuators 0,1,2
     };
 
+    const int glim_pins[2] = {
+      15,17 // Positive and negative goniometer limit.
+    }
+
     // Time (microseconds) of last update
     unsigned int last_step_micros_[7] = {0};
     //This array stores the physical distance which each motor moves per microstep
@@ -111,6 +115,7 @@ class MotorDriver {
       for(int i = 0; i < 3; ++i){
         if(digitalRead(lim_pins_[i]) && (motor_vels_[3 + i] > 0)){ //A positive actuator velocity is a lowering of the robot
           motor_vels_[3 + i] = 0;
+          step_count_[3 + i] = 0;
         }
       }
     }

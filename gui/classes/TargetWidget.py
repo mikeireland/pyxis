@@ -33,8 +33,8 @@ class TargetWidget(RawWidget):
         self.full_window.addSpacing(30)
 
         self.simbad = Simbad()
-        self.simbad.add_votable_fields('ra(d;A)', 'dec(d;D)')
-        self.simbad.remove_votable_fields('coordinates')
+        #self.simbad.add_votable_fields('ra(d;A)', 'dec(d;D)')
+        #self.simbad.remove_votable_fields('coordinates')
 
         # Layout to show the new target's information
         Coord_layout = QHBoxLayout()
@@ -171,11 +171,11 @@ class TargetWidget(RawWidget):
         if table is None:
             self.response_label.append("Target not found")
             return
-        ra = '{0:.4f}'.format(table["RA_d_A"][0])
-        dec = '{0:.4f}'.format(table["DEC_d_D"][0])
+        ra = '{0:.4f}'.format(table["ra"][0])
+        dec = '{0:.4f}'.format(table["dec"][0])
         ra_str = "RA = "+ra
         dec_str = "DEC = "+dec
-        name = "Target = "+str(table["MAIN_ID"][0])#.split("*")[1]
+        name = "Target = "+str(table["main_id"][0])#.split("*")[1]
         self.new_Target_Name.setText(name)
         self.new_RA.setText(ra_str)
         self.new_DEC.setText(dec_str)
