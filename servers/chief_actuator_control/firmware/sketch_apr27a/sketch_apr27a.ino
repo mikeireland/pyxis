@@ -8,6 +8,7 @@
 #define GETPWM 0x32 
 #define SETSDC 0x33 // int32_t steps, uint16_t period
 #define GETSDC 0x34
+//#define DEBUG
 
 #include <Wire.h>
 #include "DFRobot_INA219.h"
@@ -30,11 +31,14 @@ byte read_buffer_[128] = {0x00};
 byte write_buffer_[128] = {0x00};
 volatile int write_index = 0;
 
-unsigned short int DeviceID  = 128;
+unsigned short int DeviceID  = 130;
 unsigned short int FirmwareV = 2;
 
 DFRobot_INA219_IIC     ina2193(&Wire1, INA219_I2C_ADDRESS3);
 DFRobot_INA219_IIC     ina2194(&Wire1, INA219_I2C_ADDRESS4);
+
+bool ina2193_present = true;
+bool ina2194_present = true;
 
 float ina219Reading3_mA = 341;
 float extMeterReading3_mA = 342;
@@ -258,12 +262,32 @@ void setup() {
   
 
   // setup wattmeters
-  
-  while((ina2194.begin() != true)||(ina2193.begin() != true)) {
-      delay(2000);
+  delay(500);
+  if (ina2193.begin()!=true) {
+    ina2193_present=false;
+#ifdef DEBUG
+    Serial.println("Wattmeter at address 3 missing!");
+#endif
   }
-  ina2193.linearCalibrate(ina219Reading3_mA, extMeterReading3_mA);
-  ina2194.linearCalibrate(ina219Reading4_mA, extMeterReading4_mA);
+  if (ina2194.begin()!=true) {
+    ina2194_present=false;
+#ifdef DEBUG
+    Serial.println("Wattmeter at address 4 missing!");
+#endif
+  }
+  
+  
+/*  while((ina2194.begin() != true)||(ina2193.begin() != true)) {
+#ifdef DEBUG
+      if (ina2194.begin() != true)
+        Serial.println("Waiting for Wattmeter address 4");
+      if (ina2193.begin() != true)
+        Serial.println("Waiting for Wattmeter address 3");
+#endif
+      delay(2000);
+  }*/
+  if (ina2193_present) ina2193.linearCalibrate(ina219Reading3_mA, extMeterReading3_mA);
+  if (ina2194_present) ina2194.linearCalibrate(ina219Reading4_mA, extMeterReading4_mA);
   // 
   
   //Serial.print("wattmeters");
@@ -287,11 +311,14 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  PC_Voltage = ina2193.getBusVoltage_mV();
-  Motor_Voltage = ina2194.getBusVoltage_mV();
-
-  PC_Current = ina2193.getCurrent_mA();
-  Motor_Current = ina2194.getCurrent_mA();
+  if (ina2193_present){
+    PC_Voltage = ina2193.getBusVoltage_mV();
+    PC_Current = ina2193.getCurrent_mA();
+  }
+  if (ina2194_present){
+    Motor_Voltage = ina2194.getBusVoltage_mV();
+    Motor_Current = ina2194.getCurrent_mA();
+  }
   
   //int now = micros();
   //diff = now - prev;
@@ -302,12 +329,11 @@ void loop() {
   //Serial.println(ina2194.getBusVoltage_V(), 2);
   //add to packet
 
-  //Serial.println(MMC5883.readData());
+  //Serial.println(MMC5883.readData()); //!!! Delete this
   //add to packet
 
-
   
-  //writeMessage();
+  //writeMessage(); 
   
   delay(1000);
 
