@@ -6,6 +6,10 @@ import collections
 import importlib
 import faulthandler
 import os
+# Ensure these are set before any PyQt import so Qt falls back to software GL
+os.environ.setdefault("QT_OPENGL", "software")
+os.environ.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
+os.environ.setdefault("QT_XCB_GL_INTEGRATION", "none") #Added the above three lines because of OpenGL issues in Ubuntu 24
 
 
 # import argparse

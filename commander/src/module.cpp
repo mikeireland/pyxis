@@ -43,7 +43,7 @@ namespace commander
         }
 
         string Module::description(const string& name) const {
-            return fmt::to_string(commands.at(name));
+            return "Ubuntu24 ERROR";//fmt::to_string(commands.at(name));
         }
 
         json Module::signature(const string& name) const {

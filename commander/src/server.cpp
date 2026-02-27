@@ -94,7 +94,8 @@ namespace commander
         po::notify(vm);
 
         if (vm.count("help")) {
-            fmt::print("{}\n", cmdline_options);
+            //fmt::print("{}\n", cmdline_options);
+            fmt::print("Can not get help in Ubuntu24. Why???");
             std::exit(0);
         }
 

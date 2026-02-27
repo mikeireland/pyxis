@@ -228,6 +228,8 @@ AlignmentError compute_alignment_error(
         std::cout << "Distance d (mm): " << d << std::endl;
         std::cout << "Difference between alpha_t and expected_alpha_t: " << dlt_alpha_t << std::endl;
         std::cout << "Movement in Y and Z (mm): " << dlt_p << std::endl;
+	std::cout << "alpha_t:" << exp_alpha_t << std::endl;
+	std::cout << "x_0 and alpha_c" << x0 << alpha_c << std::endl;
 
         // Return the difference vector
         return AlignmentError{alpha_1, alpha_2, dlt_p, alpha_t, exp_alpha_t};

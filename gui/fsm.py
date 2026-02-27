@@ -219,8 +219,10 @@ class FSM:
             sub_config = config['Navis']['SinistraCoarseMet']
             sign = +1 #Sinistra CoarseMetCam is rotated 90 degree counter-clockwise
         beta, gamma, x0, alpha_c = sub_config["beta"], sub_config["gamma"], sub_config["x0"], sub_config["alpha_c"]
+        print(f"x0: {x0}, alpha_c: {alpha_c}")
         x0_json = json.dumps({"x": x0[0], "y": x0[1]})
         alpha_c_json = json.dumps({"x": alpha_c[0], "y": alpha_c[1]})
+        print(f"x0_json: {x0_json}, alpha_c_json: {alpha_c_json}")
 
         if self.clients[deputyMet_name].socket.connected:
             cmd = f'CM.getAlignmentError {beta}, {gamma}, {x0_json}, {alpha_c_json}'

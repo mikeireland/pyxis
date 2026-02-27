@@ -3,7 +3,7 @@
 
 [Pyxis.IP]
     FSM = "192.168.1.2" # FSM IP
-    FSM_port = "4000" # FSM Port
+    FSM_port = "4190" # FSM Port
     Navis = "192.168.1.3" # Navis IP 
     Dextra = "192.168.1.4" # Dextra IP
     Sinistra = "192.168.1.5" # Sinistra IP
@@ -74,8 +74,8 @@
     USB_port = "2" #USB port number on the hub
     beta = 0.3 # distance ratio of d(beam injection to lower LED) on d(LEDs)
     gamma = 0 # horizontal offset between beam and LEDs
-    x0 = [-46.3450, -52.5404] # vector of the beam injection, pointing from the coarse metrology camera (mm)
-    alpha_c = [0.0160, -0.0110] # calibrated correction for any angular deviation from the optical axis of the injection lens
+    x0 = [-52.54, 46.35] # vector of the beam injection, pointing from the coarse metrology camera (mm)
+    alpha_c = [-0.0119, -0.0163] # calibrated correction for any angular deviation from the optical axis of the injection lens
 
     [Navis.SinistraCoarseMet]
     tab_name = "Sinistra Coarse Met Camera"
@@ -93,8 +93,8 @@
     USB_port = "1" #USB port number on the hub
     beta = 0.7 # distance ratio of d(beam injection to left LED) on d(LEDs)
     gamma = 0 # horizontal offset between beam and LEDs
-    x0 = [55.9810, 48.6647] # vector of the beam injection, pointing from the coarse metrology camera (mm)
-    alpha_c = [0.0262, -0.0077] # calibrated correction for any angular deviation from the optical axis of the injection lens
+    x0 = [48.66, 55.98] # vector of the beam injection, pointing from the coarse metrology camera (mm)
+    alpha_c = [-0.0079, -0.0265] # calibrated correction for any angular deviation from the optical axis of the injection lens
 
     [Navis.FiberInjection]
     tab_name = "Fiber Injection Camera"

@@ -604,13 +604,21 @@ class BaseFLIRCameraWidget(RawWidget):
         img_data = cv2.imdecode(compressed_data, cv2.IMREAD_UNCHANGED)
         # Turn to 8 bit image. Note that we need to explicitly cast the image data to a float in new numpy versions.
         # There is probably a simpler way to do this!
-        img_data = np.clip(img_data.astype("float")*self.feed_window.contrast.getValue(), 0, 255, img_data.astype("float"))
-        img_data = img_data.astype("uint8")
-        # Apply scaling transform
-        img_data = self.feed_window.image_func(img_data)
-        # Convert to QT and send to feed
-        qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Grayscale8)
-        self.feed_window.cam_feed.changePixmap(qimg)
+        if img_data is None:
+            print("No image data received!")
+            return
+        
+        try:
+            img_data = np.clip(img_data.astype(np.float32)*self.feed_window.contrast.getValue(), 0, 255, img_data.astype(np.float32))
+            img_data = img_data.astype(np.uint8)
+            # Apply scaling transform
+            img_data = self.feed_window.image_func(img_data)
+            # Convert to QT and send to feed
+            qimg = QImage(img_data.data, data["Image"]["cols"], data["Image"]["rows"], QImage.Format_Grayscale8)
+            self.feed_window.cam_feed.changePixmap(qimg)
+        except Exception as e:
+            print(f"Error processing image into 8 bit: {e}")
+            return
 
         # Update the alpha_t point from coarse metrology camera if it exists
         if self.prefix == "CM":
