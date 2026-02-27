@@ -109,7 +109,7 @@ class FSM:
         if name in self.clients:
             del self.clients[name]
     
-    def hello(name):
+    def hello(self, name):
         """A simple test command to check if the FSM is working"""
         return f"Hello, {name}! The FSM is working."
     
@@ -311,7 +311,7 @@ class FSM:
         one at a time """
         self.keepgoing = True
         check_interval = 0.5  # Check status every 0.5 seconds
-        error_threshold = 3  # Number of errors before marking a client as dead
+        error_threshold = 2  # Number of errors before marking a client as dead
         while self.keepgoing:
             now = time.time()
             # Record the start time, as we want to run this at 2 Hz maximum.
