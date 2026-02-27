@@ -109,6 +109,10 @@ class FSM:
         if name in self.clients:
             del self.clients[name]
     
+    def hello(name):
+        """A simple test command to check if the FSM is working"""
+        return f"Hello, {name}! The FSM is working."
+    
     def help(self):
         """Return a dictionary of available commands and their descriptions"""
         help_dict = {}
