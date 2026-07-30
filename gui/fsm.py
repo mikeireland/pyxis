@@ -133,6 +133,67 @@ class FSM:
                 "connected": client.socket.connected
             }
         return status_dict
+
+    def get_st_state(self, platform):
+        """Return the string representation of the FSM ST state of a specific platform"""
+        match platform:
+            case "Dextra":
+                return self.dextra_star_tracker_state.name
+            case "Sinistra":
+                return self.sinistra_star_tracker_state.name
+            case "Navis":
+                return self.navis_star_tracker_state.name
+            case _:
+                return "ERROR"
+
+    def set_st_state(self, platform, value):
+        """Set FSM StarTracker sub-process state based on a string input"""
+        new_state = StarTrackerState.STOP
+        match value:
+            case "RESET":
+                new_state = StarTrackerState.RESET
+            case "SLEW_BLIND":
+                new_state = StarTrackerState.SLEW_BLIND
+            case "SLEW_CLOSE":
+                new_state = StarTrackerState.SLEW_CLOSE
+            case "MONITORING":
+                new_state = StarTrackerState.MONITORING
+            case "STOP":
+                new_state = StarTrackerState.STOP
+            case _:
+                return 0 # ERROR CODE
+        match platform:
+            case "Dextra":
+                self.dextra_star_tracker_state = new_state
+            case "Sinistra":
+                self.sinistra_star_tracker_state = new_state
+            case "Navis":
+                self.navis_star_tracker_state = new_state
+            case _:
+                return 0 # ERROR CODE
+        return 1 # State set successfully
+
+
+#        if process_name == "CM":
+#            match platform:
+#                case "Dextra":
+#                    state = self.dextra_coarse_met_state
+#                case "Sinistra":
+#                    state = self.sinistra_coarse_met_state 
+#               case _:
+#                    return "ERROR"
+#        elif process_name == "ST":
+#            match platform:
+#                case "Dextra":
+#                    state = self.dextra_star_tracker_state
+#                case "Sinistra":                
+#                    state = self.sinistra_star_tracker_state
+#                case "Navis":
+#                    state = self.navis_star_tracker_state
+#                case _:
+#                    return "ERROR"
+        
+
     
     def reconnect(self, client_name):
         """Reconnect a specific client by name"""

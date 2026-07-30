@@ -325,8 +325,42 @@ if __name__ == "__main__":
                 error_flag = 1
                 fibre_injection_socket.setsockopt(zmq.LINGER,0)
                 fibre_injection_socket.close()
+# --------------------------------- new FSM logic ----------------------------------------------- #
+        # FSM server (connect to for state information)
+        fsm_error = 0
+        try:
+            fsm_socket = context.socket(zmq.REQ)
+            # Is this the correct IP?
+            pyxis_config = config["Pyxis"]
+            ext_IP = pyxis_config["IP"]["External"]
+            FSM_port = pyxis_config["IP"]["FSM_port"]
+
+            tcpstring = "tcp://" + ext_IP +":" + FSM_port
+            fsm_socket.connect(tcpstring)
+            fsm_socket.RCVTIMEO = 1000
+
+            fsm_socket.send_string(f"get_st_state Navis")
+            message = fsm_socket.recv()
+            print('Connected to FSM')
+        except:
+            print("ERROR: Could not connect to FSM server. Please check server is running and IP is correct.")
+            fsm_error = 1
+            fsm_socket.setsockopt(zmq.LINGER,0)
+            fsm_socket.close()
         
         if error_flag == 1:
+            if fsm_error == 0:
+                name = "Dextra"
+                if config["name"] == "SinistraStarTracker":
+                    name = "Sinistra"
+                elif config["name"] == "NavisStarTracker":
+                    name = "Navis"
+                fsm_socket.send_string(f"get_st_state {name}")
+                state_reply = fsm_socket.recv().decode("utf-8")
+                if state_reply != "STOP":
+                    fsm_socket.send_string(f"set_st_state {name} RESET")
+# ------------------------------------------------------------------------------------ #
+
             print("Server connection failed. Waiting 5 sec before reattempting")
             time.sleep(5)
             print("Retrying connections")
