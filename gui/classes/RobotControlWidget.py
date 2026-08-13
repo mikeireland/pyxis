@@ -491,10 +491,10 @@ class RobotControlWidget(RawWidget):
     """ Set the star tracker status """
     def set_st_func(self, new_st_status):
         if (self.socket.connected):
-            if new_st_status in [0, 1, 2, 3]:
+            if new_st_status in [0, 1, 2, 3, 4]:
                 recv = self.socket.send_command("RC.set_st %d"%new_st_status)
             else:
-                print("Invalid star tracker status. Please use 0, 1, 2, or 3.")
+                print("Invalid star tracker status. Please use 0, 1, 2, 3 or 4.")
                 return
         
             

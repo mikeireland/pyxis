@@ -393,8 +393,8 @@ void track() {
 	// Update the step counts from the Teensy.
 	UpdateStepCounts();
 	
-	// Now that we have updated steps, if we are in ST_MOVING, lets see if we are close enough to the target.
-	if (g_status.st_status == ST_MOVING) {
+	// Now that we have updated steps, if we are in ST_SLEW_BLIND, lets see if we are close enough to the target.
+	if (g_status.st_status == ST_SLEW_BLIND) {
 		// First check elevation. !!! Qianhui check signs. Also we should stop when we are close enough to the target.
 		if ( (g_vel.el > 0.0) && (g_status.delta_motors[6] <= g_el_target) ) {
 			// Print out the current elevation target and delta_motors[6] for debugging.
@@ -414,7 +414,7 @@ void track() {
 		// If both velocities have been set to zero, we are done with our big movement.
 		// Set integral term sums to zero!
 		if ( (g_vel.el == 0.0) && (g_vel.yaw == 0.0) ) {
-			g_status.st_status = ST_TRACKING;
+			g_status.st_status = ST_SLEW_CLOSE;
 			g_ysum = 0.0;
 			g_esum = 0.0;
 		}
@@ -428,7 +428,7 @@ void track() {
 	pitch_error = g_pitch_target - g_status.pitch;
 
 	// the constant on the following line is arc-seconds per radian.
-	if (g_status.st_status == ST_TRACKING) is_tracking = 1.0;
+	if (g_status.st_status == ST_SLEW_CLOSE) is_tracking = 1.0;
 	double elevation_target = ARCSEC_TO_RAD*saturation(g_vel.el + 
 		is_tracking*(g_egain*(g_alt+g_alt_off) + g_eint*g_esum));
 	velocity_target.x = 0.001*g_vel.velocity*g_vel.x;
