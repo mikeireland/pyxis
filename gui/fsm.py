@@ -149,7 +149,8 @@ class FSM:
                 return "Unknown platform name, cannot retrieve state."
 
     def set_st_state(self, platform, value):
-        """Set FSM StarTracker sub-process state based on a string input"""
+        """Set FSM StarTracker sub-process state based on a string input. 
+           Cannot be used to exit a "STOP" state."""
         new_state = StarTrackerState.STOP
         match value:
             case "RESET":
@@ -159,18 +160,21 @@ class FSM:
             case "SLEW_CLOSE":
                 new_state = StarTrackerState.SLEW_CLOSE
             case "MONITORING":
-                new_state = StarTrackerState.MONITORING
+                new_state = StarTrackerState.FI_MONITORING
             case "STOP":
                 new_state = StarTrackerState.STOP
             case _:
                 return "ST state not recognised in assignment" # ERROR
         match platform:
             case "Dextra":
-                self.dextra_star_tracker_state = new_state
+                if self.dextra_star_tracker_state != StarTrackerState.STOP:
+                    self.dextra_star_tracker_state = new_state
             case "Sinistra":
-                self.sinistra_star_tracker_state = new_state
+                if self.sinistra_star_tracker_state != StarTrackerState.STOP:
+                    self.sinistra_star_tracker_state = new_state
             case "Navis":
-                self.navis_star_tracker_state = new_state
+                if self.navis_star_tracker_state != StarTrackerState.STOP:
+                    self.navis_star_tracker_state = new_state
             case _:
                 return "ST state not recognised in assignment" # ERROR
         return "ST state set" # State set successfully
@@ -348,7 +352,7 @@ class FSM:
         return None
 
     def start_STprocess(self, platform):
-        """Start the ST&PO process on the specified robot"""
+        """Start the ST&PO process on the specified robot. Can be used to exit a STOP state."""
         if platform == "Navis":
             self.navis_star_tracker_state = StarTrackerState.RESET
         elif platform == "Dextra":
