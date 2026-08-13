@@ -514,19 +514,22 @@ class FSM:
 
             for StarTrack in ["NavisStarTracker", "DextraStarTracker", "SinistraStarTracker"]: # camera server names
                 if StarTrack == "NavisStarTracker":
+                    platform = "Navis"
                     RC_name = "NavisRobotControl"
                     state_attr = "navis_star_tracker_state"
                 elif StarTrack == "DextraStarTracker":
+                    platform = "Dextra"
                     RC_name = "DextraRobotControl"
                     state_attr = "dextra_star_tracker_state"
                 else:
+                    platform = "Sinistra"
                     RC_name = "SinistraRobotControl"
                     state_attr = "sinistra_star_tracker_state"
                 STstate = getattr(self, state_attr)
                 # Relevant robot control and camera must be connected
                 if STstate != StarTrackerState.STOP:
                     if not self.clients[RC_name].socket.connected or not self.clients[StarTrack].socket.connected:
-                        setattr(self, state_attr, StarTrackerState.RESET)
+                        self.set_st_state(platform, "RESET")
                     
                     if STstate == StarTrackerState.READY_TO_SLEW:
                         # Set FST state if dealing with Navis
@@ -549,7 +552,7 @@ class FSM:
                         self.reconnect(StarTrack) # Reconnect ST camera server
                         # Transition to READY_TO_SLEW if all servers reconnected
                         if self.clients[RC_name].socket.connected and self.clients[StarTrack].socket.connected:
-                            setattr(self, state_attr, StarTrackerState.READY_TO_SLEW)
+                            self.set_st_state(platform, "READY_TO_SLEW")
                 else:
                     pass
 
