@@ -245,6 +245,10 @@ if __name__ == "__main__":
     with open(config_file, "rb") as f:
         config = pytomlpp.load(f)
 
+    # FSM connection info
+    with open("../../gui/port_setup.toml") as f2: # <-- CHECK FILE PATH / DON'T HARDCODE
+        fsm_config = pytomlpp.load(f2)
+
     IP = config["IP"]
 
     #Make output folder
@@ -325,16 +329,62 @@ if __name__ == "__main__":
                 error_flag = 1
                 fibre_injection_socket.setsockopt(zmq.LINGER,0)
                 fibre_injection_socket.close()
-        
+
+        # FSM server (connect to for state information)
+        try:
+            fsm_socket = context.socket(zmq.REQ)
+            
+            # Is this the correct IP?
+            pyxis_config = fsm_config["Pyxis"]
+            ext_IP = pyxis_config["IP"]["External"]
+            FSM_port = pyxis_config["IP"]["FSM_port"]
+
+            tcpstring = "tcp://" + ext_IP +":" + FSM_port
+            fsm_socket.connect(tcpstring)
+            fsm_socket.RCVTIMEO = 1000
+
+            fsm_socket.send_string(f"get_st_state Navis")
+            message = fsm_socket.recv()
+            print("Connected to FSM")
+        except:
+            print("ERROR: Could not connect to FSM server. Please check server is running and IP is correct.")
+            error_flag = 1
+            fsm_socket.setsockopt(zmq.LINGER,0)
+            fsm_socket.close()
+
         if error_flag == 1:
             print("Server connection failed. Waiting 5 sec before reattempting")
             time.sleep(5)
             print("Retrying connections")
 
-
+    # Retrieve information on which FSM ST process is involved
+    if config["camera_port"] == fsm_config["Navis"]["StarTracker"]["port"]:
+        FSM_process = "Navis"
+    elif config["camera_port"] == fsm_config["Dextra"]["StarTracker"]["port"]:
+        FSM_process = "Dextra"
+    elif config["camera_port"] == fsm_config["Sinistra"]["StarTracker"]["port"]:
+        FSM_process = "Sinistra"
+    else:
+        print(f"ERROR: Could not identify FSM process, port {config["camera_port"]} does not match a recorded FSM StarTracker port.")
+        # DO SOMETHING ABOUT THIS ERROR? DON'T PROCEED?
+    
     # MAIN LOOP
     print("Connected to all ports. Beginning plate solving loop")
     while(1):
+        try:
+            fsm_socket.send_string(f"get_st_state {FSM_process}")
+            fsm_state = fsm_socket.recv_string()
+            if fsm_state == "STOP" or fsm_state == "RESET":
+                time.sleep(1)
+                continue
+            elif FSM_process == "Navis" and fsm_state == "SLEW_CLOSE":
+                time.sleep(1)
+                continue
+        except:
+            print("PlateSolver could not communicate with FSM. Reconnecting...")
+            fsm_socket.reconnect(tcpstring)
+            fsm_socket.RCVTIMEO = 1000
+            continue
 
         #Get target coordinates
         target_socket.send_string("TS.getCoordinates")
@@ -403,8 +453,11 @@ if __name__ == "__main__":
                     message = robot_control_socket.recv()
                     print("Robot response: %s" % message)
                 except:
+                    fsm_socket.send_string(f"set_st_state {FSM_process}, RESET")
+                    # (Any connection problem will be noticed on next while loop run)
                     print("Could not communicate with robot")
             else:
+                fsm_socket.send_string(f"set_st_state {FSM_process}, RESET")
                 print("ERROR in run_image, could not solve")
         else:
             print("Not a real file")

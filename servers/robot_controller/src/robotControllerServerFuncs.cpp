@@ -232,12 +232,12 @@ struct RobotControlServer {
         g_az = az_offset_deg * 3600.0; // Convert back to arcseconds
         // If the Star Tracker is in waiting state and the robot is tracking, set the robot velocity, set the 
         // target step counts, and set the Star Tracker state to MOVING.
-        if ((g_status.st_status == ST_WAITING) && (GLOBAL_SERVER_STATUS == ROBOT_TRACK)) {    
+        if ((g_status.st_status == ST_READY_TO_SLEW) && (GLOBAL_SERVER_STATUS == ROBOT_TRACK)) {    
             // If we are less than 1800 arcsec away in both axes (0.5 degrees), we move to traking mode right away.
             if ((std::abs(g_az) < 1800) && (std::abs(g_alt) < 1800))
             {
                 std::lock_guard<std::mutex> lock(GLOB_STATUS_LOCK);
-                g_status.st_status = ST_TRACKING; 
+                g_status.st_status = ST_SLEW_CLOSE; 
                 std::cout << "RobotControllerServer: Star Tracker angles are less than 0.5deg, moving to tracking mode.\n";
                 return;
             }
@@ -265,7 +265,7 @@ struct RobotControlServer {
 
             // Lock the mutex to ensure thread safety
             std::lock_guard<std::mutex> lock(GLOB_STATUS_LOCK);
-            g_status.st_status = ST_MOVING;
+            g_status.st_status = ST_SLEW_BLIND;
             std::cout << "Yaw: current steps = " << current_yaw_steps
                     << ", target steps = " << g_yaw_target << std::endl;
             std::cout << "Elevation: current steps = " << g_status.delta_motors[6]
@@ -443,7 +443,7 @@ struct RobotControlServer {
         double el_angle = g_status.delta_motors[6] * arcsec_per_el_step * ARCSEC_TO_RAD;
         GLOBAL_SERVER_STATUS = ROBOT_TRACK;
         GLOBAL_STATUS_CHANGED = true;
-        g_status.st_status = ST_WAITING;
+        g_status.st_status = ST_READY_TO_SLEW;
         receive_ST_angles(0.0, -el_angle, 0.0);
         std::cout << "Setting elevation to 90 degrees" << std::endl;
 }
