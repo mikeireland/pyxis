@@ -374,6 +374,8 @@ double saturation(double val) {
 }
 
 void track() {
+	// Main tracking function, including bothleveling and tracking. 
+	// This is called in the main loop when we are in ST_TRACKING or ST_MOVING.
 	// Track the star, based on the g_az and g_alt offsets received previously from
 	// the star tracker. This supercedes much of the machinery in the RobotDriver.
 	Doubles velocity_target;
