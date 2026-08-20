@@ -51,6 +51,12 @@ systemctl_commands = {
 class Client:
     def __init__(self, name, IP, port, prefix):
         self.name = name
+        if self.name.startswith("Navis"):
+            self.robot = "Navis"
+        elif self.name.startswith("Dextra"):
+            self.robot = "Dextra"
+        elif self.name.startswith("Sinistra"):
+            self.robot = "Sinistra"
         self.IP = IP
         self.port = port
         self.prefix = prefix
@@ -81,6 +87,15 @@ class StarTrackerState(Enum):
     FI_MONITORING=5
     STOP = 6
 
+# A little messy, and copied from "Globals.h" in the robot control code.
+ST_SERVER_STATE = {
+    0: StarTrackerState.IDLE,
+    1: StarTrackerState.READY_TO_SLEW,
+    2: StarTrackerState.SLEW_BLIND,
+    3: StarTrackerState.SLEW_CLOSE,
+    4: StarTrackerState.FI_MONITORING,
+}
+
 class FSM:
     """Finite State Machine class that holds the state of all clients"""
     def __init__(self, port):
@@ -98,9 +113,11 @@ class FSM:
         # Here we initialize the states of the FSM
         self.dextra_coarse_met_state = CoarseMetState.STOP #I will wait for the user to start the alignment process
         self.sinistra_coarse_met_state = CoarseMetState.STOP #I will wait for the user to start the alignment process
-        self.dextra_star_tracker_state = StarTrackerState.STOP
-        self.sinistra_star_tracker_state = StarTrackerState.STOP
-        self.navis_star_tracker_state = StarTrackerState.STOP
+        self.star_tracker_states = {
+            "Dextra": StarTrackerState.STOP,
+            "Sinistra": StarTrackerState.STOP,
+            "Navis": StarTrackerState.STOP
+        }
 
     def _add_client(self, name, IP, port, prefix=""):
         """Add a new client to the FSM"""
@@ -110,7 +127,16 @@ class FSM:
         """Remove a client from the FSM"""
         if name in self.clients:
             del self.clients[name]
-    
+            
+    def _process_status(self, client_name, status):
+        """Process the status of a client and update the FSM state accordingly"""
+        client = self.clients[client_name]
+        if client.prefix == "RC":
+            # Update the FSM state based on the robot control status
+            server_state = status.get("st_state", 0)
+            if server_state >= 2: #If a state that the robot control transitions to itself.
+                self.star_tracker_states[client.robot] = ST_SERVER_STATE.get(server_state, StarTrackerState.STOP)
+
     def hello(self, name):
         """A simple test command to check if the FSM is working"""
         return f"Hello, {name}! The FSM is working."
@@ -136,17 +162,11 @@ class FSM:
             }
         return status_dict
 
+    #!!! Olivia please get rid of these next 2 methods. No need for strings, unless
+    # we need some human-readable logs.
     def get_st_state(self, platform):
         """Return the string representation of the FSM ST state of a specific platform"""
-        match platform:
-            case "Dextra":
-                return self.dextra_star_tracker_state.name
-            case "Sinistra":
-                return self.sinistra_star_tracker_state.name
-            case "Navis":
-                return self.navis_star_tracker_state.name
-            case _:
-                return "Unknown platform name, cannot retrieve state."
+        return self.star_tracker_states.get(platform, "Navis").name
 
     def set_st_state(self, platform, value):
         """Set FSM StarTracker sub-process state based on a string input. 
@@ -155,6 +175,8 @@ class FSM:
         match value:
             case "RESET":
                 new_state = StarTrackerState.RESET
+            case "READY_TO_SLEW":
+                new_state = StarTrackerState.READY_TO_SLEW
             case "SLEW_BLIND":
                 new_state = StarTrackerState.SLEW_BLIND
             case "SLEW_CLOSE":
@@ -426,10 +448,12 @@ class FSM:
                                 #The client_socket will handle the connection and disconnection.
                                 response = client.socket.send_command(client.prefix + ".status")
                                 client.status = json.loads(response) 
+                                self._process_status(client_name, client.status)
                             except Exception as e:
                                 print(f"Error checking server {client_name}: {e}, response: {response}")
                         elif client.nerrors < error_threshold:
-                            # By convention, sending an empty command will try to reconnect
+                            # By convention, sending an empty command will try to reconnect. Automatically 
+                            # reconecting like this is part of the "lazy pirate" pattern.
                             client.socket.send_command("")
                             if client.socket.connected:
                                 client.isalive = True
@@ -442,7 +466,7 @@ class FSM:
                             print(f"Server {client_name} is not responding with status, marking as dead after {client.nerrors} errors.")
                     else:
                         # Here we could implement something to automatically try to restart the client.
-                        """Jon has implemented this in the systemctl."""
+                        """Jon has implemented this in the systemctl. !!!TODO """
                         # self.reboot(client)
                         pass
             # # Wait until the next clock tick.
@@ -450,7 +474,7 @@ class FSM:
             # time.sleep(max(0, 0.5 - (time.time() - loop_start)))  # Adjust sleep time to maintain a 10Hz loop
 
             """Deputy Metrology Alignment Process"""
-            #Based on our current state and key status items fromthe servers, we can decide to transition to a different state.cm
+            #Based on our current state and key status items from the servers, we can decide to transition to a different state.cm
             # We can only transition between status if we are connected.
             for CoarseMet in ["DextraCoarseMet", "SinistraCoarseMet"]:
                 if CoarseMet == "DextraCoarseMet":
@@ -511,7 +535,9 @@ class FSM:
                     time.sleep(0.01)  # Sleep to avoid busy waiting
                 else:
                     pass  # If the state is STOP, we do nothing
-
+            """ Star Tracker State Transitions """
+            # Loop through each robot, and direct the respective robot controller to
+            # make the appropriate state transitions based on the FSM state and the server status. 
             for StarTrack in ["NavisStarTracker", "DextraStarTracker", "SinistraStarTracker"]: # camera server names
                 if StarTrack == "NavisStarTracker":
                     platform = "Navis"
@@ -527,7 +553,9 @@ class FSM:
                     state_attr = "sinistra_star_tracker_state"
                 STstate = getattr(self, state_attr)
                 # Relevant robot control and camera must be connected
+                # The STOP state would be typically externally triggered by the user.
                 if STstate != StarTrackerState.STOP:
+                    # If not connected, we must RESET the connection.
                     if not self.clients[RC_name].socket.connected or not self.clients[StarTrack].socket.connected:
                         self.set_st_state(platform, "RESET")
                     
@@ -556,35 +584,8 @@ class FSM:
                 else:
                     pass
 
-            # if self.clients["NavisStarTracker"].socket.connected and self.navis_star_tracker_state != StarTrackerState.STOP:
-            #     if self.navis_star_tracker_state == StarTrackerState.RESET:
-            #         # If the NavisStarTracker is connected, and the camera is running, we can transition to SLEW_BLIND
-            #         if self.clients["NavisStarTracker"].status == "Camera Waiting":
-            #             print("Navis Star Tracker camera is waiting, please start exposure.")
-            #         elif "Camera Running" in self.clients["NavisStarTracker"].status:
-            #             # If the camera is running, we can transition to SLEW_BLIND
-            #             self.navis_star_tracker_state = StarTrackerState.SLEW_BLIND
-            #             print("Navis Star Tracker state changed to SLEW_BLIND.")
-            #         else:
-            #             #The server is not connected to the camera. The user should connect the camera.
-            #             print("Navis Star Tracker is not connected to camera.")
-            #     elif self.navis_star_tracker_state == StarTrackerState.SLEW_BLIND:
-            #         # We can start the slewing process. Move for the specific steps and open eyes again.
-            #         #If the target is close to the current position, we can transition to SLEW_CLOSE
-            #         self.clients["NavisRobotControl"].socket.send_command("RC.track") #parameters missing
-            #     elif self.navis_star_tracker_state == StarTrackerState.SLEW_CLOSE:
-            #         #I still don't know what needs to be implemented for slew_close.
-            #         #For Navis star tracker, there is no monitoring mode.
-            #         pass
-            # elif self.navis_star_tracker_state != StarTrackerState.STOP:
-            #     # If the NavisStarTracker is not connected, we try to connect to it.
-            #     print("Navis Star Tracker is not connected to FSM, trying to reconnect.")
-            #     self.reconnect("NavisStarTracker")
-            #     self.navis_star_tracker_state = StarTrackerState.RESET
                 time.sleep(0.05)
             
-            
-
 #Initialise the FSM with the port from the config
 fsm = FSM(pyxis_config['IP']['FSM_port'])
 
