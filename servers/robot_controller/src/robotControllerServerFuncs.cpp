@@ -140,10 +140,11 @@ void watchdog() {
 }
 
 /*
-This is the main singleton class, which is for some reason a struct (?)
+This is the main singleton class, which is a struct because Julien liked this way - 
+a simple class where everything is public. 
+It contains the main robot loop, which is a thread that is started by the watchdog thread.
 */
 struct RobotControlServer {
-
     RobotControlServer(){
         fmt::print("RobotControlServer\n");
         
@@ -450,6 +451,7 @@ struct RobotControlServer {
 
 };
 
+// TODO: As this is hard to read, we should move the following to a separate file, and include it here.
 namespace nlohmann {
     template <>
     struct adl_serializer<LEDs> {

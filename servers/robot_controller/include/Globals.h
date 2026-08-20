@@ -10,6 +10,7 @@ constexpr double COS30 = 0.8660254037844386; // cos(30 degrees) = sqrt(3)/2
 
 
 // These are parameters read in from the toml file in main.cpp, and used in robotControllerServerFuncs.cpp
+// TODO: These should be in a struct, and passed to the robot loop, rather than being global variables. Could be a global struct too.
 extern double g_roll_gain;
 extern double g_pitch_gain;
 extern double g_roll_target;
@@ -76,6 +77,8 @@ void MoveSingleActuator(int actuator_index, double velocity);
 void MoveSingleMotor(int motor_index, double velocity);
 
 // Heading gain, plus gians and integral terms for yaw ane elevation control
+// TODO: These should be in a struct, and passed to the robot loop, 
+// rather than being global variables. Could be a global struct too.
 extern double h_gain;
 extern double g_ygain;
 extern double g_egain;

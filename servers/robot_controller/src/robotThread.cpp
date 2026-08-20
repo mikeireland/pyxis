@@ -1,6 +1,8 @@
 /*
 The robot controller runs a main thread via the "robot_loop" function, which exists here together
 with required utility function. 
+
+TODO: Find if everything here is actually needed, and if not, remove it. The code has been copied from the original robot controller, and some of it is not used.
 */
 #include "SerialPort.h"
 #include "Globals.h"
