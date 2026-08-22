@@ -161,45 +161,6 @@ class FSM:
                 "connected": client.socket.connected
             }
         return status_dict
-
-    #!!! Olivia please get rid of these next 2 methods. No need for strings, unless
-    # we need some human-readable logs.
-    def get_st_state(self, platform):
-        """Return the string representation of the FSM ST state of a specific platform"""
-        return self.star_tracker_states.get(platform, "Navis").name
-
-    def set_st_state(self, platform, value):
-        """Set FSM StarTracker sub-process state based on a string input. 
-           Cannot be used to exit a "STOP" state."""
-        new_state = StarTrackerState.STOP
-        match value:
-            case "RESET":
-                new_state = StarTrackerState.RESET
-            case "READY_TO_SLEW":
-                new_state = StarTrackerState.READY_TO_SLEW
-            case "SLEW_BLIND":
-                new_state = StarTrackerState.SLEW_BLIND
-            case "SLEW_CLOSE":
-                new_state = StarTrackerState.SLEW_CLOSE
-            case "MONITORING":
-                new_state = StarTrackerState.FI_MONITORING
-            case "STOP":
-                new_state = StarTrackerState.STOP
-            case _:
-                return "ST state not recognised in assignment" # ERROR
-        match platform:
-            case "Dextra":
-                if self.dextra_star_tracker_state != StarTrackerState.STOP:
-                    self.dextra_star_tracker_state = new_state
-            case "Sinistra":
-                if self.sinistra_star_tracker_state != StarTrackerState.STOP:
-                    self.sinistra_star_tracker_state = new_state
-            case "Navis":
-                if self.navis_star_tracker_state != StarTrackerState.STOP:
-                    self.navis_star_tracker_state = new_state
-            case _:
-                return "ST state not recognised in assignment" # ERROR
-        return "ST state set" # State set successfully
     
     def reconnect(self, client_name):
         """Reconnect a specific client by name"""
@@ -373,31 +334,23 @@ class FSM:
             print(f"Unknown deputy name: {deputy_name}. Cannot start alignment process. Choose Dextra or Sinistra.")
         return None
 
-    def start_STprocess(self, platform):
+    def start_STprocess(self, robot):
         """Start the ST&PO process on the specified robot. Can be used to exit a STOP state."""
-        if platform == "Navis":
-            self.navis_star_tracker_state = StarTrackerState.RESET
-        elif platform == "Dextra":
-            self.dextra_star_tracker_state = StarTrackerState.RESET
-        elif platform == "Sinistra":
-            self.sinistra_star_tracker_state = StarTrackerState.RESET
+        if robot in ["Navis", "Dextra", "Sinistra"]:
+            self.star_tracker_states[robot] = StarTrackerState.RESET
         else:
-            print(f"Unknown platform name: {platform}. Cannot start ST process.")
+            print(f"Unknown platform name: {robot}. Cannot start ST process.")
         return None
 
-    def stop_STprocess(self, platform):
+    def stop_STprocess(self, robot):
         """Stop the ST&PO process on the specified robot"""
-        if platform == "Navis":
-            self.navis_star_tracker_state = StarTrackerState.STOP
-        elif platform == "Dextra":
-            self.dextra_star_tracker_state = StarTrackerState.STOP
-        elif platform == "Sinistra":
-            self.sinistra_star_tracker_state = StarTrackerState.STOP
+        if robot in ["Navis", "Dextra", "Sinistra"]:
+            self.star_tracker_states[robot] = StarTrackerState.STOP
         else: 
-            print(f"Unknown platform name: {platform}. Cannot stop ST process.")
+            print(f"Unknown platform name: {robot}. Cannot stop ST process.")
             return None
         
-        RC_name = platform + "RobotControl"
+        RC_name = robot + "RobotControl"
         if self.clients[RC_name].socket.connected:
             self.clients[RC_name].socket.send_command("RC.stop")     # ROBOT_TRANSLATE
             self.clients[RC_name].socket.send_command("RC.set_st 0") # ST_IDLE
@@ -538,49 +491,39 @@ class FSM:
             """ Star Tracker State Transitions """
             # Loop through each robot, and direct the respective robot controller to
             # make the appropriate state transitions based on the FSM state and the server status. 
-            for StarTrack in ["NavisStarTracker", "DextraStarTracker", "SinistraStarTracker"]: # camera server names
-                if StarTrack == "NavisStarTracker":
-                    platform = "Navis"
-                    RC_name = "NavisRobotControl"
-                    state_attr = "navis_star_tracker_state"
-                elif StarTrack == "DextraStarTracker":
-                    platform = "Dextra"
-                    RC_name = "DextraRobotControl"
-                    state_attr = "dextra_star_tracker_state"
-                else:
-                    platform = "Sinistra"
-                    RC_name = "SinistraRobotControl"
-                    state_attr = "sinistra_star_tracker_state"
-                STstate = getattr(self, state_attr)
+            for robot in ["Navis","Dextra","Sinistra"]:
+                ST_camera = robot + "StarTracker"
+                RC_name   = robot + "RobotControl"
+                ST_state  = self.star_tracker_states.get(robot, StarTrackerState.STOP)
                 # Relevant robot control and camera must be connected
                 # The STOP state would be typically externally triggered by the user.
-                if STstate != StarTrackerState.STOP:
+                if ST_state != StarTrackerState.STOP:
                     # If not connected, we must RESET the connection.
-                    if not self.clients[RC_name].socket.connected or not self.clients[StarTrack].socket.connected:
-                        self.set_st_state(platform, "RESET")
+                    if not self.clients[RC_name].socket.connected or not self.clients[ST_camera].socket.connected:
+                        self.star_tracker_states[robot] = StarTrackerState.RESET
                     
-                    if STstate == StarTrackerState.READY_TO_SLEW:
+                    if ST_state == StarTrackerState.READY_TO_SLEW:
                         # Set FST state if dealing with Navis
-                        if StarTrack == "NavisStarTracker":
-                            self.clients[StarTrack].socket.send_command("FST.switchPlateSolve")
-                            message = self.clients[StarTrack].socket.recv_string() # ASK ABOUT THIS
+                        if robot == "Navis":
+                            self.clients[ST_camera].socket.send_command("FST.switchPlateSolve")
+                            message = self.clients[ST_camera].socket.recv_string() # ASK ABOUT THIS
                             if message == "Switched to Plate Solving Mode": # Is this the only correct scenario?
-                                self.clients[RC_name].send_command("RC.track") # Sets RC GSS to ROBOT_TRACK
+                                self.clients[RC_name].send_command("RC.track")    # Sets RC GSS to ROBOT_TRACK
                                 self.clients[RC_name].send_command("RC.set_st 1") # Sets RC ST to READY_TO_SLEW
                         else:
-                            self.clients[RC_name].send_command("RC.track") # Sets RC GSS to ROBOT_TRACK
+                            self.clients[RC_name].send_command("RC.track")    # Sets RC GSS to ROBOT_TRACK
                             self.clients[RC_name].send_command("RC.set_st 1") # Sets RC ST to READY_TO_SLEW
-                    elif STstate == StarTrackerState.RESET:
+                    elif ST_state == StarTrackerState.RESET:
                         # If connected to robot, stop all offset correction
                         if self.clients[RC_name].socket.connected:
                             self.clients[RC_name].socket.send_command("RC.set_st 0") #ST_IDLE
-                            self.clients[RC_name].socket.send_command("RC.stop") #ROBOT_TRANSLATE
+                            self.clients[RC_name].socket.send_command("RC.stop")     #ROBOT_TRANSLATE
                         else: # Otherwise, reconnect to server
                             self.reconnect(RC_name)
-                        self.reconnect(StarTrack) # Reconnect ST camera server
-                        # Transition to READY_TO_SLEW if all servers reconnected
-                        if self.clients[RC_name].socket.connected and self.clients[StarTrack].socket.connected:
-                            self.set_st_state(platform, "READY_TO_SLEW")
+                        self.reconnect(ST_camera) # Reconnect ST camera server
+                        # Transition to READY_TO_SLEW if all servers connected
+                        if self.clients[RC_name].socket.connected and self.clients[ST_camera].socket.connected:
+                            self.star_tracker_states[robot] = StarTrackerState.READY_TO_SLEW
                 else:
                     pass
 
