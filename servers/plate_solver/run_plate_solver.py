@@ -15,6 +15,8 @@ import pytomlpp
 import glob
 import zmq
 import json, sep
+from commander import commander
+from lazy_pirate import LazyPirateClient
 
 """
 Function that takes a list of star positions and creates a .axy file for Astrometry.net
@@ -223,6 +225,26 @@ def tt_to_plate(index,current_radec,offset):
         return (0,0) # Return no offset if we haven't solved yet!
 
 
+socket_clients = {}
+
+
+def commander_status():
+    return {name: client.status() for name, client in socket_clients.items()}
+
+
+plate_solver_commander = commander(1234)
+plate_solver_commander.def_(
+    "tt_to_plate",
+    tt_to_plate,
+    "Convert tip/tilt pixel offsets to star-tracker pixel offsets.",
+)
+plate_solver_commander.def_(
+    "status",
+    commander_status,
+    "Get target, camera, robot, and fibre-injection connection status.",
+)
+
+
 ###############################################################################
 
 if __name__ == "__main__":
@@ -256,140 +278,31 @@ if __name__ == "__main__":
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    """
-    Attempt to connect to all relevant servers.
-    If fails, it should restart and try again.
-    This does not always works.
-    Best practice: ensure all other servers are running, then start/reboot this script.
-    """
-    error_flag = 1
     context = zmq.Context()
-    while error_flag == 1:
-        error_flag = 0
-        try:
-            target_socket = context.socket(zmq.REQ)
-            tcpstring = "tcp://"+config["target_IP"]+":"+config["target_port"]
-            target_socket.connect(tcpstring)
-            target_socket.RCVTIMEO = 1000
-
-            target_socket.send_string("TS.status")
-            message = target_socket.recv()
-            print("Connected to target server, port %s"%config["target_port"])
-        except:
-            print('ERROR: Could not connect to target server. Please check that the server is running and IP is correct.')
-            error_flag = 1
-            target_socket.setsockopt(zmq.LINGER,0)
-            target_socket.close()
-
-        #Camera server
-        try:
-            camera_socket = context.socket(zmq.REQ)
-            tcpstring = "tcp://"+IP+":"+config["camera_port"]
-            camera_socket.connect(tcpstring)
-            camera_socket.RCVTIMEO = 1000
-
-            camera_socket.send_string(config["camera_port_name"]+".status")
-            message = camera_socket.recv()
-            print("Connected to camera, port %s"%config["camera_port"])
-        except:
-            print('ERROR: Could not connect to camera server. Please check that the server is running and IP is correct.')
-            error_flag = 1
-            camera_socket.setsockopt(zmq.LINGER,0)
-            camera_socket.close()
-
-        #Robot server    
-        try:
-            robot_control_socket = context.socket(zmq.REQ)
-            tcpstring = "tcp://"+IP+":"+config["robot_control_port"]
-            robot_control_socket.connect(tcpstring)
-            robot_control_socket.RCVTIMEO = 1000
-
-            robot_control_socket.send_string("RC.status")
-            message = robot_control_socket.recv()
-            print("Connected to robot")
-        except:
-            print('ERROR: Could not connect to robot server. Please check that the server is running and IP is correct.')       
-            error_flag = 1
-            robot_control_socket.setsockopt(zmq.LINGER,0)
-            robot_control_socket.close()
-
-        #Tip Tilt Server
-        if config["platesolver_index"] > 0:
-            try:
-                fibre_injection_socket = context.socket(zmq.REQ)
-                tcpstring = "tcp://"+config["NavisIP"]+":"+config["tiptilt_port"]
-                fibre_injection_socket.connect(tcpstring)
-                fibre_injection_socket.RCVTIMEO = 1000
-
-                fibre_injection_socket.send_string("FI.status")
-                message = fibre_injection_socket.recv()
-                print("Connected to fibre injection")
-            except:
-                print('ERROR: Could not connect to fibre injection server. Please check that the server is running and IP is correct.')       
-                error_flag = 1
-                fibre_injection_socket.setsockopt(zmq.LINGER,0)
-                fibre_injection_socket.close()
-
-        # FSM server (connect to for state information)
-        try:
-            fsm_socket = context.socket(zmq.REQ)
-            
-            # Is this the correct IP?
-            pyxis_config = fsm_config["Pyxis"]
-            ext_IP = pyxis_config["IP"]["External"]
-            FSM_port = pyxis_config["IP"]["FSM_port"]
-
-            tcpstring = "tcp://" + ext_IP +":" + FSM_port
-            fsm_socket.connect(tcpstring)
-            fsm_socket.RCVTIMEO = 1000
-
-            fsm_socket.send_string(f"get_st_state Navis")
-            message = fsm_socket.recv()
-            print("Connected to FSM")
-        except:
-            print("ERROR: Could not connect to FSM server. Please check server is running and IP is correct.")
-            error_flag = 1
-            fsm_socket.setsockopt(zmq.LINGER,0)
-            fsm_socket.close()
-
-        if error_flag == 1:
-            print("Server connection failed. Waiting 5 sec before reattempting")
-            time.sleep(5)
-            print("Retrying connections")
-
-    # Retrieve information on which FSM ST process is involved
-    if config["camera_port"] == fsm_config["Navis"]["StarTracker"]["port"]:
-        FSM_process = "Navis"
-    elif config["camera_port"] == fsm_config["Dextra"]["StarTracker"]["port"]:
-        FSM_process = "Dextra"
-    elif config["camera_port"] == fsm_config["Sinistra"]["StarTracker"]["port"]:
-        FSM_process = "Sinistra"
-    else:
-        print(f"ERROR: Could not identify FSM process, port {config["camera_port"]} does not match a recorded FSM StarTracker port.")
-        # DO SOMETHING ABOUT THIS ERROR? DON'T PROCEED?
+    socket_clients.update({
+        "target": LazyPirateClient(
+            context, "tcp://"+config["target_IP"]+":"+config["target_port"]
+        ),
+        "camera": LazyPirateClient(
+            context, "tcp://"+IP+":"+config["camera_port"]
+        ),
+        "robot": LazyPirateClient(
+            context, "tcp://"+IP+":"+config["robot_control_port"]
+        ),
+    })
+    if config["platesolver_index"] > 0:
+        socket_clients["fibre_injection"] = LazyPirateClient(
+            context, "tcp://"+config["NavisIP"]+":"+config["tiptilt_port"]
+        )
     
     # MAIN LOOP
-    print("Connected to all ports. Beginning plate solving loop")
+    print("Beginning plate solving loop")
     while(1):
-        try:
-            fsm_socket.send_string(f"get_st_state {FSM_process}")
-            fsm_state = fsm_socket.recv_string()
-            if fsm_state == "STOP" or fsm_state == "RESET":
-                time.sleep(1)
-                continue
-            elif FSM_process == "Navis" and fsm_state == "SLEW_CLOSE":
-                time.sleep(1)
-                continue
-        except:
-            print("PlateSolver could not communicate with FSM. Reconnecting...")
-            fsm_socket.reconnect(tcpstring)
-            fsm_socket.RCVTIMEO = 1000
-            continue
-
         #Get target coordinates
-        target_socket.send_string("TS.getCoordinates")
-        message = target_socket.recv()
-        message = message.decode("utf-8")
+        message = socket_clients["target"].request("TS.getCoordinates")
+        if message is None:
+            print("Could not communicate with target server")
+            continue
         print("Received target server message: %s" % message )
 
         try:
@@ -403,11 +316,13 @@ if __name__ == "__main__":
         # Retrieve tip/tilt offset adjustments if desired
         if config["platesolver_index"] > 0:
             if config["platesolver_index"] == 1:
-                fibre_injection_socket.send_string(config["FI.getDiffPosition [1]"])
+                tiptilt_command = "FI.getDiffPosition [1]"
             elif config["platesolver_index"] == 2:
-                fibre_injection_socket.send_string(config["FI.getDiffPosition [2]"])
-            message = fibre_injection_socket.recv()
-            message = message.decode("utf-8")
+                tiptilt_command = "FI.getDiffPosition [2]"
+            message = socket_clients["fibre_injection"].request(tiptilt_command)
+            if message is None:
+                print("Could not communicate with fibre injection server")
+                continue
             print("Received fibre injection server message: %s" % message )
 
             try:
@@ -425,14 +340,14 @@ if __name__ == "__main__":
         else:
             offset = (0,0)
         
-        camera_socket.send_string(config["camera_port_name"]+".getlatestfilename")
-    
-        #Ask camera for next image
-        message = camera_socket.recv()
-        print("Received camera message: %s" % message.decode("utf-8").strip('\"') )
+        message = socket_clients["camera"].request(config["camera_port_name"]+".getlatestfilename")
+        if message is None:
+            print("Could not communicate with camera server")
+            continue
+        print("Received camera message: %s" % message.strip('\"') )
 
         # WORK ON MESSAGE -> FILENAME
-        filename = message.decode("utf-8").strip('\"') 
+        filename = message.strip('\"') 
         
         if os.path.exists(str(config["path_to_data"]+"/"+filename)):
             print("Filename Exists. Running solver")
@@ -448,16 +363,12 @@ if __name__ == "__main__":
                 #Send reply to robot
                 print(return_message)
                 print("Delta Azimuth: {:.2f}, Delta Altitude: {:.2f}, Position Angle: {:.2f} in radians".format(angles[0], angles[1], angles[2]))
-                try:
-                    robot_control_socket.send_string(return_message) #Edited by Qianhui: moved this line here to avoid failing to send the command
-                    message = robot_control_socket.recv()
-                    print("Robot response: %s" % message)
-                except:
-                    fsm_socket.send_string(f"set_st_state {FSM_process}, RESET")
-                    # (Any connection problem will be noticed on next while loop run)
+                message = socket_clients["robot"].request(return_message)
+                if message is None:
                     print("Could not communicate with robot")
+                else:
+                    print("Robot response: %s" % message)
             else:
-                fsm_socket.send_string(f"set_st_state {FSM_process}, RESET")
                 print("ERROR in run_image, could not solve")
         else:
             print("Not a real file")
