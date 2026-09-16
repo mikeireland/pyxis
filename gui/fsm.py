@@ -79,13 +79,14 @@ class CoarseMetState(Enum):
 
 class StarTrackerState(Enum):
     """Enum for Star Tracker"""
-    RESET=0
-    IDLE=1
-    READY_TO_SLEW=2
-    SLEW_BLIND=3
-    SLEW_CLOSE=4
-    FI_MONITORING=5
-    STOP = 6
+    SOFT_RESET = 0
+    HARD_RESET = 1
+    IDLE = 2
+    READY_TO_SLEW = 3
+    SLEW_BLIND = 4
+    SLEW_CLOSE = 5
+    FI_MONITORING = 6
+    STOP = 7
 
 # A little messy, and copied from "Globals.h" in the robot control code.
 ST_SERVER_STATE = {
@@ -337,7 +338,7 @@ class FSM:
     def start_STprocess(self, robot):
         """Start the ST&PO process on the specified robot. Can be used to exit a STOP state."""
         if robot in ["Navis", "Dextra", "Sinistra"]:
-            self.star_tracker_states[robot] = StarTrackerState.RESET
+            self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
         else:
             print(f"Unknown platform name: {robot}. Cannot start ST process.")
         return None
@@ -498,22 +499,22 @@ class FSM:
                 # Relevant robot control and camera must be connected
                 # The STOP state would be typically externally triggered by the user.
                 if ST_state != StarTrackerState.STOP:
-                    # If not connected, we must RESET the connection.
+                    # If not connected, we must RESET the connection. <-- Plate Solver check in _process_status(): should all these checks occur there?
                     if not self.clients[RC_name].socket.connected or not self.clients[ST_camera].socket.connected:
-                        self.star_tracker_states[robot] = StarTrackerState.RESET
+                        self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
                     
-                    if ST_state == StarTrackerState.READY_TO_SLEW:
+                    if ST_state == StarTrackerState.READY_TO_SLEW: # TODO: Should this only happen once? What if overrides RC ST transition to ST_SLEW_BLIND?
                         # Set FST state if dealing with Navis
                         if robot == "Navis":
                             self.clients[ST_camera].socket.send_command("FST.switchPlateSolve")
-                            message = self.clients[ST_camera].socket.recv_string() # ASK ABOUT THIS
-                            if message == "Switched to Plate Solving Mode": # Is this the only correct scenario?
+                            message = self.clients[ST_camera].socket.recv_string()
+                            if message == "Switched to Plate Solving Mode": # TODO: Is this the only correct scenario?
                                 self.clients[RC_name].send_command("RC.track")    # Sets RC GSS to ROBOT_TRACK
                                 self.clients[RC_name].send_command("RC.set_st 1") # Sets RC ST to READY_TO_SLEW
                         else:
                             self.clients[RC_name].send_command("RC.track")    # Sets RC GSS to ROBOT_TRACK
                             self.clients[RC_name].send_command("RC.set_st 1") # Sets RC ST to READY_TO_SLEW
-                    elif ST_state == StarTrackerState.RESET:
+                    elif ST_state == StarTrackerState.SOFT_RESET:
                         # If connected to robot, stop all offset correction
                         if self.clients[RC_name].socket.connected:
                             self.clients[RC_name].socket.send_command("RC.set_st 0") #ST_IDLE
@@ -521,9 +522,17 @@ class FSM:
                         else: # Otherwise, reconnect to server
                             self.reconnect(RC_name)
                         self.reconnect(ST_camera) # Reconnect ST camera server
+                        time.sleep(0.01)  # Sleep to avoid busy waiting (copied from CM logic)
+
                         # Transition to READY_TO_SLEW if all servers connected
                         if self.clients[RC_name].socket.connected and self.clients[ST_camera].socket.connected:
                             self.star_tracker_states[robot] = StarTrackerState.READY_TO_SLEW
+                        # Otherwise trigger a Hardware RESET
+                        else:
+                            self.star_tracker_states[robot] = StarTrackerState.HARD_RESET
+                    elif ST_state == StarTrackerState.HARD_RESET:
+                        # TODO: Do some hardware reset things
+                        self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
                 else:
                     pass
 

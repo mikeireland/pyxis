@@ -17,6 +17,7 @@ import zmq
 import json, sep
 from commander import commander
 from lazy_pirate import LazyPirateClient
+from enum import Enum
 
 """
 Function that takes a list of star positions and creates a .axy file for Astrometry.net
@@ -225,12 +226,26 @@ def tt_to_plate(index,current_radec,offset):
         return (0,0) # Return no offset if we haven't solved yet!
 
 
-socket_clients = {}
+class PlateSolverState(Enum):
+    IDLE = 0
+    RUNNING = 1
+    DISCONNECTED = 2 # TODO: Not implemented yet (could be used to represent low-level server connection loss?)
+    ERROR = 3
+    SIMULATION = 4
 
+ps_state = PlateSolverState.IDLE
+
+socket_clients = {}
 
 def commander_status():
     return {name: client.status() for name, client in socket_clients.items()}
 
+def ps_status():
+    return ps_state
+
+def set_ps_state(state):
+    global ps_state
+    ps_state = PlateSolverState.get(state, PlateSolverState.IDLE)
 
 plate_solver_commander = commander(1234)
 plate_solver_commander.def_(
@@ -239,11 +254,20 @@ plate_solver_commander.def_(
     "Convert tip/tilt pixel offsets to star-tracker pixel offsets.",
 )
 plate_solver_commander.def_(
-    "status",
+    "commander_status",
     commander_status,
     "Get target, camera, robot, and fibre-injection connection status.",
 )
-
+plate_solver_commander.def_(
+    "status",
+    ps_status,
+    "Get state of Plate Solver instance.",
+)
+plate_solver_commander.def_(
+    "set_ps_st",
+    set_ps_state,
+    "Set state of Plate Solver instance.",
+)
 
 ###############################################################################
 
@@ -266,10 +290,6 @@ if __name__ == "__main__":
     # Load config file
     with open(config_file, "rb") as f:
         config = pytomlpp.load(f)
-
-    # FSM connection info
-    with open("../../gui/port_setup.toml") as f2: # <-- CHECK FILE PATH / DON'T HARDCODE
-        fsm_config = pytomlpp.load(f2)
 
     IP = config["IP"]
 
@@ -297,11 +317,12 @@ if __name__ == "__main__":
     
     # MAIN LOOP
     print("Beginning plate solving loop")
-    while(1):
+    while(ps_state == PlateSolverState.RUNNING):
         #Get target coordinates
         message = socket_clients["target"].request("TS.getCoordinates")
         if message is None:
             print("Could not communicate with target server")
+            ps_state = PlateSolverState.ERROR
             continue
         print("Received target server message: %s" % message )
 
@@ -310,6 +331,7 @@ if __name__ == "__main__":
             target = (result["RA"],result["DEC"])
         except:
             print("Bad target format")
+            ps_state = PlateSolverState.ERROR
         
         print(target)
 
@@ -322,6 +344,7 @@ if __name__ == "__main__":
             message = socket_clients["fibre_injection"].request(tiptilt_command)
             if message is None:
                 print("Could not communicate with fibre injection server")
+                ps_state = PlateSolverState.ERROR
                 continue
             print("Received fibre injection server message: %s" % message )
 
@@ -336,6 +359,7 @@ if __name__ == "__main__":
                 
             except:
                 print("Bad target format")
+                ps_state = PlateSolverState.ERROR
                 offset = (0,0)
         else:
             offset = (0,0)
@@ -343,6 +367,7 @@ if __name__ == "__main__":
         message = socket_clients["camera"].request(config["camera_port_name"]+".getlatestfilename")
         if message is None:
             print("Could not communicate with camera server")
+            ps_state = PlateSolverState.ERROR
             continue
         print("Received camera message: %s" % message.strip('\"') )
 
@@ -366,12 +391,15 @@ if __name__ == "__main__":
                 message = socket_clients["robot"].request(return_message)
                 if message is None:
                     print("Could not communicate with robot")
+                    ps_state = PlateSolverState.ERROR
                 else:
                     print("Robot response: %s" % message)
             else:
                 print("ERROR in run_image, could not solve")
+                ps_state = PlateSolverState.ERROR
         else:
             print("Not a real file")
+            ps_state = PlateSolverState.ERROR
             time.sleep(1)
         
 #-------------
