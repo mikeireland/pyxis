@@ -317,90 +317,91 @@ if __name__ == "__main__":
     
     # MAIN LOOP
     print("Beginning plate solving loop")
-    while(ps_state == PlateSolverState.RUNNING):
-        #Get target coordinates
-        message = socket_clients["target"].request("TS.getCoordinates")
-        if message is None:
-            print("Could not communicate with target server")
-            ps_state = PlateSolverState.ERROR
-            continue
-        print("Received target server message: %s" % message )
-
-        try:
-            result = json.loads(message)
-            target = (result["RA"],result["DEC"])
-        except:
-            print("Bad target format")
-            ps_state = PlateSolverState.ERROR
-        
-        print(target)
-
-        # Retrieve tip/tilt offset adjustments if desired
-        if config["platesolver_index"] > 0:
-            if config["platesolver_index"] == 1:
-                tiptilt_command = "FI.getDiffPosition [1]"
-            elif config["platesolver_index"] == 2:
-                tiptilt_command = "FI.getDiffPosition [2]"
-            message = socket_clients["fibre_injection"].request(tiptilt_command)
+    while(1):
+        if ps_state == PlateSolverState.RUNNING:
+            #Get target coordinates
+            message = socket_clients["target"].request("TS.getCoordinates")
             if message is None:
-                print("Could not communicate with fibre injection server")
+                print("Could not communicate with target server")
                 ps_state = PlateSolverState.ERROR
                 continue
-            print("Received fibre injection server message: %s" % message )
-
+            print("Received target server message: %s" % message )
+    
             try:
                 result = json.loads(message)
-                raw_offset = (result["X"],result["Y"])
-                
-                offset = tt_to_plate(config["platesolver_index"],
-                                    (config["Astrometry"]["estimate_position"]["ra"],
-                                     config["Astrometry"]["estimate_position"]["dec"]),
-                                     raw_offset)
-                
+                target = (result["RA"],result["DEC"])
             except:
                 print("Bad target format")
                 ps_state = PlateSolverState.ERROR
-                offset = (0,0)
-        else:
-            offset = (0,0)
-        
-        message = socket_clients["camera"].request(config["camera_port_name"]+".getlatestfilename")
-        if message is None:
-            print("Could not communicate with camera server")
-            ps_state = PlateSolverState.ERROR
-            continue
-        print("Received camera message: %s" % message.strip('\"') )
-
-        # WORK ON MESSAGE -> FILENAME
-        filename = message.strip('\"') 
-        
-        if os.path.exists(str(config["path_to_data"]+"/"+filename)):
-            print("Filename Exists. Running solver")
-
-            #run image
-            flag,angles = run_image(filename,config,target,offset)
-
-            if flag>0:
-
-                # WORK ON ANGLES -> return_message
-                return_message = "RC.receive_ST_angles %s,%s,%s"%(angles[0],angles[1],angles[2]) #angles
-
-                #Send reply to robot
-                print(return_message)
-                print("Delta Azimuth: {:.2f}, Delta Altitude: {:.2f}, Position Angle: {:.2f} in radians".format(angles[0], angles[1], angles[2]))
-                message = socket_clients["robot"].request(return_message)
+            
+            print(target)
+    
+            # Retrieve tip/tilt offset adjustments if desired
+            if config["platesolver_index"] > 0:
+                if config["platesolver_index"] == 1:
+                    tiptilt_command = "FI.getDiffPosition [1]"
+                elif config["platesolver_index"] == 2:
+                    tiptilt_command = "FI.getDiffPosition [2]"
+                message = socket_clients["fibre_injection"].request(tiptilt_command)
                 if message is None:
-                    print("Could not communicate with robot")
+                    print("Could not communicate with fibre injection server")
                     ps_state = PlateSolverState.ERROR
-                else:
-                    print("Robot response: %s" % message)
+                    continue
+                print("Received fibre injection server message: %s" % message )
+    
+                try:
+                    result = json.loads(message)
+                    raw_offset = (result["X"],result["Y"])
+                    
+                    offset = tt_to_plate(config["platesolver_index"],
+                                        (config["Astrometry"]["estimate_position"]["ra"],
+                                         config["Astrometry"]["estimate_position"]["dec"]),
+                                         raw_offset)
+                    
+                except:
+                    print("Bad target format")
+                    ps_state = PlateSolverState.ERROR
+                    offset = (0,0)
             else:
-                print("ERROR in run_image, could not solve")
+                offset = (0,0)
+            
+            message = socket_clients["camera"].request(config["camera_port_name"]+".getlatestfilename")
+            if message is None:
+                print("Could not communicate with camera server")
                 ps_state = PlateSolverState.ERROR
-        else:
-            print("Not a real file")
-            ps_state = PlateSolverState.ERROR
-            time.sleep(1)
+                continue
+            print("Received camera message: %s" % message.strip('\"') )
+    
+            # WORK ON MESSAGE -> FILENAME
+            filename = message.strip('\"') 
+            
+            if os.path.exists(str(config["path_to_data"]+"/"+filename)):
+                print("Filename Exists. Running solver")
+    
+                #run image
+                flag,angles = run_image(filename,config,target,offset)
+    
+                if flag>0:
+                
+                    # WORK ON ANGLES -> return_message
+                    return_message = "RC.receive_ST_angles %s,%s,%s"%(angles[0],angles[1],angles[2]) #angles
+    
+                    #Send reply to robot
+                    print(return_message)
+                    print("Delta Azimuth: {:.2f}, Delta Altitude: {:.2f}, Position Angle: {:.2f} in radians".format(angles[0], angles[1], angles[2]))
+                    message = socket_clients["robot"].request(return_message)
+                    if message is None:
+                        print("Could not communicate with robot")
+                        ps_state = PlateSolverState.ERROR
+                    else:
+                        print("Robot response: %s" % message)
+                else:
+                    print("ERROR in run_image, could not solve")
+                    ps_state = PlateSolverState.ERROR
+            else:
+                print("Not a real file")
+                ps_state = PlateSolverState.ERROR
+                time.sleep(1)
         
 #-------------
 """
