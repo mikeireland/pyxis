@@ -127,6 +127,13 @@
     contrast_limits = [0.2,30.0] # Limits for the contrast slider
     GD_contrast_limits = [0.2,1000.0]
 
+    [Navis.PlateSolver]
+    tab_name = "Plate Solver"
+    name = "NavisPlateSolver" # Internal identifier
+    prefix = "PS" # Server class prefix
+    port = "4107"
+    description = "Navis Plate Solver operations"
+
 [Dextra]
 
     [Dextra.RobotControl]
@@ -169,6 +176,13 @@
     description = "Dextra Target selector (move to FSM?)"
     module_type = "TargetWidget" # What GUI class?
 
+    [Dextra.PlateSolver]
+    tab_name = "Plate Solver"
+    name = "DextraPlateSolver" # Internal identifier
+    prefix = "PS" # Server class prefix
+    port = "4207"
+    description = "Dextra Plate Solver operations"
+
 
 [Sinistra]
 
@@ -203,6 +217,13 @@
     offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
     USB_hub = "ykush -s YK55673" #Command for YKush to locate the correct USB hub
     USB_port = "1" #USB port number on the hub
+
+    [Sinistra.PlateSolver]
+    tab_name = "Plate Solver"
+    name = "SinistraPlateSolver" # Internal identifier
+    prefix = "PS" # Server class prefix
+    port = "4307"
+    description = "Sinistra Plate Solver operations"
 
 #    [Sinistra.TargetControl]
 #    tab_name = "Target"

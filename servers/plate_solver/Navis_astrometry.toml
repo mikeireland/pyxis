@@ -5,6 +5,7 @@ camera_port_name = "FST"
 robot_control_port = "4100"
 target_IP = "192.168.1.4" #Target server runs on Dextra
 target_port = "4203"
+platesolver_port = "4107"
 
 platesolver_index = 0
 

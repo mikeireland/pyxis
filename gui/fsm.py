@@ -136,7 +136,14 @@ class FSM:
             # Update the FSM state based on the robot control status
             server_state = status.get("st_state", 0)
             if server_state >= 2: #If a state that the robot control transitions to itself.
-                self.star_tracker_states[client.robot] = ST_SERVER_STATE.get(server_state, StarTrackerState.STOP)
+                if self.star_tracker_states[client.robot] != StarTrackerState.SOFT_RESET and self.star_tracker_states[client.robot] != StarTrackerState.HARD_RESET:
+                    self.star_tracker_states[client.robot] = ST_SERVER_STATE.get(server_state, StarTrackerState.STOP)
+        elif client.prefix == "PS":
+            # Update the FSM state based on the plate solver status
+            server_state = status.get("status",0) # TODO: Can status just be used directly here?
+            if server_state == 2 or server_state == 3: # Plate Solver process error or disconnection
+                if self.star_tracker_states[client.robot] != StarTrackerState.HARD_RESET:
+                    self.star_tracker_states[client.robot] = StarTrackerState.SOFT_RESET
 
     def hello(self, name):
         """A simple test command to check if the FSM is working"""
@@ -352,9 +359,12 @@ class FSM:
             return None
         
         RC_name = robot + "RobotControl"
+        PS_name = robot + "PlateSolver"
         if self.clients[RC_name].socket.connected:
-            self.clients[RC_name].socket.send_command("RC.stop")     # ROBOT_TRANSLATE
-            self.clients[RC_name].socket.send_command("RC.set_st 0") # ST_IDLE
+            self.clients[RC_name].socket.send_command("RC.stop")        # RC GSS to ROBOT_TRANSLATE
+            self.clients[RC_name].socket.send_command("RC.set_st 0")    # RC ST to ST_IDLE
+        if self.clients[PS_name].socket.connected:
+            self.clients[PS_name].socket.send_command("PS.set_ps_st 0") # Plate Solver to IDLE
 
     def _run(self):
         """Run the FSM server, listening for commands, and checking on clients
@@ -495,12 +505,13 @@ class FSM:
             for robot in ["Navis","Dextra","Sinistra"]:
                 ST_camera = robot + "StarTracker"
                 RC_name   = robot + "RobotControl"
+                PS_name   = robot + "PlateSolver"
                 ST_state  = self.star_tracker_states.get(robot, StarTrackerState.STOP)
                 # Relevant robot control and camera must be connected
                 # The STOP state would be typically externally triggered by the user.
                 if ST_state != StarTrackerState.STOP:
-                    # If not connected, we must RESET the connection. <-- Plate Solver check in _process_status(): should all these checks occur there?
-                    if not self.clients[RC_name].socket.connected or not self.clients[ST_camera].socket.connected:
+                    # If not any server connected, we must RESET the connection.
+                    if not self.clients[RC_name].socket.connected or not self.clients[ST_camera].socket.connected or not self.clients[PS_name].socket.connected:
                         self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
                     
                     if ST_state == StarTrackerState.READY_TO_SLEW: # TODO: Should this only happen once? What if overrides RC ST transition to ST_SLEW_BLIND?
@@ -509,11 +520,13 @@ class FSM:
                             self.clients[ST_camera].socket.send_command("FST.switchPlateSolve")
                             message = self.clients[ST_camera].socket.recv_string()
                             if message == "Switched to Plate Solving Mode": # TODO: Is this the only correct scenario?
-                                self.clients[RC_name].send_command("RC.track")    # Sets RC GSS to ROBOT_TRACK
-                                self.clients[RC_name].send_command("RC.set_st 1") # Sets RC ST to READY_TO_SLEW
+                                self.clients[PS_name].socket.send_command("PS.set_ps_st 1") # Sets PS to RUNNING
+                                self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
+                                self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
                         else:
-                            self.clients[RC_name].send_command("RC.track")    # Sets RC GSS to ROBOT_TRACK
-                            self.clients[RC_name].send_command("RC.set_st 1") # Sets RC ST to READY_TO_SLEW
+                            self.clients[PS_name].socket.send_command("PS.set_ps_st 1") # Sets PS to RUNNING
+                            self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
+                            self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
                     elif ST_state == StarTrackerState.SOFT_RESET:
                         # If connected to robot, stop all offset correction
                         if self.clients[RC_name].socket.connected:
@@ -521,11 +534,18 @@ class FSM:
                             self.clients[RC_name].socket.send_command("RC.stop")     #ROBOT_TRANSLATE
                         else: # Otherwise, reconnect to server
                             self.reconnect(RC_name)
+
+                        # If connected to plate solver, stop solving operations
+                        if self.clients[PS_name].socket.connected:
+                            self.clients[PS_name].socket.send_command("PS.set_ps_st 0")
+                        else:
+                            self.reconnect(PS_name)
+
                         self.reconnect(ST_camera) # Reconnect ST camera server
                         time.sleep(0.01)  # Sleep to avoid busy waiting (copied from CM logic)
 
                         # Transition to READY_TO_SLEW if all servers connected
-                        if self.clients[RC_name].socket.connected and self.clients[ST_camera].socket.connected:
+                        if self.clients[RC_name].socket.connected and self.clients[ST_camera].socket.connected and self.clients[PS_name].socket.connected:
                             self.star_tracker_states[robot] = StarTrackerState.READY_TO_SLEW
                         # Otherwise trigger a Hardware RESET
                         else:

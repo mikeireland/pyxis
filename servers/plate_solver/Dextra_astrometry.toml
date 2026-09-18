@@ -5,6 +5,7 @@ camera_port_name = "CST"
 robot_control_port = "4200"
 target_IP = "192.168.1.4" #Target server runs on Dextra
 target_port = "4203"
+platesolver_port = "4207"
 
 platesolver_index = 0 #Make this 1 to correct for the tip/tilt drift
 
