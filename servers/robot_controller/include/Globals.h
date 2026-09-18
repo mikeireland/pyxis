@@ -48,6 +48,7 @@ struct Doubles
 #define ST_SLEW_BLIND 2
 #define ST_SLEW_CLOSE 3
 #define ST_CENTROIDING 4
+#define ST_ERROR 5
 
 
 // Status that can be returned through the server

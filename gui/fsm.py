@@ -95,6 +95,7 @@ ST_SERVER_STATE = {
     2: StarTrackerState.SLEW_BLIND,
     3: StarTrackerState.SLEW_CLOSE,
     4: StarTrackerState.CENTROIDING,
+    5: StarTrackerState.SOFT_RESET,
 }
 
 class FSM:
@@ -136,14 +137,13 @@ class FSM:
             # Update the FSM state based on the robot control status
             server_state = status.get("st_state", 0)
             if server_state >= 2: #If a state that the robot control transitions to itself.
-                if self.star_tracker_states[client.robot] != StarTrackerState.SOFT_RESET and self.star_tracker_states[client.robot] != StarTrackerState.HARD_RESET:
+                if self.star_tracker_states[client.robot] != StarTrackerState.SOFT_RESET:
                     self.star_tracker_states[client.robot] = ST_SERVER_STATE.get(server_state, StarTrackerState.STOP)
         elif client.prefix == "PS":
             # Update the FSM state based on the plate solver status
-            server_state = status.get("status",0) # TODO: Can status just be used directly here?
+            server_state = status.get("status", 0) # TODO: Can status just be used directly here?
             if server_state == 2 or server_state == 3: # Plate Solver process error or disconnection
-                if self.star_tracker_states[client.robot] != StarTrackerState.HARD_RESET:
-                    self.star_tracker_states[client.robot] = StarTrackerState.SOFT_RESET
+                self.star_tracker_states[client.robot] = StarTrackerState.SOFT_RESET
 
     def hello(self, name):
         """A simple test command to check if the FSM is working"""
