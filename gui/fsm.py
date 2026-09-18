@@ -85,7 +85,7 @@ class StarTrackerState(Enum):
     READY_TO_SLEW = 3
     SLEW_BLIND = 4
     SLEW_CLOSE = 5
-    FI_MONITORING = 6
+    CENTROIDING = 6
     STOP = 7
 
 # A little messy, and copied from "Globals.h" in the robot control code.
@@ -94,7 +94,7 @@ ST_SERVER_STATE = {
     1: StarTrackerState.READY_TO_SLEW,
     2: StarTrackerState.SLEW_BLIND,
     3: StarTrackerState.SLEW_CLOSE,
-    4: StarTrackerState.FI_MONITORING,
+    4: StarTrackerState.CENTROIDING,
 }
 
 class FSM:
@@ -527,6 +527,8 @@ class FSM:
                             self.clients[PS_name].socket.send_command("PS.set_ps_st 1") # Sets PS to RUNNING
                             self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
                             self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
+                    elif ST_state == StarTrackerState.CENTROIDING:
+                        self.clients[PS_name].socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
                     elif ST_state == StarTrackerState.SOFT_RESET:
                         # If connected to robot, stop all offset correction
                         if self.clients[RC_name].socket.connected:

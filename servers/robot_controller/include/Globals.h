@@ -47,7 +47,7 @@ struct Doubles
 #define ST_READY_TO_SLEW 1
 #define ST_SLEW_BLIND 2
 #define ST_SLEW_CLOSE 3
-#define ST_FI_MONITORING 4
+#define ST_CENTROIDING 4
 
 
 // Status that can be returned through the server
