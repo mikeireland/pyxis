@@ -1,4 +1,4 @@
-output_folder = "output" #Folder for output
+output_folder = "Sinistra_state_log.txt" #Folder for output
 IP = "192.168.1.5"
 camera_port = "4302"
 camera_port_name = "CST"

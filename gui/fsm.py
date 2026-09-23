@@ -141,7 +141,7 @@ class FSM:
                     self.star_tracker_states[client.robot] = ST_SERVER_STATE.get(server_state, StarTrackerState.STOP)
         elif client.prefix == "PS":
             # Update the FSM state based on the plate solver status
-            server_state = status.get("status", 0) # TODO: Can status just be used directly here?
+            server_state = status.get("state", 0)
             if server_state == 2 or server_state == 3: # Plate Solver process error or disconnection
                 self.star_tracker_states[client.robot] = StarTrackerState.SOFT_RESET
 
