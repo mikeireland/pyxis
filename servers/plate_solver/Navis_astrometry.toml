@@ -1,4 +1,4 @@
-output_folder = "Navis_state_log.txt" #Folder for output
+output_folder = "Navis_PS_log.txt" #Folder for output
 IP = "192.168.1.3"
 camera_port = "4102"
 camera_port_name = "FST"

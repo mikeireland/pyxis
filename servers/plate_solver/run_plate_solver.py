@@ -235,7 +235,8 @@ class PlateSolverState(Enum):
 
 ps_state = {
     "state": PlateSolverState.IDLE,
-    "description": ""
+    "description": "",
+    "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S')
 }
 
 socket_clients = {}
@@ -246,27 +247,26 @@ def commander_status():
 def ps_status():
     return json.dumps(ps_state)
 
-def set_ps_state(state):
+def set_ps_state(state, description=None):
     global ps_state
     ps_state["state"] = PlateSolverState.get(state, PlateSolverState.IDLE)
+    ps_state["timestamp"] = time.strftime('%Y-%m-%dT%H:%M:%S')
 
-"""
-Write current Plate Solver state information to a log file in the format:
-    Timestamp, PS, 0, [state], [description], [[RA], [DEC]]
-This conforms with the generic structure:
-    Timestamp, [server prefix], [state machine # in server], [state], [desription], [[additional data]]
-"""
-def log_state(logfile_path, offset=[]):
+    # If FSM has triggered a RUNNING state, set description within PS exactly once
+    if ps_state["state"] == PlateSolverState.RUNNING:
+        ps_state["description"] = "Running plate solving loop"
+    # Otherwise, update with a new state description if requested
+    elif description is not None:
+        ps_state["description"] = description
+
+def log_state(logfile_path, offset):
     with open(logfile_path, "a") as log_file:
         try:
-            if not offset:
-                log_file.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}, PS, 0, {ps_state["state"]}, {ps_state["description"]}, []\n")
-            else:
-                log_file.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}, PS, 0, {ps_state["state"]}, {ps_state["description"]}, [{offset[0]}, {offset[1]}, {offset[2]}]\n")
+            if len(offset) == 3:
+                log_file.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}, [data], PS, Offset to RC, {offset[0]}, {offset[1]}, {offset[2]}\n")
         except:
             log_file.flush()
         log_file.flush()
-
 
 ###############################################################################
 
@@ -340,26 +340,15 @@ if __name__ == "__main__":
 
     # Update log file before commencing main loop
     ps_state["description"] = "Beginning plate solving loop using config "+config_file
-    log_state(output_dir)
-    log_run_status = 1
     
     # MAIN LOOP
     #print("Beginning plate solving loop")
     while(1):
-        if ps_state["state"] == PlateSolverState.RUNNING:
-            # Log RUNNING state transition once
-            if log_run_status:
-                ps_state["description"] = "Running plate solving loop"
-                log_state(output_dir)
-                log_run_status = 0
-
+        if ps_state["state"] == PlateSolverState.RUNNING:            
             #Get target coordinates
             message = socket_clients["target"].request("TS.getCoordinates")
             if message is None:
-                ps_state["description"] = "Could not communicate with target server"
-                ps_state["state"] = PlateSolverState.DISCONNECTED
-                log_state(output_dir)
-                log_run_status = 1
+                set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with target server")
                 continue
             #print("Received target server message: %s" % message )
     
@@ -367,10 +356,7 @@ if __name__ == "__main__":
                 result = json.loads(message)
                 target = (result["RA"],result["DEC"])
             except:
-                ps_state["description"] = "Bad target format"
-                ps_state["state"] = PlateSolverState.ERROR
-                log_state(output_dir)
-                log_run_status = 1
+                set_ps_state(PlateSolverState.ERROR, "Bad target format")
             
             #print(target) #TODO: Invalid target check (elevation < 45 degrees)
     
@@ -382,10 +368,7 @@ if __name__ == "__main__":
                     tiptilt_command = "FI.getDiffPosition [2]"
                 message = socket_clients["fibre_injection"].request(tiptilt_command)
                 if message is None:
-                    ps_state["description"] = "Could not communicate with fibre injection server"
-                    ps_state["state"] = PlateSolverState.DISCONNECTED
-                    log_state(output_dir)
-                    log_run_status = 1
+                    set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with fibre injection server")
                     continue
                 #print("Received fibre injection server message: %s" % message )
     
@@ -399,20 +382,14 @@ if __name__ == "__main__":
                                          raw_offset)
                     
                 except:
-                    ps_state["description"] = "Bad target format"
-                    ps_state["state"] = PlateSolverState.ERROR
-                    log_state(output_dir)
-                    log_run_status = 1
+                    set_ps_state(PlateSolverState.ERROR, "Bad target format")
                     offset = (0,0)
             else:
                 offset = (0,0)
             
             message = socket_clients["camera"].request(config["camera_port_name"]+".getlatestfilename")
             if message is None:
-                ps_state["description"] = "Could not communicate with camera server"
-                ps_state["state"] = PlateSolverState.DISCONNECTED
-                log_state(output_dir)
-                log_run_status = 1
+                set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with camera server")
                 continue
             #print("Received camera message: %s" % message.strip('\"') )
     
@@ -435,24 +412,14 @@ if __name__ == "__main__":
                     print("Delta Azimuth: {:.2f}, Delta Altitude: {:.2f}, Position Angle: {:.2f} in radians".format(angles[0], angles[1], angles[2]))
                     message = socket_clients["robot"].request(return_message)
                     if message is None:
-                        ps_state["description"] = "Could not communicate with robot"
-                        ps_state["state"] = PlateSolverState.DISCONNECTED
-                        log_state(output_dir)
-                        log_run_status = 1
+                        set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with robot")
                     else:
-                        ps_state["description"] = "Offset sent"
                         log_state(output_dir, angles)
                         #print("Robot response: %s" % message)
                 else:
-                    ps_state["description"] = "ERROR in run_image, could not solve"
-                    ps_state["state"] = PlateSolverState.ERROR
-                    log_state(output_dir)
-                    log_run_status = 1
+                    set_ps_state(PlateSolverState.ERROR, "ERROR in run_image, could not solve")
             else:
-                ps_state["description"] = "File received in message not a real file"
-                ps_state["state"] = PlateSolverState.ERROR
-                log_state(output_dir)
-                log_run_status = 1
+                set_ps_state(PlateSolverState.ERROR, "File received in message not a real file")
                 time.sleep(1)
         
 #-------------

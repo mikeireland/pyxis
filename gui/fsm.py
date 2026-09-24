@@ -64,6 +64,7 @@ class Client:
         self.nerrors = 0  # Number of errors encountered
         self.isalive = True #Assume alive until proven otherwise
         self.socket = ClientSocket(IP=IP, Port=port, TIMEOUT=100, logdir="FSMcommand_log")
+        self.status_log = robot + "_status_log.txt"
 
     def __repr__(self):
         return f"Client(name={self.name}, IP={self.IP}, port={self.port})"
@@ -144,6 +145,46 @@ class FSM:
             server_state = status.get("state", 0)
             if server_state == 2 or server_state == 3: # Plate Solver process error or disconnection
                 self.star_tracker_states[client.robot] = StarTrackerState.SOFT_RESET
+
+    def _log_status(self, client_name, status):
+        """
+        Log client state transitions to the relevant robot's state record.
+        Each new state transition should be logged only once.
+        """
+        client = self.clients[client_name]
+        logfile_path = self.logdir + "/" + client.status_log
+        if client.prefix == "RC":
+            state_RC_ST = status.get("st_state", 0)
+            state_RC_GSS = status.get("loop_status", 1)
+
+            self._log_status_helper(logfile_path, client.prefix, 0, state_RC_ST)
+            self._log_status_helper(logfile_path, client.prefix, 1, state_RC_GSS)
+        if client.prefix == "PS":
+            PS_state = status.get("state", 0)
+            PS_description = status.get("description", "")
+            PS_transition = status.get("timestamp", None)
+
+            self._log_status_helper(logfile_path, "PS", 0, PS_state, PS_description, PS_transition)
+        if client.prefix == "FST":
+            pass
+
+
+
+    def _log_status_helper(self, logfile_path, prefix, machine_id, state, description = "", transition_time = None):
+        """
+        Log server state transition to a log_file in the format: 
+            Time of logging, [info], time of transition (if unique/provided), server prefix, state machine id,  state, desription
+        This is a helper function for _log_status()
+        """
+        with open(logfile_path, "a") as log_file:
+            try:
+                if transition_time is not None:
+                    log_file.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [info], {prefix}, {machine_id}, {state}, {description}, {transition_time}\n")
+                else:
+                    log_file.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [info], {prefix}, {machine_id}, {state}, {description}, [No transition time]\n")
+            except:
+                log_file.flush()
+            log_file.flush()
 
     def hello(self, name):
         """A simple test command to check if the FSM is working"""
@@ -357,7 +398,7 @@ class FSM:
         else: 
             print(f"Unknown platform name: {robot}. Cannot stop ST process.")
             return None
-        
+
         RC_name = robot + "RobotControl"
         PS_name = robot + "PlateSolver"
         if self.clients[RC_name].socket.connected:
@@ -413,6 +454,7 @@ class FSM:
                                 response = client.socket.send_command(client.prefix + ".status")
                                 client.status = json.loads(response) 
                                 self._process_status(client_name, client.status)
+                                self._log_status(client_name, client.status)
                             except Exception as e:
                                 print(f"Error checking server {client_name}: {e}, response: {response}")
                         elif client.nerrors < error_threshold:
