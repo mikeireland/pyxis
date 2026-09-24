@@ -21,7 +21,7 @@ from classes.client_socket import ClientSocket
 
 try:
     from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QHBoxLayout, \
-        QVBoxLayout, QGridLayout, QLabel, QTabWidget, QScrollArea, QLineEdit, QTextEdit, QFrame
+        QVBoxLayout, QGridLayout, QLabel, QTabWidget, QScrollArea, QLineEdit, QTextEdit, QFrame, QComboBox
     from PyQt5.QtCore import QTimer
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtSvg import QSvgWidget
@@ -78,6 +78,39 @@ def random_string(len):
     return random_str
 
 
+class CommandOnlyWidget(QWidget):
+    def __init__(self, config, IP, parent=None):
+        super(CommandOnlyWidget, self).__init__(parent)
+
+        self.port = config["port"]
+        self.prefix = config["prefix"]
+        self.socket = ClientSocket(IP=IP, Port=self.port)
+
+        layout = QVBoxLayout(self)
+        command_layout = QHBoxLayout()
+        command_layout.addWidget(QLabel("Command:", self))
+        self.line_edit = QLineEdit(f"{self.prefix}.", self)
+        self.line_edit.returnPressed.connect(self.command_enter)
+        command_layout.addWidget(self.line_edit)
+        layout.addLayout(command_layout)
+
+        self.response_label = QTextEdit("[No Server Response Yet]", self)
+        self.response_label.setReadOnly(True)
+        self.response_label.setStyleSheet("QTextEdit { background-color : black; }")
+        layout.addWidget(self.response_label)
+
+    def change_ip(self, IP):
+        self.socket = ClientSocket(IP=IP, Port=self.port)
+
+    def command_enter(self):
+        try:
+            response = self.socket.send_command(self.line_edit.text())
+            self.response_label.append(str(response))
+        except Exception as e:
+            self.response_label.append(f"Command failed: {str(e)}")
+        self.line_edit.setText(f"{self.prefix}.")
+
+
 """ Main class for Pyxis GUI"""
 class PyxisGui(QTabWidget):
     def __init__(self, pyx_IPs, use_external, parent=None):
@@ -93,8 +126,7 @@ class PyxisGui(QTabWidget):
         self.status_texts = {}
         self.alive_light = {} #Status lights for each tab
         self.alive_text = {}
-        self.connect_light = {} #Connection lights for each tab
-        self.connect_text = {}
+        self.operation_statuses = {}
 
         self.FSM_port = pyx_IPs["FSM_port"]
         self.int_IPs = pyx_IPs["Internal"]
@@ -110,39 +142,17 @@ class PyxisGui(QTabWidget):
         hbox = QHBoxLayout()
         self.fsm_socket = ClientSocket(self.ext_IPs["FSM"], self.FSM_port, TIMEOUT=5000) #Changed by Qianhui: connect to FSM through external IP
 
-        self.connect_fsm_button = QPushButton("Connect to FSM", self)
-        self.connect_fsm_button.setFixedWidth(200)
-        self.connect_fsm_button.clicked.connect(self.connect_fsm)
-        hbox.addWidget(self.connect_fsm_button)
-
-        # self.power_button = QPushButton("START SERVERS", self)
-        # self.power_button.clicked.connect(self.power)
-        # self.power_button.setCheckable(True)
-        # self.power_button.setStyleSheet("QPushButton {background-color: #005500;border-color: #005500; color: #ffd740}")
-        # self.power_button.setFixedWidth(200)
-        # hbox.addWidget(self.power_button)
-
-        listBox.addLayout(hbox)
-
-        hbox = QHBoxLayout()
-        self.dashboard_mainStatus = QLabel("STATUS",self)
-        hbox.addWidget(self.dashboard_mainStatus)
-        #self.dashboard_mainStatus.setAlignment(Qt.AlignCenter)
-        self.dashboard_mainStatus.setStyleSheet("QLabel {font-size: 25px; font-weight: bold; color: #ff7e40}")
-        self.dashboard_mainStatus.setFixedHeight(100)
-        listBox.addLayout(hbox)
-
         hbox0 = QHBoxLayout()
 
-        #Make Scrollable
-        scroll = QScrollArea(self.tab_widgets["dashboard"])
-        hbox0.addWidget(scroll)
-        scroll.setWidgetResizable(True)
-        scrollContent = QWidget(scroll)
-        scrollLayout = QVBoxLayout()
-        scrollContent.setLayout(scrollLayout)
+        # Status overview occupies the left 35% of the dashboard.
+        status_scroll = QScrollArea(self.tab_widgets["dashboard"])
+        status_scroll.setWidgetResizable(True)
+        status_content = QWidget(status_scroll)
+        status_layout = QVBoxLayout(status_content)
+        status_scroll.setWidget(status_content)
+        hbox0.addWidget(status_scroll, 35)
 
-        side_input = QVBoxLayout()
+        dashboard_controls = QVBoxLayout()
 
         #First, the command entry box
         hbox = QHBoxLayout()
@@ -155,23 +165,70 @@ class PyxisGui(QTabWidget):
         hbox.addWidget(lbl)
         hbox.addWidget(self.line_edit)
         hbox.addWidget(self.status_button)
-        side_input.addLayout(hbox)
+        dashboard_controls.addLayout(hbox)
 
         #Next, the response box
         self.response_label = QTextEdit('[No Server Response Yet]', self)
         self.response_label.setReadOnly(True)
         self.response_label.setStyleSheet("QTextEdit { background-color : black; }")
-        self.response_label.setFixedHeight(400)
-        side_input.addWidget(self.response_label)
+        self.response_label.setFixedHeight(120)
+        dashboard_controls.addWidget(self.response_label)
 
-        # Master Refresh button
+        controls_layout = QHBoxLayout()
+        self.connect_fsm_button = QPushButton("Connect to FSM", self)
+        self.connect_fsm_button.clicked.connect(self.connect_fsm)
         self.dashboard_refresh_button = QPushButton("REFRESH", self)
         self.dashboard_refresh_button.clicked.connect(self.refresh_status)
-        side_input.addWidget(self.dashboard_refresh_button)
+        self.start_button = QPushButton("Start", self)
+        self.start_button.clicked.connect(lambda: self.send_fsm_command("start_pyxis"))
+        self.stop_button = QPushButton("Stop", self)
+        self.stop_button.clicked.connect(lambda: self.send_fsm_command("stop_pyxis"))
+        self.platform_selector = QComboBox(self)
+        self.platform_selector.addItems(["All", "Navis", "Sinistra", "Dextra"])
+        self.system_selector = QComboBox(self)
+        self.system_selector.addItems(["All", "Star Tracking", "Coarse Metrology", "Fibre Injection", "Fringe Tracking"])
+        for control in (self.connect_fsm_button, self.dashboard_refresh_button, self.start_button,
+                        self.stop_button, self.platform_selector, self.system_selector):
+            controls_layout.addWidget(control)
+        dashboard_controls.addLayout(controls_layout)
 
-        side_input.addStretch()
+        operation_grid = QGridLayout()
+        operation_label_style = "font-size: 17px"
+        operation_grid.addWidget(QLabel(""), 0, 0)
+        for column, platform in enumerate(("Navis", "Sinistra", "Dextra"), start=1):
+            header = QLabel(platform, self)
+            header.setStyleSheet(f"font-weight: bold; {operation_label_style}")
+            operation_grid.addWidget(header, 0, column)
 
-        hbox0.addLayout(side_input)
+        operation_modules = {
+            "Star Tracking": ("NavisStarTracker", "SinistraStarTracker", "DextraStarTracker"),
+            "Coarse Metrology": (None, "SinistraCoarseMet", "DextraCoarseMet"),
+            "Fibre Injection": ("NavisFiberInjection", None, None),
+        }
+        for row, (operation, module_names) in enumerate(operation_modules.items(), start=1):
+            header = QLabel(operation, self)
+            header.setStyleSheet(f"font-weight: bold; {operation_label_style}")
+            operation_grid.addWidget(header, row, 0)
+            for column, module_name in enumerate(module_names, start=1):
+                status = QLabel("Unresponsive", self)
+                status.setStyleSheet(f"color: #ff7e40; {operation_label_style}")
+                operation_grid.addWidget(status, row, column)
+                if module_name:
+                    self.operation_statuses.setdefault(module_name, []).append(status)
+        dashboard_controls.addLayout(operation_grid)
+
+        fringe_layout = QHBoxLayout()
+        fringe_label = QLabel("Fringe tracking", self)
+        fringe_label.setStyleSheet(operation_label_style)
+        fringe_layout.addWidget(fringe_label)
+        self.fringe_status = QLabel("Unresponsive", self)
+        self.fringe_status.setStyleSheet(f"color: #ff7e40; {operation_label_style}")
+        fringe_layout.addWidget(self.fringe_status)
+        fringe_layout.addStretch()
+        dashboard_controls.addLayout(fringe_layout)
+        dashboard_controls.addStretch()
+
+        hbox0.addLayout(dashboard_controls, 65)
 
         """Edited by Qianhui: read status of individual modules from FSM server"""
         # fsm_status_dict = self.get_status_from_fsm()
@@ -179,85 +236,59 @@ class PyxisGui(QTabWidget):
         #For each tab...
         for tab in config:
             self.tab_widgets[tab] = QTabWidget()
+            if tab == "Navis":
+                self.tab_widgets[tab].setUsesScrollButtons(True)
+                self.tab_widgets[tab].tabBar().setExpanding(False)
+                self.tab_widgets[tab].setStyleSheet("QTabBar::tab { font-size: 10px; padding: 4px 6px; }")
             self.sub_tab_widgets[tab] = {}
             self.status_lights[tab] = {}
             self.status_texts[tab] = {}
             self.alive_light[tab] = {}
             self.alive_text[tab] = {}
-            self.connect_light[tab] = {}
-            self.connect_text[tab] = {}
 
-            title = QLabel(tab, self)
-            title.setStyleSheet("font-weight: bold; font-size: 25px; color: #ffd740;")
-
-            scrollLayout.addWidget(title)
-
-            status_grid = QWidget()
-            status_grid_layout = QGridLayout()
-
-            i = 0
+            status_heading = QLabel(tab, self)
+            status_heading.setStyleSheet("font-weight: bold; font-size: 18px; color: #ffd740;")
+            status_layout.addWidget(status_heading)
 
             #For each sub tab
             for item in config[tab]:
                 sub_config = config[tab][item]
                 name = sub_config["name"]
 
-                #Load class and create instance, add to tab container
-                class_name = sub_config["module_type"]
-                widget_module = class_for_name(class_name,class_name)
-                
-                #The following line is where all the different tabs connect to their servers
-                #It uses the class names "module_type" from port_setup.toml
-                if use_external:
-                    self.sub_tab_widgets[tab][name] = widget_module(sub_config, self.ext_IPs[tab])
-                else:
-                    self.sub_tab_widgets[tab][name] = widget_module(sub_config, self.int_IPs[tab]) 
-                self.tab_widgets[tab].addTab(self.sub_tab_widgets[tab][name], sub_config["tab_name"])
+                class_name = sub_config.get("module_type")
+                if class_name:
+                    widget_module = class_for_name(class_name, class_name)
+                    if use_external:
+                        self.sub_tab_widgets[tab][name] = widget_module(sub_config, self.ext_IPs[tab])
+                    else:
+                        self.sub_tab_widgets[tab][name] = widget_module(sub_config, self.int_IPs[tab])
+                    self.tab_widgets[tab].addTab(self.sub_tab_widgets[tab][name], sub_config["tab_name"])
 
-                """Talk to individual modules to get their status, no FSM involved"""
-                # #Add status indicator to dashboard
-                # status_layout = QHBoxLayout()
-                self.status_lights[tab][name] = QSvgWidget(self.sub_tab_widgets[tab][name].status_light)
-                # self.status_lights[tab][name].setFixedSize(25,25)
-                self.status_texts[tab][name] = QLabel("", self)
-                # status_layout.addWidget(self.status_lights[tab][name])
-                # status_layout.addWidget(self.status_texts[tab][name])
+                    self.status_lights[tab][name] = QSvgWidget(self.sub_tab_widgets[tab][name].status_light)
+                    self.status_texts[tab][name] = QLabel("", self)
+                elif sub_config["tab_name"] == "Plate Solver":
+                    self.sub_tab_widgets[tab][name] = CommandOnlyWidget(sub_config, self.ext_IPs[tab] if use_external else self.int_IPs[tab])
+                    self.tab_widgets[tab].addTab(self.sub_tab_widgets[tab][name], sub_config["tab_name"])
 
 
-                # Show indicators whether the module is alive or connected based on FSM status response
-                status_layout = QHBoxLayout()
+                # Each module has one combined FSM status.
+                status_row = QHBoxLayout()
                 self.alive_light[tab][name] = QSvgWidget("assets/green.svg")
-                self.alive_text[tab][name] = QLabel("Dead", self)
-                self.connect_light[tab][name] = QSvgWidget("assets/green.svg")
-                self.connect_text[tab][name] = QLabel("Disconnected", self)
+                self.alive_text[tab][name] = QLabel("Unresponsive", self)
                 self.alive_light[tab][name].setFixedSize(25,25)
-                self.connect_light[tab][name].setFixedSize(25,25)
-
-                # self.get_indicators(fsm_status_dict, name, tab)
-                status_layout.addWidget(self.alive_light[tab][name])
-                status_layout.addWidget(self.alive_text[tab][name])
-                status_layout.addWidget(self.connect_light[tab][name])
-                status_layout.addWidget(self.connect_text[tab][name])
-                # Add reboot button which reboots the module through FSM
-                self.roboot_button = QPushButton("Reboot", self)
-                self.roboot_button.clicked.connect(lambda checked, n=name: self.reboot_click(n))
-                status_layout.addWidget(self.roboot_button)
-
-                # Port label
                 port_label = QLabel(sub_config["tab_name"], self)
                 port_label.setStyleSheet("font-weight: bold")
-
-                status_grid_layout.addWidget(port_label,i,0)
-                status_grid_layout.addLayout(status_layout,i,1)
-                i+=1
-
-            status_grid.setLayout(status_grid_layout)
-            scrollLayout.addWidget(status_grid)
+                status_row.addWidget(port_label)
+                status_row.addStretch()
+                status_row.addWidget(self.alive_light[tab][name])
+                status_row.addWidget(self.alive_text[tab][name])
+                reboot_button = QPushButton("Reboot", self)
+                reboot_button.clicked.connect(lambda checked, module_name=name: self.reboot_click(module_name))
+                status_row.addWidget(reboot_button)
+                status_layout.addLayout(status_row)
 
             #Add master tab
             self.addTab(self.tab_widgets[tab],tab)
-
-        scroll.setWidget(scrollContent)
 
         listBox.addLayout(hbox0)
 
@@ -293,21 +324,17 @@ class PyxisGui(QTabWidget):
     
 
     def get_indicators(self, isalive, connected, name, tab):
-        #Get alive status from FSM status response
-        if isalive == "True":
+        if isalive == "True" and connected == "True":
             self.alive_light[tab][name].load("assets/green.svg")
-            self.alive_text[tab][name].setText("Alive")
+            self.alive_text[tab][name].setText("Connected")
+            status_text = "Connected"
         else:
             self.alive_light[tab][name].load("assets/red.svg")
-            self.alive_text[tab][name].setText("Dead")
+            self.alive_text[tab][name].setText("Unresponsive")
+            status_text = "Unresponsive"
 
-        #Get connection status from FSM status response
-        if connected == "True":
-            self.connect_light[tab][name].load("assets/green.svg")
-            self.connect_text[tab][name].setText("Connected")
-        else:
-            self.connect_light[tab][name].load("assets/red.svg")
-            self.connect_text[tab][name].setText("Disconnected")
+        for status_label in self.operation_statuses.get(name, []):
+            status_label.setText(status_text)
 
     
     def reboot_click(self, name):
@@ -318,6 +345,13 @@ class PyxisGui(QTabWidget):
         except Exception as e:
             self.response_label.append(f"Reboot failed: {str(e)}")
 
+    def send_fsm_command(self, command):
+        try:
+            response = self.fsm_socket.send_command(command)
+            self.response_label.append(f"Response: {response}")
+        except Exception as e:
+            self.response_label.append(f"Command failed: {str(e)}")
+
 
     """ Function to refresh the status of all clients """
     def refresh_status(self):
@@ -325,17 +359,19 @@ class PyxisGui(QTabWidget):
 
         if tab_index == 0:
             try:
-                #ASK TO REFRESH FINITE STATE MACHINE STATUS HERE
-                self.dashboard_mainStatus.setText("PYXIS STATUS: WAIT! Refreshing...")
                 fsm_status_dict = self.get_status_from_fsm()
                 for tab in config:
                     for item in config[tab]:
                         sub_config = config[tab][item]
                         name = sub_config["name"]
                         self.get_indicators(fsm_status_dict[name]["isalive"], fsm_status_dict[name]["connected"], name, tab)
-                self.dashboard_mainStatus.setText("PYXIS STATUS: Refreshed")
+                fringe_services = [status for name, status in fsm_status_dict.items()
+                                   if "fringe" in name.lower()]
+                self.fringe_status.setText("Connected" if any(
+                    status.get("isalive") == "True" and status.get("connected") == "True"
+                    for status in fringe_services) else "Unresponsive")
             except Exception as e:
-                self.dashboard_mainStatus.setText("PYXIS STATUS: ERROR refreshing")
+                self.response_label.append(f"Error refreshing: {str(e)}")
 
         else:
             tab = list(config.items())[tab_index-1][0]
@@ -343,9 +379,11 @@ class PyxisGui(QTabWidget):
             item = list(config[tab].items())[subtab_index][0]
             sub_config = config[tab][item]
             name = sub_config["name"]
-            self.sub_tab_widgets[tab][name].ask_for_status()
-            self.status_lights[tab][name].load(self.sub_tab_widgets[tab][name].status_light)
-            self.status_texts[tab][name].setText(self.sub_tab_widgets[tab][name].status_text)
+            widget = self.sub_tab_widgets[tab][name]
+            if name in self.status_lights[tab]:
+                widget.ask_for_status()
+                self.status_lights[tab][name].load(widget.status_light)
+                self.status_texts[tab][name].setText(widget.status_text)
 
 
     # def handle_fsm_status(self, fsm_status_dict):
