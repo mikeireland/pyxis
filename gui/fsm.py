@@ -555,8 +555,19 @@ class FSM:
                     elif ST_state == StarTrackerState.HARD_RESET:
                         # TODO: Do some hardware reset things
                         self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
-                else:
-                    pass
+                else: # STOP state
+                    # Stop RC motion (if server connection exists)
+                    if self.clients[RC_name].socket.connected:
+                        self.clients[RC_name].socket.send_command("RC.set_st 0") #ST_IDLE
+                        self.clients[RC_name].socket.send_command("RC.stop")     #ROBOT_TRANSLATE
+                    else: # Otherwise, reconnect to server
+                        self.reconnect(RC_name)
+
+                    # Stop PS operations (if server connection exists)
+                    if self.clients[PS_name].socket.connected:
+                        self.clients[PS_name].socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
+                    else:  # Otherwise, reconnect to server
+                        self.reconnect(PS_name)
 
                 time.sleep(0.05)
             
