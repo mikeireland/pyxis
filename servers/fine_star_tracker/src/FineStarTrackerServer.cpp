@@ -47,6 +47,41 @@ namespace nlohmann {
             j.at("y").get_to(c.y);
         }
     };
+
+    template <>
+    struct adl_sreializer<Status> {
+        static void to_json(json& j, const Status& s) {
+            j = json{{"status", s.status}, {"description", s.description}};
+        }
+
+        static void from_json(const json& j, Status& s) {
+            j.at("status").get_to(s.status);
+            j.at("description").get_to(s.description);
+        }
+    };
+}
+
+
+/*
+Structure and associated instance to hold FST status information for system logs
+Function to return this status
+*/
+enum FSTStatus {
+    PLATE_SOLVING = 0,
+    CENTROIDING = 1,
+    FST_ERROR = 2
+}
+
+struct Status {
+    enum FSTStatus status;
+    string description;
+    // Timestamp info?
+}
+
+Status fst_status = {PLATE_SOLVING, ""};
+
+Status status(){
+    return fst_status;
 }
 
 /*
@@ -178,11 +213,16 @@ struct FineStarTracker: FLIRCameraServer{
                 cout << ret_msg << endl;
 
                 ret_msg = "Switched to Centroiding Mode";
+                fst_status.status = CENTROIDING;
+                fst_status.description = "Switched to Centroiding Mode";
             }else{
                 ret_msg = "Camera Busy!";
+                fst_status.description = "Camera Busy";
             }
 	    }else{
 		    ret_msg = "Camera Not Connected or Currently Connecting!";
+            fst_status.status = FST_ERROR;
+            fst_status.description = "Camera Not Connected or Currently Connecting!";
 	    }
         return ret_msg;
     }
@@ -209,11 +249,16 @@ struct FineStarTracker: FLIRCameraServer{
                 cout << ret_msg << endl;
                 
                 ret_msg = "Switched to Plate Solving Mode";
+                fst_status.status = PLATE_SOLVING;
+                fst_status.description = "Switched to Plate Solving Mode";
             }else{
                 ret_msg = "Camera Busy!";
+                fst_status.description = "Camera Busy!"
             }
 	    }else{
 		    ret_msg = "Camera Not Connected or Currently Connecting!";
+            fst_status.status = FST_ERRROR;
+            fst_status.description = "Camera Not Connected or Currently Connecting!";
 	    }
         return ret_msg;
     }

@@ -64,7 +64,6 @@ class Client:
         self.nerrors = 0  # Number of errors encountered
         self.isalive = True #Assume alive until proven otherwise
         self.socket = ClientSocket(IP=IP, Port=port, TIMEOUT=100, logdir="FSMcommand_log")
-        self.status_log = robot + "_status_log.txt"
 
     def __repr__(self):
         return f"Client(name={self.name}, IP={self.IP}, port={self.port})"
@@ -121,6 +120,11 @@ class FSM:
             "Sinistra": StarTrackerState.STOP,
             "Navis": StarTrackerState.STOP
         }
+        self.status_logs = {
+            "Navis": "Navis_status_log.txt",
+            "Dextra": "Dextra_status_log.txt",
+            "Sinistra": "Sinistra_status_log.txt"
+        }
 
     def _add_client(self, name, IP, port, prefix=""):
         """Add a new client to the FSM"""
@@ -134,17 +138,26 @@ class FSM:
     def _process_status(self, client_name, status):
         """Process the status of a client and update the FSM state accordingly"""
         client = self.clients[client_name]
+        robot  = client.robot
+        logfile_path = self.status_logs[robot]
         if client.prefix == "RC":
             # Update the FSM state based on the robot control status
             server_state = status.get("st_state", 0)
             if server_state >= 2: #If a state that the robot control transitions to itself.
-                if self.star_tracker_states[client.robot] != StarTrackerState.SOFT_RESET:
-                    self.star_tracker_states[client.robot] = ST_SERVER_STATE.get(server_state, StarTrackerState.STOP)
+                if self.star_tracker_states[robot] != StarTrackerState.SOFT_RESET:
+                    self.star_tracker_states[robot] = ST_SERVER_STATE.get(server_state, StarTrackerState.STOP)
+                    self._log_status_helper(logfile_path, "FSM", 0, self.star_tracker_states[robot],"Updated state from RC", {time.strftime('%Y-%m-%dT%H:%M:%S')})
         elif client.prefix == "PS":
             # Update the FSM state based on the plate solver status
             server_state = status.get("state", 0)
             if server_state == 2 or server_state == 3: # Plate Solver process error or disconnection
-                self.star_tracker_states[client.robot] = StarTrackerState.SOFT_RESET
+                self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
+                self._log_status_helper(logfile_path, "FSM", 0, self.star_tracker_states[robot],"Error / Disconnect in PS server", {time.strftime('%Y-%m-%dT%H:%M:%S')})
+        elif client.prefix == "FST":
+            server_state = status.get("status", 0)
+            if server_state == 2: # FST camera error
+                self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
+                self._log_status_helper(logfile_path,"FSM",0,self.star_tracker_states[robot],"Camera error in FST server", {time.strftime('%Y-%m-%dT%H:%M:%S')})
 
     def _log_status(self, client_name, status):
         """
@@ -152,22 +165,21 @@ class FSM:
         Each new state transition should be logged only once.
         """
         client = self.clients[client_name]
-        logfile_path = self.logdir + "/" + client.status_log
+        logfile_path = self.status_logs[client.robot]
         if client.prefix == "RC":
-            state_RC_ST = status.get("st_state", 0)
-            state_RC_GSS = status.get("loop_status", 1)
-
-            self._log_status_helper(logfile_path, client.prefix, 0, state_RC_ST)
-            self._log_status_helper(logfile_path, client.prefix, 1, state_RC_GSS)
+            state_RC_ST = status.get("st_state", 0) # Default to ST_IDLE
+            state_RC_GSS = status.get("loop_status", 1) # Default to ROBOT_IDLE
+            self._log_status_helper(logfile_path, "RC", 0, state_RC_ST)
+            self._log_status_helper(logfile_path, "RC", 1, state_RC_GSS)
         if client.prefix == "PS":
-            PS_state = status.get("state", 0)
+            PS_state = status.get("state", 0) # Default to IDLE
             PS_description = status.get("description", "")
             PS_transition = status.get("timestamp", None)
-
             self._log_status_helper(logfile_path, "PS", 0, PS_state, PS_description, PS_transition)
         if client.prefix == "FST":
-            pass
-
+            FST_state = status.get("status", 0) # Default to PLATE_SOLVING
+            FST_description = status.get("description", "")
+            self._log_status_helper(logfile_path, "FST", 0, FST_state, FST_description)
 
 
     def _log_status_helper(self, logfile_path, prefix, machine_id, state, description = "", transition_time = None):
@@ -175,8 +187,9 @@ class FSM:
         Log server state transition to a log_file in the format: 
             Time of logging, [info], time of transition (if unique/provided), server prefix, state machine id,  state, desription
         This is a helper function for _log_status()
+        The logfile_path variable is the name of the status log within the log directory.
         """
-        with open(logfile_path, "a") as log_file:
+        with open(self.socket.logdir + "/" + logfile_path, "a") as log_file:
             try:
                 if transition_time is not None:
                     log_file.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [info], {prefix}, {machine_id}, {state}, {description}, {transition_time}\n")
@@ -386,7 +399,9 @@ class FSM:
     def start_STprocess(self, robot):
         """Start the ST&PO process on the specified robot. Can be used to exit a STOP state."""
         if robot in ["Navis", "Dextra", "Sinistra"]:
+            logfile_path = self.status_logs[robot]
             self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
+            self._log_status_helper(logfile_path, "FSM", 0, self.star_tracker_states[robot],f"Start {robot}", {time.strftime('%Y-%m-%dT%H:%M:%S')})
         else:
             print(f"Unknown platform name: {robot}. Cannot start ST process.")
         return None
@@ -394,7 +409,9 @@ class FSM:
     def stop_STprocess(self, robot):
         """Stop the ST&PO process on the specified robot"""
         if robot in ["Navis", "Dextra", "Sinistra"]:
+            logfile_path = self.status_logs[robot]
             self.star_tracker_states[robot] = StarTrackerState.STOP
+            self._log_status_helper(logfile_path, "FSM", 0, self.star_tracker_states[robot],f"Stop {robot}", {time.strftime('%Y-%m-%dT%H:%M:%S')})
         else: 
             print(f"Unknown platform name: {robot}. Cannot stop ST process.")
             return None
@@ -548,6 +565,7 @@ class FSM:
                 ST_camera = robot + "StarTracker"
                 RC_name   = robot + "RobotControl"
                 PS_name   = robot + "PlateSolver"
+                logfile_path = self.status_logs[robot]
                 ST_state  = self.star_tracker_states.get(robot, StarTrackerState.STOP)
                 # Relevant robot control and camera must be connected
                 # The STOP state would be typically externally triggered by the user.
@@ -555,6 +573,7 @@ class FSM:
                     # If not any server connected, we must RESET the connection.
                     if not self.clients[RC_name].socket.connected or not self.clients[ST_camera].socket.connected or not self.clients[PS_name].socket.connected:
                         self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
+                        self._log_status_helper(logfile_path,"FSM",0,self.star_tracker_states[robot],"FSM-Server disconnection",{time.strftime('%Y-%m-%dT%H:%M:%S')})
                     
                     if ST_state == StarTrackerState.READY_TO_SLEW: # TODO: Should this only happen once? What if overrides RC ST transition to ST_SLEW_BLIND?
                         # Set FST state if dealing with Navis
@@ -591,12 +610,15 @@ class FSM:
                         # Transition to READY_TO_SLEW if all servers connected
                         if self.clients[RC_name].socket.connected and self.clients[ST_camera].socket.connected and self.clients[PS_name].socket.connected:
                             self.star_tracker_states[robot] = StarTrackerState.READY_TO_SLEW
+                            self._log_status_helper(logfile_path,"FSM",0,self.star_tracker_states[robot],"FSM-Servers (re)connected",{time.strftime('%Y-%m-%dT%H:%M:%S')})
                         # Otherwise trigger a Hardware RESET
                         else:
                             self.star_tracker_states[robot] = StarTrackerState.HARD_RESET
+                            self._log_status_helper(logfile_path,"FSM",0,self.star_tracker_states[robot],"SOFT_RESET failed. HARD_RESET required.",{time.strftime('%Y-%m-%dT%H:%M:%S')})
                     elif ST_state == StarTrackerState.HARD_RESET:
                         # TODO: Do some hardware reset things
                         self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
+                        self._log_status_helper(logfile_path,"FSM",0,self.star_tracker_states[robot],"HARD_RESET completed.",{time.strftime('%Y-%m-%dT%H:%M:%S')})
                 else: # STOP state
                     # Stop RC motion (if server connection exists)
                     if self.clients[RC_name].socket.connected:
