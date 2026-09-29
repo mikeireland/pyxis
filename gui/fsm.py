@@ -136,6 +136,7 @@ class FSM:
             "Dextra": "",
             "Sinistra": "",
         }
+        self.event_logs = {}
 
     def _add_client(self, name, IP, port, prefix="", n_state_machines = 0):
         """Add a new client to the FSM"""
@@ -234,13 +235,19 @@ class FSM:
                 log_file.flush()
             log_file.flush()
 
-    def _log_error(self, logfile_path, id, description):
-        with open(self.socket.logdir + "/" + logfile_path, "a") as log_file:
-            try:
-                log_file.wrote(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [error], {id}, {description}\n")
-            except:
-                log_file.flush()
-            log_file.flush()
+    def _log_event(self, logfile_path, label, id, description):
+        """
+        Log [label] entry for an event to a specified file if this is the first time the event has occurred,
+        or if more than 5 seconds have passed since the same event was logged.
+        """
+        if id not in self.event_logs or (time.time() - self.event_logs[id]) >= 5:
+            with open(self.socket.logdir + "/" + logfile_path, "a") as log_file:
+                try:
+                    log_file.wrote(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [{label}], {id}, {description}\n")
+                    self.event_logs[id] = time.time()
+                except:
+                    log_file.flush()
+                log_file.flush()   
 
     def hello(self, name):
         """A simple test command to check if the FSM is working"""
