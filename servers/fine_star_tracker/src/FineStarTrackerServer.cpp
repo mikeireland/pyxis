@@ -49,7 +49,7 @@ namespace nlohmann {
     };
 
     template <>
-    struct adl_sreializer<Status> {
+    struct adl_serializer<Status> {
         static void to_json(json& j, const Status& s) {
             j = json{{"status", s.status}, {"description", s.description}};
         }

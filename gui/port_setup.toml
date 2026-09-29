@@ -19,6 +19,7 @@
     port = "4100" 
     description = "Motor/Actuator control for the chief Navis"
     module_type = "RobotControlWidget" # What GUI class?
+    n_state_machines = 2
 
     [Navis.ChiefAux]
     tab_name = "Navis Auxilliary"
@@ -28,6 +29,7 @@
     description = "Navis power system + actuator controls"
     module_type = "ChiefAuxControlWidget" # What GUI class?
     voltage_limit = 10 # What is the minimum voltage allowed?
+    n_state_machines = 0
    
         [Navis.ChiefAux.PiezoSteps] # Size of the voltage steps when pressing the GUI buttons
         dextra_X = 1
@@ -57,6 +59,7 @@
     offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
     USB_hub = "ykush3 -s Y3N11029" #Command for YKush to locate the correct USB hub
     USB_port = "1" #USB port number on the hub
+    n_state_machines = 1
 
     [Navis.DextraCoarseMet]
     tab_name = "Dextra Coarse Met Camera"
@@ -76,6 +79,7 @@
     gamma = 0 # horizontal offset between beam and LEDs
     x0 = [-52.54, 46.35] # vector of the beam injection, pointing from the coarse metrology camera (mm)
     alpha_c = [-0.0119, -0.0163] # calibrated correction for any angular deviation from the optical axis of the injection lens
+    n_state_machines = 0
 
     [Navis.SinistraCoarseMet]
     tab_name = "Sinistra Coarse Met Camera"
@@ -95,6 +99,7 @@
     gamma = 0 # horizontal offset between beam and LEDs
     x0 = [48.66, 55.98] # vector of the beam injection, pointing from the coarse metrology camera (mm)
     alpha_c = [-0.0079, -0.0265] # calibrated correction for any angular deviation from the optical axis of the injection lens
+    n_state_machines = 0
 
     [Navis.FiberInjection]
     tab_name = "Fiber Injection Camera"
@@ -110,6 +115,7 @@
     offset = [420,252] # Camera x/y ROI offset (for the correct positioning of the above points)
     USB_hub = "ykush3 -s Y3N11029" #Command for YKush to locate the correct USB hub
     USB_port = "2" #USB port number on the hub
+    n_state_machines = 0
 
     [Navis.ScienceCamera]
     tab_name = "Science Camera"
@@ -126,6 +132,7 @@
     grid_spacing = 10 # How many pixels per annotated grid element?
     contrast_limits = [0.2,30.0] # Limits for the contrast slider
     GD_contrast_limits = [0.2,1000.0]
+    n_state_machines = 0
 
     [Navis.PlateSolver]
     tab_name = "Plate Solver"
@@ -133,6 +140,7 @@
     prefix = "PS" # Server class prefix
     port = "4107"
     description = "Navis Plate Solver operations"
+    n_state_machines = 1
 
 [Dextra]
 
@@ -143,6 +151,7 @@
     port = "4200"
     description = "Motor/Actuator control for the deputy Dextra"
     module_type = "RobotControlWidget" # What GUI class?
+    n_state_machines = 2
 
     [Dextra.DeputyAux]
     tab_name = "Deputy Auxilliary"
@@ -152,6 +161,7 @@
     description = "Dextra power system + LED controls"
     module_type = "DepAuxControlWidget" # What GUI class?
     voltage_limit = 10 # What is the minimum voltage allowed?
+    n_state_machines = 0
 
     [Dextra.StarTracker]
     tab_name = "Star Tracker Camera"
@@ -167,6 +177,7 @@
     offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
     USB_hub = "ykush -s YK55678" #Command for YKush to locate the correct USB hub
     USB_port = "1" #USB port number on the hub
+    n_state_machines = 0
 
     [Dextra.TargetControl]
     tab_name = "Target" 
@@ -175,6 +186,7 @@
     port = "4203"
     description = "Dextra Target selector (move to FSM?)"
     module_type = "TargetWidget" # What GUI class?
+    n_state_machines = 0
 
     [Dextra.PlateSolver]
     tab_name = "Plate Solver"
@@ -182,6 +194,7 @@
     prefix = "PS" # Server class prefix
     port = "4207"
     description = "Dextra Plate Solver operations"
+    n_state_machines = 1
 
 
 [Sinistra]
@@ -193,6 +206,7 @@
     port = "4300"
     description = "Motor/Actuator control for the deputy Sinistra"
     module_type = "RobotControlWidget" # What GUI class?
+    n_state_machines = 2
 
     [Sinistra.DeputyAux]
     tab_name = "Deputy Auxilliary"
@@ -202,6 +216,7 @@
     description = "Sinistra power system + LED controls"
     module_type = "DepAuxControlWidget" # What GUI class?
     voltage_limit = 10 # What is the minimum voltage allowed?
+    n_state_machines = 0
     
     [Sinistra.StarTracker]
     tab_name = "Star Tracker Camera"
@@ -217,6 +232,7 @@
     offset = [0,0] # Camera x/y ROI offset (for the correct positioning of the above points)
     USB_hub = "ykush -s YK55673" #Command for YKush to locate the correct USB hub
     USB_port = "1" #USB port number on the hub
+    n_state_machines = 0
 
     [Sinistra.PlateSolver]
     tab_name = "Plate Solver"
@@ -224,6 +240,7 @@
     prefix = "PS" # Server class prefix
     port = "4307"
     description = "Sinistra Plate Solver operations"
+    n_state_machines = 1
 
 #    [Sinistra.TargetControl]
 #    tab_name = "Target"
