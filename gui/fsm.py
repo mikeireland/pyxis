@@ -129,7 +129,7 @@ class FSM:
             "Navis": "Navis_status_log.txt",
             "Dextra": "Dextra_status_log.txt",
             "Sinistra": "Sinistra_status_log.txt",
-            "Error": "General_error_log.txt"
+            "Event": "FSM_level_events_log.txt"
         }
         self.prev_logs = {
             "Navis": "",
@@ -215,7 +215,7 @@ class FSM:
             else:
                 return False
         else:
-            print(f"Error: Client not initialised with state machine id {machine_id}.")
+            self._log_event(self.status_logs[client.robot], "error", "ID-Err", f"Error: Client {client.name} not initialised with state machine id {machine_id}.")
             return False
 
     def _log_status_helper(self, logfile_path, prefix, machine_id, state, description = "", transition_time = None):
@@ -240,14 +240,12 @@ class FSM:
         Log [label] entry for an event to a specified file if this is the first time the event has occurred,
         or if more than 5 seconds have passed since the same event was logged.
         """
-        if id not in self.event_logs or (time.time() - self.event_logs[id]) >= 5:
-            with open(self.socket.logdir + "/" + logfile_path, "a") as log_file:
-                try:
-                    log_file.wrote(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [{label}], {id}, {description}\n")
-                    self.event_logs[id] = time.time()
-                except:
-                    log_file.flush()
-                log_file.flush()   
+        with open(self.socket.logdir + "/" + logfile_path, "a") as log_file:
+            try:
+                log_file.wrote(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [{label}], {id}, {description}\n")
+            except:
+                log_file.flush()
+            log_file.flush()
 
     def hello(self, name):
         """A simple test command to check if the FSM is working"""
@@ -474,6 +472,24 @@ class FSM:
         if self.clients[PS_name].socket.connected:
             self.clients[PS_name].socket.send_command("PS.set_ps_st 0") # Plate Solver to IDLE
 
+    def _test_logs(self):
+        """
+        Test FSM-PS and PS-FSM state update links. Test client logging functions
+        """
+        PS_name = "NavisPlateSolver"
+        PS_client = self.clients[PS_name]
+        if PS_client.socket.connected:
+            for _ in range(3):
+                PS_client.socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
+                time.sleep(1)
+                self._process_status(PS_name, PS_client.status)
+                self._log_client_status(PS_name, PS_client.status)
+            PS_client.socket.send_command("PS.set_ps_st 3")
+            time.sleep(1)
+            self._process_status(PS_name, PS_client.status)
+            self._log_client_status(PS_name, PS_client.status)
+               
+
     def _run(self):
         """Run the FSM server, listening for commands, and checking on clients
         one at a time """
@@ -489,7 +505,7 @@ class FSM:
             # We use zmq.NOBLOCK to avoid blocking the loop if no command is received.
             try:
                 message = self.socket.recv_string(flags=zmq.NOBLOCK)
-                print(f"Received command: {message}")
+                self._log_event(self.status_logs["Event"],"info","Cmd-Rec",f"Received command: {message}")
 
                 # Handle empty message as a connection ping
                 if not message.strip():
@@ -505,7 +521,7 @@ class FSM:
             except zmq.Again:
                 pass
             except:
-                print("Error processing command, sending error response.")
+                self._log_event(self.status_logs["Event"], "error", "Cmd-Err", "Error processing command, sending error response.")
                 self.socket.send_string("Error processing command")
             
             #Now check the status of one client at a time
@@ -523,7 +539,7 @@ class FSM:
                                 self._process_status(client_name, client.status)
                                 self._log_status(client_name, client.status)
                             except Exception as e:
-                                print(f"Error checking server {client_name}: {e}, response: {response}")
+                                self._log_event(self.status_logs[client.robot], "error", "Proc-Err", f"Error checking server {client_name}: {e}, response: {response}")
                         elif client.nerrors < error_threshold:
                             # By convention, sending an empty command will try to reconnect. Automatically 
                             # reconecting like this is part of the "lazy pirate" pattern.
@@ -533,10 +549,11 @@ class FSM:
                                 client.nerrors = 0
                             else:
                                 client.nerrors += 1
-                                print(f"Server {client_name} is not responding with status, error count: {client.nerrors}")
+                                self._log_event(self.status_logs[client.robot], "error", "Proc-Err", f"Server {client_name} is not responding with status, error count: {client.nerrors}")
                         else:
                             client.isalive = False
-                            print(f"Server {client_name} is not responding with status, marking as dead after {client.nerrors} errors.")
+                            self._log_event(self.status_logs[client.robot], "error", "Proc-Err", f"Server {client_name} is not responding with status, marking as dead after {client.nerrors} errors.")
+                            self._log_event(self.status_logs["Event"], "error", "Proc-Err", f"Server {client_name} is not responding with status, marking as dead after {client.nerrors} errors.")
                     else:
                         # Here we could implement something to automatically try to restart the client.
                         """Jon has implemented this in the systemctl. !!!TODO """
