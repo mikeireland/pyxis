@@ -173,9 +173,9 @@ class FSM:
                 self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "Camera error in FST server")
     
     def _log_fsm_status(self, logfile_path, machine_id, state, description):
-        if self.prev_logs[robot] != str(state) + description:
+        if self.prev_logs[robot] != str(machine_id) + str(state) + description:
             self._log_status_helper(logfile_path, "FSM", machine_id, state,description, {time.strftime('%Y-%m-%dT%H:%M:%S')})
-            self.prev_logs[robot] = str(state) + description
+            self.prev_logs[robot] = str(machine_id) + str(state) + description
     
     def _log_client_status(self, client_name, status):
         """
@@ -481,21 +481,62 @@ class FSM:
 
     def _test_logs(self):
         """
-        Test FSM-PS and PS-FSM state update links. Test client logging functions
+        Test update links and client logging functions.
         """
-        self._log_event(self.status_logs["Event"],"test","Test","Test single log_event function")
+        # Generic log_event (should result in 2 new entries in FSM_level_events; with appropriate timestamps)
+        self._log_event(self.status_logs["Event"],"test","Test1","Test single log_event function (1)")
+        self._log_event(self.status_logs["Event"],"test","Test2","Test single log_event function (2)")
+
+        # FSM logging
+        # Should result in 2 new entries in Dextra_status_log.txt:
+        # timestamp, [info], FSM, 0, 7, "Test state logged (STOP)", timestamp
+        # timestamp + ~2 seconds, [info], FSM, 1, 7, "Test state logged (STOP)", timestamp + ~2 seconds
+        # Should result in 1 new entry in Sinistra_status_log.txt:
+        # timestamp + ~3 seconds, [info], FSM, 0, 7, "Test state logged (STOP)", timestamp + ~3 seconds
+        self._log_fsm_status(self.status_logs["Dextra"],0,StarTrackerState.STOP, "Test state logged (STOP)")
+        time.sleep(1)
+        self._log_fsm_status(self.status_logs["Dextra"],0,StarTrackerState.STOP, "Test state logged (STOP)")
+        time.sleep(1)
+        self._log_fsm_status(self.status_logs["Dextra"],1,StarTrackerState.STOP, "Test state logged (STOP)")
+        time.sleep(1)
+        self._log_fsm_status(self.status_logs["Sinistra"],0,StarTrackerState.STOP, "Test state logged (STOP)")
+
+        # FSM-RC and RC-FSM state update links
+        # Should result in 3 logs:
+        # timestamp, [info], RC, 0, 0, , [no transition time]
+        # timestamp, [info], RC, 1, 2, , [no transition time]
+        # timestamp + ~4 seconds, [info], RC, 0, 5, , [no transition time]
+        RC_name = "NavisRobotController"
+        RC_client = self.clients[RC_name]
+        if RC_client.socket.connected:
+            for _ in range(3):
+                RC_client.socket.send_command("RC.stop")
+                time.sleep(1)
+                self._process_status(RC_name, self.clients[RC_name].status)
+                self._log_client_status(RC_name, self.clients[RC_name].status)
+            RC_client.socket.send_command("RC.set_st 5") # Set to ST_ERROR
+            time.sleep(1)
+            self._process_status(RC_name, self.clients[RC_name].status)
+            self._log_client_status(RC_name, self.clients[RC_name].status)
+            RC_client.socket.send_command("RC.stop")
+        
+        # FSM-PS and PS-FSM state update links
+        # Assuming PS is connected, should result in 2 new logs in Navis_status_log.txt:
+        # timestamp, [info], PS, 0, 0, , timestamp
+        # timestamp + ~4 seconds, [info], PS, 0, 3, , timestamp + ~4 seconds
         PS_name = "NavisPlateSolver"
         PS_client = self.clients[PS_name]
         if PS_client.socket.connected:
             for _ in range(3):
                 PS_client.socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
                 time.sleep(1)
-                self._process_status(PS_name, PS_client.status)
-                self._log_client_status(PS_name, PS_client.status)
+                self._process_status(PS_name, self.clients[PS_name].status)
+                self._log_client_status(PS_name, self.clients[PS_name].status)
             PS_client.socket.send_command("PS.set_ps_st 3")
             time.sleep(1)
-            self._process_status(PS_name, PS_client.status)
-            self._log_client_status(PS_name, PS_client.status)
+            self._process_status(PS_name, self.clients[PS_name].status)
+            self._log_client_status(PS_name, self.clients[PS_name].status)
+        
                
 
     def _run(self):
