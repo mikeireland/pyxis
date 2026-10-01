@@ -506,7 +506,7 @@ class FSM:
         # timestamp, [info], RC, 0, 0, , [no transition time]
         # timestamp, [info], RC, 1, 2, , [no transition time]
         # timestamp + ~4 seconds, [info], RC, 0, 5, , [no transition time]
-        RC_name = "NavisRobotController"
+        RC_name = "NavisRobotControl"
         RC_client = self.clients[RC_name]
         if RC_client.socket.connected:
             for _ in range(3):
