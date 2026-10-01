@@ -194,7 +194,7 @@ class FSM:
         elif client.prefix == "PS":
             PS_state = status.get("state", 0) # Default to IDLE
             PS_description = status.get("description", "")
-            PS_transition = status.get("timestamp", None)
+            PS_transition = status.get("timestamp", "")
             if self._update_client_prev_log(client, 0, PS_state, PS_description, PS_transition):
                 self._log_status_helper(logfile_path, "PS", 0, PS_state, PS_description, PS_transition)
         elif client.prefix == "FST":
@@ -222,7 +222,7 @@ class FSM:
             self._log_event(self.status_logs[client.robot], "error", "ID-Err", f"Error: Client {client.name} not initialised with state machine id {machine_id}.")
             return False
 
-    def _log_status_helper(self, logfile_path, prefix, machine_id, state, description = "", transition_time = None):
+    def _log_status_helper(self, logfile_path, prefix, machine_id, state, description = "", transition_time = ""):
         """
         Log server state transition to a log_file in the format: 
             Time of logging, [info], time of transition (if unique/provided), server prefix, state machine id,  state, desription
@@ -231,7 +231,7 @@ class FSM:
         """
         with open(self.logdir + "/" + logfile_path, "a") as log_file:
             try:
-                if transition_time is not None:
+                if transition_time:
                     log_file.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [info], {prefix}, {machine_id}, {state}, {description}, {transition_time}\n")
                 else:
                     log_file.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [info], {prefix}, {machine_id}, {state}, {description}, [No transition time]\n")
