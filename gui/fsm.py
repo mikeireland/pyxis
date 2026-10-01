@@ -241,6 +241,7 @@ class FSM:
         Log [label] entry for an event to a specified file if this is the first time the event has occurred,
         or if more than 5 seconds have passed since the same event was logged.
         """
+        print("Logging event")
         with open(self.logdir + "/" + logfile_path, "a") as log_file:
             try:
                 log_file.wrote(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [{label}], {id}, {description}\n")

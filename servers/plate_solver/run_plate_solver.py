@@ -247,7 +247,7 @@ def commander_status():
 def ps_status():
     return json.dumps(ps_state)
 
-def set_ps_state(state, description=None):
+def set_ps_state(state, description=""):
     global ps_state
     ps_state["state"] = PlateSolverState.get(state, PlateSolverState.IDLE)
     ps_state["timestamp"] = time.strftime('%Y-%m-%dT%H:%M:%S')
