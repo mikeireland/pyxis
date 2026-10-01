@@ -256,8 +256,9 @@ def set_ps_state(state, description=""):
     if ps_state["state"] == PlateSolverState.RUNNING:
         ps_state["description"] = "Running plate solving loop"
     # Otherwise, update with a new state description if requested
-    elif description is not None:
+    else:
         ps_state["description"] = description
+        
 
 def log_state(logfile_path, offset):
     with open(logfile_path, "a") as log_file:
