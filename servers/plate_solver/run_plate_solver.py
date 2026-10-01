@@ -245,7 +245,8 @@ def commander_status():
     return {name: client.status() for name, client in socket_clients.items()}
 
 def ps_status():
-    return ps_state
+    global ps_state
+    return json.dumps(ps_state)
 
 def set_ps_state(state, description=""):
     global ps_state
