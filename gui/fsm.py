@@ -477,6 +477,7 @@ class FSM:
         """
         Test FSM-PS and PS-FSM state update links. Test client logging functions
         """
+        self._log_event(self.status_logs["Event"],"test","Test","Test single log_event function")
         PS_name = "NavisPlateSolver"
         PS_client = self.clients[PS_name]
         if PS_client.socket.connected:
@@ -732,7 +733,10 @@ if __name__ == "__main__":
     #     print(f"Navis Robot Control - IP: {navis_robot_control.IP}, Port: {navis_robot_control.port}")
         
     # Start the FSM server
-    fsm._run()
+    #fsm._run()
+
+    # Run logging test
+    fsm._test_logs()
     
     # After a "quit" command, we close the socket and exit
     fsm.socket.close()
