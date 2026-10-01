@@ -257,7 +257,7 @@ struct FineStarTracker: FLIRCameraServer{
             }
 	    }else{
 		    ret_msg = "Camera Not Connected or Currently Connecting!";
-            fst_status.status = FST_ERRROR;
+            fst_status.status = FST_ERROR;
             fst_status.description = "Camera Not Connected or Currently Connecting!";
 	    }
         return ret_msg;

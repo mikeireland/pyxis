@@ -489,15 +489,15 @@ class FSM:
 
         # FSM logging
         # Should result in 2 new entries in Dextra_status_log.txt:
-        # timestamp, [info], FSM, 0, 7, "Test state logged (STOP)", timestamp
-        # timestamp + ~2 seconds, [info], FSM, 1, 7, "Test state logged (STOP)", timestamp + ~2 seconds
+        # timestamp, [info], FSM, 0, StarTrackerState.STOP, "Test state logged (STOP)", timestamp
+        # timestamp + ~2 seconds, [info], FSM, 1, CoarseMetState.STOP, "Test state logged (STOP)", timestamp + ~2 seconds
         # Should result in 1 new entry in Sinistra_status_log.txt:
-        # timestamp + ~3 seconds, [info], FSM, 0, 7, "Test state logged (STOP)", timestamp + ~3 seconds
+        # timestamp + ~3 seconds, [info], FSM, 0, StarTrackerState.STOP, "Test state logged (STOP)", timestamp + ~3 seconds
         self._log_fsm_status(self.status_logs["Dextra"],0,StarTrackerState.STOP, "Test state logged (STOP)")
         time.sleep(1)
         self._log_fsm_status(self.status_logs["Dextra"],0,StarTrackerState.STOP, "Test state logged (STOP)")
         time.sleep(1)
-        self._log_fsm_status(self.status_logs["Dextra"],1,StarTrackerState.STOP, "Test state logged (STOP)")
+        self._log_fsm_status(self.status_logs["Dextra"],1,CoarseMetState.STOP, "Test state logged (STOP)")
         time.sleep(1)
         self._log_fsm_status(self.status_logs["Sinistra"],0,StarTrackerState.STOP, "Test state logged (STOP)")
 
