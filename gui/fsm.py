@@ -540,7 +540,7 @@ class FSM:
                                 self._process_status(client_name, client.status)
                                 self._log_status(client_name, client.status)
                             except Exception as e:
-                                self._log_event(self.status_logs["Error"], "error", "Proc-Err", f"Error checking server {client_name}: {e}, response: {response}")
+                                self._log_event(self.status_logs["Event"], "error", "Proc-Err", f"Error checking server {client_name}: {e}, response: {response}")
                         elif client.nerrors < error_threshold:
                             # By convention, sending an empty command will try to reconnect. Automatically 
                             # reconecting like this is part of the "lazy pirate" pattern.
@@ -550,7 +550,7 @@ class FSM:
                                 client.nerrors = 0
                             else:
                                 client.nerrors += 1
-                                self._log_event(self.status_logs["Error"], "error", "Proc-Err", f"Server {client_name} is not responding with status, error count: {client.nerrors}")
+                                self._log_event(self.status_logs["Event"], "error", "Proc-Err", f"Server {client_name} is not responding with status, error count: {client.nerrors}")
                         else:
                             client.isalive = False
                             self._log_event(self.status_logs["Event"], "error", "Proc-Err", f"Server {client_name} is not responding with status, marking as dead after {client.nerrors} errors.")
