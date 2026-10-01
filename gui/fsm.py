@@ -244,7 +244,7 @@ class FSM:
         print("Logging event")
         with open(self.logdir + "/" + logfile_path, "a") as log_file:
             try:
-                log_file.wrote(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [{label}], {id}, {description}\n")
+                log_file.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [{label}], {id}, {description}\n")
             except:
                 log_file.flush()
             log_file.flush()
