@@ -111,6 +111,7 @@ class FSM:
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REP)
         self.socket.bind(f"tcp://*:{port}")
+        self.logdir = "FSMcommand_log"
         #Set the command dictionary for the FSM, using all methods of the FSM class
         #that do not start with '_'
         self.command_dict = {}
@@ -225,7 +226,7 @@ class FSM:
         This is a helper function for _log_status()
         The logfile_path variable is the name of the status log within the log directory.
         """
-        with open(self.socket.logdir + "/" + logfile_path, "a") as log_file:
+        with open(self.logdir + "/" + logfile_path, "a") as log_file:
             try:
                 if transition_time is not None:
                     log_file.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [info], {prefix}, {machine_id}, {state}, {description}, {transition_time}\n")
@@ -240,7 +241,7 @@ class FSM:
         Log [label] entry for an event to a specified file if this is the first time the event has occurred,
         or if more than 5 seconds have passed since the same event was logged.
         """
-        with open(self.socket.logdir + "/" + logfile_path, "a") as log_file:
+        with open(self.logdir + "/" + logfile_path, "a") as log_file:
             try:
                 log_file.wrote(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [{label}], {id}, {description}\n")
             except:
