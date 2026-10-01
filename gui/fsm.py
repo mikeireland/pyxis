@@ -192,6 +192,7 @@ class FSM:
             if self._update_client_prev_log(client, 1, state_RC_GSS):
                 self._log_status_helper(logfile_path, "RC", 1, state_RC_GSS)
         elif client.prefix == "PS":
+            print(status)
             PS_state = status.get("state", 0) # Default to IDLE
             PS_description = status.get("description", "Default")
             PS_transition = status.get("timestamp", "Default")
