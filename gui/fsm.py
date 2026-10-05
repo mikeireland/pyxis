@@ -543,7 +543,7 @@ class FSM:
         if FST_client.socket.connected:
             for _ in range(3):
                 FST_client.socket.send_command("FST.switchPlateSolve")
-                message = FST_client.socket.recv_string()
+                message = self.socket.recv_string()
                 print(message)
                 self._log_client_status(FST_name, self.clients[FST_name].status)
                 time.sleep(1)
@@ -704,7 +704,7 @@ class FSM:
                         # Set FST state if dealing with Navis
                         if robot == "Navis":
                             self.clients[ST_camera].socket.send_command("FST.switchPlateSolve")
-                            message = self.clients[ST_camera].socket.recv_string()
+                            message = self.socket.recv_string()
                             if message == "Switched to Plate Solving Mode": # TODO: Is this the only correct scenario?
                                 self.clients[PS_name].socket.send_command("PS.set_ps_st 1") # Sets PS to RUNNING
                                 self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
