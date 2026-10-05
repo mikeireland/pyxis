@@ -34,6 +34,28 @@ std::string GLOB_RB_TCP = "NOFILESAVED";
 
 commander::client::Socket* RB_SOCKET;
 
+/*
+Structure and associated instance to hold FST status information for system logs
+Function to return this status
+*/
+enum FSTStatus {
+    PLATE_SOLVING = 0,
+    CENTROIDING = 1,
+    FST_ERROR = 2
+}
+
+struct Status {
+    enum FSTStatus status;
+    string description;
+    // Timestamp info?
+}
+
+struct Status fst_status = {PLATE_SOLVING, ""};
+
+Status status(){
+    return fst_status;
+}
+
 // Serialise centroid struct into JSON
 namespace nlohmann {
     template <>
@@ -59,29 +81,6 @@ namespace nlohmann {
             j.at("description").get_to(s.description);
         }
     };
-}
-
-
-/*
-Structure and associated instance to hold FST status information for system logs
-Function to return this status
-*/
-enum FSTStatus {
-    PLATE_SOLVING = 0,
-    CENTROIDING = 1,
-    FST_ERROR = 2
-}
-
-struct Status {
-    enum FSTStatus status;
-    string description;
-    // Timestamp info?
-}
-
-Status fst_status = {PLATE_SOLVING, ""};
-
-Status status(){
-    return fst_status;
 }
 
 /*
