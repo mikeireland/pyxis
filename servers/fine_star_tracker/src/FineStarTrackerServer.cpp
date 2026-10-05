@@ -42,10 +42,10 @@ enum FSTStatus {
     PLATE_SOLVING = 0,
     CENTROIDING = 1,
     FST_ERROR = 2
-}
+};
 
 struct Status {
-    FSTStatus status;
+    enum FSTStatus status;
     string description;
     // Timestamp info?
 };
