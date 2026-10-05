@@ -45,10 +45,10 @@ enum FSTStatus {
 }
 
 struct Status {
-    enum FSTStatus status;
+    FSTStatus status;
     string description;
     // Timestamp info?
-}
+};
 
 struct Status fst_status = {PLATE_SOLVING, ""};
 
@@ -252,7 +252,7 @@ struct FineStarTracker: FLIRCameraServer{
                 fst_status.description = "Switched to Plate Solving Mode";
             }else{
                 ret_msg = "Camera Busy!";
-                fst_status.description = "Camera Busy!"
+                fst_status.description = "Camera Busy!";
             }
 	    }else{
 		    ret_msg = "Camera Not Connected or Currently Connecting!";
