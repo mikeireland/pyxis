@@ -536,7 +536,17 @@ class FSM:
             time.sleep(1)
             self._process_status(PS_name, self.clients[PS_name].status)
             self._log_client_status(PS_name, self.clients[PS_name].status)
-        
+
+        # FSM-FST and FST-FSM state update links
+        FST_name = "NavisStarTracker"
+        FST_client = self.clients[FST_name]
+        if FST_client.socket.connected:
+            for _ in range(3):
+                FST_client.socket.send_command("FST.switchPlateSolve")
+                message = FST_client.socket.recv_string()
+                print(message)
+                self._log_client_status(FST_name, self.clients[FST_name].status)
+                time.sleep(1)
                
 
     def _run(self):
@@ -584,9 +594,9 @@ class FSM:
                                 #We expect a json structure as a response.
                                 #The client_socket will handle the connection and disconnection.
                                 response = client.socket.send_command(client.prefix + ".status")
-                                client.status = json.loads(response) 
-                                self._process_status(client_name, client.status)
+                                client.status = json.loads(response)
                                 self._log_status(client_name, client.status)
+                                self._process_status(client_name, client.status)
                             except Exception as e:
                                 self._log_event(self.status_logs["Event"], "error", "Proc-Err", f"Error checking server {client_name}: {e}, response: {response}")
                         elif client.nerrors < error_threshold:
