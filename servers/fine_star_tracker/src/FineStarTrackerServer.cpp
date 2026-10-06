@@ -52,10 +52,6 @@ struct Status {
 
 struct Status fst_status = {PLATE_SOLVING, ""};
 
-Status status(){
-    return fst_status;
-}
-
 // Serialise centroid struct into JSON
 namespace nlohmann {
     template <>
@@ -177,6 +173,10 @@ struct FineStarTracker: FLIRCameraServer{
     ~FineStarTracker(){
         delete RB_SOCKET;
     }
+
+    Status status(){
+        return fst_status;
+    }   
 
     /*
     Function to get the current differential star position as a centroid struct
