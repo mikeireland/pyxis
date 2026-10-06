@@ -784,10 +784,10 @@ if __name__ == "__main__":
     #     print(f"Navis Robot Control - IP: {navis_robot_control.IP}, Port: {navis_robot_control.port}")
         
     # Start the FSM server
-    #fsm._run()
+    fsm._run()
 
     # Run logging test
-    fsm._test_logs()
+    #fsm._test_logs()
     
     # After a "quit" command, we close the socket and exit
     fsm.socket.close()
