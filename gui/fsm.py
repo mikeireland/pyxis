@@ -157,24 +157,26 @@ class FSM:
         client = self.clients[client_name]
         robot  = client.robot
         logfile_path = self.status_logs[robot]
-        if client.prefix == "RC":
-            # Update the FSM state based on the robot control status
-            server_state = status.get("st_state", 0)
-            if server_state >= 2: #If a state that the robot control transitions to itself.
-                if self.star_tracker_states[robot] != StarTrackerState.SOFT_RESET:
-                    self.star_tracker_states[robot] = ST_SERVER_STATE.get(server_state, StarTrackerState.STOP)
-                    self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "Updated from RC server")                 
-        elif client.prefix == "PS":
-            # Update the FSM state based on the plate solver status
-            server_state = status.get("state", 0)
-            if server_state == 2 or server_state == 3: # Plate Solver process error or disconnection
-                self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
-                self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "Error / Disconnect in PS server")
-        elif client.prefix == "FST":
-            server_state = status.get("status", 0)
-            if server_state == 2: # FST camera error
-                self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
-                self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "Camera error in FST server")
+        # Update the StarTrackerState unless we are stopped.
+        if self.star_tracker_states[robot] != StarTrackerState.STOP:
+            if client.prefix == "RC":
+                # Update the FSM state based on the robot control status
+                server_state = status.get("st_state", 0)
+                if server_state >= 2: #If a state that the robot control transitions to itself.
+                    if self.star_tracker_states[robot] != StarTrackerState.SOFT_RESET:
+                        self.star_tracker_states[robot] = ST_SERVER_STATE.get(server_state, StarTrackerState.STOP)
+                        self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "Updated from RC server")                 
+            elif client.prefix == "PS":
+                # Update the FSM state based on the plate solver status
+                server_state = status.get("state", 0)
+                if server_state == 2 or server_state == 3: # Plate Solver process error or disconnection
+                    self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
+                    self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "Error / Disconnect in PS server")
+            elif client.prefix == "FST":
+                server_state = status.get("status", 0)
+                if server_state == 2: # FST camera error
+                    self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
+                    self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "Camera error in FST server")
     
     def _log_fsm_status(self, logfile_path, machine_id, state, description):
         if self.prev_logs[robot] != str(machine_id) + str(state) + description:
@@ -741,7 +743,7 @@ class FSM:
                         self.reconnect(ST_camera) # Reconnect ST camera server
                         time.sleep(0.01)  # Sleep to avoid busy waiting (copied from CM logic)
 
-                        # Transition to READY_TO_SLEW if all servers connected
+                        # Transition to READY_TO_SLEW if all servers connected 
                         if self.clients[RC_name].socket.connected and self.clients[ST_camera].socket.connected and self.clients[PS_name].socket.connected:
                             self.star_tracker_states[robot] = StarTrackerState.READY_TO_SLEW
                             self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "FSM-Servers (re)connected")

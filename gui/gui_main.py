@@ -184,7 +184,7 @@ class PyxisGui(QTabWidget):
         self.start_button = QPushButton("Start", self)
         self.start_button.clicked.connect(lambda: self.start_FSM(self.platform_selector.currentText()))
         self.stop_button = QPushButton("Stop", self)
-        self.stop_button.clicked.connect(lambda: self.stop_FSM(self.platform_selector.currentText))
+        self.stop_button.clicked.connect(lambda: self.stop_FSM(self.platform_selector.currentText()))
         self.system_selector = QComboBox(self)
         self.system_selector.addItems(["All", "Star Tracking", "Coarse Metrology", "Fibre Injection", "Fringe Tracking"])
         for control in (self.connect_fsm_button, self.dashboard_refresh_button, self.start_button,
