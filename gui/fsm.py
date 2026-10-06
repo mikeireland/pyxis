@@ -589,7 +589,7 @@ class FSM:
                                 #The client_socket will handle the connection and disconnection.
                                 response = client.socket.send_command(client.prefix + ".status")
                                 client.status = json.loads(response)
-                                self._log_status(client_name, client.status)
+                                self._log_client_status(client_name, client.status)
                                 self._process_status(client_name, client.status)
                             except Exception as e:
                                 self._log_event(self.status_logs["Event"], "error", "Proc-Err", f"Error checking server {client_name}: {e}, response: {response}")

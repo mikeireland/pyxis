@@ -23,7 +23,7 @@
 
     [Navis.ChiefAux]
     tab_name = "Navis Auxilliary"
-    name = "NavisDeputyAux" # Internal identifier
+    name = "NavisChiefAux" # Internal identifier
     prefix = "CA" # Server class prefix
     port = "4101"
     description = "Navis power system + actuator controls"
