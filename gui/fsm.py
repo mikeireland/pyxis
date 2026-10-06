@@ -447,6 +447,7 @@ class FSM:
 
     def start_STprocess(self, robot):
         """Start the ST&PO process on the specified robot. Can be used to exit a STOP state."""
+        print("Initiating start_STprocess for robot:", robot)
         if robot in ["Navis", "Dextra", "Sinistra"]:
             logfile_path = self.status_logs[robot]
             self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
