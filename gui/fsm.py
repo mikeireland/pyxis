@@ -7,7 +7,11 @@ is a server itself.
 All server commands are in the class FSM, which owns the dictionary of clients.
 
 Each client is a very simple class with key properties "name", "IP", "port" and 
-booleans for status types.
+booleans for status types. 
+
+*** Note that there is a notation error here: the FSM is a client to the pyxis servers,
+so usually you would call the array of servers "servers" and the FSM would be a "client" to them. 
+But in this code, we call the pyxis servers "clients", which is confusing... ***
 """
 import sys
 import pytomlpp
@@ -405,7 +409,7 @@ class FSM:
             else:
                 if self.clients[deputyRC_name].socket.connected:
                     cmd = f'RC.receive_AlignmentError {sign * v_offset}, {h_offset}'
-                    self.clients[deputyRC_name].socket.send_command(cmd)
+                    response = self.clients[deputyRC_name].socket.send_command(cmd)
                     print(f"Sending misalignment to {deputyRC_name}. Delta_p: {dlt_p}")
                     return True
                 else:
@@ -426,11 +430,11 @@ class FSM:
         if deputy_name == "Dextra":
             self.dextra_coarse_met_state = CoarseMetState.STOP
             if self.clients["DextraRobotControl"].socket.connected:
-                self.clients["DextraRobotControl"].socket.send_command("RC.stop")
+                response = self.clients["DextraRobotControl"].socket.send_command("RC.stop")
         elif deputy_name == "Sinistra":
             self.sinistra_coarse_met_state = CoarseMetState.STOP
             if self.clients["SinistraRobotControl"].socket.connected:
-                self.clients["SinistraRobotControl"].socket.send_command("RC.stop")
+                response = self.clients["SinistraRobotControl"].socket.send_command("RC.stop")
         else:
             print(f"Unknown deputy name: {deputy_name}. Cannot stop alignment process. Choose Dextra or Sinistra.")
         return None
@@ -469,10 +473,10 @@ class FSM:
         RC_name = robot + "RobotControl"
         PS_name = robot + "PlateSolver"
         if self.clients[RC_name].socket.connected:
-            self.clients[RC_name].socket.send_command("RC.stop")        # RC GSS to ROBOT_TRANSLATE
-            self.clients[RC_name].socket.send_command("RC.set_st 0")    # RC ST to ST_IDLE
+            response = self.clients[RC_name].socket.send_command("RC.stop")        # RC GSS to ROBOT_TRANSLATE
+            response = self.clients[RC_name].socket.send_command("RC.set_st 0")    # RC ST to ST_IDLE
         if self.clients[PS_name].socket.connected:
-            self.clients[PS_name].socket.send_command("PS.set_ps_st 0") # Plate Solver to IDLE
+            response = self.clients[PS_name].socket.send_command("PS.set_ps_st 0") # Plate Solver to IDLE
 
     def _test_logs(self):
         """
@@ -505,15 +509,15 @@ class FSM:
         RC_client = self.clients[RC_name]
         if RC_client.socket.connected:
             for _ in range(3):
-                RC_client.socket.send_command("RC.stop")
+                response = RC_client.socket.send_command("RC.stop")
                 time.sleep(1)
                 self._process_status(RC_name, self.clients[RC_name].status)
                 self._log_client_status(RC_name, self.clients[RC_name].status)
-            RC_client.socket.send_command("RC.set_st 5") # Set to ST_ERROR
+            response = RC_client.socket.send_command("RC.set_st 5") # Set to ST_ERROR
             time.sleep(1)
             self._process_status(RC_name, self.clients[RC_name].status)
             self._log_client_status(RC_name, self.clients[RC_name].status)
-            RC_client.socket.send_command("RC.stop")
+            response = RC_client.socket.send_command("RC.stop")
         
         # FSM-PS and PS-FSM state update links
         # Assuming PS is connected, should result in 2 new logs in Navis_status_log.txt:
@@ -523,11 +527,11 @@ class FSM:
         PS_client = self.clients[PS_name]
         if PS_client.socket.connected:
             for _ in range(3):
-                PS_client.socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
+                response = PS_client.socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
                 time.sleep(1)
                 self._process_status(PS_name, self.clients[PS_name].status)
                 self._log_client_status(PS_name, self.clients[PS_name].status)
-            PS_client.socket.send_command("PS.set_ps_st 3")
+            response = PS_client.socket.send_command("PS.set_ps_st 3")
             time.sleep(1)
             self._process_status(PS_name, self.clients[PS_name].status)
             self._log_client_status(PS_name, self.clients[PS_name].status)
@@ -537,9 +541,8 @@ class FSM:
         FST_client = self.clients[FST_name]
         if FST_client.socket.connected:
             for _ in range(3):
-                FST_client.socket.send_command("FST.switchPlateSolve")
-                message = self.socket.recv_string()
-                print(message)
+                response = FST_client.socket.send_command("FST.switchPlateSolve")
+                print(response)
                 self._log_client_status(FST_name, self.clients[FST_name].status)
                 time.sleep(1)
                
@@ -555,7 +558,7 @@ class FSM:
             # Record the start time, as we want to run this at 2 Hz maximum.
             # loop_start = time.time()
             
-            # Check for incoming commands from the FSM socket
+            # Check for incoming commands to the FSM server socket, i.e. commands from the GUI.
             # We use zmq.NOBLOCK to avoid blocking the loop if no command is received.
             try:
                 message = self.socket.recv_string(flags=zmq.NOBLOCK)
@@ -574,8 +577,20 @@ class FSM:
                     self.socket.send_string(f"Unknown command: {command}")
             except zmq.Again:
                 pass
-            except:
-                self._log_event(self.status_logs["Event"], "error", "Cmd-Err", "Error processing command, sending error response.")
+            except zmq.ZMQError as error:
+                error_message = f"ZeroMQ error {error.errno}: {error}"
+                print(error_message)
+                self._log_event(self.status_logs["Event"], "error", "Cmd-ZMQ-Err", error_message)
+                try:
+                    self.socket.send_string("Error processing command")
+                except zmq.ZMQError as reply_error:
+                    reply_error_message = f"ZeroMQ error sending reply {reply_error.errno}: {reply_error}"
+                    print(reply_error_message)
+                    self._log_event(self.status_logs["Event"], "error", "Cmd-Reply-ZMQ-Err", reply_error_message)
+            except Exception as error:
+                error_message = f"Error processing command: {error}"
+                print(error_message)
+                self._log_event(self.status_logs["Event"], "error", "Cmd-Err", error_message)
                 self.socket.send_string("Error processing command")
             
             #Now check the status of one client at a time
@@ -597,7 +612,7 @@ class FSM:
                         elif client.nerrors < error_threshold:
                             # By convention, sending an empty command will try to reconnect. Automatically 
                             # reconecting like this is part of the "lazy pirate" pattern.
-                            client.socket.send_command("")
+                            response = client.socket.send_command("")
                             if client.socket.connected:
                                 client.isalive = True
                                 client.nerrors = 0
@@ -698,29 +713,28 @@ class FSM:
                     if ST_state == StarTrackerState.READY_TO_SLEW: # TODO: Should this only happen once? What if overrides RC ST transition to ST_SLEW_BLIND?
                         # Set FST state if dealing with Navis
                         if robot == "Navis":
-                            self.clients[ST_camera].socket.send_command("FST.switchPlateSolve")
-                            message = self.socket.recv_string()
-                            if message == "Switched to Plate Solving Mode": # TODO: Is this the only correct scenario?
-                                self.clients[PS_name].socket.send_command("PS.set_ps_st 1") # Sets PS to RUNNING
-                                self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
-                                self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
+                            response = self.clients[ST_camera].socket.send_command("FST.switchPlateSolve")
+                            if response == "Switched to Plate Solving Mode": # TODO: Is this the only correct scenario?
+                                response = self.clients[PS_name].socket.send_command("PS.set_ps_st 1") # Sets PS to RUNNING
+                                response = self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
+                                response = self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
                         else:
-                            self.clients[PS_name].socket.send_command("PS.set_ps_st 1") # Sets PS to RUNNING
-                            self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
-                            self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
+                            response = self.clients[PS_name].socket.send_command("PS.set_ps_st 1") # Sets PS to RUNNING
+                            response = self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
+                            response = self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
                     elif ST_state == StarTrackerState.CENTROIDING:
-                        self.clients[PS_name].socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
+                        response = self.clients[PS_name].socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
                     elif ST_state == StarTrackerState.SOFT_RESET:
                         # If connected to robot, stop all offset correction
                         if self.clients[RC_name].socket.connected:
-                            self.clients[RC_name].socket.send_command("RC.set_st 0") #ST_IDLE
-                            self.clients[RC_name].socket.send_command("RC.stop")     #ROBOT_TRANSLATE
+                            response = self.clients[RC_name].socket.send_command("RC.set_st 0") #ST_IDLE
+                            response = self.clients[RC_name].socket.send_command("RC.stop")     #ROBOT_TRANSLATE
                         else: # Otherwise, reconnect to server
                             self.reconnect(RC_name)
 
                         # If connected to plate solver, stop solving operations
                         if self.clients[PS_name].socket.connected:
-                            self.clients[PS_name].socket.send_command("PS.set_ps_st 0")
+                            response = self.clients[PS_name].socket.send_command("PS.set_ps_st 0")
                         else:
                             self.reconnect(PS_name)
 
@@ -742,14 +756,14 @@ class FSM:
                 else: # STOP state
                     # Stop RC motion (if server connection exists)
                     if self.clients[RC_name].socket.connected:
-                        self.clients[RC_name].socket.send_command("RC.set_st 0") #ST_IDLE
-                        self.clients[RC_name].socket.send_command("RC.stop")     #ROBOT_TRANSLATE
+                        response = self.clients[RC_name].socket.send_command("RC.set_st 0") #ST_IDLE
+                        response = self.clients[RC_name].socket.send_command("RC.stop")     #ROBOT_TRANSLATE
                     else: # Otherwise, reconnect to server
                         self.reconnect(RC_name)
 
                     # Stop PS operations (if server connection exists)
                     if self.clients[PS_name].socket.connected:
-                        self.clients[PS_name].socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
+                        response = self.clients[PS_name].socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
                     else:  # Otherwise, reconnect to server
                         self.reconnect(PS_name)
 
