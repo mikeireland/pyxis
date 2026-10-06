@@ -309,7 +309,8 @@ class PyxisGui(QTabWidget):
 
     """ Start the specified robot's FSM processes"""
     def start_FSM(self, robot):
-        self.send_fsm_command("start_pyxis")
+        #self.send_fsm_command("start_pyxis") #!!! To add after we remove "screen"
+        print(f"Starting FSM processes for robot: {robot}")
         if robot == "All":
             for robot_i in ["Navis", "Dextra", "Sinistra"]:
                 self.send_fsm_command(f"start_STprocess {robot_i}")
@@ -320,7 +321,8 @@ class PyxisGui(QTabWidget):
 
     """ Stop the specified robot's FSM processes"""
     def stop_FSM(self, robot):
-        self.send_fsm_command("stop_pyxis")
+        #self.send_fsm_command("stop_pyxis") #!!! To add after we remove "screen"
+        print(f"Stopping FSM processes for robot: {robot}")
         if robot == "All":
             for robot_i in ["Navis", "Dextra", "Sinistra"]:
                 self.send_fsm_command(f"stop_STprocess {robot_i}")
@@ -468,7 +470,7 @@ class PyxisGui(QTabWidget):
 
     """ Parse a command and send it to the FSM server"""
     def command_enter(self):
-        self.fsm_socket.send_command(str(self.line_edit.text()))
+        self.send_fsm_command(str(self.line_edit.text()))
         self.line_edit.setText("")
 
     # """What happens when you click the status button"""
