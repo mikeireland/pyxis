@@ -179,12 +179,12 @@ class PyxisGui(QTabWidget):
         self.connect_fsm_button.clicked.connect(self.connect_fsm)
         self.dashboard_refresh_button = QPushButton("REFRESH", self)
         self.dashboard_refresh_button.clicked.connect(self.refresh_status)
-        self.start_button = QPushButton("Start", self)
-        self.start_button.clicked.connect(lambda: self.send_fsm_command("start_pyxis"))
-        self.stop_button = QPushButton("Stop", self)
-        self.stop_button.clicked.connect(lambda: self.send_fsm_command("stop_pyxis"))
         self.platform_selector = QComboBox(self)
         self.platform_selector.addItems(["All", "Navis", "Sinistra", "Dextra"])
+        self.start_button = QPushButton("Start", self)
+        self.start_button.clicked.connect(lambda: self.start_FSM(self.platform_selector.currentText))
+        self.stop_button = QPushButton("Stop", self)
+        self.stop_button.clicked.connect(lambda: self.stop_FSM(self.platform_selector.currentText))
         self.system_selector = QComboBox(self)
         self.system_selector.addItems(["All", "Star Tracking", "Coarse Metrology", "Fibre Injection", "Fringe Tracking"])
         for control in (self.connect_fsm_button, self.dashboard_refresh_button, self.start_button,
@@ -307,6 +307,27 @@ class PyxisGui(QTabWidget):
             for item in self.sub_tab_widgets[tab]:
                 self.sub_tab_widgets[tab][item].change_ip(new_IP)
 
+    """ Start the specified robot's FSM processes"""
+    def start_FSM(self, robot):
+        self.send_fsm_command("start_pyxis")
+        if robot == "All":
+            for robot_i in ["Navis", "Dextra", "Sinistra"]:
+                self.send_fsm_command(f"start_STprocess {robot_i}")
+        elif robot in ["Navis", "Dextra", "Sinistra"]:
+            self.send_fsm_command(f"start_STprocess {robot}")
+        else:
+            print(f"{robot} not a valid robot name. Could not start sub-processes.")
+
+    """ Stop the specified robot's FSM processes"""
+    def stop_FSM(self, robot):
+        self.send_fsm_command("stop_pyxis")
+        if robot == "All":
+            for robot_i in ["Navis", "Dextra", "Sinistra"]:
+                self.send_fsm_command(f"stop_STprocess {robot_i}")
+        elif robot in ["Navis", "Dextra", "Sinistra"]:
+            self.send_fsm_command(f"stop_STprocess {robot}")
+        else:
+            print(f"{robot} not a valid robot name. Could not stop sub-processes.")
 
     """Get the alive status from the FSM server"""
     def get_status_from_fsm(self):

@@ -192,11 +192,9 @@ class FSM:
             if self._update_client_prev_log(client, 1, state_RC_GSS):
                 self._log_status_helper(logfile_path, "RC", 1, state_RC_GSS)
         elif client.prefix == "PS":
-            print(status)
             PS_state = status.get("state", 0) # Default to IDLE
             PS_description = status.get("description", "Default")
             PS_transition = status.get("timestamp", "Default")
-            print(PS_transition)
             if self._update_client_prev_log(client, 0, PS_state, PS_description, PS_transition):
                 self._log_status_helper(logfile_path, "PS", 0, PS_state, PS_description, PS_transition)
         elif client.prefix == "FST":
@@ -211,9 +209,6 @@ class FSM:
         Update client's previous log with the current state for future comparisons.
         """
         if machine_id in client.previous_log:
-            print(str(state))
-            print(description)
-            print(transition_time)
             current_log = str(state) + description + transition_time
             if client.previous_log[machine_id] != current_log:
                 client.previous_log[machine_id] = current_log
@@ -246,7 +241,6 @@ class FSM:
         Log [label] entry for an event to a specified file if this is the first time the event has occurred,
         or if more than 5 seconds have passed since the same event was logged.
         """
-        print("Logging event")
         with open(self.logdir + "/" + logfile_path, "a") as log_file:
             try:
                 log_file.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}, [{label}], {id}, {description}\n")
