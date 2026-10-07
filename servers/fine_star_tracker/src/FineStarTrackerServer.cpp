@@ -216,12 +216,12 @@ struct FineStarTracker: FLIRCameraServer{
                 fst_status.description = "Switched to Centroiding Mode";
             }else{
                 ret_msg = "Camera Busy!";
-                fst_status.description = "Camera Busy";
+                fst_status.description = "Could not switch to CENTROID. Camera Busy";
             }
 	    }else{
 		    ret_msg = "Camera Not Connected or Currently Connecting!";
             fst_status.status = FST_ERROR;
-            fst_status.description = "Camera Not Connected or Currently Connecting!";
+            fst_status.description = "Could not switch to CENTROID. Camera Not Connected or Currently Connecting!";
 	    }
         return ret_msg;
     }
@@ -252,12 +252,12 @@ struct FineStarTracker: FLIRCameraServer{
                 fst_status.description = "Switched to Plate Solving Mode";
             }else{
                 ret_msg = "Camera Busy!";
-                fst_status.description = "Camera Busy!";
+                fst_status.description = "Could not switch to PLATE_SOLVE. Camera Busy!";
             }
 	    }else{
 		    ret_msg = "Camera Not Connected or Currently Connecting!";
             fst_status.status = FST_ERROR;
-            fst_status.description = "Camera Not Connected or Currently Connecting!";
+            fst_status.description = "Could not switch to PLATE_SOLVE. Camera Not Connected or Currently Connecting!";
 	    }
         return ret_msg;
     }
