@@ -107,6 +107,39 @@ ST_SERVER_STATE = {
     5: StarTrackerState.SOFT_RESET,
 }
 
+# Human readable states
+# RC ST states - state definitions copied from 'Globals.h'
+RC_ST_states = {
+    0: "ST_IDLE", 
+    1: "ST_READY_TO_SLEW", 
+    2: "ST_SLEW_BLIND", 
+    3: "ST_SLEW_CLOSE", 
+    4: "ST_CENTROIDING", 
+    5: "ST_SLEW_CLOSE",
+}
+# RC GSS states - state definitions copied from 'Globals.h'
+RC_GSS_states = {
+    1: "IDLE", 
+    2: "TRANSLATE", 
+    3: "RESONANCE", 
+    4: "TRACK", 
+    5: "DISCONNECT",
+}
+# PS states - copied from run_plate_solver.py, PlateSolverState
+PS_states = {
+    0: "IDLE", 
+    1: "RUNNING", 
+    2: "DISCONNECTED", 
+    3: "ERROR", 
+    4: "SIMULATION",
+}
+# FST states - copied from FineStarTrackerServer.cpp, FSTStatus
+FST_states = {
+    0: "PLATE_SOLVING", 
+    1: "CENTROIDING", 
+    2: "FST_ERROR",
+}
+
 class FSM:
     """Finite State Machine class that holds the state of all clients"""
     def __init__(self, port):
@@ -191,33 +224,26 @@ class FSM:
         client = self.clients[client_name]
         logfile_path = self.status_logs[client.robot]
         if client.prefix == "RC":
-            # State definitions copied from 'Globals.h'
-            ST_states = ["ST_IDLE", "ST_READY_TO_SLEW", "ST_SLEW_BLIND", "ST_SLEW_CLOSE", "ST_CENTROIDING", "ST_SLEW_CLOSE"]
-            GSS_states = ["", "IDLE", "TRANSLATE", "RESONANCE", "TRACK", "DISCONNECT"]
             RC_ST_index = status.get("st_state", 0) # Default to ST_IDLE
             RC_GSS_index = status.get("loop_status", 1) # Default to ROBOT_IDLE
-            state_RC_ST = ST_states[RC_ST_index]
-            state_RC_GSS = GSS_states[RC_GSS_index]
+            state_RC_ST = RC_ST_states.get(RC_ST_index, "No state string at index: " + str(RC_ST_index))
+            state_RC_GSS = RC_GSS_states.get(RC_GSS_index, "No state string at index: " + str(RC_GSS_index))
 
             if self._update_client_prev_log(client, 0, state_RC_ST):
                 self._log_status_helper(logfile_path, "RC", "ST", state_RC_ST)
             if self._update_client_prev_log(client, 1, state_RC_GSS):
                 self._log_status_helper(logfile_path, "RC", "GSS", state_RC_GSS)
         elif client.prefix == "PS":
-            # Copied from run_plate_solver.py, PlateSolverState
-            PS_states = ["IDLE", "RUNNING", "DISCONNECTED", "ERROR", "SIMULATION"]
             PS_index = status.get("state", 0) # Default to IDLE
-            PS_state = PS_states[PS_index]
+            PS_state = PS_states.get(PS_index, "No state string at index: " + str(PS_index))
             PS_description = status.get("description", "")
             PS_transition = status.get("timestamp", "")
 
             if self._update_client_prev_log(client, 0, PS_state, PS_description, PS_transition):
                 self._log_status_helper(logfile_path, "PS", "Main", PS_state, PS_description, PS_transition)
         elif client.prefix == "FST":
-            # Copied from FineStarTrackerServer.cpp, FSTStatus
-            FST_states = ["PLATE_SOLVING", "CENTROIDING", "FST_ERROR"]
             FST_index = status.get("status", 0) # Default to PLATE_SOLVING
-            FST_state = FST_states[FST_index]
+            FST_state = FST_states.get(FST_index, "No state string at index: " + str(FST_index))
             FST_description = status.get("description", "")
 
             if self._update_client_prev_log(client, 0, FST_state, FST_description):
@@ -292,7 +318,19 @@ class FSM:
                 "connected": client.socket.connected
             }
         return status_dict
-    
+
+    def fsm_status(self, process):
+        if process == "CM":
+            cm_dict = {
+                "Dextra": self.dextra_coarse_met_state,
+                "Sinistra": self.sinistra_coarse_met_state
+            }
+            return cm_dict
+        elif process == "ST":
+            return self.star_tracker_states
+        elif process == "FI":
+            return {}
+
     def reconnect(self, client_name):
         """Reconnect a specific client by name"""
         try: 
