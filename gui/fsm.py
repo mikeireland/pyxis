@@ -136,7 +136,7 @@ class FSM:
             "Sinistra": "Sinistra_status_log.txt",
             "Event": "FSM_level_events_log.txt"
         }
-        self.prev_logs = {
+        self.prev_st_logs = {
             "Navis": "",
             "Dextra": "",
             "Sinistra": "",
@@ -165,23 +165,23 @@ class FSM:
                 if server_state >= 2: #If a state that the robot control transitions to itself.
                     if self.star_tracker_states[robot] != StarTrackerState.SOFT_RESET:
                         self.star_tracker_states[robot] = ST_SERVER_STATE.get(server_state, StarTrackerState.STOP)
-                        self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "Updated from RC server")                 
+                        self._log_fsm_status(logfile_path, "ST", self.star_tracker_states[robot], "Updated from RC server")                 
             elif client.prefix == "PS":
                 # Update the FSM state based on the plate solver status
                 server_state = status.get("state", 0)
                 if server_state == 2 or server_state == 3: # Plate Solver process error or disconnection
                     self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
-                    self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "Error / Disconnect in PS server")
+                    self._log_fsm_status(logfile_path, "ST", self.star_tracker_states[robot], "Error / Disconnect in PS server")
             elif client.prefix == "FST":
                 server_state = status.get("status", 0)
                 if server_state == 2: # FST camera error
                     self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
-                    self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "Camera error in FST server")
+                    self._log_fsm_status(logfile_path, "ST", self.star_tracker_states[robot], "Camera error in FST server")
     
     def _log_fsm_status(self, logfile_path, machine_id, state, description):
-        if self.prev_logs[robot] != str(machine_id) + str(state) + description:
-            self._log_status_helper(logfile_path, "FSM", machine_id, state,description, {time.strftime('%Y-%m-%dT%H:%M:%S')})
-            self.prev_logs[robot] = str(machine_id) + str(state) + description
+        if self.prev_st_logs[robot] != machine_id + str(state) + description:
+            self._log_status_helper(logfile_path, "FSM", machine_id, state, description, {time.strftime('%Y-%m-%dT%H:%M:%S')})
+            self.prev_st_logs[robot] = machine_id + str(state) + description
     
     def _log_client_status(self, client_name, status):
         """
@@ -194,20 +194,20 @@ class FSM:
             state_RC_ST = status.get("st_state", 0) # Default to ST_IDLE
             state_RC_GSS = status.get("loop_status", 1) # Default to ROBOT_IDLE
             if self._update_client_prev_log(client, 0, state_RC_ST):
-                self._log_status_helper(logfile_path, "RC", 0, state_RC_ST)
+                self._log_status_helper(logfile_path, "RC", "ST", state_RC_ST)
             if self._update_client_prev_log(client, 1, state_RC_GSS):
-                self._log_status_helper(logfile_path, "RC", 1, state_RC_GSS)
+                self._log_status_helper(logfile_path, "RC", "GSS", state_RC_GSS)
         elif client.prefix == "PS":
             PS_state = status.get("state", 0) # Default to IDLE
             PS_description = status.get("description", "Default")
             PS_transition = status.get("timestamp", "Default")
             if self._update_client_prev_log(client, 0, PS_state, PS_description, PS_transition):
-                self._log_status_helper(logfile_path, "PS", 0, PS_state, PS_description, PS_transition)
+                self._log_status_helper(logfile_path, "PS", "Main", PS_state, PS_description, PS_transition)
         elif client.prefix == "FST":
             FST_state = status.get("status", 0) # Default to PLATE_SOLVING
             FST_description = status.get("description", "")
             if self._update_client_prev_log(client, 0, FST_state, FST_description):
-                self._log_status_helper(logfile_path, "FST", 0, FST_state, FST_description)
+                self._log_status_helper(logfile_path, "FST", "Main", FST_state, FST_description)
 
     def _update_client_prev_log(self, client, machine_id, state, description = "", transition_time = ""):
         """
@@ -457,7 +457,7 @@ class FSM:
         if robot in ["Navis", "Dextra", "Sinistra"]:
             logfile_path = self.status_logs[robot]
             self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
-            self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], f"Start {robot}")
+            self._log_fsm_status(logfile_path, "ST", self.star_tracker_states[robot], f"Start {robot}")
         else:
             print(f"Unknown platform name: {robot}. Cannot start ST process.")
         return None
@@ -467,7 +467,7 @@ class FSM:
         if robot in ["Navis", "Dextra", "Sinistra"]:
             logfile_path = self.status_logs[robot]
             self.star_tracker_states[robot] = StarTrackerState.STOP
-            self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], f"Stop {robot}")
+            self._log_fsm_status(logfile_path, "ST", self.star_tracker_states[robot], f"Stop {robot}")
         else: 
             print(f"Unknown platform name: {robot}. Cannot stop ST process.")
             return None
@@ -494,13 +494,13 @@ class FSM:
         # timestamp + ~2 seconds, [info], FSM, 1, CoarseMetState.STOP, "Test state logged (STOP)", timestamp + ~2 seconds
         # Should result in 1 new entry in Sinistra_status_log.txt:
         # timestamp + ~3 seconds, [info], FSM, 0, StarTrackerState.STOP, "Test state logged (STOP)", timestamp + ~3 seconds
-        self._log_fsm_status(self.status_logs["Dextra"],0,StarTrackerState.STOP, "Test state logged (STOP)")
+        self._log_fsm_status(self.status_logs["Dextra"],"ST",StarTrackerState.STOP, "Test state logged (STOP)")
         time.sleep(1)
-        self._log_fsm_status(self.status_logs["Dextra"],0,StarTrackerState.STOP, "Test state logged (STOP)")
+        self._log_fsm_status(self.status_logs["Dextra"],"ST",StarTrackerState.STOP, "Test state logged (STOP)")
         time.sleep(1)
-        self._log_fsm_status(self.status_logs["Dextra"],1,CoarseMetState.STOP, "Test state logged (STOP)")
+        self._log_fsm_status(self.status_logs["Dextra"],"CM",CoarseMetState.STOP, "Test state logged (STOP)")
         time.sleep(1)
-        self._log_fsm_status(self.status_logs["Sinistra"],0,StarTrackerState.STOP, "Test state logged (STOP)")
+        self._log_fsm_status(self.status_logs["Sinistra"],"ST",StarTrackerState.STOP, "Test state logged (STOP)")
 
         # FSM-RC and RC-FSM state update links
         # Should result in 3 logs:
@@ -710,7 +710,7 @@ class FSM:
                     # If not any server connected, we must RESET the connection.
                     if not self.clients[RC_name].socket.connected or not self.clients[ST_camera].socket.connected or not self.clients[PS_name].socket.connected:
                         self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
-                        self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "FSM-Server Disconnection")
+                        self._log_fsm_status(logfile_path, "ST", self.star_tracker_states[robot], "FSM-Server Disconnection")
                     
                     if ST_state == StarTrackerState.READY_TO_SLEW: # TODO: Should this only happen once? What if overrides RC ST transition to ST_SLEW_BLIND?
                         # Set FST state if dealing with Navis
@@ -746,15 +746,15 @@ class FSM:
                         # Transition to READY_TO_SLEW if all servers connected 
                         if self.clients[RC_name].socket.connected and self.clients[ST_camera].socket.connected and self.clients[PS_name].socket.connected:
                             self.star_tracker_states[robot] = StarTrackerState.READY_TO_SLEW
-                            self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "FSM-Servers (re)connected")
+                            self._log_fsm_status(logfile_path, "ST", self.star_tracker_states[robot], "FSM-Servers (re)connected")
                         # Otherwise trigger a Hardware RESET
                         else:
                             self.star_tracker_states[robot] = StarTrackerState.HARD_RESET
-                            self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "SOFT_RESET failed. HARD_RESET required.")
+                            self._log_fsm_status(logfile_path, "ST", self.star_tracker_states[robot], "SOFT_RESET failed. HARD_RESET required.")
                     elif ST_state == StarTrackerState.HARD_RESET:
                         # TODO: Do some hardware reset things
                         self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
-                        self._log_fsm_status(logfile_path, 0, self.star_tracker_states[robot], "HARD_RESET completed.")
+                        self._log_fsm_status(logfile_path, "ST", self.star_tracker_states[robot], "HARD_RESET completed.")
                 else: # STOP state
                     # Stop RC motion (if server connection exists)
                     if self.clients[RC_name].socket.connected:
