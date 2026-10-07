@@ -235,7 +235,7 @@ class PlateSolverState(Enum):
 
 ps_state = {
     "state": PlateSolverState.IDLE,
-    "description": "",
+    "description": "Server initialised to IDLE",
     "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S')
 }
 
@@ -261,11 +261,19 @@ def set_ps_state(state, description=""):
         ps_state["description"] = description
         
 
-def log_state(logfile_path, offset):
+def log_data(logfile_path, offset):
     with open(logfile_path, "a") as log_file:
         try:
             if len(offset) == 3:
                 log_file.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}, [data], PS, Offset to RC, {offset[0]}, {offset[1]}, {offset[2]}\n")
+        except:
+            log_file.flush()
+        log_file.flush()
+
+def log_info(logfile_path, server, message = "No response"):
+    with open(logfile_path, "a") as log_file:
+        try:
+           log_file.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}, [info], PS, {server} response, {message}\n")
         except:
             log_file.flush()
         log_file.flush()
@@ -341,7 +349,7 @@ if __name__ == "__main__":
         )
 
     # Update log file before commencing main loop
-    ps_state["description"] = "Beginning plate solving loop using config "+config_file
+    ps_state["description"] = "Ready to begin plate solving loop using config "+config_file
     
     # MAIN LOOP
     #print("Beginning plate solving loop")
@@ -352,6 +360,7 @@ if __name__ == "__main__":
             if message is None:
                 set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with target server")
                 continue
+            log_info(output_dir, "TS", message)
             #print("Received target server message: %s" % message )
     
             try:
@@ -359,7 +368,7 @@ if __name__ == "__main__":
                 target = (result["RA"],result["DEC"])
             except:
                 set_ps_state(PlateSolverState.ERROR, "Bad target format")
-            
+
             #print(target) #TODO: Invalid target check (elevation < 45 degrees)
     
             # Retrieve tip/tilt offset adjustments if desired
@@ -372,6 +381,7 @@ if __name__ == "__main__":
                 if message is None:
                     set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with fibre injection server")
                     continue
+                log_info(output_dir, "FI", message)
                 #print("Received fibre injection server message: %s" % message )
     
                 try:
@@ -391,8 +401,9 @@ if __name__ == "__main__":
             
             message = socket_clients["camera"].request(config["camera_port_name"]+".getlatestfilename")
             if message is None:
-                set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with camera server")
+                set_ps_state(PlateSolverState.DISCONNECTED, f"Could not communicate with {config["camera_port_name"]} camera server")
                 continue
+            log_info(output_dir, config["camera_port_name"], message.strip('\"'))
             #print("Received camera message: %s" % message.strip('\"') )
     
             # WORK ON MESSAGE -> FILENAME
@@ -416,12 +427,12 @@ if __name__ == "__main__":
                     if message is None:
                         set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with robot")
                     else:
-                        log_state(output_dir, angles)
-                        #print("Robot response: %s" % message)
+                        log_data(output_dir, angles)
+                        log_info(output_dir, "RC", message)
                 else:
                     set_ps_state(PlateSolverState.ERROR, "ERROR in run_image, could not solve")
             else:
-                set_ps_state(PlateSolverState.ERROR, "File received in message not a real file")
+                set_ps_state(PlateSolverState.ERROR, f"File {filename} received in message not a real file")
                 time.sleep(1)
         
 #-------------

@@ -50,7 +50,7 @@ struct Status {
     // Timestamp info?
 };
 
-struct Status fst_status = {PLATE_SOLVING, ""};
+struct Status fst_status = {PLATE_SOLVING, "Status initialised to PLATE_SOLVING"};
 
 // Serialise centroid struct into JSON
 namespace nlohmann {
