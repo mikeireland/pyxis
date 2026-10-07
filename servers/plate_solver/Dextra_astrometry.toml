@@ -1,4 +1,5 @@
-output_folder = "Dextra_PS_log.txt" #Folder for output
+output_folder = "output" #Folder for output
+log_file = "Dextra_PS_log.txt"
 IP = "192.168.1.4"
 camera_port = "4202"
 camera_port_name = "CST"

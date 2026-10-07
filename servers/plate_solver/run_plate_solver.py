@@ -331,6 +331,10 @@ if __name__ == "__main__":
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    log_dir = config["log_file"]
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
     context = zmq.Context()
     socket_clients.update({
         "target": LazyPirateClient(
@@ -360,7 +364,7 @@ if __name__ == "__main__":
             if message is None:
                 set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with target server")
                 continue
-            log_info(output_dir, "TS", message)
+            log_info(log_dir, "TS", message)
             #print("Received target server message: %s" % message )
     
             try:
@@ -381,7 +385,7 @@ if __name__ == "__main__":
                 if message is None:
                     set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with fibre injection server")
                     continue
-                log_info(output_dir, "FI", message)
+                log_info(log_dir, "FI", message)
                 #print("Received fibre injection server message: %s" % message )
     
                 try:
@@ -404,7 +408,7 @@ if __name__ == "__main__":
                 camera = config["camera_port_name"]
                 set_ps_state(PlateSolverState.DISCONNECTED, f"Could not communicate with {camera} camera server")
                 continue
-            log_info(output_dir, config["camera_port_name"], message.strip('\"'))
+            log_info(log_dir, config["camera_port_name"], message.strip('\"'))
             #print("Received camera message: %s" % message.strip('\"') )
     
             # WORK ON MESSAGE -> FILENAME
@@ -428,8 +432,8 @@ if __name__ == "__main__":
                     if message is None:
                         set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with robot")
                     else:
-                        log_data(output_dir, angles)
-                        log_info(output_dir, "RC", message)
+                        log_data(log_dir, angles)
+                        log_info(log_dir, "RC", message)
                 else:
                     set_ps_state(PlateSolverState.ERROR, "ERROR in run_image, could not solve")
             else:
