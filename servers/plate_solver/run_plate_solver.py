@@ -401,7 +401,8 @@ if __name__ == "__main__":
             
             message = socket_clients["camera"].request(config["camera_port_name"]+".getlatestfilename")
             if message is None:
-                set_ps_state(PlateSolverState.DISCONNECTED, f"Could not communicate with {config["camera_port_name"]} camera server")
+                camera = config["camera_port_name"]
+                set_ps_state(PlateSolverState.DISCONNECTED, f"Could not communicate with {camera} camera server")
                 continue
             log_info(output_dir, config["camera_port_name"], message.strip('\"'))
             #print("Received camera message: %s" % message.strip('\"') )
