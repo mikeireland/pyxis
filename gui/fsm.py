@@ -192,7 +192,7 @@ class FSM:
         logfile_path = self.status_logs[client.robot]
         if client.prefix == "RC":
             RC_ST_index = status.get("st_state", 0) # Default to ST_IDLE
-            state_RC_ST = ST_SERVER_STATE(RC_ST_index)
+            state_RC_ST = StarTrackerState(RC_ST_index)
             state_RC_GSS = status.get("loop_status", 1) # Default to ROBOT_IDLE
             if self._update_client_prev_log(client, 0, state_RC_ST):
                 self._log_status_helper(logfile_path, "RC", "ST", state_RC_ST)
