@@ -728,11 +728,11 @@ class FSM:
                             print(response)
                             if response == "Switched to Plate Solving Mode":
                                 response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 1, {json.dumps(description)}") # Sets PS to RUNNING
-                                response = self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
+                                response = self.clients[RC_name].socket.send_command("RC.track 0, 0, 0, 0, 0, 0, 0, 0")       # Sets RC GSS to ROBOT_TRACK
                                 response = self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
                         else:
                             response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 1, {json.dumps(description)}") # Sets PS to RUNNING
-                            response = self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
+                            response = self.clients[RC_name].socket.send_command("RC.track 0, 0, 0, 0, 0, 0, 0, 0")       # Sets RC GSS to ROBOT_TRACK
                             response = self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
                     elif ST_state == StarTrackerState.CENTROIDING:
                         description = "IDLE Plate Solver due to FSM CENTROIDING"
