@@ -530,75 +530,18 @@ class FSM:
             response = self.clients[RC_name].socket.send_command("RC.stop")        # RC GSS to ROBOT_TRANSLATE
             response = self.clients[RC_name].socket.send_command("RC.set_st 0")    # RC ST to ST_IDLE
         if self.clients[PS_name].socket.connected:
-            response = self.clients[PS_name].socket.send_command("PS.set_ps_st 0") # Plate Solver to IDLE
+            description = "IDLE Plate Solver due to FSM STOP"
+            response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 0, {json.dumps(description)}") # Plate Solver to IDLE
 
     def _test_logs(self):
         """
-        Test update links and client logging functions.
+        Test update links.
         """
-        # Generic log_event (should result in 2 new entries in FSM_level_events; with appropriate timestamps)
-        self._log_event(self.status_logs["Event"],"test","Test1","Test single log_event function (1)")
-        self._log_event(self.status_logs["Event"],"test","Test2","Test single log_event function (2)")
-
-        # FSM logging
-        # Should result in 2 new entries in Dextra_status_log.txt:
-        # timestamp, [info], FSM, 0, StarTrackerState.STOP, "Test state logged (STOP)", timestamp
-        # timestamp + ~2 seconds, [info], FSM, 1, CoarseMetState.STOP, "Test state logged (STOP)", timestamp + ~2 seconds
-        # Should result in 1 new entry in Sinistra_status_log.txt:
-        # timestamp + ~3 seconds, [info], FSM, 0, StarTrackerState.STOP, "Test state logged (STOP)", timestamp + ~3 seconds
-        self._log_fsm_status(self.status_logs["Dextra"], "Dextra", "ST", StarTrackerState.STOP, "Test state logged (STOP)")
-        time.sleep(1)
-        self._log_fsm_status(self.status_logs["Dextra"], "Dextra", "ST", StarTrackerState.STOP, "Test state logged (STOP)")
-        time.sleep(1)
-        self._log_fsm_status(self.status_logs["Dextra"], "Dextra", "CM", CoarseMetState.STOP, "Test state logged (STOP)")
-        time.sleep(1)
-        self._log_fsm_status(self.status_logs["Sinistra"], "Sinistra", "ST", StarTrackerState.STOP, "Test state logged (STOP)")
-
-        # FSM-RC and RC-FSM state update links
-        # Should result in 3 logs:
-        # timestamp, [info], RC, 0, 0, , [no transition time]
-        # timestamp, [info], RC, 1, 2, , [no transition time]
-        # timestamp + ~4 seconds, [info], RC, 0, 5, , [no transition time]
-        RC_name = "NavisRobotControl"
-        RC_client = self.clients[RC_name]
-        if RC_client.socket.connected:
-            for _ in range(3):
-                response = RC_client.socket.send_command("RC.stop")
-                time.sleep(1)
-                self._process_status(RC_name, self.clients[RC_name].status)
-                self._log_client_status(RC_name, self.clients[RC_name].status)
-            response = RC_client.socket.send_command("RC.set_st 5") # Set to ST_ERROR
-            time.sleep(1)
-            self._process_status(RC_name, self.clients[RC_name].status)
-            self._log_client_status(RC_name, self.clients[RC_name].status)
-            response = RC_client.socket.send_command("RC.stop")
-        
-        # FSM-PS and PS-FSM state update links
-        # Assuming PS is connected, should result in 2 new logs in Navis_status_log.txt:
-        # timestamp, [info], PS, 0, 0, , timestamp
-        # timestamp + ~4 seconds, [info], PS, 0, 3, , timestamp + ~4 seconds
-        PS_name = "NavisPlateSolver"
-        PS_client = self.clients[PS_name]
-        if PS_client.socket.connected:
-            for _ in range(3):
-                response = PS_client.socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
-                time.sleep(1)
-                self._process_status(PS_name, self.clients[PS_name].status)
-                self._log_client_status(PS_name, self.clients[PS_name].status)
-            response = PS_client.socket.send_command("PS.set_ps_st 3")
-            time.sleep(1)
-            self._process_status(PS_name, self.clients[PS_name].status)
-            self._log_client_status(PS_name, self.clients[PS_name].status)
-
-        # FSM-FST and FST-FSM state update links
-        FST_name = "NavisStarTracker"
-        FST_client = self.clients[FST_name]
-        if FST_client.socket.connected:
-            for _ in range(3):
-                response = FST_client.socket.send_command("FST.switchPlateSolve")
-                print(response)
-                self._log_client_status(FST_name, self.clients[FST_name].status)
-                time.sleep(1)
+        description = "PS log desccription test"
+        response = self.clients["NavisPlateSolver"].socket.send_command(f"PS.set_ps_st 0, {json.dumps(description)}")
+        self._log_client_status("NavisPlateSolver", self.clients["NavisPlateSolver"].status)
+        self.star_tracker_states["Navis"] = StarTrackerState.SOFT_RESET
+        self._run()
                
 
     def _run(self):
@@ -766,18 +709,21 @@ class FSM:
                     
                     if ST_state == StarTrackerState.READY_TO_SLEW: # TODO: Should this only happen once? What if overrides RC ST transition to ST_SLEW_BLIND?
                         # Set FST state if dealing with Navis
+                        description = "RUNNING Plate Solver due to FSM READY_TO_SLEW"
                         if robot == "Navis":
                             response = self.clients[ST_camera].socket.send_command("FST.switchPlateSolve")
-                            if response == "Switched to Plate Solving Mode": # TODO: Is this the only correct scenario?
-                                response = self.clients[PS_name].socket.send_command("PS.set_ps_st 1") # Sets PS to RUNNING
+                            print(response)
+                            if response == "Switched to Plate Solving Mode":
+                                response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 1, {json.dumps(description)}") # Sets PS to RUNNING
                                 response = self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
                                 response = self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
                         else:
-                            response = self.clients[PS_name].socket.send_command("PS.set_ps_st 1") # Sets PS to RUNNING
+                            response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 1, {json.dumps(description)}") # Sets PS to RUNNING
                             response = self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
                             response = self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
                     elif ST_state == StarTrackerState.CENTROIDING:
-                        response = self.clients[PS_name].socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
+                        description = "IDLE Plate Solver due to FSM CENTROIDING"
+                        response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 0, {json.dumps(description)}")  # Sets PS to IDLE
                     elif ST_state == StarTrackerState.SOFT_RESET:
                         # If connected to robot, stop all offset correction
                         if self.clients[RC_name].socket.connected:
@@ -788,7 +734,8 @@ class FSM:
 
                         # If connected to plate solver, stop solving operations
                         if self.clients[PS_name].socket.connected:
-                            response = self.clients[PS_name].socket.send_command("PS.set_ps_st 0")
+                            description = "IDLE Plate Solver due to FSM SOFT_RESET"
+                            response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 0, {json.dumps(description)}")
                         else:
                             self.reconnect(PS_name)
 
@@ -807,7 +754,7 @@ class FSM:
                         # TODO: Do some hardware reset things
                         self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
                         self._log_fsm_status(logfile_path, robot, "ST", self.star_tracker_states[robot], "HARD_RESET completed.")
-                else: # STOP state
+                else: # STOP or IDLE state
                     # Stop RC motion (if server connection exists)
                     if self.clients[RC_name].socket.connected:
                         response = self.clients[RC_name].socket.send_command("RC.set_st 0") #ST_IDLE
@@ -817,7 +764,8 @@ class FSM:
 
                     # Stop PS operations (if server connection exists)
                     if self.clients[PS_name].socket.connected:
-                        response = self.clients[PS_name].socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
+                        description = "IDLE Plate Solver due to FSM STOP/IDLE"
+                        response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 0, {json.dumps(description)}")  # Sets PS to IDLE
                     else:  # Otherwise, reconnect to server
                         self.reconnect(PS_name)
 

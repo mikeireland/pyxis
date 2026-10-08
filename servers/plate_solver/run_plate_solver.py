@@ -229,7 +229,7 @@ def tt_to_plate(index,current_radec,offset):
 class PlateSolverState(Enum):
     IDLE = 0
     RUNNING = 1
-    DISCONNECTED = 2 # TODO: Not implemented yet (could be used to represent low-level server connection loss?)
+    DISCONNECTED = 2
     ERROR = 3
     SIMULATION = 4
 
@@ -260,13 +260,7 @@ def set_ps_state(state, description=""):
         ps_state["state"] = PlateSolverState.IDLE
     
     ps_state["timestamp"] = time.strftime('%Y-%m-%dT%H:%M:%S')
-
-    # If FSM has triggered a RUNNING state, set description within PS exactly once
-    if ps_state["state"] == PlateSolverState.RUNNING:
-        ps_state["description"] = "Running plate solving loop"
-    # Otherwise, update with a new state description if requested
-    else:
-        ps_state["description"] = description
+    ps_state["description"] = description
         
 
 def log_data(logfile_path, offset):
@@ -314,22 +308,22 @@ if __name__ == "__main__":
     # Set up commander - TODO: Moved into main to access config file; could be wrong location
     plate_solver_commander = commander(config["platesolver_port"])
     plate_solver_commander.def_(
-        "tt_to_plate",
+        "PS.tt_to_plate",
         tt_to_plate,
         "Convert tip/tilt pixel offsets to star-tracker pixel offsets.",
     )
     plate_solver_commander.def_(
-        "commander_status",
+        "PS.commander_status",
         commander_status,
         "Get target, camera, robot, and fibre-injection connection status.",
     )
     plate_solver_commander.def_(
-        "status",
+        "PS.status",
         ps_status,
         "Get state and description of Plate Solver instance.",
     )
     plate_solver_commander.def_(
-        "set_ps_st",
+        "PS.set_ps_st",
         set_ps_state,
         "Set state of Plate Solver instance.",
     )
