@@ -229,7 +229,7 @@ def tt_to_plate(index,current_radec,offset):
 class PlateSolverState(Enum):
     IDLE = 0
     RUNNING = 1
-    DISCONNECTED = 2 # TODO: Not implemented yet (could be used to represent low-level server connection loss?)
+    DISCONNECTED = 2
     ERROR = 3
     SIMULATION = 4
 
