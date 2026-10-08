@@ -731,7 +731,7 @@ class FSM:
                         if robot == "Navis":
                             response = self.clients[ST_camera].socket.send_command("FST.switchPlateSolve")
                             print(response)
-                            if response == "Switched to Plate Solving Mode":
+                            if response == '"Switched to Plate Solving Mode"': #!!!! OMG strings
                                 response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 1, {json.dumps(description)}") # Sets PS to RUNNING
                                 response = self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
                                 response = self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
