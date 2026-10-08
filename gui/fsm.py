@@ -67,7 +67,7 @@ class Client:
         self.status = {}  # Dictionary to hold client status
         self.nerrors = 0  # Number of errors encountered
         self.isalive = True #Assume alive until proven otherwise
-        self.socket = ClientSocket(IP=IP, Port=port, TIMEOUT=100, logdir="FSMcommand_log")
+        self.socket = ClientSocket(IP=IP, Port=port, TIMEOUT=1000, logdir="FSMcommand_log")
         self.previous_log = {} # Dictionary to hold previous logs of client's state machine(s)
         self.n_state_machines = n_state_machines
         if self.n_state_machines > 0:
