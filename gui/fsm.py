@@ -530,7 +530,8 @@ class FSM:
             response = self.clients[RC_name].socket.send_command("RC.stop")        # RC GSS to ROBOT_TRANSLATE
             response = self.clients[RC_name].socket.send_command("RC.set_st 0")    # RC ST to ST_IDLE
         if self.clients[PS_name].socket.connected:
-            response = self.clients[PS_name].socket.send_command("PS.set_ps_st 0") # Plate Solver to IDLE
+            description = "IDLE Plate Solver due to FSM STOP"
+            response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 0 {json.dumps(description)}") # Plate Solver to IDLE
 
     def _test_logs(self):
         """
@@ -705,19 +706,21 @@ class FSM:
                     
                     if ST_state == StarTrackerState.READY_TO_SLEW: # TODO: Should this only happen once? What if overrides RC ST transition to ST_SLEW_BLIND?
                         # Set FST state if dealing with Navis
+                        description = "RUNNING Plate Solver due to FSM READY_TO_SLEW"
                         if robot == "Navis":
                             response = self.clients[ST_camera].socket.send_command("FST.switchPlateSolve")
                             print(response)
                             if response == "Switched to Plate Solving Mode":
-                                response = self.clients[PS_name].socket.send_command("PS.set_ps_st 1") # Sets PS to RUNNING
+                                response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 1 {json.dumps(description)}") # Sets PS to RUNNING
                                 response = self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
                                 response = self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
                         else:
-                            response = self.clients[PS_name].socket.send_command("PS.set_ps_st 1") # Sets PS to RUNNING
+                            response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 1 {json.dumps(description)}") # Sets PS to RUNNING
                             response = self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
                             response = self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
                     elif ST_state == StarTrackerState.CENTROIDING:
-                        response = self.clients[PS_name].socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
+                        description = "IDLE Plate Solver due to FSM CENTROIDING"
+                        response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 0 {json.dumps(description)}")  # Sets PS to IDLE
                     elif ST_state == StarTrackerState.SOFT_RESET:
                         # If connected to robot, stop all offset correction
                         if self.clients[RC_name].socket.connected:
@@ -728,7 +731,8 @@ class FSM:
 
                         # If connected to plate solver, stop solving operations
                         if self.clients[PS_name].socket.connected:
-                            response = self.clients[PS_name].socket.send_command("PS.set_ps_st 0")
+                            description = "IDLE Plate Solver due to FSM SOFT_RESET"
+                            response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 0 {json.dumps(description)}")
                         else:
                             self.reconnect(PS_name)
 
@@ -747,7 +751,7 @@ class FSM:
                         # TODO: Do some hardware reset things
                         self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
                         self._log_fsm_status(logfile_path, robot, "ST", self.star_tracker_states[robot], "HARD_RESET completed.")
-                else: # STOP state
+                else: # STOP or IDLE state
                     # Stop RC motion (if server connection exists)
                     if self.clients[RC_name].socket.connected:
                         response = self.clients[RC_name].socket.send_command("RC.set_st 0") #ST_IDLE
@@ -757,7 +761,8 @@ class FSM:
 
                     # Stop PS operations (if server connection exists)
                     if self.clients[PS_name].socket.connected:
-                        response = self.clients[PS_name].socket.send_command("PS.set_ps_st 0")  # Sets PS to IDLE
+                        description = "IDLE Plate Solver due to FSM STOP"
+                        response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 0 {json.dumps(description)}")  # Sets PS to IDLE
                     else:  # Otherwise, reconnect to server
                         self.reconnect(PS_name)
 

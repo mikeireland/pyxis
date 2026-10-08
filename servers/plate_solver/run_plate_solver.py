@@ -260,13 +260,7 @@ def set_ps_state(state, description=""):
         ps_state["state"] = PlateSolverState.IDLE
     
     ps_state["timestamp"] = time.strftime('%Y-%m-%dT%H:%M:%S')
-
-    # If FSM has triggered a RUNNING state, set description within PS exactly once
-    if ps_state["state"] == PlateSolverState.RUNNING:
-        ps_state["description"] = "Running plate solving loop"
-    # Otherwise, update with a new state description if requested
-    else:
-        ps_state["description"] = description
+    ps_state["description"] = description
         
 
 def log_data(logfile_path, offset):
