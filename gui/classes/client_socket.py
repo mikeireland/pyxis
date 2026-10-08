@@ -57,7 +57,7 @@ class ClientSocket:
                     self.client.recv()
                 except:
                     self.count += 1
-                    return "Could not receive buffered response - connection still lost ({0:d} times).".format(self.count)
+                    return "Could not receive buffered response to tcpstring {0} - connection still lost ({1:d} times).".format(self.tcpstring, self.count)
                 self.connected=True
                 self.log_command("Empty command received, reconnected to server.")
                 return "Connection re-established!"
