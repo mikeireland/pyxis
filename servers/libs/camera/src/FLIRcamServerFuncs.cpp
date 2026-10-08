@@ -50,23 +50,23 @@ FLIRCameraServer::~FLIRCameraServer(){
     }
 
 //Get status of camera
-string FLIRCameraServer::status(){
-	string ret_msg;
+CameraStatus FLIRCameraServer::status(){
+    CameraStatus ret_status;
 	if(GLOB_CAM_STATUS == 0){
-		ret_msg = "Camera Not Connected!";
+        ret_status.camstate = "Camera Not Connected!";
 	}else if(GLOB_CAM_STATUS == 1){
-		ret_msg = "Camera Connecting";
+        ret_status.camstate = "Camera Connecting";
 	}else if(GLOB_RECONFIGURE == 1){
-		ret_msg = "Camera Reconfiguring";
+        ret_status.camstate = "Camera Reconfiguring";
 	}else if(GLOB_RUNNING == 1){
-		ret_msg = "Camera Running! Saving " + std::to_string(GLOB_NUMFRAMES) + " frames per file";
+        ret_status.camstate = "Camera Running! Saving " + std::to_string(GLOB_NUMFRAMES) + " frames per file";
 	}else if(GLOB_STOPPING == 1){
-		ret_msg = "Camera Stopping";
+        ret_status.camstate = "Camera Stopping";
 	}else{
-		ret_msg = "Camera Waiting";
+        ret_status.camstate = "Camera Waiting";
 	}
 
-	return ret_msg;
+    return ret_status;
 }
 
 // Get parameters from the global variable

@@ -44,13 +44,13 @@ enum FSTStatus {
     FST_ERROR = 2
 };
 
-struct Status {
+struct FineStarTrackerStatus : CameraStatus {
     enum FSTStatus status;
     string description;
     // Timestamp info?
 };
 
-struct Status fst_status = {PLATE_SOLVING, "Status initialised to PLATE_SOLVING"};
+FineStarTrackerStatus fst_status = {{"Camera Not Connected!"}, PLATE_SOLVING, "Status initialised to PLATE_SOLVING"};
 
 // Serialise centroid struct into JSON
 namespace nlohmann {
@@ -67,14 +67,15 @@ namespace nlohmann {
     };
 
     template <>
-    struct adl_serializer<Status> {
-        static void to_json(json& j, const Status& s) {
-            j = json{{"status", s.status}, {"description", s.description}};
+    struct adl_serializer<FineStarTrackerStatus> {
+        static void to_json(json& j, const FineStarTrackerStatus& s) {
+            j = json{{"status", s.status}, {"description", s.description}, {"camstate", s.camstate}};
         }
 
-        static void from_json(const json& j, Status& s) {
+        static void from_json(const json& j, FineStarTrackerStatus& s) {
             j.at("status").get_to(s.status);
             j.at("description").get_to(s.description);
+            j.at("camstate").get_to(s.camstate);
         }
     };
 }
@@ -174,7 +175,8 @@ struct FineStarTracker: FLIRCameraServer{
         delete RB_SOCKET;
     }
 
-    Status status(){
+    FineStarTrackerStatus status(){
+        fst_status.camstate = FLIRCameraServer::status().camstate;
         return fst_status;
     }   
 

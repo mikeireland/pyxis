@@ -9,6 +9,10 @@
 using namespace std;
 using json = nlohmann::json;
 
+struct CameraStatus {
+    string camstate;
+};
+
 int SimpleCallback (unsigned short* data);
 
 // FLIR Camera Server
@@ -22,7 +26,7 @@ struct FLIRCameraServer {
 
 
 //Get status of camera
-string status();
+CameraStatus status();
 
 // Get parameters from the global variable
 configuration getparams();
@@ -80,6 +84,17 @@ string resetUSBPort(string hub, string port);
 
 // Serialiser to convert configuration struct to/from JSON
 namespace nlohmann {
+    template <>
+    struct adl_serializer<CameraStatus> {
+        static void to_json(json& j, const CameraStatus& status) {
+            j = json{{"camstate", status.camstate}};
+        }
+
+        static void from_json(const json& j, CameraStatus& status) {
+            j.at("camstate").get_to(status.camstate);
+        }
+    };
+
     template <>
     struct adl_serializer<configuration> {
         static void to_json(json& j, const configuration& p) {

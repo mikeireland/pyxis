@@ -422,30 +422,34 @@ class BaseFLIRCameraWidget(RawWidget):
 
         response = self.socket.send_command("%s.status"%self.prefix)
         if (self.socket.connected):
-            self.status_light = "assets/green.svg"
-            self.svgWidget.load(self.status_light)
-
-            if response == '"Camera Not Connected!"':
+            # Extract the camstate from the response json
+            try:
+                response_json = json.loads(response)
+            except json.JSONDecodeError:
+                self.response_label.append("Error decoding JSON from: %s"%response)
+                return
+            camstate = response_json.get("camstate", "Unknown")
+            if camstate == "Camera Not Connected!":
                 self.Connect_button.setChecked(False)
                 self.Connect_button.setText("Connect")
                 self.run_button.setChecked(False)
                 self.run_button.setText("Start Camera")
-            elif response == '"Camera Connecting"':
+            elif camstate == "Camera Connecting":
                 self.Connect_button.setChecked(True)
                 self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
                 self.run_button.setText("Start Camera")
-            elif response == '"Camera Reconfiguring"':
+            elif camstate == "Camera Reconfiguring":
                 self.Connect_button.setChecked(True)
                 self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
                 self.run_button.setText("Start Camera")
-            elif response == '"Camera Stopping"':
+            elif camstate == "Camera Stopping":
                 self.Connect_button.setChecked(True)
                 self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
                 self.run_button.setText("Start Camera")
-            elif response == '"Camera Waiting"':
+            elif camstate == "Camera Waiting":
                 self.Connect_button.setChecked(True)
                 self.Connect_button.setText("Disconnect")
                 self.run_button.setChecked(False)
@@ -456,6 +460,8 @@ class BaseFLIRCameraWidget(RawWidget):
                 self.run_button.setChecked(True)
                 self.run_button.setText("Stop Camera")
 
+            self.status_light = "assets/green.svg"
+            self.svgWidget.load(self.status_light)
             self.response_label.append(response)
             self.status_text = "Socket Connected"
             self.status_label.setText(self.status_text)
