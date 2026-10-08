@@ -707,6 +707,7 @@ class FSM:
                         # Set FST state if dealing with Navis
                         if robot == "Navis":
                             response = self.clients[ST_camera].socket.send_command("FST.switchPlateSolve")
+                            print(response)
                             if response == "Switched to Plate Solving Mode": # TODO: Is this the only correct scenario?
                                 response = self.clients[PS_name].socket.send_command("PS.set_ps_st 1") # Sets PS to RUNNING
                                 response = self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
