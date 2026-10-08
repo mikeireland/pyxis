@@ -773,19 +773,7 @@ class FSM:
                         self.star_tracker_states[robot] = StarTrackerState.SOFT_RESET
                         self._log_fsm_status(logfile_path, robot, "ST", self.star_tracker_states[robot], "HARD_RESET completed.")
                 else: # STOP or IDLE state
-                    # Stop RC motion (if server connection exists)
-                    if self.clients[RC_name].socket.connected:
-                        response = self.clients[RC_name].socket.send_command("RC.set_st 0") #ST_IDLE
-                        response = self.clients[RC_name].socket.send_command("RC.stop")     #ROBOT_TRANSLATE
-                    else: # Otherwise, reconnect to server
-                        self.reconnect(RC_name)
-
-                    # Stop PS operations (if server connection exists)
-                    if self.clients[PS_name].socket.connected:
-                        description = "IDLE Plate Solver due to FSM STOP/IDLE"
-                        response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 0, {json.dumps(description)}")  # Sets PS to IDLE
-                    else:  # Otherwise, reconnect to server
-                        self.reconnect(PS_name)
+                    pass
 
                 time.sleep(0.05)
             
