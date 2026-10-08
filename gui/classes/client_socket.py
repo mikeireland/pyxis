@@ -47,21 +47,25 @@ class ClientSocket:
 
     def send_command(self, command, rcvtimeo = TIMEOUT):
         """Send a command"""
-        #If we aren't connected and the user pressed <Enter>, just try to reconnect
+        # Empty, dotless, and incomplete commands are safe to use as reconnect probes.
         if (self.connected==False):
-            if ((len(command)==0) or (len(command.split(".")[1])==0)):
+            command_suffix = command.split(".", 1)[1] if "." in command else ""
+            if not command or not command_suffix:
                 try:
                     self.client = self.context.socket(zmq.REQ)
                     self.client.connect(self.tcpstring)
                     self.client.RCVTIMEO = rcvtimeo
                     self.client.send_string(command,zmq.NOBLOCK)
-                    self.client.recv()
-                except:
+                    response = self.client.recv_string()
+                except Exception as error:
                     self.count += 1
-                    return "Could not receive buffered response to tcpstring {0} - connection still lost ({1:d} times).".format(self.tcpstring, self.count)
+                    message = "Reconnect attempt to {0} failed: {1} ({2:d} times).".format(
+                        self.tcpstring, error, self.count)
+                    self.log_command(message)
+                    return message
                 self.connected=True
-                self.log_command("Empty command received, reconnected to server.")
-                return "Connection re-established!"
+                self.log_command("Reconnected to server.")
+                return response if command else "Connection re-established!"
             else:
                 self.log_command("Connection lost, but command is not empty. Not reconnecting.")
                 return "Connection lost, but command is not empty. Not reconnecting."
