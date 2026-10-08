@@ -231,7 +231,6 @@ class PlateSolverState(Enum):
     RUNNING = 1
     DISCONNECTED = 2
     ERROR = 3
-    SIMULATION = 4
 
 ps_state = {
     "state": PlateSolverState.IDLE,
@@ -240,6 +239,7 @@ ps_state = {
 }
 
 socket_clients = {}
+simulation_start_time = None
 
 def commander_status():
     return {name: client.status() for name, client in socket_clients.items()}
@@ -261,6 +261,11 @@ def set_ps_state(state, description=""):
     
     ps_state["timestamp"] = time.strftime('%Y-%m-%dT%H:%M:%S')
     ps_state["description"] = description
+
+def simluate():
+    global simulation_start_time
+    simulation_start_time = time.monotonic()
+    return "Plate solver angle simulation started."
         
 
 def log_data(logfile_path, offset):
@@ -327,15 +332,25 @@ if __name__ == "__main__":
         set_ps_state,
         "Set state of Plate Solver instance.",
     )
+    plate_solver_commander.def_(
+        "PS.simluate",
+        simluate,
+        "Send [0.1, 0.1, 0] for 10 seconds, then [0, 0, 0] for 10 seconds.",
+    )
 
     # Make output folder (updated to unique log files - TODO: Path to logs/ ?)
     output_dir = config["output_folder"]
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    log_dir = config["log_file"]
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+    log_file = config["log_file"]
+    if os.path.isdir(log_file):
+        raise IsADirectoryError(
+            f"Log path is a directory, but must be a file: {log_file}. "
+            "Rename or remove the directory created by the previous startup code.")
+    log_parent_dir = os.path.dirname(log_file)
+    if log_parent_dir:
+        os.makedirs(log_parent_dir, exist_ok=True)
 
     context = zmq.Context()
     socket_clients.update({
@@ -360,13 +375,33 @@ if __name__ == "__main__":
     # MAIN LOOP
     #print("Beginning plate solving loop")
     while(1):
+        if simulation_start_time is not None:
+            elapsed = time.monotonic() - simulation_start_time
+            if elapsed < 10:
+                angles = (0.1, 0.1, 0)
+            elif elapsed < 20:
+                angles = (0, 0, 0)
+            else:
+                simulation_start_time = None
+                continue
+
+            return_message = "RC.receive_ST_angles %s,%s,%s" % angles
+            message = socket_clients["robot"].request(return_message)
+            if message is None:
+                set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with robot during simulation")
+            else:
+                log_data(log_file, angles)
+                log_info(log_file, "RC", message)
+            time.sleep(0.1)
+            continue
+
         if ps_state["state"] == PlateSolverState.RUNNING:            
             #Get target coordinates
             message = socket_clients["target"].request("TS.getCoordinates")
             if message is None:
                 set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with target server")
                 continue
-            log_info(log_dir, "TS", message)
+            log_info(log_file, "TS", message)
             #print("Received target server message: %s" % message )
     
             try:
@@ -387,7 +422,7 @@ if __name__ == "__main__":
                 if message is None:
                     set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with fibre injection server")
                     continue
-                log_info(log_dir, "FI", message)
+                log_info(log_file, "FI", message)
                 #print("Received fibre injection server message: %s" % message )
     
                 try:
@@ -410,7 +445,7 @@ if __name__ == "__main__":
                 camera = config["camera_port_name"]
                 set_ps_state(PlateSolverState.DISCONNECTED, f"Could not communicate with {camera} camera server")
                 continue
-            log_info(log_dir, config["camera_port_name"], message.strip('\"'))
+            log_info(log_file, config["camera_port_name"], message.strip('\"'))
             #print("Received camera message: %s" % message.strip('\"') )
     
             # WORK ON MESSAGE -> FILENAME
@@ -434,8 +469,8 @@ if __name__ == "__main__":
                     if message is None:
                         set_ps_state(PlateSolverState.DISCONNECTED, "Could not communicate with robot")
                     else:
-                        log_data(log_dir, angles)
-                        log_info(log_dir, "RC", message)
+                        log_data(log_file, angles)
+                        log_info(log_file, "RC", message)
                 else:
                     set_ps_state(PlateSolverState.ERROR, "ERROR in run_image, could not solve")
             else:
