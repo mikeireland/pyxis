@@ -234,7 +234,6 @@ class FSM:
             if self._update_client_prev_log(client, 1, state_RC_GSS):
                 self._log_status_helper(logfile_path, "RC", "GSS", state_RC_GSS)
         elif client.prefix == "PS":
-            print("Logging PS status for client:", client_name, "with status:", status)
             PS_index = status.get("state", 0) # Default to IDLE
             PS_state = PS_states.get(PS_index, "No state string at index: " + str(PS_index))
             PS_description = status.get("description", "")
@@ -540,7 +539,6 @@ class FSM:
         """
         description = "PS log desccription test"
         response = self.clients["NavisPlateSolver"].socket.send_command(f"PS.set_ps_st 0, {json.dumps(description)}")
-        print(response)
         self._log_client_status("NavisPlateSolver", self.clients["NavisPlateSolver"].status)
         self.star_tracker_states["Navis"] = StarTrackerState.SOFT_RESET
         self._run()
@@ -803,10 +801,10 @@ if __name__ == "__main__":
     #     print(f"Navis Robot Control - IP: {navis_robot_control.IP}, Port: {navis_robot_control.port}")
         
     # Start the FSM server
-    #fsm._run()
+    fsm._run()
 
     # Run logging test
-    fsm._test_logs()
+    #fsm._test_logs()
     
     # After a "quit" command, we close the socket and exit
     fsm.socket.close()
