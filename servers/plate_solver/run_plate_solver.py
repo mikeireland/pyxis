@@ -256,7 +256,7 @@ def set_ps_state(state, description=""):
     global ps_state
     try:
         ps_state["state"] = PlateSolverState(int(state))
-        print(ps_state["state"])
+        print(f"Plate Solver state set to {ps_state['state'].name} with description: {description}")
     except (TypeError, ValueError):
         ps_state["state"] = PlateSolverState.IDLE
     
