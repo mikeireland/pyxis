@@ -614,11 +614,16 @@ class FSM:
                                 #We expect a json structure as a response.
                                 #The client_socket will handle the connection and disconnection.
                                 response = client.socket.send_command(client.prefix + ".status")
+                                if not client.socket.connected:
+                                    raise ConnectionError(f"Status request failed: {response}")
                                 client.status = json.loads(response)
                                 self._log_client_status(client_name, client.status)
                                 self._process_status(client_name, client.status)
                             except Exception as e:
-                                self._log_event(self.status_logs["Event"], "error", "Proc-Err", f"Error checking server {client_name}: {e}, response: {response}")
+                                self._log_event(
+                                    self.status_logs["Event"], "error", "Proc-Err",
+                                    f"Error checking server {client_name}: {e}, "
+                                    f"response type: {type(response).__name__}, response: {response!r}")
                         elif client.nerrors < error_threshold:
                             # By convention, sending an empty command will try to reconnect. Automatically 
                             # reconecting like this is part of the "lazy pirate" pattern.
