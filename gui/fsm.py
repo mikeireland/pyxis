@@ -689,7 +689,7 @@ class FSM:
             """ Star Tracker State Transitions """
             # Loop through each robot, and direct the respective robot controller to
             # make the appropriate state transitions based on the FSM state and the server status. 
-            self.fsm_status("ST")
+            print(self.fsm_status("ST"))
             for robot in ["Navis","Dextra","Sinistra"]:
                 ST_camera = robot + "StarTracker"
                 RC_name   = robot + "RobotControl"
@@ -794,10 +794,10 @@ if __name__ == "__main__":
     #     print(f"Navis Robot Control - IP: {navis_robot_control.IP}, Port: {navis_robot_control.port}")
         
     # Start the FSM server
-    fsm._run()
+    #fsm._run()
 
     # Run logging test
-    #fsm._test_logs()
+    fsm._test_logs()
     
     # After a "quit" command, we close the socket and exit
     fsm.socket.close()
