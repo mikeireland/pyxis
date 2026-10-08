@@ -255,7 +255,7 @@ class FSM:
         Update client's previous log with the current state for future comparisons.
         """
         if machine_id in client.previous_log:
-            current_log = str(state) + description + transition_time
+            current_log = str(state) + description #+ transition_time
             if client.previous_log[machine_id] != current_log:
                 client.previous_log[machine_id] = current_log
                 return True
