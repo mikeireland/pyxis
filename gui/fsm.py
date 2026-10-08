@@ -538,7 +538,7 @@ class FSM:
         Test update links.
         """
         description = "PS log desccription test"
-        response = self.clients["NavisPlateSolver"].socket.send_command(f"set_ps_st 0, {description}")
+        response = self.clients["NavisPlateSolver"].socket.send_command(f"set_ps_st 0, {json.dumps(description)}")
         print(response)
         self._log_client_status("NavisPlateSolver", self.clients["NavisPlateSolver"].status)
         self.star_tracker_states["Navis"] = StarTrackerState.SOFT_RESET
