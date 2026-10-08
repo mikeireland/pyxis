@@ -19,7 +19,7 @@ except:
 # Default directory is the GUIcommand_log directory in the directory where the script is run.
 # This is where the log files will be saved.
 import os
-TIMEOUT = 2000  # Default timeout for socket operations in milliseconds
+TIMEOUT = 1000  # Default timeout for socket operations in milliseconds
 
 class ClientSocket:
     def __init__(self,IP="127.0.0.1",Port="44010",TIMEOUT=TIMEOUT, logdir=None):

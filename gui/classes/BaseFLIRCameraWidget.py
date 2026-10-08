@@ -419,7 +419,6 @@ class BaseFLIRCameraWidget(RawWidget):
 
     """Ask for the status of the server """
     def ask_for_status(self):
-
         response = self.socket.send_command("%s.status"%self.prefix)
         if (self.socket.connected):
             # Extract the camstate from the response json
