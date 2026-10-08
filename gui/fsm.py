@@ -179,7 +179,6 @@ class FSM:
     def _add_client(self, name, IP, port, prefix="", n_state_machines = 0):
         """Add a new client to the FSM"""
         self.clients[name] = Client(name, IP, port, prefix, n_state_machines)
-        print(f"Added client: {name} with IP: {IP}, Port: {port}, Prefix: {prefix}, Number of state machines: {n_state_machines}\n")
 
     def _remove_client(self, name):
         """Remove a client from the FSM"""
