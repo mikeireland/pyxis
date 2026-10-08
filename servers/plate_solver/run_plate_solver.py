@@ -309,22 +309,22 @@ if __name__ == "__main__":
     # Set up commander - TODO: Moved into main to access config file; could be wrong location
     plate_solver_commander = commander(config["platesolver_port"])
     plate_solver_commander.def_(
-        "tt_to_plate",
+        "PS.tt_to_plate",
         tt_to_plate,
         "Convert tip/tilt pixel offsets to star-tracker pixel offsets.",
     )
     plate_solver_commander.def_(
-        "commander_status",
+        "PS.commander_status",
         commander_status,
         "Get target, camera, robot, and fibre-injection connection status.",
     )
     plate_solver_commander.def_(
-        "status",
+        "PS.status",
         ps_status,
         "Get state and description of Plate Solver instance.",
     )
     plate_solver_commander.def_(
-        "set_ps_st",
+        "PS.set_ps_st",
         set_ps_state,
         "Set state of Plate Solver instance.",
     )

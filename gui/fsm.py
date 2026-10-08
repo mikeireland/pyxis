@@ -532,14 +532,14 @@ class FSM:
             response = self.clients[RC_name].socket.send_command("RC.set_st 0")    # RC ST to ST_IDLE
         if self.clients[PS_name].socket.connected:
             description = "IDLE Plate Solver due to FSM STOP"
-            response = self.clients[PS_name].socket.send_command(f"set_ps_st 0, {json.dumps(description)}") # Plate Solver to IDLE
+            response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 0, {json.dumps(description)}") # Plate Solver to IDLE
 
     def _test_logs(self):
         """
         Test update links.
         """
         description = "PS log desccription test"
-        response = self.clients["NavisPlateSolver"].socket.send_command(f"set_ps_st 0, {json.dumps(description)}")
+        response = self.clients["NavisPlateSolver"].socket.send_command(f"PS.set_ps_st 0, {json.dumps(description)}")
         print(response)
         self._log_client_status("NavisPlateSolver", self.clients["NavisPlateSolver"].status)
         self.star_tracker_states["Navis"] = StarTrackerState.SOFT_RESET
@@ -716,16 +716,16 @@ class FSM:
                             response = self.clients[ST_camera].socket.send_command("FST.switchPlateSolve")
                             print(response)
                             if response == "Switched to Plate Solving Mode":
-                                response = self.clients[PS_name].socket.send_command(f"set_ps_st 1, {json.dumps(description)}") # Sets PS to RUNNING
+                                response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 1, {json.dumps(description)}") # Sets PS to RUNNING
                                 response = self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
                                 response = self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
                         else:
-                            response = self.clients[PS_name].socket.send_command(f"set_ps_st 1, {json.dumps(description)}") # Sets PS to RUNNING
+                            response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 1, {json.dumps(description)}") # Sets PS to RUNNING
                             response = self.clients[RC_name].socket.send_command("RC.track")       # Sets RC GSS to ROBOT_TRACK
                             response = self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW
                     elif ST_state == StarTrackerState.CENTROIDING:
                         description = "IDLE Plate Solver due to FSM CENTROIDING"
-                        response = self.clients[PS_name].socket.send_command(f"set_ps_st 0, {json.dumps(description)}")  # Sets PS to IDLE
+                        response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 0, {json.dumps(description)}")  # Sets PS to IDLE
                     elif ST_state == StarTrackerState.SOFT_RESET:
                         # If connected to robot, stop all offset correction
                         if self.clients[RC_name].socket.connected:
@@ -737,7 +737,7 @@ class FSM:
                         # If connected to plate solver, stop solving operations
                         if self.clients[PS_name].socket.connected:
                             description = "IDLE Plate Solver due to FSM SOFT_RESET"
-                            response = self.clients[PS_name].socket.send_command(f"set_ps_st 0, {json.dumps(description)}")
+                            response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 0, {json.dumps(description)}")
                         else:
                             self.reconnect(PS_name)
 
@@ -767,7 +767,7 @@ class FSM:
                     # Stop PS operations (if server connection exists)
                     if self.clients[PS_name].socket.connected:
                         description = "IDLE Plate Solver due to FSM STOP"
-                        response = self.clients[PS_name].socket.send_command(f"set_ps_st 0, {json.dumps(description)}")  # Sets PS to IDLE
+                        response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 0, {json.dumps(description)}")  # Sets PS to IDLE
                     else:  # Otherwise, reconnect to server
                         self.reconnect(PS_name)
 
