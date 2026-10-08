@@ -764,7 +764,7 @@ class FSM:
 
                     # Stop PS operations (if server connection exists)
                     if self.clients[PS_name].socket.connected:
-                        description = "IDLE Plate Solver due to FSM STOP"
+                        description = "IDLE Plate Solver due to FSM STOP/IDLE"
                         response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 0, {json.dumps(description)}")  # Sets PS to IDLE
                     else:  # Otherwise, reconnect to server
                         self.reconnect(PS_name)
