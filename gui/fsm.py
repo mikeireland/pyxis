@@ -557,20 +557,26 @@ class FSM:
             
             # Check for incoming commands to the FSM server socket, i.e. commands from the GUI.
             # We use zmq.NOBLOCK to avoid blocking the loop if no command is received.
+            request_received = False
+            reply_attempted = False
             try:
                 message = self.socket.recv_string(flags=zmq.NOBLOCK)
+                request_received = True
                 self._log_event(self.status_logs["Event"],"info","Cmd-Rec",f"Received command: {message}")
 
                 # Handle empty message as a connection ping
                 if not message.strip():
+                    reply_attempted = True
                     self.socket.send_string("CONNECT_FSM")
                     continue
 
                 command, *args = message.split()
                 if command in self.command_dict:
                     response = self.command_dict[command](*args)
+                    reply_attempted = True
                     self.socket.send_string(str(response))
                 else:
+                    reply_attempted = True
                     self.socket.send_string(f"Unknown command: {command}")
             except zmq.Again:
                 pass
@@ -578,17 +584,24 @@ class FSM:
                 error_message = f"ZeroMQ error {error.errno}: {error}"
                 print(error_message)
                 self._log_event(self.status_logs["Event"], "error", "Cmd-ZMQ-Err", error_message)
-                try:
-                    self.socket.send_string("Error processing command")
-                except zmq.ZMQError as reply_error:
-                    reply_error_message = f"ZeroMQ error sending reply {reply_error.errno}: {reply_error}"
-                    print(reply_error_message)
-                    self._log_event(self.status_logs["Event"], "error", "Cmd-Reply-ZMQ-Err", reply_error_message)
+                if request_received and not reply_attempted:
+                    try:
+                        self.socket.send_string("Error processing command")
+                    except zmq.ZMQError as reply_error:
+                        reply_error_message = f"ZeroMQ error sending reply {reply_error.errno}: {reply_error}"
+                        print(reply_error_message)
+                        self._log_event(self.status_logs["Event"], "error", "Cmd-Reply-ZMQ-Err", reply_error_message)
             except Exception as error:
                 error_message = f"Error processing command: {error}"
                 print(error_message)
                 self._log_event(self.status_logs["Event"], "error", "Cmd-Err", error_message)
-                self.socket.send_string("Error processing command")
+                if request_received and not reply_attempted:
+                    try:
+                        self.socket.send_string("Error processing command")
+                    except zmq.ZMQError as reply_error:
+                        reply_error_message = f"ZeroMQ error sending reply {reply_error.errno}: {reply_error}"
+                        print(reply_error_message)
+                        self._log_event(self.status_logs["Event"], "error", "Cmd-Reply-ZMQ-Err", reply_error_message)
             
             #Now check the status of one client at a time
             for client_name, client in self.clients.items():

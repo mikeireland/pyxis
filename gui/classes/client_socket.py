@@ -45,13 +45,18 @@ class ClientSocket:
             self.connected=False
             self.log_command("Could not open socket at {0}".format(self.tcpstring))
 
-    def send_command(self, command, rcvtimeo = TIMEOUT):
+    def send_command(self, command, rcvtimeo=None):
         """Send a command"""
+        if rcvtimeo is None:
+            rcvtimeo = self.TIMEOUT
+
         # Empty, dotless, and incomplete commands are safe to use as reconnect probes.
         if (self.connected==False):
             command_suffix = command.split(".", 1)[1] if "." in command else ""
             if not command or not command_suffix:
                 try:
+                    self.client.setsockopt(zmq.LINGER, 0)
+                    self.client.close()
                     self.client = self.context.socket(zmq.REQ)
                     self.client.connect(self.tcpstring)
                     self.client.RCVTIMEO = rcvtimeo

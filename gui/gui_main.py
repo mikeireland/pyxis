@@ -338,10 +338,14 @@ class PyxisGui(QTabWidget):
             if not fsm_status:
                 self.response_label.append("FSM returned empty response")
                 return {}
+            if not self.fsm_socket.connected:
+                return {"error": f"FSM status request failed: {fsm_status}"}
             fsm_status_str = fsm_status.decode() if isinstance(fsm_status, bytes) else fsm_status
             fsm_status_str = fsm_status_str.replace("True", '"True"').replace("False", '"False"').replace("'", '"')
-            fsm_status_dict = json.loads(fsm_status_str)
-            return fsm_status_dict
+            try:
+                return json.loads(fsm_status_str)
+            except json.JSONDecodeError as error:
+                return {"error": f"FSM returned non-JSON status: {fsm_status!r} ({error})"}
         except Exception as e:
             return ({"error": str(e) + ", returned status: " + str(fsm_status)} if 'fsm_status' in locals() else {"error": str(e)})
     
