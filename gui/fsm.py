@@ -67,7 +67,7 @@ class Client:
         self.status = {}  # Dictionary to hold client status
         self.nerrors = 0  # Number of errors encountered
         self.isalive = True #Assume alive until proven otherwise
-        self.socket = ClientSocket(IP=IP, Port=port, TIMEOUT=100, logdir="FSMcommand_log")
+        self.socket = ClientSocket(IP=IP, Port=port, TIMEOUT=1000, logdir="FSMcommand_log")
         self.previous_log = {} # Dictionary to hold previous logs of client's state machine(s)
         self.n_state_machines = n_state_machines
         if self.n_state_machines > 0:
@@ -614,11 +614,16 @@ class FSM:
                                 #We expect a json structure as a response.
                                 #The client_socket will handle the connection and disconnection.
                                 response = client.socket.send_command(client.prefix + ".status")
+                                if not client.socket.connected:
+                                    raise ConnectionError(f"Status request failed: {response}")
                                 client.status = json.loads(response)
                                 self._log_client_status(client_name, client.status)
                                 self._process_status(client_name, client.status)
                             except Exception as e:
-                                self._log_event(self.status_logs["Event"], "error", "Proc-Err", f"Error checking server {client_name}: {e}, response: {response}")
+                                self._log_event(
+                                    self.status_logs["Event"], "error", "Proc-Err",
+                                    f"Error checking server {client_name}: {e}, "
+                                    f"response type: {type(response).__name__}, response: {response!r}")
                         elif client.nerrors < error_threshold:
                             # By convention, sending an empty command will try to reconnect. Automatically 
                             # reconecting like this is part of the "lazy pirate" pattern.
@@ -726,7 +731,7 @@ class FSM:
                         if robot == "Navis":
                             response = self.clients[ST_camera].socket.send_command("FST.switchPlateSolve")
                             print(response)
-                            if response == "Switched to Plate Solving Mode":
+                            if response == '"Switched to Plate Solving Mode"': #!!!! OMG strings
                                 response = self.clients[PS_name].socket.send_command(f"PS.set_ps_st 1, {json.dumps(description)}") # Sets PS to RUNNING
                                 response = self.clients[RC_name].socket.send_command("RC.track 0, 0, 0, 0, 0, 0, 0, 0")       # Sets RC GSS to ROBOT_TRACK
                                 response = self.clients[RC_name].socket.send_command("RC.set_st 1")    # Sets RC ST to READY_TO_SLEW

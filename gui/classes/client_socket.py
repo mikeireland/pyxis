@@ -45,6 +45,14 @@ class ClientSocket:
             self.connected=False
             self.log_command("Could not open socket at {0}".format(self.tcpstring))
 
+    def _discard_socket(self):
+        """Discard a REQ socket that cannot safely issue another request."""
+        try:
+            self.client.setsockopt(zmq.LINGER, 0)
+            self.client.close()
+        except Exception:
+            pass
+
     def send_command(self, command, rcvtimeo=None):
         """Send a command"""
         if rcvtimeo is None:
@@ -55,14 +63,14 @@ class ClientSocket:
             command_suffix = command.split(".", 1)[1] if "." in command else ""
             if not command or not command_suffix:
                 try:
-                    self.client.setsockopt(zmq.LINGER, 0)
-                    self.client.close()
+                    self._discard_socket()
                     self.client = self.context.socket(zmq.REQ)
                     self.client.connect(self.tcpstring)
                     self.client.RCVTIMEO = rcvtimeo
                     self.client.send_string(command,zmq.NOBLOCK)
                     response = self.client.recv_string()
                 except Exception as error:
+                    self._discard_socket()
                     self.count += 1
                     message = "Reconnect attempt to {0} failed: {1} ({2:d} times).".format(
                         self.tcpstring, error, self.count)
@@ -79,11 +87,14 @@ class ClientSocket:
         try:
             self.client.send_string(command,zmq.NOBLOCK)
             self.log_command(command)
-        except:
+        except Exception as error:
             self.connected=False
+            self._discard_socket()
             self.count += 1
-            self.log_command("Error sending command, connection lost ({0:d} times)".format(self.count))
-            return 'Error sending command, connection lost ({0:d} times).'.format(self.count)
+            message = "Error sending command to {0}: {1} ({2:d} times).".format(
+                self.tcpstring, error, self.count)
+            self.log_command(message)
+            return message
 
         #Receive the response
         try:
@@ -98,11 +109,14 @@ class ClientSocket:
                 response = False
             self.log_response(response)
             return response
-        except:
+        except Exception as error:
             self.connected=False
+            self._discard_socket()
             self.count += 1
-            self.log_response("Error receiving response, connection lost ({0:d} times)".format(self.count))
-            return 'Error receiving response, connection lost ({0:d} times)\nPress Enter to reconnect.'.format(self.count)
+            message = "Error receiving response from {0}: {1} ({2:d} times).".format(
+                self.tcpstring, error, self.count)
+            self.log_response(message)
+            return message
         
 
         #Edited by Qianhui: log all commands sent to the server with a timestamp
