@@ -43,6 +43,7 @@ class ClientSocket:
         except:
             print('Could not open socket at {0}'.format(self.tcpstring))
             self.connected=False
+            self.log_command("Could not open socket at {0}".format(self.tcpstring))
 
     def send_command(self, command, rcvtimeo = TIMEOUT):
         """Send a command"""

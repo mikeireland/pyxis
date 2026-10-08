@@ -343,7 +343,7 @@ class PyxisGui(QTabWidget):
             fsm_status_dict = json.loads(fsm_status_str)
             return fsm_status_dict
         except Exception as e:
-            return ({"error": str(e)})
+            return ({"error": str(e) + ", returned status: " + str(fsm_status)} if 'fsm_status' in locals() else {"error": str(e)})
     
 
     def get_indicators(self, isalive, connected, name, tab):
@@ -383,6 +383,10 @@ class PyxisGui(QTabWidget):
         if tab_index == 0:
             try:
                 fsm_status_dict = self.get_status_from_fsm()
+                #Assert that the dictionary doesn't contain an error key
+                if "error" in fsm_status_dict:
+                    self.response_label.append("FSM returned error: " + fsm_status_dict["error"])
+                    return
                 missing_modules = []
                 for tab in config:
                     for item in config[tab]:
