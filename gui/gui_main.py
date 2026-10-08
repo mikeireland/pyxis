@@ -396,6 +396,7 @@ class PyxisGui(QTabWidget):
                         self.get_indicators(module_status.get("isalive", "False"),
                                             module_status.get("connected", "False"), name, tab)
                 if missing_modules:
+                    self.response_label.append("Return dict: " + str(fsm_status_dict))
                     self.response_label.append(
                         "FSM status missing modules: " + ", ".join(missing_modules))
                 fringe_services = [status for name, status in fsm_status_dict.items()
