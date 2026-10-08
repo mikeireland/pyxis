@@ -689,6 +689,7 @@ class FSM:
             """ Star Tracker State Transitions """
             # Loop through each robot, and direct the respective robot controller to
             # make the appropriate state transitions based on the FSM state and the server status. 
+            self.fsm_status("ST")
             for robot in ["Navis","Dextra","Sinistra"]:
                 ST_camera = robot + "StarTracker"
                 RC_name   = robot + "RobotControl"
