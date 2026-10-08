@@ -246,11 +246,19 @@ def commander_status():
 
 def ps_status():
     global ps_state
-    return json.dumps(ps_state)
+    return {
+        "state": ps_state["state"].value,
+        "description": ps_state["description"],
+        "timestamp": ps_state["timestamp"],
+    }
 
 def set_ps_state(state, description=""):
     global ps_state
-    ps_state["state"] = PlateSolverState.get(state, PlateSolverState.IDLE)
+    try:
+        ps_state["state"] = PlateSolverState(int(state))
+    except (TypeError, ValueError):
+        ps_state["state"] = PlateSolverState.IDLE
+    
     ps_state["timestamp"] = time.strftime('%Y-%m-%dT%H:%M:%S')
 
     # If FSM has triggered a RUNNING state, set description within PS exactly once
