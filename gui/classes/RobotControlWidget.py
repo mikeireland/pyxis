@@ -604,6 +604,10 @@ class RobotControlWidget(RawWidget):
             self.move_func(5,-float(self.Robot_yaw_edit.text()))
         if event.key() == Qt.Key_Right:
             self.move_func(5,float(self.Robot_yaw_edit.text()))
+        if event.key() == Qt.Key_Comma:
+            self.move_func(6,-float(self.Robot_gon_edit.text()))
+        if event.key() == Qt.Key_Period:
+            self.move_func(6,float(self.Robot_gon_edit.text()))
     
     """When the keyboard is released, stop the robot"""
     def keyReleaseEvent(self, event):
@@ -615,7 +619,8 @@ class RobotControlWidget(RawWidget):
             super().keyReleaseEvent(event)
             return
 
-        if event.key() in [Qt.Key_A, Qt.Key_D, Qt.Key_W, Qt.Key_S, Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
+        if event.key() in [Qt.Key_A, Qt.Key_D, Qt.Key_W, Qt.Key_S, Qt.Key_Up, Qt.Key_Down,
+                           Qt.Key_Left, Qt.Key_Right, Qt.Key_Comma, Qt.Key_Period]:
             self.stop_button_func()
             self.level_button_func()
 

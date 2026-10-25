@@ -142,6 +142,15 @@
     description = "Navis Plate Solver operations"
     n_state_machines = 1
 
+    [Navis.TargetControl] 
+    tab_name = "Target"
+    name = "TargetControl" # Internal identifier 
+    prefix = "TS" # Server class prefix
+    port = "4130"
+    description = "Navis Target selector (move to FSM?)" 
+    module_type = "TargetWidget" # What GUI class?
+    n_state_machines = 0 
+
 [Dextra]
 
     [Dextra.RobotControl]

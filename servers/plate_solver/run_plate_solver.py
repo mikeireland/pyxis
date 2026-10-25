@@ -262,7 +262,7 @@ def set_ps_state(state, description=""):
     ps_state["timestamp"] = time.strftime('%Y-%m-%dT%H:%M:%S')
     ps_state["description"] = description
 
-def simluate():
+def simulate():
     global simulation_start_time
     simulation_start_time = time.monotonic()
     return "Plate solver angle simulation started."
@@ -333,8 +333,8 @@ if __name__ == "__main__":
         "Set state of Plate Solver instance.",
     )
     plate_solver_commander.def_(
-        "PS.simluate",
-        simluate,
+        "PS.simulate",
+        simulate,
         "Send [0.1, 0.1, 0] for 10 seconds, then [0, 0, 0] for 10 seconds.",
     )
 
